@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://appuser:${DB_PASSWORD}@db:5432/patienttracker
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3000
+    volumes:
+      - ./config:/app/config
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"  # Expose for local development
+    environment:
+      - POSTGRES_DB=patienttracker
+      - POSTGRES_USER=appuser
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d patienttracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+networks:
+  patient-tracker:
+    driver: bridge
+
+volumes:
+  postgres_data:

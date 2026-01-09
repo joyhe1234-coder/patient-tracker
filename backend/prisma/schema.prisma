@@ -1,0 +1,204 @@
+// Patient Quality Measure Tracking System
+// Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// PATIENT DATA
+// ============================================
+
+model Patient {
+  id              Int              @id @default(autoincrement())
+  memberName      String           @map("member_name")
+  memberDob       DateTime         @map("member_dob") @db.Date
+  memberTelephone String?          @map("member_telephone")
+  memberAddress   String?          @map("member_address")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  measures        PatientMeasure[]
+
+  @@unique([memberName, memberDob])
+  @@map("patients")
+}
+
+model PatientMeasure {
+  id                    Int       @id @default(autoincrement())
+  patientId             Int       @map("patient_id")
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  requestType           String    @map("request_type")
+  qualityMeasure        String    @map("quality_measure")
+  measureStatus         String    @map("measure_status") @default("Not Addressed")
+  statusDate            DateTime? @map("status_date") @db.Date
+  statusDatePrompt      String?   @map("status_date_prompt")
+  tracking1             String?   @map("tracking_1")
+  tracking2             String?   @map("tracking_2")
+  tracking3             String?   @map("tracking_3")
+  dueDate               DateTime? @map("due_date") @db.Date
+  timeIntervalDays      Int?      @map("time_interval_days")
+  notes                 String?
+  rowOrder              Int       @default(0) @map("row_order")
+  isDuplicate           Boolean   @default(false) @map("is_duplicate")
+
+  // HgbA1c Goal Configuration Fields
+  hgba1cGoal            String?   @map("hgba1c_goal")
+  hgba1cGoalReachedYear Boolean   @default(false) @map("hgba1c_goal_reached_year")
+  hgba1cDeclined        Boolean   @default(false) @map("hgba1c_declined")
+
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([patientId])
+  @@index([qualityMeasure])
+  @@index([measureStatus])
+  @@index([dueDate])
+  @@index([statusDate])
+  @@map("patient_measures")
+}
+
+// ============================================
+// CONFIGURATION DATA
+// ============================================
+
+model RequestType {
+  id                 Int              @id @default(autoincrement())
+  code               String           @unique
+  label              String
+  autoQualityMeasure String?          @map("auto_quality_measure")
+  sortOrder          Int              @default(0) @map("sort_order")
+  qualityMeasures    QualityMeasure[]
+
+  @@map("config_request_types")
+}
+
+model QualityMeasure {
+  id              Int             @id @default(autoincrement())
+  requestTypeId   Int             @map("request_type_id")
+  requestType     RequestType     @relation(fields: [requestTypeId], references: [id], onDelete: Cascade)
+  code            String
+  label           String
+  allowDuplicates Boolean         @default(false) @map("allow_duplicates")
+  sortOrder       Int             @default(0) @map("sort_order")
+  measureStatuses MeasureStatus[]
+
+  @@unique([requestTypeId, code])
+  @@map("config_quality_measures")
+}
+
+model MeasureStatus {
+  id               Int              @id @default(autoincrement())
+  qualityMeasureId Int              @map("quality_measure_id")
+  qualityMeasure   QualityMeasure   @relation(fields: [qualityMeasureId], references: [id], onDelete: Cascade)
+  code             String
+  label            String
+  datePrompt       String?          @map("date_prompt")
+  baseDueDays      Int?             @map("base_due_days")
+  showDueDateInput Boolean          @default(false) @map("show_due_date_input")
+  sortOrder        Int              @default(0) @map("sort_order")
+  trackingOptions  TrackingOption[]
+  dueDayRules      DueDayRule[]
+
+  @@unique([qualityMeasureId, code])
+  @@map("config_measure_statuses")
+}
+
+model TrackingOption {
+  id              Int           @id @default(autoincrement())
+  measureStatusId Int           @map("measure_status_id")
+  measureStatus   MeasureStatus @relation(fields: [measureStatusId], references: [id], onDelete: Cascade)
+  trackingNumber  Int           @map("tracking_number") // 1, 2, or 3
+  optionValue     String?       @map("option_value")    // null = free text
+  defaultText     String?       @map("default_text")    // placeholder text
+  sortOrder       Int           @default(0) @map("sort_order")
+
+  @@map("config_tracking_options")
+}
+
+model DueDayRule {
+  id              Int           @id @default(autoincrement())
+  measureStatusId Int           @map("measure_status_id")
+  measureStatus   MeasureStatus @relation(fields: [measureStatusId], references: [id], onDelete: Cascade)
+  trackingValue   String?       @map("tracking_value")  // null = use base_due_days
+  dueDays         Int           @map("due_days")
+
+  @@unique([measureStatusId, trackingValue])
+  @@map("config_due_day_rules")
+}
+
+// HgbA1c Goal Configuration
+model HgbA1cGoalOption {
+  id        Int     @id @default(autoincrement())
+  code      String  @unique
+  label     String
+  threshold Decimal @db.Decimal(3, 1)
+  sortOrder Int     @default(0) @map("sort_order")
+
+  @@map("config_hgba1c_goals")
+}
+
+// ============================================
+// CONDITIONAL FORMATTING
+// ============================================
+
+model ConditionalFormat {
+  id              Int    @id @default(autoincrement())
+  name            String
+  conditionType   String @map("condition_type") // 'status', 'dueDate', 'hgba1c'
+  conditionValue  String @map("condition_value")
+  backgroundColor String @map("background_color")
+  textColor       String @default("#000000") @map("text_color")
+  priority        Int    @default(0)
+
+  @@map("config_conditional_formats")
+}
+
+// ============================================
+// REFERENCE DATA
+// ============================================
+
+model HCCCode {
+  id          Int     @id @default(autoincrement())
+  category    String
+  description String
+  icd10Code   String  @map("icd10_code")
+  rafValue    Decimal @map("raf_value") @db.Decimal(5, 3)
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  @@map("reference_hcc_codes")
+}
+
+// ============================================
+// SYSTEM
+// ============================================
+
+model EditLock {
+  id                  Int       @id @default(1)
+  lockedByUsername    String?   @map("locked_by_username")
+  lockedByDisplayName String?   @map("locked_by_display_name")
+  lockedAt            DateTime? @map("locked_at")
+  lastActivity        DateTime? @map("last_activity")
+
+  @@map("edit_lock")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  username  String?
+  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK'
+  entity    String?  // 'patient_measure', 'patient', etc.
+  entityId  Int?     @map("entity_id")
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([username])
+  @@index([entity, entityId])
+  @@map("audit_log")
+}

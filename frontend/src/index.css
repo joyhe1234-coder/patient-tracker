@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure full height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* AG Grid Theme Customization */
+.ag-theme-alpine {
+  --ag-header-background-color: #f3f4f6;
+  --ag-odd-row-background-color: #f9fafb;
+  --ag-row-hover-color: #e5e7eb;
+  --ag-selected-row-background-color: #dbeafe;
+  --ag-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --ag-font-size: 14px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Status indicator animations */
+@keyframes pulse-save {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.saving-indicator {
+  animation: pulse-save 1s ease-in-out infinite;
+}
+
+/* Cell styles */
+.cell-invalid {
+  border: 2px solid #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.cell-warning {
+  border: 2px solid #f59e0b !important;
+  background-color: #fffbeb !important;
+}
+
+.cell-required-empty {
+  border: 2px dashed #ef4444 !important;
+}
+
+/* Row styles */
+.row-duplicate {
+  background-color: #fef3c7 !important;
+  border-left: 4px solid #f59e0b !important;
+}
+
+.row-editing {
+  background-color: #fefce8 !important;
+}
+
+/* Sticky header support */
+.ag-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}

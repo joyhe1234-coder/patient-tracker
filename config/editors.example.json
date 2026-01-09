@@ -1,0 +1,9 @@
+{
+  "editors": [
+    {
+      "username": "editor1",
+      "password": "change_this_password",
+      "displayName": "Editor One"
+    }
+  ]
+}
