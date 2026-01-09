@@ -38,6 +38,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Date formatting (display as MM/DD/YYYY, edit as YYYY-MM-DD)
 - [x] DOB masking (displays as ### for privacy)
 - [x] Phone number formatting ((555) 123-4567)
+- [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
 
 ### Phase 3: Cascading Dropdowns
 
@@ -66,17 +67,33 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - **Pale Yellow** (#FFF9E6): Called to schedule, Discussed, Contacted
   - **Light Orange** (#FFE8CC): Chronic diagnosis resolved/invalid
 
+### Phase 5: Business Logic & Calculations
+
+**Status: Complete**
+
+- [x] Due Date auto-calculation based on Status Date + rules
+  - Special handling for "Screening discussed" + tracking month patterns
+  - Special handling for HgbA1c statuses + tracking2 month patterns
+  - DueDayRule lookup for measureStatus + tracking1 combinations
+  - MeasureStatus.baseDueDays fallback
+- [x] Time Interval (Days) calculation (dueDate - statusDate)
+- [x] Status Date prompt when Measure Status changes
+  - Shows contextual prompt text (e.g., "Date Completed", "Date Ordered")
+  - **Dark gray cell background** with white italic text when status date is missing
+  - Special overrides for "Patient deceased" and "Patient in hospice"
+- [x] Duplicate detection (same patient + quality measure)
+  - Visual indicator: Light yellow background (#FEF3C7)
+  - Warning modal when creating duplicate entries
+  - Backend duplicate flag synchronization on create/update/delete
+- [x] Backend services layer:
+  - `dueDateCalculator.ts` - Due date calculation logic
+  - `duplicateDetector.ts` - Duplicate detection and flag management
+  - `statusDatePromptResolver.ts` - Status date prompt resolution
+- [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
+
 ---
 
 ## Future Phases
-
-### Phase 5: Business Logic & Calculations
-
-**Planned Features:**
-- [ ] Due Date auto-calculation based on Status Date + rules
-- [ ] Time Interval (Days) calculation
-- [ ] Status Date prompt when Measure Status changes
-- [ ] Duplicate detection (same patient + quality measure warning)
 
 ### Phase 6: HgbA1c Goal Configuration
 
@@ -152,6 +169,10 @@ patient-tracker/
 │   │   ├── config/          # Database and app config
 │   │   ├── middleware/      # Error handling
 │   │   ├── routes/          # API routes (data, config, health)
+│   │   ├── services/        # Business logic services
+│   │   │   ├── dueDateCalculator.ts
+│   │   │   ├── duplicateDetector.ts
+│   │   │   └── statusDatePromptResolver.ts
 │   │   └── index.ts         # Server entry point
 │   └── prisma/
 │       ├── schema.prisma    # Database schema
@@ -162,7 +183,7 @@ patient-tracker/
 │       ├── components/
 │       │   ├── grid/        # PatientGrid component
 │       │   ├── layout/      # Header, Toolbar, StatusBar
-│       │   └── modals/      # AddRowModal, ConfirmModal
+│       │   └── modals/      # AddRowModal, ConfirmModal, DuplicateWarningModal
 │       ├── config/          # Dropdown configurations
 │       ├── pages/           # MainPage
 │       └── App.tsx          # Root component
@@ -201,4 +222,4 @@ docker compose up -d --build
 
 ## Last Updated
 
-January 9, 2026
+January 9, 2026 - Phase 5 Complete

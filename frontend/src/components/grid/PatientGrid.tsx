@@ -1,6 +1,6 @@
-import { useMemo, useCallback, useRef, useState } from 'react';
+import { useMemo, useCallback, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, CellValueChangedEvent, GridReadyEvent, GridApi, SelectionChangedEvent, ICellEditorParams, RowClassParams } from 'ag-grid-community';
+import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
@@ -41,6 +41,7 @@ interface PatientGridProps {
   onRowUpdated?: (row: GridRow) => void;
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
   onRowSelected?: (id: number | null) => void;
+  showMemberInfo?: boolean;
 }
 
 // Date formatter for display
@@ -80,25 +81,17 @@ const formatPhone = (value: string | null): string => {
   return value;
 };
 
-// Date parser for editing
-const parseDate = (value: string): string | null => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return null;
-  return date.toISOString();
-};
-
 export default function PatientGrid({
   rowData,
   onRowUpdated,
   onSaveStatusChange,
-  onRowSelected
+  onRowSelected,
+  showMemberInfo = true
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
-  const [gridApi, setGridApi] = useState<GridApi<GridRow> | null>(null);
 
-  const onGridReady = useCallback((params: GridReadyEvent<GridRow>) => {
-    setGridApi(params.api);
+  const onGridReady = useCallback((_params: GridReadyEvent<GridRow>) => {
+    // Grid is ready, can access API via gridRef.current.api if needed
   }, []);
 
   // Handle row selection change
@@ -219,7 +212,7 @@ export default function PatientGrid({
       field: 'memberDob',
       headerName: 'Member DOB',
       width: 130,
-      pinned: 'left',
+      hide: !showMemberInfo,
       editable: true,
       valueFormatter: (params) => formatDobMasked(params.value),
       valueGetter: (params) => {
@@ -231,10 +224,14 @@ export default function PatientGrid({
       valueSetter: (params) => {
         // Convert YYYY-MM-DD back to ISO
         if (!params.newValue) {
-          params.data.memberDob = null;
+          // Keep old value if cleared (DOB is required)
+          return false;
         } else {
           const date = new Date(params.newValue);
-          params.data.memberDob = isNaN(date.getTime()) ? params.oldValue : date.toISOString();
+          if (isNaN(date.getTime())) {
+            return false; // Invalid date, don't update
+          }
+          params.data.memberDob = date.toISOString();
         }
         return true;
       },
@@ -243,6 +240,7 @@ export default function PatientGrid({
       field: 'memberTelephone',
       headerName: 'Member Telephone',
       width: 140,
+      hide: !showMemberInfo,
       editable: true,
       valueFormatter: (params) => formatPhone(params.value),
     },
@@ -250,6 +248,7 @@ export default function PatientGrid({
       field: 'memberAddress',
       headerName: 'Member Home Address',
       width: 220,
+      hide: !showMemberInfo,
       editable: true,
     },
     {
@@ -275,9 +274,26 @@ export default function PatientGrid({
     {
       field: 'statusDate',
       headerName: 'Status Date',
-      width: 120,
+      width: 140,
       editable: true,
-      valueFormatter: (params) => formatDate(params.value),
+      valueFormatter: (params) => {
+        // Show prompt text if no date and prompt exists
+        if (!params.value && params.data?.statusDatePrompt) {
+          return params.data.statusDatePrompt;
+        }
+        return formatDate(params.value);
+      },
+      cellStyle: (params) => {
+        // Dark gray background for cells missing status date
+        if (!params.value && params.data?.statusDatePrompt) {
+          return {
+            backgroundColor: '#6B7280', // Dark gray background
+            color: '#FFFFFF', // White text
+            fontStyle: 'italic'
+          };
+        }
+        return null;
+      },
       valueGetter: (params) => {
         const value = params.data?.statusDate;
         if (!value) return '';
@@ -339,7 +355,7 @@ export default function PatientGrid({
       flex: 1,
       editable: true,
     },
-  ], []);
+  ], [showMemberInfo]);
 
   const defaultColDef = useMemo<ColDef>(() => ({
     sortable: true,
@@ -347,9 +363,17 @@ export default function PatientGrid({
     resizable: true,
   }), []);
 
-  // Row styling based on Measure Status (from Excel conditional formatting)
+  // Row styling based on Measure Status and duplicate detection
   const getRowStyle = useCallback((params: RowClassParams<GridRow>) => {
     const status = params.data?.measureStatus || '';
+    const isDuplicate = params.data?.isDuplicate || false;
+
+    // Priority 0: Duplicate rows (highest priority - orange left border indicator)
+    if (isDuplicate) {
+      return {
+        backgroundColor: '#FEF3C7', // Light yellow
+      };
+    }
 
     // Priority 1: No longer applicable / Screening unnecessary (Gray)
     if (status === 'No longer applicable' ||

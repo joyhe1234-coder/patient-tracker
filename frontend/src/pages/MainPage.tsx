@@ -5,6 +5,7 @@ import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
+import DuplicateWarningModal from '../components/modals/DuplicateWarningModal';
 import { api } from '../api/axios';
 
 export default function MainPage() {
@@ -17,6 +18,11 @@ export default function MainPage() {
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [pendingRowData, setPendingRowData] = useState<NewRowData | null>(null);
+
+  // Column visibility
+  const [showMemberInfo, setShowMemberInfo] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -44,8 +50,8 @@ export default function MainPage() {
     );
   }, []);
 
-  // Handle add new row
-  const handleAddRow = async (data: NewRowData) => {
+  // Create row (called after duplicate check passes or user confirms)
+  const createRow = async (data: NewRowData) => {
     try {
       setSaveStatus('saving');
       const response = await api.post('/data', {
@@ -66,6 +72,47 @@ export default function MainPage() {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
+  };
+
+  // Handle add new row - check for duplicates first
+  const handleAddRow = async (data: NewRowData) => {
+    try {
+      // Check if this would create a duplicate
+      const checkResponse = await api.post('/data/check-duplicate', {
+        memberName: data.memberName,
+        memberDob: data.memberDob,
+        qualityMeasure: 'Annual Wellness Visit', // Default quality measure
+      });
+
+      if (checkResponse.data.success && checkResponse.data.data.isDuplicate) {
+        // Show duplicate warning modal
+        setPendingRowData(data);
+        setShowDuplicateWarning(true);
+        return;
+      }
+
+      // No duplicate, proceed with creation
+      await createRow(data);
+    } catch (err) {
+      console.error('Failed to check duplicate:', err);
+      // If check fails, proceed with creation anyway
+      await createRow(data);
+    }
+  };
+
+  // Handle proceeding with duplicate creation
+  const handleProceedWithDuplicate = async () => {
+    if (pendingRowData) {
+      await createRow(pendingRowData);
+      setPendingRowData(null);
+      setShowDuplicateWarning(false);
+    }
+  };
+
+  // Handle canceling duplicate creation
+  const handleCancelDuplicate = () => {
+    setPendingRowData(null);
+    setShowDuplicateWarning(false);
   };
 
   // Handle delete row
@@ -129,6 +176,8 @@ export default function MainPage() {
         onDeleteRow={() => setShowDeleteModal(true)}
         canDelete={selectedRowId !== null}
         saveStatus={saveStatus}
+        showMemberInfo={showMemberInfo}
+        onToggleMemberInfo={() => setShowMemberInfo(!showMemberInfo)}
       />
 
       <div className="flex-1 p-4">
@@ -137,6 +186,7 @@ export default function MainPage() {
           onRowUpdated={handleRowUpdated}
           onSaveStatusChange={setSaveStatus}
           onRowSelected={handleRowSelected}
+          showMemberInfo={showMemberInfo}
         />
       </div>
 
@@ -159,6 +209,15 @@ export default function MainPage() {
         confirmColor="red"
         onConfirm={handleDeleteRow}
         onCancel={() => setShowDeleteModal(false)}
+      />
+
+      {/* Duplicate Warning Modal */}
+      <DuplicateWarningModal
+        isOpen={showDuplicateWarning}
+        patientName={pendingRowData?.memberName || ''}
+        qualityMeasure="Annual Wellness Visit"
+        onProceed={handleProceedWithDuplicate}
+        onCancel={handleCancelDuplicate}
       />
     </div>
   );

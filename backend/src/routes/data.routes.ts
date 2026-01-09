@@ -1,6 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database.js';
 import { createError } from '../middleware/errorHandler.js';
+import { calculateDueDate } from '../services/dueDateCalculator.js';
+import { updateDuplicateFlags, checkForDuplicate } from '../services/duplicateDetector.js';
+import { resolveStatusDatePrompt, getDefaultDatePrompt } from '../services/statusDatePromptResolver.js';
 
 const router = Router();
 
@@ -101,47 +104,82 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       _max: { rowOrder: true },
     });
 
+    // Parse status date
+    const parsedStatusDate = statusDate ? new Date(statusDate) : null;
+    const finalMeasureStatus = measureStatus || 'Not Addressed';
+
+    // Calculate due date and time interval
+    const { dueDate, timeIntervalDays } = await calculateDueDate(
+      parsedStatusDate,
+      finalMeasureStatus,
+      tracking1 || null,
+      tracking2 || null
+    );
+
+    // Resolve status date prompt
+    let statusDatePrompt = await resolveStatusDatePrompt(finalMeasureStatus, tracking1 || null);
+    if (!statusDatePrompt) {
+      statusDatePrompt = getDefaultDatePrompt(finalMeasureStatus);
+    }
+
+    // Check for duplicates before creating
+    const { isDuplicate } = await checkForDuplicate(patient.id, qualityMeasure);
+
     // Create patient measure
     const measure = await prisma.patientMeasure.create({
       data: {
         patientId: patient.id,
         requestType,
         qualityMeasure,
-        measureStatus: measureStatus || 'Not Addressed',
-        statusDate: statusDate ? new Date(statusDate) : null,
+        measureStatus: finalMeasureStatus,
+        statusDate: parsedStatusDate,
+        statusDatePrompt,
         tracking1: tracking1 || null,
         tracking2: tracking2 || null,
         tracking3: tracking3 || null,
+        dueDate,
+        timeIntervalDays,
         notes: notes || null,
         rowOrder: (maxOrder._max.rowOrder || 0) + 1,
+        isDuplicate,
       },
       include: {
         patient: true,
       },
     });
 
+    // Update duplicate flags for all measures in this group
+    await updateDuplicateFlags(patient.id, qualityMeasure);
+
+    // Re-fetch measure to get updated isDuplicate flag
+    const updatedMeasure = await prisma.patientMeasure.findUnique({
+      where: { id: measure.id },
+      include: { patient: true },
+    });
+
     // Return flattened data
     res.status(201).json({
       success: true,
       data: {
-        id: measure.id,
-        patientId: measure.patientId,
-        memberName: measure.patient.memberName,
-        memberDob: measure.patient.memberDob,
-        memberTelephone: measure.patient.memberTelephone,
-        memberAddress: measure.patient.memberAddress,
-        requestType: measure.requestType,
-        qualityMeasure: measure.qualityMeasure,
-        measureStatus: measure.measureStatus,
-        statusDate: measure.statusDate,
-        tracking1: measure.tracking1,
-        tracking2: measure.tracking2,
-        tracking3: measure.tracking3,
-        dueDate: measure.dueDate,
-        timeIntervalDays: measure.timeIntervalDays,
-        notes: measure.notes,
-        rowOrder: measure.rowOrder,
-        isDuplicate: measure.isDuplicate,
+        id: updatedMeasure!.id,
+        patientId: updatedMeasure!.patientId,
+        memberName: updatedMeasure!.patient.memberName,
+        memberDob: updatedMeasure!.patient.memberDob,
+        memberTelephone: updatedMeasure!.patient.memberTelephone,
+        memberAddress: updatedMeasure!.patient.memberAddress,
+        requestType: updatedMeasure!.requestType,
+        qualityMeasure: updatedMeasure!.qualityMeasure,
+        measureStatus: updatedMeasure!.measureStatus,
+        statusDate: updatedMeasure!.statusDate,
+        statusDatePrompt: updatedMeasure!.statusDatePrompt,
+        tracking1: updatedMeasure!.tracking1,
+        tracking2: updatedMeasure!.tracking2,
+        tracking3: updatedMeasure!.tracking3,
+        dueDate: updatedMeasure!.dueDate,
+        timeIntervalDays: updatedMeasure!.timeIntervalDays,
+        notes: updatedMeasure!.notes,
+        rowOrder: updatedMeasure!.rowOrder,
+        isDuplicate: updatedMeasure!.isDuplicate,
       },
     });
   } catch (error) {
@@ -164,6 +202,9 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     if (!existing) {
       throw createError('Record not found', 404, 'NOT_FOUND');
     }
+
+    // Track old quality measure for duplicate detection
+    const oldQualityMeasure = existing.qualityMeasure;
 
     // Separate patient fields from measure fields
     const patientFields = ['memberName', 'memberDob', 'memberTelephone', 'memberAddress'];
@@ -201,6 +242,52 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
+    // Determine final values for calculation (use updated value if provided, else existing)
+    const finalStatusDate = measureUpdate.statusDate !== undefined
+      ? measureUpdate.statusDate as Date | null
+      : existing.statusDate;
+    const finalMeasureStatus = (measureUpdate.measureStatus as string) || existing.measureStatus;
+    const finalTracking1 = measureUpdate.tracking1 !== undefined
+      ? measureUpdate.tracking1 as string | null
+      : existing.tracking1;
+    const finalTracking2 = measureUpdate.tracking2 !== undefined
+      ? measureUpdate.tracking2 as string | null
+      : existing.tracking2;
+    const finalQualityMeasure = (measureUpdate.qualityMeasure as string) || existing.qualityMeasure;
+
+    // Check if due date related fields changed
+    const dueDateFieldsChanged =
+      'statusDate' in updateData ||
+      'measureStatus' in updateData ||
+      'tracking1' in updateData ||
+      'tracking2' in updateData;
+
+    if (dueDateFieldsChanged) {
+      // Recalculate due date and time interval
+      const { dueDate, timeIntervalDays } = await calculateDueDate(
+        finalStatusDate,
+        finalMeasureStatus,
+        finalTracking1,
+        finalTracking2
+      );
+      measureUpdate.dueDate = dueDate;
+      measureUpdate.timeIntervalDays = timeIntervalDays;
+    }
+
+    // Check if status date prompt related fields changed
+    const promptFieldsChanged =
+      'measureStatus' in updateData ||
+      'tracking1' in updateData;
+
+    if (promptFieldsChanged) {
+      // Recalculate status date prompt
+      let statusDatePrompt = await resolveStatusDatePrompt(finalMeasureStatus, finalTracking1);
+      if (!statusDatePrompt) {
+        statusDatePrompt = getDefaultDatePrompt(finalMeasureStatus);
+      }
+      measureUpdate.statusDatePrompt = statusDatePrompt;
+    }
+
     // Update measure
     const updated = await prisma.patientMeasure.update({
       where: { id: parseInt(id, 10) },
@@ -213,31 +300,96 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       },
     });
 
+    // Check if quality measure changed for duplicate detection
+    const qualityMeasureChanged = 'qualityMeasure' in updateData && updateData.qualityMeasure !== oldQualityMeasure;
+
+    if (qualityMeasureChanged) {
+      // Update duplicate flags for both old and new quality measure groups
+      await updateDuplicateFlags(existing.patientId, oldQualityMeasure);
+      await updateDuplicateFlags(existing.patientId, finalQualityMeasure);
+    }
+
+    // Re-fetch to get updated isDuplicate flag
+    const finalMeasure = await prisma.patientMeasure.findUnique({
+      where: { id: updated.id },
+      include: { patient: true },
+    });
+
     // Return flattened data
     res.json({
       success: true,
       data: {
-        id: updated.id,
-        patientId: updated.patientId,
-        memberName: updated.patient.memberName,
-        memberDob: updated.patient.memberDob,
-        memberTelephone: updated.patient.memberTelephone,
-        memberAddress: updated.patient.memberAddress,
-        requestType: updated.requestType,
-        qualityMeasure: updated.qualityMeasure,
-        measureStatus: updated.measureStatus,
-        statusDate: updated.statusDate,
-        tracking1: updated.tracking1,
-        tracking2: updated.tracking2,
-        tracking3: updated.tracking3,
-        dueDate: updated.dueDate,
-        timeIntervalDays: updated.timeIntervalDays,
-        notes: updated.notes,
-        rowOrder: updated.rowOrder,
-        isDuplicate: updated.isDuplicate,
-        hgba1cGoal: updated.hgba1cGoal,
-        hgba1cGoalReachedYear: updated.hgba1cGoalReachedYear,
-        hgba1cDeclined: updated.hgba1cDeclined,
+        id: finalMeasure!.id,
+        patientId: finalMeasure!.patientId,
+        memberName: finalMeasure!.patient.memberName,
+        memberDob: finalMeasure!.patient.memberDob,
+        memberTelephone: finalMeasure!.patient.memberTelephone,
+        memberAddress: finalMeasure!.patient.memberAddress,
+        requestType: finalMeasure!.requestType,
+        qualityMeasure: finalMeasure!.qualityMeasure,
+        measureStatus: finalMeasure!.measureStatus,
+        statusDate: finalMeasure!.statusDate,
+        statusDatePrompt: finalMeasure!.statusDatePrompt,
+        tracking1: finalMeasure!.tracking1,
+        tracking2: finalMeasure!.tracking2,
+        tracking3: finalMeasure!.tracking3,
+        dueDate: finalMeasure!.dueDate,
+        timeIntervalDays: finalMeasure!.timeIntervalDays,
+        notes: finalMeasure!.notes,
+        rowOrder: finalMeasure!.rowOrder,
+        isDuplicate: finalMeasure!.isDuplicate,
+        hgba1cGoal: finalMeasure!.hgba1cGoal,
+        hgba1cGoalReachedYear: finalMeasure!.hgba1cGoalReachedYear,
+        hgba1cDeclined: finalMeasure!.hgba1cDeclined,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/data/check-duplicate - Check if a duplicate would be created
+router.post('/check-duplicate', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { memberName, memberDob, qualityMeasure } = req.body;
+
+    if (!memberName || !memberDob || !qualityMeasure) {
+      return res.json({
+        success: true,
+        data: { isDuplicate: false, existingCount: 0 },
+      });
+    }
+
+    // Find patient by name and DOB
+    const patient = await prisma.patient.findUnique({
+      where: {
+        memberName_memberDob: {
+          memberName,
+          memberDob: new Date(memberDob),
+        },
+      },
+    });
+
+    if (!patient) {
+      return res.json({
+        success: true,
+        data: { isDuplicate: false, existingCount: 0 },
+      });
+    }
+
+    // Check for existing measures with this quality measure
+    const existingMeasures = await prisma.patientMeasure.findMany({
+      where: {
+        patientId: patient.id,
+        qualityMeasure,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        isDuplicate: existingMeasures.length > 0,
+        existingCount: existingMeasures.length,
       },
     });
   } catch (error) {
@@ -258,9 +410,15 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
       throw createError('Record not found', 404, 'NOT_FOUND');
     }
 
+    // Store patient and quality measure info before deletion
+    const { patientId, qualityMeasure } = existing;
+
     await prisma.patientMeasure.delete({
       where: { id: parseInt(id, 10) },
     });
+
+    // Update duplicate flags for remaining measures in this group
+    await updateDuplicateFlags(patientId, qualityMeasure);
 
     res.json({
       success: true,

@@ -296,6 +296,80 @@ async function main() {
   console.log('Created measure statuses');
 
   // ============================================
+  // DUE DAY RULES (tracking-specific overrides)
+  // ============================================
+
+  // Get measure status IDs for creating due day rules
+  const screeningDiscussedStatus = await prisma.measureStatus.findFirst({
+    where: { code: 'Screening discussed' },
+  });
+
+  if (screeningDiscussedStatus) {
+    // Due day rules for "Screening discussed" based on tracking1 values
+    const screeningDiscussedRules = [
+      { trackingValue: 'In 1 Month', dueDays: 30 },
+      { trackingValue: 'In 2 Months', dueDays: 60 },
+      { trackingValue: 'In 3 Months', dueDays: 90 },
+      { trackingValue: 'In 4 Months', dueDays: 120 },
+    ];
+
+    for (const rule of screeningDiscussedRules) {
+      await prisma.dueDayRule.upsert({
+        where: {
+          measureStatusId_trackingValue: {
+            measureStatusId: screeningDiscussedStatus.id,
+            trackingValue: rule.trackingValue,
+          },
+        },
+        update: {},
+        create: {
+          measureStatusId: screeningDiscussedStatus.id,
+          trackingValue: rule.trackingValue,
+          dueDays: rule.dueDays,
+        },
+      });
+    }
+  }
+
+  // Get HgbA1c NOT at goal status for callback rules
+  const hgba1cNotAtGoalStatus = await prisma.measureStatus.findFirst({
+    where: { code: 'HgbA1c NOT at goal' },
+  });
+
+  if (hgba1cNotAtGoalStatus) {
+    // Due day rules for "Scheduled call back" based on tracking1 values
+    const callbackRules = [
+      { trackingValue: 'Call every 1 wk', dueDays: 7 },
+      { trackingValue: 'Call every 2 wks', dueDays: 14 },
+      { trackingValue: 'Call every 3 wks', dueDays: 21 },
+      { trackingValue: 'Call every 4 wks', dueDays: 28 },
+      { trackingValue: 'Call every 5 wks', dueDays: 35 },
+      { trackingValue: 'Call every 6 wks', dueDays: 42 },
+      { trackingValue: 'Call every 7 wks', dueDays: 49 },
+      { trackingValue: 'Call every 8 wks', dueDays: 56 },
+    ];
+
+    for (const rule of callbackRules) {
+      await prisma.dueDayRule.upsert({
+        where: {
+          measureStatusId_trackingValue: {
+            measureStatusId: hgba1cNotAtGoalStatus.id,
+            trackingValue: rule.trackingValue,
+          },
+        },
+        update: {},
+        create: {
+          measureStatusId: hgba1cNotAtGoalStatus.id,
+          trackingValue: rule.trackingValue,
+          dueDays: rule.dueDays,
+        },
+      });
+    }
+  }
+
+  console.log('Created due day rules');
+
+  // ============================================
   // HgbA1c GOAL OPTIONS
   // ============================================
   await Promise.all([
