@@ -1,9 +1,16 @@
 import { useMemo, useCallback, useRef, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, CellValueChangedEvent, GridReadyEvent, GridApi, SelectionChangedEvent } from 'ag-grid-community';
+import { ColDef, CellValueChangedEvent, GridReadyEvent, GridApi, SelectionChangedEvent, ICellEditorParams, RowClassParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
+import {
+  REQUEST_TYPES,
+  getQualityMeasuresForRequestType,
+  getMeasureStatusesForQualityMeasure,
+  getTracking1OptionsForStatus,
+  getAutoFillQualityMeasure,
+} from '../../config/dropdownConfig';
 
 export interface GridRow {
   id: number;
@@ -47,6 +54,22 @@ const formatDate = (value: string | null): string => {
   });
 };
 
+// DOB formatter - masked for privacy
+const formatDobMasked = (value: string | null): string => {
+  if (!value) return '';
+  return '###';
+};
+
+// Format date for editing (YYYY-MM-DD)
+const formatDateForEdit = (value: string | null): string => {
+  if (!value) return '';
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Phone formatter for display
 const formatPhone = (value: string | null): string => {
   if (!value) return '';
@@ -88,9 +111,9 @@ export default function PatientGrid({
     }
   }, [onRowSelected]);
 
-  // Handle cell value change - auto-save
+  // Handle cell value change - auto-save with cascading logic
   const onCellValueChanged = useCallback(async (event: CellValueChangedEvent<GridRow>) => {
-    const { data, colDef, newValue, oldValue } = event;
+    const { data, colDef, newValue, oldValue, node, api: gridApi } = event;
 
     // Don't save if value hasn't changed
     if (newValue === oldValue) return;
@@ -104,12 +127,55 @@ export default function PatientGrid({
         [colDef.field]: newValue,
       };
 
+      // Handle cascading logic
+      if (colDef.field === 'requestType') {
+        // Auto-fill Quality Measure for AWV and Chronic DX
+        const autoFillQM = getAutoFillQualityMeasure(newValue);
+        if (autoFillQM) {
+          updatePayload.qualityMeasure = autoFillQM;
+          node.setDataValue('qualityMeasure', autoFillQM);
+        } else if (newValue !== oldValue) {
+          // Reset Quality Measure if Request Type changed and no auto-fill
+          const validMeasures = getQualityMeasuresForRequestType(newValue);
+          if (!validMeasures.includes(data.qualityMeasure)) {
+            updatePayload.qualityMeasure = '';
+            node.setDataValue('qualityMeasure', '');
+          }
+        }
+        // Reset Measure Status when Request Type changes
+        updatePayload.measureStatus = 'Not Addressed';
+        node.setDataValue('measureStatus', 'Not Addressed');
+      }
+
+      if (colDef.field === 'qualityMeasure') {
+        // Reset Measure Status when Quality Measure changes
+        const validStatuses = getMeasureStatusesForQualityMeasure(newValue);
+        if (!validStatuses.includes(data.measureStatus)) {
+          updatePayload.measureStatus = 'Not Addressed';
+          node.setDataValue('measureStatus', 'Not Addressed');
+        }
+      }
+
+      if (colDef.field === 'measureStatus') {
+        // Reset Tracking #1 if new status doesn't have tracking options
+        const trackingOptions = getTracking1OptionsForStatus(newValue);
+        if (!trackingOptions && data.tracking1) {
+          // Keep tracking1 as free text if no dropdown options
+        } else if (trackingOptions && data.tracking1 && !trackingOptions.includes(data.tracking1)) {
+          updatePayload.tracking1 = null;
+          node.setDataValue('tracking1', null);
+        }
+      }
+
       const response = await api.put(`/data/${data.id}`, updatePayload);
 
       if (response.data.success) {
         // Update the row with server response
         onRowUpdated?.(response.data.data);
         onSaveStatusChange?.('saved');
+
+        // Refresh cells to update dropdown options
+        gridApi.refreshCells({ rowNodes: [node], force: true });
 
         // Reset to idle after 2 seconds
         setTimeout(() => {
@@ -137,6 +203,10 @@ export default function PatientGrid({
       width: 130,
       pinned: 'left',
       editable: true,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: {
+        values: REQUEST_TYPES,
+      },
     },
     {
       field: 'memberName',
@@ -148,11 +218,26 @@ export default function PatientGrid({
     {
       field: 'memberDob',
       headerName: 'Member DOB',
-      width: 120,
+      width: 130,
       pinned: 'left',
       editable: true,
-      valueFormatter: (params) => formatDate(params.value),
-      valueParser: (params) => parseDate(params.newValue),
+      valueFormatter: (params) => formatDobMasked(params.value),
+      valueGetter: (params) => {
+        // Return YYYY-MM-DD format for editing
+        const value = params.data?.memberDob;
+        if (!value) return '';
+        return formatDateForEdit(value);
+      },
+      valueSetter: (params) => {
+        // Convert YYYY-MM-DD back to ISO
+        if (!params.newValue) {
+          params.data.memberDob = null;
+        } else {
+          const date = new Date(params.newValue);
+          params.data.memberDob = isNaN(date.getTime()) ? params.oldValue : date.toISOString();
+        }
+        return true;
+      },
     },
     {
       field: 'memberTelephone',
@@ -170,14 +255,22 @@ export default function PatientGrid({
     {
       field: 'qualityMeasure',
       headerName: 'Quality Measure',
-      width: 180,
+      width: 200,
       editable: true,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: (params: ICellEditorParams<GridRow>) => ({
+        values: getQualityMeasuresForRequestType(params.data?.requestType || ''),
+      }),
     },
     {
       field: 'measureStatus',
       headerName: 'Measure Status',
-      width: 180,
+      width: 220,
       editable: true,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: (params: ICellEditorParams<GridRow>) => ({
+        values: getMeasureStatusesForQualityMeasure(params.data?.qualityMeasure || ''),
+      }),
     },
     {
       field: 'statusDate',
@@ -185,13 +278,34 @@ export default function PatientGrid({
       width: 120,
       editable: true,
       valueFormatter: (params) => formatDate(params.value),
-      valueParser: (params) => parseDate(params.newValue),
+      valueGetter: (params) => {
+        const value = params.data?.statusDate;
+        if (!value) return '';
+        return formatDateForEdit(value);
+      },
+      valueSetter: (params) => {
+        if (!params.newValue) {
+          params.data.statusDate = null;
+        } else {
+          const date = new Date(params.newValue);
+          params.data.statusDate = isNaN(date.getTime()) ? params.oldValue : date.toISOString();
+        }
+        return true;
+      },
     },
     {
       field: 'tracking1',
       headerName: 'Tracking #1',
-      width: 150,
+      width: 160,
       editable: true,
+      cellEditor: (params: ICellEditorParams<GridRow>) => {
+        const options = getTracking1OptionsForStatus(params.data?.measureStatus || '');
+        return options ? 'agSelectCellEditor' : 'agTextCellEditor';
+      },
+      cellEditorParams: (params: ICellEditorParams<GridRow>) => {
+        const options = getTracking1OptionsForStatus(params.data?.measureStatus || '');
+        return options ? { values: options } : {};
+      },
     },
     {
       field: 'tracking2',
@@ -233,6 +347,61 @@ export default function PatientGrid({
     resizable: true,
   }), []);
 
+  // Row styling based on Measure Status (from Excel conditional formatting)
+  const getRowStyle = useCallback((params: RowClassParams<GridRow>) => {
+    const status = params.data?.measureStatus || '';
+
+    // Priority 1: No longer applicable / Screening unnecessary (Gray)
+    if (status === 'No longer applicable' ||
+        status === 'Screening unnecessary' ||
+        status === 'Vaccination unnecessary') {
+      return { backgroundColor: '#E9EBF3' }; // Light gray
+    }
+
+    // Priority 2: Declined / Contraindicated (Light purple)
+    if (status.toLowerCase().includes('declined') ||
+        status.toLowerCase().includes('contraindicated')) {
+      return { backgroundColor: '#E5D9F2' }; // Light purple
+    }
+
+    // Priority 3: Completed / At Goal statuses (Light green)
+    if (status.toLowerCase().includes('completed') ||
+        status.toLowerCase().includes('at goal') ||
+        status === 'Chronic diagnosis coded' ||
+        status === 'Patient currently on ACE/ARB' ||
+        status === 'Blood pressure at goal') {
+      return { backgroundColor: '#D4EDDA' }; // Light green
+    }
+
+    // Priority 4: Scheduled / Ordered / In Progress (Light blue)
+    if (status.toLowerCase().includes('scheduled') ||
+        status.toLowerCase().includes('ordered') ||
+        status.toLowerCase().includes('referral made') ||
+        status === 'Obtaining outside records' ||
+        status === 'Will call later to schedule' ||
+        status === 'HgbA1c NOT at goal' ||
+        status === 'Test ordered' ||
+        status === 'Appointment scheduled') {
+      return { backgroundColor: '#CCE5FF' }; // Light blue
+    }
+
+    // Priority 5: Initial contact / Discussed (Pale yellow)
+    if (status.toLowerCase().includes('called to schedule') ||
+        status.toLowerCase().includes('discussed') ||
+        status.toLowerCase().includes('contacted for')) {
+      return { backgroundColor: '#FFF9E6' }; // Pale yellow
+    }
+
+    // Priority 6: Chronic diagnosis resolved/invalid (Light orange)
+    if (status === 'Chronic diagnosis resolved' ||
+        status === 'Chronic diagnosis invalid') {
+      return { backgroundColor: '#FFE8CC' }; // Light orange
+    }
+
+    // Default: No special coloring
+    return undefined;
+  }, []);
+
   return (
     <div
       className="ag-theme-alpine"
@@ -247,6 +416,7 @@ export default function PatientGrid({
         rowSelection="single"
         suppressRowClickSelection={false}
         getRowId={(params) => String(params.data.id)}
+        getRowStyle={getRowStyle}
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
         onSelectionChanged={onSelectionChanged}
