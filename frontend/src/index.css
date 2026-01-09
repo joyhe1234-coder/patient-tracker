@@ -12,11 +12,17 @@ html, body, #root {
 /* AG Grid Theme Customization */
 .ag-theme-alpine {
   --ag-header-background-color: #f3f4f6;
-  --ag-odd-row-background-color: #f9fafb;
-  --ag-row-hover-color: #e5e7eb;
-  --ag-selected-row-background-color: #dbeafe;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-even-row-background-color: #ffffff;
+  --ag-row-hover-color: transparent;
+  --ag-selected-row-background-color: transparent;
   --ag-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --ag-font-size: 14px;
+}
+
+/* Selected row indicator - use border instead of background to preserve measure status colors */
+.ag-theme-alpine .ag-row-selected {
+  border-left: 4px solid #3b82f6 !important;
 }
 
 /* Custom scrollbar */
@@ -82,4 +88,11 @@ html, body, #root {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+/* Ensure cell editor input has visible text (dark on light background) */
+.ag-theme-alpine .ag-cell-edit-wrapper input,
+.ag-theme-alpine .ag-cell-editor input {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
 }

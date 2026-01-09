@@ -61,14 +61,14 @@ const formatDobMasked = (value: string | null): string => {
   return '###';
 };
 
-// Format date for editing (YYYY-MM-DD)
+// Format date for editing (MM/DD/YYYY)
 const formatDateForEdit = (value: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${month}/${day}/${year}`;
 };
 
 // Phone formatter for display
@@ -79,6 +79,28 @@ const formatPhone = (value: string | null): string => {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
   return value;
+};
+
+// Parse date with MM/DD/YYYY format validation
+const parseAndValidateDate = (input: string): Date | null => {
+  if (!input || !input.trim()) return null;
+
+  const trimmed = input.trim();
+
+  // Only accept MM/DD/YYYY format
+  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) {
+    const [, month, day, year] = match;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (!isNaN(date.getTime())) return date;
+  }
+
+  return null;
+};
+
+// Show date format error
+const showDateFormatError = () => {
+  alert('Invalid date format.\n\nAccepted format: MM/DD/YYYY (e.g., 01/09/2026)');
 };
 
 export default function PatientGrid({
@@ -116,8 +138,11 @@ export default function PatientGrid({
     onSaveStatusChange?.('saving');
 
     try {
+      // Use the processed value from data object for fields with valueSetters
+      // This ensures we send the transformed value (e.g., ISO date string) not raw input
+      const processedValue = data[colDef.field as keyof GridRow];
       const updatePayload: Record<string, unknown> = {
-        [colDef.field]: newValue,
+        [colDef.field]: processedValue,
       };
 
       // Handle cascading logic
@@ -163,12 +188,13 @@ export default function PatientGrid({
       const response = await api.put(`/data/${data.id}`, updatePayload);
 
       if (response.data.success) {
-        // Update the row with server response
+        // Update the row data in the grid using transaction API
+        // This properly updates the grid's internal state and triggers getRowStyle
+        gridApi.applyTransaction({ update: [response.data.data] });
+
+        // Update the row with server response (for React state)
         onRowUpdated?.(response.data.data);
         onSaveStatusChange?.('saved');
-
-        // Refresh cells to update dropdown options
-        gridApi.refreshCells({ rowNodes: [node], force: true });
 
         // Reset to idle after 2 seconds
         setTimeout(() => {
@@ -222,17 +248,17 @@ export default function PatientGrid({
         return formatDateForEdit(value);
       },
       valueSetter: (params) => {
-        // Convert YYYY-MM-DD back to ISO
+        // Convert date back to ISO - DOB is required
         if (!params.newValue) {
-          // Keep old value if cleared (DOB is required)
+          alert('Date of Birth is required and cannot be empty.');
           return false;
-        } else {
-          const date = new Date(params.newValue);
-          if (isNaN(date.getTime())) {
-            return false; // Invalid date, don't update
-          }
-          params.data.memberDob = date.toISOString();
         }
+        const date = parseAndValidateDate(params.newValue);
+        if (!date) {
+          showDateFormatError();
+          return false;
+        }
+        params.data.memberDob = date.toISOString();
         return true;
       },
     },
@@ -292,7 +318,12 @@ export default function PatientGrid({
             fontStyle: 'italic'
           };
         }
-        return null;
+        // Reset to default styling when value is present
+        return {
+          backgroundColor: 'transparent',
+          color: 'inherit',
+          fontStyle: 'normal'
+        };
       },
       valueGetter: (params) => {
         const value = params.data?.statusDate;
@@ -302,10 +333,14 @@ export default function PatientGrid({
       valueSetter: (params) => {
         if (!params.newValue) {
           params.data.statusDate = null;
-        } else {
-          const date = new Date(params.newValue);
-          params.data.statusDate = isNaN(date.getTime()) ? params.oldValue : date.toISOString();
+          return true;
         }
+        const date = parseAndValidateDate(params.newValue);
+        if (!date) {
+          showDateFormatError();
+          return false; // Reject the change
+        }
+        params.data.statusDate = date.toISOString();
         return true;
       },
     },
@@ -368,62 +403,102 @@ export default function PatientGrid({
     const status = params.data?.measureStatus || '';
     const isDuplicate = params.data?.isDuplicate || false;
 
-    // Priority 0: Duplicate rows (highest priority - orange left border indicator)
+    // Priority 0: Duplicate rows (highest priority)
     if (isDuplicate) {
-      return {
-        backgroundColor: '#FEF3C7', // Light yellow
-      };
+      return { backgroundColor: '#FEF3C7' }; // Light yellow for duplicates
     }
 
-    // Priority 1: No longer applicable / Screening unnecessary (Gray)
-    if (status === 'No longer applicable' ||
-        status === 'Screening unnecessary' ||
-        status === 'Vaccination unnecessary') {
-      return { backgroundColor: '#E9EBF3' }; // Light gray
+    // Color mapping based on status categories
+    // Gray (#E9EBF3): No longer applicable, Screening unnecessary
+    const grayStatuses = [
+      'No longer applicable',
+      'Screening unnecessary',
+    ];
+
+    // Light Purple (#E5D9F2): Declined, Contraindicated
+    const purpleStatuses = [
+      'Patient declined AWV',
+      'Patient declined',
+      'Patient declined screening',
+      'Declined BP control',
+      'Contraindicated',
+    ];
+
+    // Light Green (#D4EDDA): Completed, At Goal
+    const greenStatuses = [
+      'AWV completed',
+      'Diabetic eye exam completed',
+      'Colon cancer screening completed',
+      'Screening test completed',
+      'Screening completed',
+      'GC/Clamydia screening completed',
+      'Urine microalbumin completed',
+      'Blood pressure at goal',
+      'Lab completed',
+      'Vaccination completed',
+      'HgbA1c at goal',
+      'Chronic diagnosis confirmed',
+      'Patient on ACE/ARB',
+    ];
+
+    // Light Blue (#CCE5FF): Scheduled, Ordered, In Progress
+    const blueStatuses = [
+      'AWV scheduled',
+      'Diabetic eye exam scheduled',
+      'Diabetic eye exam referral made',
+      'Colon cancer screening ordered',
+      'Screening test ordered',
+      'Screening appt made',
+      'Test ordered',
+      'Urine microalbumin ordered',
+      'Appointment scheduled',
+      'ACE/ARB prescribed',
+      'Vaccination scheduled',
+      'HgbA1c ordered',
+      'Lab ordered',
+      'Obtaining outside records',
+      'HgbA1c NOT at goal',
+      'Scheduled call back - BP not at goal',
+      'Scheduled call back - BP at goal',
+      'Will call later to schedule',
+    ];
+
+    // Pale Yellow (#FFF9E6): Called to schedule, Discussed, Contacted
+    const yellowStatuses = [
+      'Patient called to schedule AWV',
+      'Diabetic eye exam discussed',
+      'Screening discussed',
+      'Patient contacted for screening',
+      'Vaccination discussed',
+    ];
+
+    // Light Orange (#FFE8CC): Chronic diagnosis resolved/invalid
+    const orangeStatuses = [
+      'Chronic diagnosis resolved',
+      'Chronic diagnosis invalid',
+    ];
+
+    if (grayStatuses.includes(status)) {
+      return { backgroundColor: '#E9EBF3' };
+    }
+    if (purpleStatuses.includes(status)) {
+      return { backgroundColor: '#E5D9F2' };
+    }
+    if (greenStatuses.includes(status)) {
+      return { backgroundColor: '#D4EDDA' };
+    }
+    if (blueStatuses.includes(status)) {
+      return { backgroundColor: '#CCE5FF' };
+    }
+    if (yellowStatuses.includes(status)) {
+      return { backgroundColor: '#FFF9E6' };
+    }
+    if (orangeStatuses.includes(status)) {
+      return { backgroundColor: '#FFE8CC' };
     }
 
-    // Priority 2: Declined / Contraindicated (Light purple)
-    if (status.toLowerCase().includes('declined') ||
-        status.toLowerCase().includes('contraindicated')) {
-      return { backgroundColor: '#E5D9F2' }; // Light purple
-    }
-
-    // Priority 3: Completed / At Goal statuses (Light green)
-    if (status.toLowerCase().includes('completed') ||
-        status.toLowerCase().includes('at goal') ||
-        status === 'Chronic diagnosis coded' ||
-        status === 'Patient currently on ACE/ARB' ||
-        status === 'Blood pressure at goal') {
-      return { backgroundColor: '#D4EDDA' }; // Light green
-    }
-
-    // Priority 4: Scheduled / Ordered / In Progress (Light blue)
-    if (status.toLowerCase().includes('scheduled') ||
-        status.toLowerCase().includes('ordered') ||
-        status.toLowerCase().includes('referral made') ||
-        status === 'Obtaining outside records' ||
-        status === 'Will call later to schedule' ||
-        status === 'HgbA1c NOT at goal' ||
-        status === 'Test ordered' ||
-        status === 'Appointment scheduled') {
-      return { backgroundColor: '#CCE5FF' }; // Light blue
-    }
-
-    // Priority 5: Initial contact / Discussed (Pale yellow)
-    if (status.toLowerCase().includes('called to schedule') ||
-        status.toLowerCase().includes('discussed') ||
-        status.toLowerCase().includes('contacted for')) {
-      return { backgroundColor: '#FFF9E6' }; // Pale yellow
-    }
-
-    // Priority 6: Chronic diagnosis resolved/invalid (Light orange)
-    if (status === 'Chronic diagnosis resolved' ||
-        status === 'Chronic diagnosis invalid') {
-      return { backgroundColor: '#FFE8CC' }; // Light orange
-    }
-
-    // Default: No special coloring
-    return undefined;
+    // Default: White (no special coloring)
+    return { backgroundColor: '#FFFFFF' };
   }, []);
 
   return (

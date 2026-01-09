@@ -34,8 +34,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Add Row functionality with modal (basic patient info only)
 - [x] Delete Row with confirmation dialog
-- [x] Row selection for delete operations
-- [x] Date formatting (display as MM/DD/YYYY, edit as YYYY-MM-DD)
+- [x] Row selection for delete operations (blue left border indicator)
+- [x] Date formatting (display and edit as MM/DD/YYYY)
+- [x] Date validation with error popup for invalid format
 - [x] DOB masking (displays as ### for privacy)
 - [x] Phone number formatting ((555) 123-4567)
 - [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
@@ -66,6 +67,10 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - **Light Blue** (#CCE5FF): Scheduled, Ordered, In Progress
   - **Pale Yellow** (#FFF9E6): Called to schedule, Discussed, Contacted
   - **Light Orange** (#FFE8CC): Chronic diagnosis resolved/invalid
+  - **White** (#FFFFFF): Not Addressed (default)
+- [x] Row colors preserved during row selection and editing
+- [x] Explicit status-to-color mapping (no pattern matching conflicts)
+- [x] Real-time color updates when Measure Status changes
 
 ### Phase 5: Business Logic & Calculations
 
@@ -137,7 +142,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Cell comments
 - [ ] Text wrapping for Notes field
 - [ ] Column pinning (first 3 columns fixed)
-- [ ] Zebra striping (alternating row colors)
+- [ ] ~~Zebra striping~~ (not needed - using measure status colors instead)
 - [ ] Drag-and-drop row reordering
 
 ### Phase 11: Reference Data Sheets
@@ -222,4 +227,4 @@ docker compose up -d --build
 
 ## Last Updated
 
-January 9, 2026 - Phase 5 Complete
+January 9, 2026 - Phase 5 Complete, UI improvements (date format MM/DD/YYYY, row color fixes)
