@@ -9,7 +9,7 @@ services:
   - type: web
     name: patient-tracker-api
     runtime: node
-    plan: free
+    plan: starter
     rootDir: backend
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts && npm start
@@ -25,10 +25,8 @@ services:
     healthCheckPath: /api/health
 
   # Frontend Static Site
-  - type: web
+  - type: static
     name: patient-tracker-frontend
-    runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
