@@ -1236,7 +1236,7 @@ const handleDeleteRow = async (rowId: number) => {
 
 ### Column Visibility
 - Click eye icon in toolbar to show/hide columns
-- Phone # and Address hidden by default (toggle available)
+- Member Info (DOB, Phone, Address) hidden by default (toggle available)
 - Column visibility persists in local storage
 
 ### Column Sorting
@@ -2989,7 +2989,7 @@ When the due date passes without a status change, the row turns **RED** (#FFCDD2
 **Tracking Field Behavior:**
 
 Tracking fields have three states:
-1. **Disabled (N/A):** Shows "N/A" text, inherits row status color (not editable)
+1. **Disabled (N/A):** Shows italic "N/A" text in gray (#6B7280), inherits row status color with subtle diagonal stripe overlay (not editable)
 2. **Needs Data:** Dark gray background (#6B7280), white text, pencil icon (✎) with placeholder text - user must enter data
 3. **Has Value:** Normal background (inherits row color), displays the entered value
 

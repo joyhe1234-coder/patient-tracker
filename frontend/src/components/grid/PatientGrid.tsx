@@ -214,7 +214,7 @@ export default function PatientGrid({
   onRowUpdated,
   onSaveStatusChange,
   onRowSelected,
-  showMemberInfo = true
+  showMemberInfo = false
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
 
@@ -495,11 +495,16 @@ export default function PatientGrid({
       },
       cellClass: (params) => {
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
         const isHgba1c = hgba1cStatuses.includes(params.data?.measureStatus || '');
 
         // HgbA1c needs prompt when empty
         if (isHgba1c && !params.value) {
           return 'cell-prompt';
+        }
+        // Disabled (N/A) - no dropdown options and not HgbA1c
+        if (!hasOptions && !isHgba1c) {
+          return 'cell-disabled';
         }
         // All other cells inherit row color (no special styling)
         return '';
@@ -565,6 +570,10 @@ export default function PatientGrid({
         // Show prompt for empty editable fields
         if (isEditable && !params.value) {
           return 'cell-prompt';
+        }
+        // Disabled (N/A) - not editable
+        if (!isEditable) {
+          return 'cell-disabled';
         }
         // All other cells inherit row color (no special styling)
         return '';

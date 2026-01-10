@@ -97,10 +97,17 @@ html, body, #root {
   border: 2px dashed #ef4444 !important;
 }
 
-/* Disabled cell - light gray background with N/A text */
+/* Disabled cell - subtle diagonal grid pattern overlay with italic N/A text */
+/* Inherits row color, adds semi-transparent stripe overlay */
 .ag-theme-alpine .cell-disabled {
-  background-color: #F3F4F6 !important;
-  color: #9CA3AF !important;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(0, 0, 0, 0.06) 4px,
+    rgba(0, 0, 0, 0.06) 8px
+  ) !important;
+  color: #6B7280 !important;
   font-style: italic;
 }
 

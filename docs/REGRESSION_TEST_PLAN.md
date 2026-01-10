@@ -159,9 +159,9 @@ npx tsx prisma/test-seed.ts
 | ID | Test Case | Steps | Expected Result | Pass/Fail |
 |----|-----------|-------|-----------------|-----------|
 | 2.10.1 | Toggle button exists | Check toolbar | "Member Info" toggle button visible | |
-| 2.10.2 | Hide member info | Click toggle when columns shown | DOB, Telephone, Address columns hide | |
+| 2.10.2 | Default hidden | Load page fresh | DOB, Telephone, Address columns hidden by default | |
 | 2.10.3 | Show member info | Click toggle when columns hidden | DOB, Telephone, Address columns show | |
-| 2.10.4 | State persists | Toggle, refresh page | Toggle state preserved | |
+| 2.10.4 | Hide member info | Click toggle when columns shown | DOB, Telephone, Address columns hide | |
 
 ---
 
@@ -308,7 +308,8 @@ npx tsx prisma/test-seed.ts
 | 5.5.1 | Dropdown when applicable | Set status with tracking options | Tracking#1 shows dropdown | |
 | 5.5.2 | Free text for HgbA1c | Set "HgbA1c at goal" or "HgbA1c NOT at goal" | Tracking#1 is free text with "HgbA1c value" prompt | |
 | 5.5.3 | N/A for disabled status | Set "Not Addressed" | Tracking#1 shows "N/A", not editable | |
-| 5.5.4 | N/A inherits row color | Set completed status | Tracking#1 "N/A" has green background | |
+| 5.5.4 | N/A inherits row color | Set completed status | Tracking#1 "N/A" has green background with diagonal stripe overlay | |
+| 5.5.4a | N/A italic styling | View N/A cell | Text is italic and gray | |
 
 #### Tracking #2
 
@@ -316,7 +317,7 @@ npx tsx prisma/test-seed.ts
 |----|-----------|-------|-----------------|-----------|
 | 5.5.5 | Dropdown for HgbA1c | Set "HgbA1c at goal" | Tracking#2 shows dropdown: 1-12 months | |
 | 5.5.6 | Free text for Hypertension | Set "Scheduled call back - BP not at goal" | Tracking#2 is free text with "BP reading" prompt | |
-| 5.5.7 | N/A for other statuses | Set status without Tracking#2 | Shows "N/A", not editable | |
+| 5.5.7 | N/A for other statuses | Set status without Tracking#2 | Shows italic "N/A" with diagonal stripe overlay, not editable | |
 
 #### Tracking #3
 

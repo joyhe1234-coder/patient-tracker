@@ -43,6 +43,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] DOB masking (displays as ### for privacy)
 - [x] Phone number formatting ((555) 123-4567)
 - [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
+- [x] Member Info columns hidden by default
 
 ### Phase 3: Cascading Dropdowns
 
@@ -104,11 +105,11 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - **Tracking #1:**
     - Dropdown for statuses with predefined options (Colon/Breast cancer screening, Hypertension, etc.)
     - Free text with dark gray prompt "HgbA1c value" for HgbA1c statuses
-    - Shows "N/A" for disabled statuses (inherits row color, not editable)
+    - Shows italic "N/A" for disabled statuses (inherits row color with diagonal stripe overlay, not editable)
   - **Tracking #2:**
     - Dropdown (1-12 months) with dark gray prompt "Testing interval" for HgbA1c statuses
     - Free text with dark gray prompt "BP reading" for Hypertension call back statuses
-    - Shows "N/A" for disabled statuses (inherits row color, not editable)
+    - Shows italic "N/A" for disabled statuses (inherits row color with diagonal stripe overlay, not editable)
   - **Tracking #3:**
     - Editable free text placeholder for future use
     - Inherits row status color
@@ -293,4 +294,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 9, 2026 - Added flexible date input formats; added multi-physician architecture placeholder for Phase 9
+January 10, 2026 - Member Info columns hidden by default; N/A cells styled with italic text and diagonal stripe overlay

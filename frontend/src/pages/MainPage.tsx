@@ -22,7 +22,7 @@ export default function MainPage() {
   const [pendingRowData, setPendingRowData] = useState<NewRowData | null>(null);
 
   // Column visibility
-  const [showMemberInfo, setShowMemberInfo] = useState(true);
+  const [showMemberInfo, setShowMemberInfo] = useState(false);
 
   useEffect(() => {
     loadData();
