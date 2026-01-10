@@ -92,8 +92,20 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
 - [x] Status Date prompt when Measure Status changes
   - Shows contextual prompt text (e.g., "Date Completed", "Date Ordered")
-  - **Dark gray cell background** with white italic text when status date is missing
+  - Light gray cell background with italic text when status date is missing
   - Special overrides for "Patient deceased" and "Patient in hospice"
+- [x] Tracking field behavior
+  - **Tracking #1:**
+    - Dropdown for statuses with predefined options (Colon/Breast cancer screening, Hypertension, etc.)
+    - Free text with dark gray prompt "HgbA1c value" for HgbA1c statuses
+    - Shows "N/A" for disabled statuses (inherits row color, not editable)
+  - **Tracking #2:**
+    - Dropdown (1-12 months) with dark gray prompt "Testing interval" for HgbA1c statuses
+    - Free text with dark gray prompt "BP reading" for Hypertension call back statuses
+    - Shows "N/A" for disabled statuses (inherits row color, not editable)
+  - **Tracking #3:**
+    - Editable free text placeholder for future use
+    - Inherits row status color
 - [x] Duplicate detection (same patient name + DOB)
   - Visual indicator: Light yellow background (#FEF3C7)
   - Error modal when creating duplicate patient (no proceed option, form data preserved)
@@ -297,4 +309,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 9, 2026 - Added Phase 6 (Complete Countdown Period Configuration) from original design photos, overdue row coloring, single-click editing, Render deployment config
+January 9, 2026 - Updated tracking field behavior (Tracking #1/#2 dropdowns, prompts with dark gray styling, Tracking #3 as editable placeholder), disabled cells inherit row color

@@ -2936,6 +2936,27 @@ When the due date passes without a status change, the row turns **RED** (#FFCDD2
 | HgbA1c at goal | GREEN | - |
 | Patient declined testing | GRAY | - |
 
+**Tracking Field Behavior:**
+
+Tracking fields have three states:
+1. **Disabled (N/A):** Shows "N/A" text, inherits row status color (not editable)
+2. **Needs Data:** Dark gray background (#6B7280), white text, pencil icon (✎) with placeholder text - user must enter data
+3. **Has Value:** Normal background (inherits row color), displays the entered value
+
+**Tracking #1:**
+- Disabled for statuses without tracking options (Not Addressed, Completed, Declined, etc.)
+- Dropdown for statuses with predefined options (Colon cancer screening, Breast cancer screening, Hypertension call back, etc.)
+- Free text with dark gray prompt "✎ HgbA1c value" for HgbA1c statuses
+
+**Tracking #2:**
+- Disabled for most statuses
+- Dropdown (1-12 months) with dark gray prompt "✎ Testing interval" for HgbA1c statuses
+- Free text with dark gray prompt "✎ BP reading" for Hypertension scheduled call back statuses
+
+**Tracking #3:**
+- Editable free text field (placeholder for future use)
+- Inherits row status color
+
 ### Timer/Countdown Behavior
 
 1. **Start:** Timer starts from the Status Date

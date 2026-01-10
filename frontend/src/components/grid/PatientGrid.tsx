@@ -323,21 +323,12 @@ export default function PatientGrid({
         }
         return formatDate(params.value);
       },
-      cellStyle: (params) => {
-        // Dark gray background for cells missing status date
+      cellClass: (params) => {
+        // Gray prompt for cells missing status date
         if (!params.value && params.data?.statusDatePrompt) {
-          return {
-            backgroundColor: '#6B7280', // Dark gray background
-            color: '#FFFFFF', // White text
-            fontStyle: 'italic'
-          };
+          return 'cell-prompt';
         }
-        // Reset to default styling when value is present
-        return {
-          backgroundColor: 'transparent',
-          color: 'inherit',
-          fontStyle: 'normal'
-        };
+        return '';
       },
       valueGetter: (params) => {
         const value = params.data?.statusDate;
@@ -362,29 +353,131 @@ export default function PatientGrid({
       field: 'tracking1',
       headerName: 'Tracking #1',
       width: 160,
-      editable: true,
+      editable: (params) => {
+        // Editable if has dropdown options OR is HgbA1c status
+        const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        return !!hasOptions || hgba1cStatuses.includes(params.data?.measureStatus || '');
+      },
       cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
         const options = getTracking1OptionsForStatus(params.data?.measureStatus || '');
         if (options) {
           return {
             component: 'agSelectCellEditor',
-            params: { values: options },
+            params: { values: options, useFormatter: false },
           };
         }
         return { component: 'agTextCellEditor' };
+      },
+      valueFormatter: (params) => {
+        // When rendering dropdown options, params.data may be undefined
+        // In that case, just return the value as-is
+        if (!params.data) {
+          return params.value || '';
+        }
+
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        const hasOptions = getTracking1OptionsForStatus(params.data.measureStatus || '');
+        const isHgba1c = hgba1cStatuses.includes(params.data.measureStatus || '');
+
+        // If cell has dropdown options, return the value as-is (don't format)
+        if (hasOptions) {
+          return params.value || '';
+        }
+
+        // Disabled - show N/A (no dropdown options and not HgbA1c)
+        if (!isHgba1c) {
+          return 'N/A';
+        }
+
+        // Show prompt text for HgbA1c statuses when tracking1 is empty
+        if (!params.value) {
+          return 'HgbA1c value';
+        }
+        return params.value || '';
+      },
+      cellClass: (params) => {
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        const isHgba1c = hgba1cStatuses.includes(params.data?.measureStatus || '');
+
+        // HgbA1c needs prompt when empty
+        if (isHgba1c && !params.value) {
+          return 'cell-prompt';
+        }
+        // All other cells inherit row color (no special styling)
+        return '';
       },
     },
     {
       field: 'tracking2',
       headerName: 'Tracking #2',
       width: 150,
-      editable: true,
+      editable: (params) => {
+        // Editable for HgbA1c statuses (testing interval) and Hypertension call back (BP reading)
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
+        const status = params.data?.measureStatus || '';
+        return hgba1cStatuses.includes(status) || bpStatuses.includes(status);
+      },
+      cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
+        // HgbA1c statuses get dropdown for testing interval
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        if (hgba1cStatuses.includes(params.data?.measureStatus || '')) {
+          return {
+            component: 'agSelectCellEditor',
+            params: {
+              values: ['1 month', '2 months', '3 months', '4 months', '5 months', '6 months', '7 months', '8 months', '9 months', '10 months', '11 months', '12 months'],
+              useFormatter: false,
+            },
+          };
+        }
+        // BP statuses get free text
+        return { component: 'agTextCellEditor' };
+      },
+      valueFormatter: (params) => {
+        // When rendering dropdown options, params.data may be undefined
+        // In that case, just return the value as-is
+        if (!params.data) {
+          return params.value || '';
+        }
+
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
+        const status = params.data.measureStatus || '';
+        const isEditable = hgba1cStatuses.includes(status) || bpStatuses.includes(status);
+
+        // Disabled - show N/A
+        if (!isEditable) {
+          return 'N/A';
+        }
+        // Show prompt for empty fields
+        if (!params.value && hgba1cStatuses.includes(status)) {
+          return 'Testing interval';
+        }
+        if (!params.value && bpStatuses.includes(status)) {
+          return 'BP reading';
+        }
+        return params.value || '';
+      },
+      cellClass: (params) => {
+        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+        const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
+        const status = params.data?.measureStatus || '';
+        const isEditable = hgba1cStatuses.includes(status) || bpStatuses.includes(status);
+
+        // Show prompt for empty editable fields
+        if (isEditable && !params.value) {
+          return 'cell-prompt';
+        }
+        // All other cells inherit row color (no special styling)
+        return '';
+      },
     },
     {
       field: 'tracking3',
       headerName: 'Tracking #3',
       width: 150,
-      editable: true,
+      editable: true, // Placeholder for future use
     },
     {
       field: 'dueDate',

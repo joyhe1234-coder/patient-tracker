@@ -97,6 +97,25 @@ html, body, #root {
   border: 2px dashed #ef4444 !important;
 }
 
+/* Disabled cell - light gray background with N/A text */
+.ag-theme-alpine .cell-disabled {
+  background-color: #F3F4F6 !important;
+  color: #9CA3AF !important;
+  font-style: italic;
+}
+
+/* Prompt cell - dark gray background with placeholder text (needs data) */
+.ag-theme-alpine .cell-prompt {
+  background-color: #6B7280 !important;
+  color: #FFFFFF !important;
+  font-style: italic;
+}
+
+.ag-theme-alpine .cell-prompt .ag-cell-value::before {
+  content: '✎ ';
+  font-style: normal;
+}
+
 /* Row styles */
 .row-duplicate {
   background-color: #fef3c7 !important;
