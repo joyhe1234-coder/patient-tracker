@@ -37,6 +37,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Row selection indicator (blue outline, preserves status colors)
 - [x] Active cell indicator (blue outline border)
 - [x] Date formatting (display and edit as MM/DD/YYYY)
+- [x] Flexible date input (accepts M/D/YY, MM/DD/YYYY, YYYY-MM-DD, M.D.YYYY, etc.)
 - [x] Date validation with error popup for invalid format
 - [x] Timezone-safe date handling (UTC noon to prevent date shift)
 - [x] DOB masking (displays as ### for privacy)
@@ -163,13 +164,15 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Lock status indicator
 - [ ] Force-release lock (admin only)
 
-### Phase 9: Authentication & Authorization
+### Phase 9: Authentication & Multi-Physician Support
 
 **Planned Features:**
 - [ ] Login page for editors
 - [ ] JWT-based authentication
 - [ ] Admin panel for user management
 - [ ] Session timeout handling
+- [ ] Multi-physician data isolation (each physician sees only their patients)
+- [ ] Physician table and Patient.physicianId schema changes
 
 ### Phase 10: Excel-like Behaviors
 
@@ -290,4 +293,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 9, 2026 - Added Time Interval conditional editability for baseDueDays statuses; due date and row colors update when interval is edited
+January 9, 2026 - Added flexible date input formats; added multi-physician architecture placeholder for Phase 9
