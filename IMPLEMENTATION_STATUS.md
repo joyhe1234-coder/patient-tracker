@@ -30,7 +30,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 **Status: Complete**
 
 - [x] AG Grid displaying 14 columns
-- [x] Cell editing with double-click
+- [x] Cell editing with single-click activation
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Add Row functionality with modal (basic patient info only)
 - [x] Delete Row with confirmation dialog
@@ -231,4 +231,4 @@ docker compose up -d --build
 
 ## Last Updated
 
-January 9, 2026 - UI polish: timezone-safe dates, duplicate error handling, row selection with outline
+January 9, 2026 - Single-click editing, timezone-safe dates, duplicate error handling, row selection with outline
