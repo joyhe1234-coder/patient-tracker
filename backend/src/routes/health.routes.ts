@@ -14,7 +14,7 @@ router.get('/', async (_req: Request, res: Response) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         db: 'connected',
-        version: '1.0.0',
+        version: '2.0.0-snapshot',
       },
     });
   } catch (error) {
@@ -24,7 +24,7 @@ router.get('/', async (_req: Request, res: Response) => {
         status: 'error',
         timestamp: new Date().toISOString(),
         db: 'disconnected',
-        version: '1.0.0',
+        version: '2.0.0-snapshot',
       },
     });
   }
