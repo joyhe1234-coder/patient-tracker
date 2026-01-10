@@ -48,6 +48,56 @@ A web-based patient quality measure tracking application for medical offices, re
 ## 1.3 Users
 - **Viewers**: Anyone on the internal network (no login required)
 - **Editors**: Authenticated users who can modify data (one at a time)
+
+## 1.4 Multi-Physician Architecture (PLANNED)
+
+> **Status:** Placeholder - To be implemented in Phase 4 (Collaboration)
+
+Currently, all patients are stored in a single shared pool. Future enhancement will support:
+
+### Requirements
+- Each physician has their own login credentials
+- Each physician sees ONLY their own patients
+- Each physician has their own quality measure tracking
+- Patients are associated with a specific physician
+- Admin can manage all physicians and view aggregate data
+
+### Schema Changes Required
+```
+-- New table: Physicians
+Physician {
+  id            Int       @id
+  email         String    @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  npi           String?   // National Provider Identifier
+  specialty     String?
+  isAdmin       Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime
+  updatedAt     DateTime
+}
+
+-- Modified table: Patient (add physician relationship)
+Patient {
+  ...existing fields...
+  physicianId   Int       // Foreign key to Physician
+  physician     Physician @relation(...)
+}
+
+-- Modified table: PatientMeasure (optional: inherit from patient or explicit)
+PatientMeasure {
+  ...existing fields...
+  physicianId   Int?      // Optional: for direct queries
+}
+```
+
+### Implementation Notes
+- JWT-based authentication with physician context
+- API endpoints filter by logged-in physician's ID
+- Frontend stores physician context in auth state
+- Consider data migration strategy for existing patients
 - **Admin**: Can manage editor accounts and force-release edit locks
 
 ---

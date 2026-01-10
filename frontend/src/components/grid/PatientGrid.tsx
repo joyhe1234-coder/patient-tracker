@@ -86,12 +86,13 @@ interface PatientGridProps {
 }
 
 // Date formatter for display - use UTC to avoid timezone shifts
+// Display without leading zeros: 1/5/2023 instead of 01/05/2023
 const formatDate = (value: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
   const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
   return `${month}/${day}/${year}`;
 };
 
@@ -101,13 +102,14 @@ const formatDobMasked = (value: string | null): string => {
   return '###';
 };
 
-// Format date for editing (MM/DD/YYYY) - use UTC to avoid timezone shifts
+// Format date for editing (M/D/YYYY) - use UTC to avoid timezone shifts
+// No leading zeros for easier editing
 const formatDateForEdit = (value: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
   const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
   return `${month}/${day}/${year}`;
 };
 
@@ -121,36 +123,90 @@ const formatPhone = (value: string | null): string => {
   return value;
 };
 
-// Parse date with MM/DD/YYYY format validation - returns ISO string at UTC noon
+// Parse date with flexible format validation - returns ISO string at UTC noon
+// Supports: M/D/YYYY, MM/DD/YYYY, M-D-YYYY, MM-DD-YYYY, M.D.YYYY, YYYY-MM-DD, short year (YY)
 const parseAndValidateDate = (input: string): string | null => {
   if (!input || !input.trim()) return null;
 
   const trimmed = input.trim();
+  let m = 0, d = 0, y = 0;
 
-  // Only accept MM/DD/YYYY format
-  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // Try MM/DD/YYYY or M/D/YYYY or M/D/YY (with slashes)
+  let match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if (match) {
-    const [, month, day, year] = match;
-    const m = parseInt(month);
-    const d = parseInt(day);
-    const y = parseInt(year);
-
-    // Basic validation
-    if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) {
-      return null;
-    }
-
-    // Return ISO string at UTC noon to avoid timezone boundary issues
-    const isoString = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00.000Z`;
-    return isoString;
+    m = parseInt(match[1]);
+    d = parseInt(match[2]);
+    y = parseInt(match[3]);
+    if (y < 100) y += 2000; // Convert 2-digit year to 4-digit (assumes 2000s)
   }
 
-  return null;
+  // Try MM-DD-YYYY or M-D-YYYY or M-D-YY (with dashes, US format)
+  if (!match) {
+    match = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+    if (match) {
+      m = parseInt(match[1]);
+      d = parseInt(match[2]);
+      y = parseInt(match[3]);
+      if (y < 100) y += 2000;
+    }
+  }
+
+  // Try MM.DD.YYYY or M.D.YYYY (with dots)
+  if (!match) {
+    match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+    if (match) {
+      m = parseInt(match[1]);
+      d = parseInt(match[2]);
+      y = parseInt(match[3]);
+      if (y < 100) y += 2000;
+    }
+  }
+
+  // Try YYYY-MM-DD or YYYY/MM/DD (ISO format)
+  if (!match) {
+    match = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (match) {
+      y = parseInt(match[1]);
+      m = parseInt(match[2]);
+      d = parseInt(match[3]);
+    }
+  }
+
+  // Try MMDDYYYY or MDYYYY (no separators, 8 digits)
+  if (!match) {
+    match = trimmed.match(/^(\d{8})$/);
+    if (match) {
+      const digits = match[1];
+      m = parseInt(digits.substring(0, 2));
+      d = parseInt(digits.substring(2, 4));
+      y = parseInt(digits.substring(4, 8));
+    }
+  }
+
+  // If no format matched, return null
+  if (!match) {
+    return null;
+  }
+
+  // Validate date values
+  if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) {
+    return null;
+  }
+
+  // Additional validation: check if day is valid for the month
+  const daysInMonth = new Date(y, m, 0).getDate();
+  if (d > daysInMonth) {
+    return null;
+  }
+
+  // Return ISO string at UTC noon to avoid timezone boundary issues
+  const isoString = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00.000Z`;
+  return isoString;
 };
 
 // Show date format error
 const showDateFormatError = () => {
-  alert('Invalid date format.\n\nAccepted format: MM/DD/YYYY (e.g., 01/09/2026)');
+  alert('Invalid date format.\n\nAccepted formats:\n• 12/25/2023 or 1/5/2023\n• 12-25-2023 or 1-5-23\n• 2023-12-25\n• 12252023');
 };
 
 export default function PatientGrid({
