@@ -30,6 +30,7 @@ html, body, #root {
 .ag-theme-alpine .row-status-orange { background-color: #FFE8CC !important; }
 .ag-theme-alpine .row-status-white { background-color: #FFFFFF !important; }
 .ag-theme-alpine .row-status-duplicate { background-color: #FEF3C7 !important; }
+.ag-theme-alpine .row-status-overdue { background-color: #FFCDD2 !important; }
 
 /* Selected row indicator - use outline, preserve status color */
 .ag-theme-alpine .ag-row-selected {

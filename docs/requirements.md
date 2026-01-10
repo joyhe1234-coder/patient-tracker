@@ -1,9 +1,11 @@
 # Patient Quality Measure Tracking System
 ## Complete Implementation Documentation (Final Version)
 
-**Version:** 2.3  
-**Date:** January 2025  
-**Status:** FINAL - Includes HgbA1c, Excel-like Behaviors & Data Preservation  
+**Version:** 2.4
+**Date:** January 2026
+**Status:** FINAL - Includes HgbA1c, Excel-like Behaviors, Data Preservation & Conditional Row Coloring
+
+**Original Design Notes:** See `docs/photos/` folder for handwritten requirements (IMG_9522.jpg - IMG_9540.jpg)
 
 ---
 
@@ -2792,6 +2794,154 @@ export class HgbA1cService {
   }
 }
 ```
+
+## 9.4 Conditional Row Coloring Rules
+
+**Source:** Original handwritten design notes (see `docs/photos/` folder)
+
+### Status-Based Color Mapping
+
+| Color | Hex Code | Statuses |
+|-------|----------|----------|
+| **LIGHT BLUE** | #CCE5FF | Called to schedule, Contacted, Discussed, Patient contacted, Will call later |
+| **YELLOW** | #FFF9E6 | Scheduled, Ordered, Referral made, Appointment scheduled |
+| **GREEN** | #D4EDDA | Completed, At Goal, Confirmed, Currently on medication |
+| **GRAY** | #E9EBF3 | Declined, Not applicable, Contraindicated, No longer applicable |
+| **PINK/ORANGE** | #FFE8CC | Resolved, Invalid |
+| **WHITE** | #FFFFFF | Not Addressed (default) |
+| **LIGHT RED** | #FFCDD2 | **Overdue** (due date passed without status change) |
+| **LIGHT YELLOW** | #FEF3C7 | Duplicate patient (same name + DOB) |
+
+### Overdue Rule (RED)
+
+When the due date passes without a status change, the row turns **RED** (#FFCDD2).
+
+**Rules:**
+- Only applies to "pending" statuses (LIGHT BLUE, YELLOW, WHITE)
+- Does NOT apply to completed, declined, or resolved statuses (GREEN, GRAY, PINK/ORANGE)
+- If a new date is entered, the row returns to its status-based color and the timer resets
+- Color priority: Duplicate > Overdue > Status-based
+
+### Countdown Periods by Quality Measure
+
+#### Annual Wellness Visit (AWV)
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Patient called to schedule AWV | LIGHT BLUE | 7 days |
+| AWV scheduled | YELLOW | 1 day after appointment date |
+| AWV complete | GREEN | - |
+| Patient declined AWV | GRAY | - |
+
+#### Diabetic Eye Exam
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Diabetic eye exam discussed | LIGHT BLUE | 6 weeks |
+| Diabetic eye exam referral made | YELLOW | 6 weeks |
+| Diabetic eye exam completed | GREEN | - |
+| Patient declined | GRAY | - |
+
+#### Colon Cancer Screening
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Colon cancer screening ordered | YELLOW | Depends on Tracking #1 |
+| Colon cancer screening completed | GREEN | - |
+| Patient declined screening | GRAY | - |
+
+**Tracking #1 Options & Countdown:**
+- Colonoscopy: 6 weeks
+- Sigmoidoscopy: 6 weeks
+- Cologuard: 3 weeks
+- FOBT: 3 weeks
+
+#### Breast Cancer Screening
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Screening test ordered | YELLOW | Depends on Tracking #1 |
+| Screening test completed | GREEN | - |
+| Patient declined screening | GRAY | - |
+
+**Tracking #1 Options & Countdown:**
+- Mammogram: 2 weeks
+- Breast ultrasound: 2 weeks
+- Breast MRI: 3 weeks
+
+#### Diabetic Nephropathy
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Patient contacted for screening | LIGHT BLUE | 10 days |
+| Urine microalbumin ordered | YELLOW | 5 days |
+| Urine microalbumin completed | GREEN | - |
+| Screening declined | GRAY | - |
+
+#### ACE/ARB in DM or CAD
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Patient contacted to start ACE/ARB | LIGHT BLUE | 14 days |
+| Patient has appointment to discuss | YELLOW | 1 day after appointment date |
+| Patient currently on ACE/ARB | GREEN | - |
+| ACE/ARB contraindicated | GRAY | - |
+| Patient declined | GRAY | - |
+
+#### GC/Chlamydia Screening
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Patient contacted for screening | LIGHT BLUE | 10 days |
+| Urine sample submitted | YELLOW | 5 days |
+| GC/Chlamydia screening complete | GREEN | - |
+| Screening declined | GRAY | - |
+
+#### Hypertension Management
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Not addressed | WHITE | - |
+| Blood pressure at goal | GREEN | - |
+| Scheduled for call back | LIGHT BLUE | Based on Tracking #1 (1-8 weeks) |
+| Scheduled for appointment | YELLOW | 1 day after appointment date |
+| Declined BP control | GRAY | - |
+
+#### Chronic Diagnosis Code
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Not addressed | WHITE | - |
+| Chronic diagnosis coded | GREEN | - |
+| Patient called to schedule appt | LIGHT BLUE | 7 days |
+| Appointment scheduled | YELLOW | 1 day after appointment date |
+| Chronic diagnosis resolved | PINK/ORANGE | - |
+| Chronic diagnosis invalid | PINK/ORANGE | - |
+
+#### Vaccination
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Not addressed | WHITE | - |
+| Vaccination completed | GREEN | - |
+| Office visit scheduled | YELLOW | 1 day |
+| Contacted to schedule appt | YELLOW | 7 days |
+| Waitlist advised | YELLOW | 14 days |
+| Vaccination declined | GRAY | - |
+| Vaccination contraindicated | GRAY | - |
+
+#### Cervical Cancer Screening
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| Not addressed | WHITE | - |
+| Screening discussed | LIGHT BLUE | Based on Tracking #1 (In X Months) |
+| Screening appt made | YELLOW | 1 day after appointment date |
+| Screening completed | GREEN | - |
+| Patient declined | GRAY | - |
+
+#### Diabetes Control (HgbA1c)
+| Measure Status | Color | Countdown Period |
+|---------------|-------|------------------|
+| HgbA1c NOT at goal | YELLOW | Based on Tracking #2 (1-12 months) |
+| HgbA1c at goal | GREEN | - |
+| Patient declined testing | GRAY | - |
+
+### Timer/Countdown Behavior
+
+1. **Start:** Timer starts from the Status Date
+2. **Countdown:** Days count down to Due Date (Status Date + countdown period)
+3. **Overdue:** When Due Date < Today, row turns RED
+4. **Reset:** If a new date is entered or status changes, timer resets and color returns to status-based color
 
 ---
 

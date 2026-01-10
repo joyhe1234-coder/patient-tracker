@@ -363,13 +363,15 @@ export default function PatientGrid({
       headerName: 'Tracking #1',
       width: 160,
       editable: true,
-      cellEditor: (params: ICellEditorParams<GridRow>) => {
+      cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
         const options = getTracking1OptionsForStatus(params.data?.measureStatus || '');
-        return options ? 'agSelectCellEditor' : 'agTextCellEditor';
-      },
-      cellEditorParams: (params: ICellEditorParams<GridRow>) => {
-        const options = getTracking1OptionsForStatus(params.data?.measureStatus || '');
-        return options ? { values: options } : {};
+        if (options) {
+          return {
+            component: 'agSelectCellEditor',
+            params: { values: options },
+          };
+        }
+        return { component: 'agTextCellEditor' };
       },
     },
     {
@@ -476,17 +478,44 @@ export default function PatientGrid({
     'Chronic diagnosis invalid',
   ];
 
-  // Row class rules based on Measure Status and duplicate detection
+  // Helper function to check if a row is overdue (dueDate < today)
+  // Only applies to pending statuses (blue, yellow, white) - not completed/declined/resolved
+  const isRowOverdue = (data: GridRow | undefined): boolean => {
+    if (!data?.dueDate) return false;
+
+    // Don't show overdue for completed/declined/resolved statuses
+    const status = data.measureStatus || '';
+    if (grayStatuses.includes(status) ||
+        purpleStatuses.includes(status) ||
+        greenStatuses.includes(status) ||
+        orangeStatuses.includes(status)) {
+      return false;
+    }
+
+    // Compare dueDate with today (using UTC to match date storage)
+    const dueDate = new Date(data.dueDate);
+    const today = new Date();
+    // Set today to UTC midnight for accurate date comparison
+    const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    const dueDateUTC = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate()));
+
+    return dueDateUTC < todayUTC;
+  };
+
+  // Row class rules based on Measure Status, duplicate detection, and overdue status
+  // Priority: duplicate > overdue > status-based colors
   const rowClassRules = useMemo(() => ({
     'row-status-duplicate': (params: RowClassParams<GridRow>) => params.data?.isDuplicate === true,
-    'row-status-gray': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && grayStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-purple': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && purpleStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-green': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && greenStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-blue': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && blueStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-yellow': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && yellowStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-orange': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && orangeStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-overdue': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && isRowOverdue(params.data),
+    'row-status-gray': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && grayStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-purple': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && purpleStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-green': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && greenStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-blue': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && blueStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-yellow': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && yellowStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-orange': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && orangeStatuses.includes(params.data?.measureStatus || ''),
     'row-status-white': (params: RowClassParams<GridRow>) => {
       if (params.data?.isDuplicate) return false;
+      if (isRowOverdue(params.data)) return false;
       const status = params.data?.measureStatus || '';
       return !grayStatuses.includes(status) &&
              !purpleStatuses.includes(status) &&
