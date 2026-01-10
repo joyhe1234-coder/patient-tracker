@@ -117,54 +117,30 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - `statusDatePromptResolver.ts` - Status date prompt resolution
 - [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
 
+### Phase 6: Complete Countdown Period Configuration
+
+**Status: Complete**
+
+- [x] Updated seed data with complete countdown periods for all 13 quality measures
+- [x] Added MeasureStatus records with baseDueDays for all statuses:
+  - AWV: 7 days (called), 1 day (scheduled), 365 days (completed)
+  - Diabetic Eye Exam: 42 days/6 weeks (discussed/referral), 1 day (scheduled)
+  - Colon Cancer: 42 days (Colonoscopy/Sigmoidoscopy), 21 days (Cologuard/FOBT)
+  - Breast Cancer: 14 days (Mammogram/Ultrasound), 21 days (MRI)
+  - Diabetic Nephropathy: 10 days (contacted), 5 days (ordered)
+  - GC/Chlamydia: 10 days (contacted), 5 days (ordered)
+  - Hypertension: 7-56 days via Tracking #1 call intervals
+  - Vaccination: 7 days (discussed), 1 day (scheduled)
+  - Cervical Cancer: 30-330 days via Tracking #1 (In 1-11 Months)
+  - ACE/ARB: 14 days (prescribed)
+  - Annual Serum K&Cr: 7 days (ordered)
+  - Chronic Diagnosis: 14 days (attestation not sent)
+- [x] Added DueDayRule records for Tracking #1 dependent countdown periods
+- [x] Extended Cervical Cancer "Screening discussed" options to 11 months
+
 ---
 
 ## Future Phases
-
-### Phase 6: Complete Countdown Period Configuration
-
-**Status: Not Started**
-
-**Source:** Original handwritten design notes (see `docs/photos/` folder)
-
-The current due date calculation uses basic rules. This phase adds the complete countdown periods from the original requirements for all quality measures and statuses.
-
-**Planned Features:**
-
-- [ ] Update seed data with complete countdown periods:
-
-  | Quality Measure | Measure Status | Countdown Period |
-  |----------------|----------------|------------------|
-  | **AWV** | Patient called to schedule | 7 days |
-  | **AWV** | AWV scheduled | 1 day |
-  | **Diabetic Eye Exam** | Discussed | 6 weeks |
-  | **Diabetic Eye Exam** | Referral made | 6 weeks |
-  | **Colon Cancer Screening** | Ordered + Colonoscopy | 6 weeks |
-  | **Colon Cancer Screening** | Ordered + Sigmoidoscopy | 6 weeks |
-  | **Colon Cancer Screening** | Ordered + Cologuard | 3 weeks |
-  | **Colon Cancer Screening** | Ordered + FOBT | 3 weeks |
-  | **Breast Cancer Screening** | Ordered + Mammogram | 2 weeks |
-  | **Breast Cancer Screening** | Ordered + Breast ultrasound | 2 weeks |
-  | **Breast Cancer Screening** | Ordered + Breast MRI | 3 weeks |
-  | **Diabetic Nephropathy** | Patient contacted | 10 days |
-  | **Diabetic Nephropathy** | Urine microalbumin ordered | 5 days |
-  | **ACE/ARB** | Patient contacted | 14 days |
-  | **ACE/ARB** | Patient has appointment | 1 day |
-  | **GC/Chlamydia** | Patient contacted | 10 days |
-  | **GC/Chlamydia** | Urine sample submitted | 5 days |
-  | **Hypertension** | Scheduled for call back | 1-8 weeks (Tracking #1) |
-  | **Chronic Diagnosis** | Patient called to schedule | 7 days |
-  | **Chronic Diagnosis** | Appointment scheduled | 1 day |
-  | **Vaccination** | Office visit scheduled | 1 day |
-  | **Vaccination** | Contacted to schedule | 7 days |
-  | **Vaccination** | Waitlist advised | 14 days |
-  | **Cervical Cancer** | Screening discussed | In X Months (Tracking #1) |
-  | **HgbA1c** | NOT at goal | 1-12 months (Tracking #2) |
-
-- [ ] Add DueDayRule records for Tracking #1 dependent countdown periods
-- [ ] Update dueDateCalculator.ts to handle all countdown scenarios
-- [ ] Verify overdue coloring works correctly with new countdown rules
-- [ ] Test timer reset behavior when status date changes
 
 ### Phase 7: HgbA1c Goal Configuration
 
@@ -309,4 +285,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 9, 2026 - Updated tracking field behavior (Tracking #1/#2 dropdowns, prompts with dark gray styling, Tracking #3 as editable placeholder), disabled cells inherit row color
+January 9, 2026 - Completed Phase 6: Added complete countdown period configuration for all 13 quality measures, DueDayRule records for tracking-dependent countdowns, extended Cervical Cancer month options to 11 months

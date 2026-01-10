@@ -166,7 +166,19 @@ export const STATUS_TO_TRACKING1: Record<string, string[]> = {
   ],
   'Chronic diagnosis resolved': ['Attestation not sent', 'Attestation sent'],
   'Chronic diagnosis invalid': ['Attestation not sent', 'Attestation sent'],
-  'Screening discussed': ['In 1 Month', 'In 2 Months', 'In 3 Months', 'In 4 Months'],
+  'Screening discussed': [
+    'In 1 Month',
+    'In 2 Months',
+    'In 3 Months',
+    'In 4 Months',
+    'In 5 Months',
+    'In 6 Months',
+    'In 7 Months',
+    'In 8 Months',
+    'In 9 Months',
+    'In 10 Months',
+    'In 11 Months',
+  ],
 };
 
 // Request Types list

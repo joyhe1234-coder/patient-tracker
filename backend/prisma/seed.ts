@@ -225,73 +225,165 @@ async function main() {
   const awvMeasure = qualityMeasures.find(qm => qm.code === 'Annual Wellness Visit')!;
   const breastCancerMeasure = qualityMeasures.find(qm => qm.code === 'Breast Cancer Screening')!;
   const colonCancerMeasure = qualityMeasures.find(qm => qm.code === 'Colon Cancer Screening')!;
+  const cervicalCancerMeasure = qualityMeasures.find(qm => qm.code === 'Cervical Cancer Screening')!;
+  const diabeticEyeMeasure = qualityMeasures.find(qm => qm.code === 'Diabetic Eye Exam')!;
+  const gcChlamydiaMeasure = qualityMeasures.find(qm => qm.code === 'GC/Chlamydia Screening')!;
+  const diabeticNephropathyMeasure = qualityMeasures.find(qm => qm.code === 'Diabetic Nephropathy')!;
+  const hypertensionMeasure = qualityMeasures.find(qm => qm.code === 'Hypertension Management')!;
+  const aceArbMeasure = qualityMeasures.find(qm => qm.code === 'ACE/ARB in DM or CAD')!;
+  const vaccinationMeasure = qualityMeasures.find(qm => qm.code === 'Vaccination')!;
   const diabetesControlMeasure = qualityMeasures.find(qm => qm.code === 'Diabetes Control')!;
+  const annualSerumMeasure = qualityMeasures.find(qm => qm.code === 'Annual Serum K&Cr')!;
+  const chronicDxMeasure = qualityMeasures.find(qm => qm.code === 'Chronic Diagnosis Code')!;
 
-  // Common statuses for screening measures
-  const screeningStatuses = [
+  // Helper function to create statuses for a quality measure
+  async function createStatuses(qualityMeasureId: number, statuses: Array<{ code: string; label: string; datePrompt: string | null; baseDueDays: number | null; sortOrder: number }>) {
+    for (const status of statuses) {
+      await prisma.measureStatus.upsert({
+        where: { qualityMeasureId_code: { qualityMeasureId, code: status.code } },
+        update: { datePrompt: status.datePrompt, baseDueDays: status.baseDueDays },
+        create: { qualityMeasureId, ...status },
+      });
+    }
+  }
+
+  // Annual Wellness Visit statuses
+  await createStatuses(awvMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Patient called to schedule AWV', label: 'Patient called to schedule AWV', datePrompt: 'Date Called', baseDueDays: 7, sortOrder: 2 },
+    { code: 'AWV scheduled', label: 'AWV scheduled', datePrompt: 'Date Scheduled', baseDueDays: 1, sortOrder: 3 },
+    { code: 'AWV completed', label: 'AWV completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Patient declined AWV', label: 'Patient declined AWV', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 5 },
+    { code: 'Will call later to schedule', label: 'Will call later to schedule', datePrompt: 'Date Noted', baseDueDays: 30, sortOrder: 6 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
+  ]);
+
+  // Breast Cancer Screening statuses
+  await createStatuses(breastCancerMeasure.id, [
     { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
     { code: 'Screening discussed', label: 'Screening discussed', datePrompt: 'Date Discussed', baseDueDays: 30, sortOrder: 2 },
-    { code: 'Ordered', label: 'Ordered', datePrompt: 'Date Ordered', baseDueDays: 30, sortOrder: 3 },
-    { code: 'Scheduled', label: 'Scheduled', datePrompt: 'Date Scheduled', baseDueDays: null, sortOrder: 4 },
-    { code: 'Completed', label: 'Completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 5 },
-    { code: 'N/A', label: 'N/A', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
-  ];
+    { code: 'Screening test ordered', label: 'Screening test ordered', datePrompt: 'Date Ordered', baseDueDays: 14, sortOrder: 3 },
+    { code: 'Screening test completed', label: 'Screening test completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Obtaining outside records', label: 'Obtaining outside records', datePrompt: 'Date Requested', baseDueDays: 14, sortOrder: 5 },
+    { code: 'Patient declined screening', label: 'Patient declined screening', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
+    { code: 'Screening unnecessary', label: 'Screening unnecessary', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 8 },
+  ]);
 
-  // Create statuses for AWV
-  for (const status of screeningStatuses) {
-    await prisma.measureStatus.upsert({
-      where: { qualityMeasureId_code: { qualityMeasureId: awvMeasure.id, code: status.code } },
-      update: {},
-      create: {
-        qualityMeasureId: awvMeasure.id,
-        ...status,
-      },
-    });
-  }
-
-  // Create statuses for Breast Cancer Screening
-  for (const status of screeningStatuses) {
-    await prisma.measureStatus.upsert({
-      where: { qualityMeasureId_code: { qualityMeasureId: breastCancerMeasure.id, code: status.code } },
-      update: {},
-      create: {
-        qualityMeasureId: breastCancerMeasure.id,
-        ...status,
-      },
-    });
-  }
-
-  // Create statuses for Colon Cancer Screening
-  for (const status of screeningStatuses) {
-    await prisma.measureStatus.upsert({
-      where: { qualityMeasureId_code: { qualityMeasureId: colonCancerMeasure.id, code: status.code } },
-      update: {},
-      create: {
-        qualityMeasureId: colonCancerMeasure.id,
-        ...status,
-      },
-    });
-  }
-
-  // Create statuses for Diabetes Control (HgbA1c specific)
-  const diabetesStatuses = [
+  // Colon Cancer Screening statuses
+  await createStatuses(colonCancerMeasure.id, [
     { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
-    { code: 'HgbA1c at goal', label: 'HgbA1c at goal', datePrompt: 'Test Date', baseDueDays: 90, sortOrder: 2 },
-    { code: 'HgbA1c NOT at goal', label: 'HgbA1c NOT at goal', datePrompt: 'Test Date', baseDueDays: 90, sortOrder: 3 },
-    { code: 'Ordered', label: 'Ordered', datePrompt: 'Date Ordered', baseDueDays: 30, sortOrder: 4 },
-    { code: 'N/A', label: 'N/A', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 5 },
-  ];
+    { code: 'Screening discussed', label: 'Screening discussed', datePrompt: 'Date Discussed', baseDueDays: 30, sortOrder: 2 },
+    { code: 'Colon cancer screening ordered', label: 'Colon cancer screening ordered', datePrompt: 'Date Ordered', baseDueDays: 42, sortOrder: 3 },
+    { code: 'Colon cancer screening completed', label: 'Colon cancer screening completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Obtaining outside records', label: 'Obtaining outside records', datePrompt: 'Date Requested', baseDueDays: 14, sortOrder: 5 },
+    { code: 'Patient declined screening', label: 'Patient declined screening', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
+    { code: 'Screening unnecessary', label: 'Screening unnecessary', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 8 },
+  ]);
 
-  for (const status of diabetesStatuses) {
-    await prisma.measureStatus.upsert({
-      where: { qualityMeasureId_code: { qualityMeasureId: diabetesControlMeasure.id, code: status.code } },
-      update: {},
-      create: {
-        qualityMeasureId: diabetesControlMeasure.id,
-        ...status,
-      },
-    });
-  }
+  // Cervical Cancer Screening statuses
+  await createStatuses(cervicalCancerMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Screening discussed', label: 'Screening discussed', datePrompt: 'Date Discussed', baseDueDays: 30, sortOrder: 2 },
+    { code: 'Screening appt made', label: 'Screening appt made', datePrompt: 'Appt Date', baseDueDays: 1, sortOrder: 3 },
+    { code: 'Screening completed', label: 'Screening completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Obtaining outside records', label: 'Obtaining outside records', datePrompt: 'Date Requested', baseDueDays: 14, sortOrder: 5 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
+    { code: 'Screening unnecessary', label: 'Screening unnecessary', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 8 },
+  ]);
+
+  // Diabetic Eye Exam statuses
+  await createStatuses(diabeticEyeMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Diabetic eye exam discussed', label: 'Diabetic eye exam discussed', datePrompt: 'Date Discussed', baseDueDays: 42, sortOrder: 2 },
+    { code: 'Diabetic eye exam referral made', label: 'Diabetic eye exam referral made', datePrompt: 'Date Referred', baseDueDays: 42, sortOrder: 3 },
+    { code: 'Diabetic eye exam scheduled', label: 'Diabetic eye exam scheduled', datePrompt: 'Appt Date', baseDueDays: 1, sortOrder: 4 },
+    { code: 'Diabetic eye exam completed', label: 'Diabetic eye exam completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 5 },
+    { code: 'Obtaining outside records', label: 'Obtaining outside records', datePrompt: 'Date Requested', baseDueDays: 14, sortOrder: 6 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 7 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 8 },
+  ]);
+
+  // GC/Chlamydia Screening statuses
+  await createStatuses(gcChlamydiaMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Patient contacted for screening', label: 'Patient contacted for screening', datePrompt: 'Date Contacted', baseDueDays: 10, sortOrder: 2 },
+    { code: 'Test ordered', label: 'Test ordered', datePrompt: 'Date Ordered', baseDueDays: 5, sortOrder: 3 },
+    { code: 'GC/Clamydia screening completed', label: 'GC/Chlamydia screening completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Patient declined screening', label: 'Patient declined screening', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 5 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
+  ]);
+
+  // Diabetic Nephropathy statuses
+  await createStatuses(diabeticNephropathyMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Patient contacted for screening', label: 'Patient contacted for screening', datePrompt: 'Date Contacted', baseDueDays: 10, sortOrder: 2 },
+    { code: 'Urine microalbumin ordered', label: 'Urine microalbumin ordered', datePrompt: 'Date Ordered', baseDueDays: 5, sortOrder: 3 },
+    { code: 'Urine microalbumin completed', label: 'Urine microalbumin completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Patient declined screening', label: 'Patient declined screening', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 5 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
+  ]);
+
+  // Hypertension Management statuses
+  await createStatuses(hypertensionMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Blood pressure at goal', label: 'Blood pressure at goal', datePrompt: 'Date Checked', baseDueDays: null, sortOrder: 2 },
+    { code: 'Scheduled call back - BP not at goal', label: 'Scheduled call back - BP not at goal', datePrompt: 'Date of Call', baseDueDays: 7, sortOrder: 3 },
+    { code: 'Scheduled call back - BP at goal', label: 'Scheduled call back - BP at goal', datePrompt: 'Date of Call', baseDueDays: 7, sortOrder: 4 },
+    { code: 'Appointment scheduled', label: 'Appointment scheduled', datePrompt: 'Appt Date', baseDueDays: 1, sortOrder: 5 },
+    { code: 'Declined BP control', label: 'Declined BP control', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
+  ]);
+
+  // ACE/ARB in DM or CAD statuses
+  await createStatuses(aceArbMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Patient on ACE/ARB', label: 'Patient on ACE/ARB', datePrompt: 'Date Started', baseDueDays: null, sortOrder: 2 },
+    { code: 'ACE/ARB prescribed', label: 'ACE/ARB prescribed', datePrompt: 'Date Prescribed', baseDueDays: 14, sortOrder: 3 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 4 },
+    { code: 'Contraindicated', label: 'Contraindicated', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 5 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
+  ]);
+
+  // Vaccination statuses
+  await createStatuses(vaccinationMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Vaccination discussed', label: 'Vaccination discussed', datePrompt: 'Date Discussed', baseDueDays: 7, sortOrder: 2 },
+    { code: 'Vaccination scheduled', label: 'Vaccination scheduled', datePrompt: 'Date Scheduled', baseDueDays: 1, sortOrder: 3 },
+    { code: 'Vaccination completed', label: 'Vaccination completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 5 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
+  ]);
+
+  // Diabetes Control (HgbA1c) statuses
+  await createStatuses(diabetesControlMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'HgbA1c ordered', label: 'HgbA1c ordered', datePrompt: 'Date Ordered', baseDueDays: 14, sortOrder: 2 },
+    { code: 'HgbA1c at goal', label: 'HgbA1c at goal', datePrompt: 'Test Date', baseDueDays: 90, sortOrder: 3 },
+    { code: 'HgbA1c NOT at goal', label: 'HgbA1c NOT at goal', datePrompt: 'Test Date', baseDueDays: 90, sortOrder: 4 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 5 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
+  ]);
+
+  // Annual Serum K&Cr statuses
+  await createStatuses(annualSerumMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Lab ordered', label: 'Lab ordered', datePrompt: 'Date Ordered', baseDueDays: 7, sortOrder: 2 },
+    { code: 'Lab completed', label: 'Lab completed', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 3 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 4 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 5 },
+  ]);
+
+  // Chronic Diagnosis Code statuses
+  await createStatuses(chronicDxMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Chronic diagnosis confirmed', label: 'Chronic diagnosis confirmed', datePrompt: 'Date Confirmed', baseDueDays: 365, sortOrder: 2 },
+    { code: 'Chronic diagnosis resolved', label: 'Chronic diagnosis resolved', datePrompt: 'Date Resolved', baseDueDays: null, sortOrder: 3 },
+    { code: 'Chronic diagnosis invalid', label: 'Chronic diagnosis invalid', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 4 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 5 },
+  ]);
 
   console.log('Created measure statuses');
 
@@ -299,73 +391,81 @@ async function main() {
   // DUE DAY RULES (tracking-specific overrides)
   // ============================================
 
-  // Get measure status IDs for creating due day rules
-  const screeningDiscussedStatus = await prisma.measureStatus.findFirst({
-    where: { code: 'Screening discussed' },
-  });
-
-  if (screeningDiscussedStatus) {
-    // Due day rules for "Screening discussed" based on tracking1 values
-    const screeningDiscussedRules = [
-      { trackingValue: 'In 1 Month', dueDays: 30 },
-      { trackingValue: 'In 2 Months', dueDays: 60 },
-      { trackingValue: 'In 3 Months', dueDays: 90 },
-      { trackingValue: 'In 4 Months', dueDays: 120 },
-    ];
-
-    for (const rule of screeningDiscussedRules) {
-      await prisma.dueDayRule.upsert({
-        where: {
-          measureStatusId_trackingValue: {
-            measureStatusId: screeningDiscussedStatus.id,
-            trackingValue: rule.trackingValue,
+  // Helper function to create due day rules for a status
+  async function createDueDayRules(statusCode: string, rules: Array<{ trackingValue: string; dueDays: number }>) {
+    const status = await prisma.measureStatus.findFirst({ where: { code: statusCode } });
+    if (status) {
+      for (const rule of rules) {
+        await prisma.dueDayRule.upsert({
+          where: {
+            measureStatusId_trackingValue: {
+              measureStatusId: status.id,
+              trackingValue: rule.trackingValue,
+            },
           },
-        },
-        update: {},
-        create: {
-          measureStatusId: screeningDiscussedStatus.id,
-          trackingValue: rule.trackingValue,
-          dueDays: rule.dueDays,
-        },
-      });
+          update: { dueDays: rule.dueDays },
+          create: {
+            measureStatusId: status.id,
+            trackingValue: rule.trackingValue,
+            dueDays: rule.dueDays,
+          },
+        });
+      }
     }
   }
 
-  // Get HgbA1c NOT at goal status for callback rules
-  const hgba1cNotAtGoalStatus = await prisma.measureStatus.findFirst({
-    where: { code: 'HgbA1c NOT at goal' },
-  });
+  // Screening discussed - month-based countdown (Cervical Cancer)
+  // Extended to 11 months per requirements
+  await createDueDayRules('Screening discussed', [
+    { trackingValue: 'In 1 Month', dueDays: 30 },
+    { trackingValue: 'In 2 Months', dueDays: 60 },
+    { trackingValue: 'In 3 Months', dueDays: 90 },
+    { trackingValue: 'In 4 Months', dueDays: 120 },
+    { trackingValue: 'In 5 Months', dueDays: 150 },
+    { trackingValue: 'In 6 Months', dueDays: 180 },
+    { trackingValue: 'In 7 Months', dueDays: 210 },
+    { trackingValue: 'In 8 Months', dueDays: 240 },
+    { trackingValue: 'In 9 Months', dueDays: 270 },
+    { trackingValue: 'In 10 Months', dueDays: 300 },
+    { trackingValue: 'In 11 Months', dueDays: 330 },
+  ]);
 
-  if (hgba1cNotAtGoalStatus) {
-    // Due day rules for "Scheduled call back" based on tracking1 values
-    const callbackRules = [
-      { trackingValue: 'Call every 1 wk', dueDays: 7 },
-      { trackingValue: 'Call every 2 wks', dueDays: 14 },
-      { trackingValue: 'Call every 3 wks', dueDays: 21 },
-      { trackingValue: 'Call every 4 wks', dueDays: 28 },
-      { trackingValue: 'Call every 5 wks', dueDays: 35 },
-      { trackingValue: 'Call every 6 wks', dueDays: 42 },
-      { trackingValue: 'Call every 7 wks', dueDays: 49 },
-      { trackingValue: 'Call every 8 wks', dueDays: 56 },
-    ];
+  // Colon cancer screening ordered - test type dependent
+  await createDueDayRules('Colon cancer screening ordered', [
+    { trackingValue: 'Colonoscopy', dueDays: 42 },      // 6 weeks
+    { trackingValue: 'Sigmoidoscopy', dueDays: 42 },   // 6 weeks
+    { trackingValue: 'Cologuard', dueDays: 21 },       // 3 weeks
+    { trackingValue: 'FOBT', dueDays: 21 },            // 3 weeks
+  ]);
 
-    for (const rule of callbackRules) {
-      await prisma.dueDayRule.upsert({
-        where: {
-          measureStatusId_trackingValue: {
-            measureStatusId: hgba1cNotAtGoalStatus.id,
-            trackingValue: rule.trackingValue,
-          },
-        },
-        update: {},
-        create: {
-          measureStatusId: hgba1cNotAtGoalStatus.id,
-          trackingValue: rule.trackingValue,
-          dueDays: rule.dueDays,
-        },
-      });
-    }
-  }
+  // Breast cancer screening test ordered - test type dependent
+  await createDueDayRules('Screening test ordered', [
+    { trackingValue: 'Mammogram', dueDays: 14 },         // 2 weeks
+    { trackingValue: 'Breast Ultrasound', dueDays: 14 }, // 2 weeks
+    { trackingValue: 'Breast MRI', dueDays: 21 },        // 3 weeks
+  ]);
+
+  // Hypertension - scheduled call back (BP not at goal)
+  const bpCallbackRules = [
+    { trackingValue: 'Call every 1 wk', dueDays: 7 },
+    { trackingValue: 'Call every 2 wks', dueDays: 14 },
+    { trackingValue: 'Call every 3 wks', dueDays: 21 },
+    { trackingValue: 'Call every 4 wks', dueDays: 28 },
+    { trackingValue: 'Call every 5 wks', dueDays: 35 },
+    { trackingValue: 'Call every 6 wks', dueDays: 42 },
+    { trackingValue: 'Call every 7 wks', dueDays: 49 },
+    { trackingValue: 'Call every 8 wks', dueDays: 56 },
+  ];
+  await createDueDayRules('Scheduled call back - BP not at goal', bpCallbackRules);
+  await createDueDayRules('Scheduled call back - BP at goal', bpCallbackRules);
+
+  // Chronic diagnosis - attestation status (only add rule for "not sent")
+  await createDueDayRules('Chronic diagnosis resolved', [
+    { trackingValue: 'Attestation not sent', dueDays: 14 },
+  ]);
+  await createDueDayRules('Chronic diagnosis invalid', [
+    { trackingValue: 'Attestation not sent', dueDays: 14 },
+  ]);
 
   console.log('Created due day rules');
 
