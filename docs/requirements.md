@@ -2964,6 +2964,24 @@ Tracking fields have three states:
 3. **Overdue:** When Due Date < Today, row turns RED
 4. **Reset:** If a new date is entered or status changes, timer resets and color returns to status-based color
 
+### Time Interval Editability
+
+The Time Interval (Days) column is conditionally editable based on whether the tracking fields specify the interval:
+
+**NOT Editable (dropdown determines interval):**
+- "Screening discussed" with Tracking #1 month selection (In 1-11 Months)
+- "HgbA1c at goal" / "HgbA1c NOT at goal" with Tracking #2 month selection
+- "Colon cancer screening ordered" with Tracking #1 test type (Colonoscopy, Cologuard, etc.)
+- "Screening test ordered" with Tracking #1 test type (Mammogram, Breast MRI, etc.)
+- "Scheduled call back - BP not/at goal" with Tracking #1 call interval
+- "Chronic diagnosis resolved/invalid" with Tracking #1 attestation status
+
+**Editable (uses baseDueDays default, user can override):**
+- All other statuses with a calculated due date
+- Examples: AWV scheduled (1 day), Vaccination discussed (7 days), Lab ordered (7 days)
+- When edited, Due Date = Status Date + Time Interval
+- Row colors update accordingly (overdue detection)
+
 ---
 
 # 10. Real-time Features

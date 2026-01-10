@@ -90,6 +90,11 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - DueDayRule lookup for measureStatus + tracking1 combinations
   - MeasureStatus.baseDueDays fallback
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
+- [x] Time Interval conditional editability
+  - Editable for statuses with baseDueDays default (1-365 days)
+  - NOT editable for dropdown-based intervals (month/week selections)
+  - When edited, Due Date = Status Date + Time Interval
+  - Row colors update accordingly (overdue detection)
 - [x] Status Date prompt when Measure Status changes
   - Shows contextual prompt text (e.g., "Date Completed", "Date Ordered")
   - Light gray cell background with italic text when status date is missing
@@ -285,4 +290,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 9, 2026 - Completed Phase 6: Added complete countdown period configuration for all 13 quality measures, DueDayRule records for tracking-dependent countdowns, extended Cervical Cancer month options to 11 months
+January 9, 2026 - Added Time Interval conditional editability for baseDueDays statuses; due date and row colors update when interval is edited

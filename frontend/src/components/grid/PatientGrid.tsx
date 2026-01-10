@@ -12,6 +12,47 @@ import {
   getAutoFillQualityMeasure,
 } from '../../config/dropdownConfig';
 
+// Statuses that use dropdown/range for interval (NOT editable)
+const DROPDOWN_INTERVAL_STATUSES = [
+  // Cervical Cancer - uses "In X Months" dropdown
+  'Screening discussed',
+  // HgbA1c - uses tracking2 month dropdown
+  'HgbA1c at goal',
+  'HgbA1c NOT at goal',
+  // Colon Cancer - uses test type dropdown
+  'Colon cancer screening ordered',
+  // Breast Cancer - uses test type dropdown
+  'Screening test ordered',
+  // Hypertension - uses "Call every X wks" dropdown
+  'Scheduled call back - BP not at goal',
+  'Scheduled call back - BP at goal',
+  // Chronic DX - uses attestation dropdown
+  'Chronic diagnosis resolved',
+  'Chronic diagnosis invalid',
+];
+
+// Helper function to determine if time interval is editable
+// Editable when: has status date + has baseDueDays default (not dropdown-based)
+const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
+  if (!data) return false;
+
+  // No status date = no due date calculation possible
+  if (!data.statusDate) return false;
+
+  // No time interval calculated = status has no baseDueDays
+  if (data.timeIntervalDays === null || data.timeIntervalDays === undefined) return false;
+
+  const status = data.measureStatus || '';
+
+  // Statuses that use dropdown for interval are NOT editable
+  if (DROPDOWN_INTERVAL_STATUSES.includes(status)) {
+    return false;
+  }
+
+  // Otherwise, time interval is editable (uses baseDueDays default)
+  return true;
+};
+
 export interface GridRow {
   id: number;
   patientId: number;
@@ -490,7 +531,20 @@ export default function PatientGrid({
       field: 'timeIntervalDays',
       headerName: 'Time Interval (Days)',
       width: 150,
-      editable: false, // Calculated field
+      editable: (params) => isTimeIntervalEditable(params.data),
+      valueSetter: (params) => {
+        const newValue = params.newValue;
+        if (newValue === null || newValue === '' || newValue === undefined) {
+          return false; // Don't allow clearing
+        }
+        const parsed = parseInt(newValue, 10);
+        if (isNaN(parsed) || parsed < 1 || parsed > 365) {
+          alert('Please enter a valid number between 1 and 365.');
+          return false;
+        }
+        params.data.timeIntervalDays = parsed;
+        return true;
+      },
     },
     {
       field: 'notes',

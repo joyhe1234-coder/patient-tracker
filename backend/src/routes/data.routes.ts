@@ -272,6 +272,23 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       ? measureUpdate.tracking2 as string | null
       : existing.tracking2;
 
+    // Statuses that use dropdown/range for interval (time interval NOT editable)
+    const DROPDOWN_INTERVAL_STATUSES = [
+      'Screening discussed',
+      'HgbA1c at goal',
+      'HgbA1c NOT at goal',
+      'Colon cancer screening ordered',
+      'Screening test ordered',
+      'Scheduled call back - BP not at goal',
+      'Scheduled call back - BP at goal',
+      'Chronic diagnosis resolved',
+      'Chronic diagnosis invalid',
+    ];
+
+    // Check if timeIntervalDays was explicitly updated by user
+    const timeIntervalExplicitlySet = 'timeIntervalDays' in updateData;
+    const isDropdownIntervalStatus = DROPDOWN_INTERVAL_STATUSES.includes(finalMeasureStatus);
+
     // Check if due date related fields changed
     const dueDateFieldsChanged =
       'statusDate' in updateData ||
@@ -279,8 +296,17 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       'tracking1' in updateData ||
       'tracking2' in updateData;
 
-    if (dueDateFieldsChanged) {
-      // Recalculate due date and time interval
+    if (timeIntervalExplicitlySet && !isDropdownIntervalStatus && finalStatusDate) {
+      // User edited time interval for a baseDueDays status
+      // Calculate dueDate = statusDate + timeIntervalDays
+      const interval = measureUpdate.timeIntervalDays as number;
+      if (interval !== null && interval !== undefined) {
+        const dueDate = new Date(finalStatusDate);
+        dueDate.setUTCDate(dueDate.getUTCDate() + interval);
+        measureUpdate.dueDate = dueDate;
+      }
+    } else if (dueDateFieldsChanged) {
+      // Recalculate due date and time interval using normal rules
       const { dueDate, timeIntervalDays } = await calculateDueDate(
         finalStatusDate,
         finalMeasureStatus,
