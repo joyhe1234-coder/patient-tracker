@@ -220,15 +220,28 @@ cd frontend && npm run dev
 # Access at http://localhost:5173
 ```
 
-### Production
+### Production (Docker)
 
 ```bash
 docker compose up -d --build
 # Access at http://localhost
 ```
 
+### Cloud Deployment (Render)
+
+The application includes a `render.yaml` Blueprint for easy deployment to Render:
+
+1. Sign up at https://render.com with GitHub
+2. Click **New → Blueprint** → Select `patient-tracker` repo
+3. Click **Apply** - Render creates all services automatically
+
+**Services Created:**
+- PostgreSQL database (free tier)
+- Backend API (starter plan ~$7/month)
+- Frontend static site (free)
+
 ---
 
 ## Last Updated
 
-January 9, 2026 - Single-click editing, timezone-safe dates, duplicate error handling, row selection with outline
+January 9, 2026 - Single-click editing, Render deployment config, timezone-safe dates, duplicate error handling
