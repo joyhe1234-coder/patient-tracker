@@ -603,8 +603,8 @@ export default function PatientGrid({
           return false; // Don't allow clearing
         }
         const parsed = parseInt(newValue, 10);
-        if (isNaN(parsed) || parsed < 1 || parsed > 365) {
-          alert('Please enter a valid number between 1 and 365.');
+        if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+          alert('Please enter a valid number between 1 and 1000.');
           return false;
         }
         params.data.timeIntervalDays = parsed;

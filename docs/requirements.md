@@ -3029,6 +3029,7 @@ The Time Interval (Days) column is conditionally editable based on whether the t
 **Editable (uses baseDueDays default, user can override):**
 - All other statuses with a calculated due date
 - Examples: AWV scheduled (1 day), Vaccination discussed (7 days), Lab ordered (7 days)
+- Valid range: 1-1000 days (validation error if outside range)
 - When edited, Due Date = Status Date + Time Interval
 - Row colors update accordingly (overdue detection)
 

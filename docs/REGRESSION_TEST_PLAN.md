@@ -288,6 +288,11 @@ npx tsx prisma/test-seed.ts
 | 5.3.5 | NOT editable - Hypertension callback | Set "Scheduled call back - BP not at goal", try to edit Time Interval | Cell is NOT editable | |
 | 5.3.6 | Edit updates due date | Edit Time Interval to 30 | Due Date = Status Date + 30 days | |
 | 5.3.7 | Edit updates row color | Edit Time Interval to make row overdue | Row color changes to red | |
+| 5.3.8 | Valid range - minimum | Edit Time Interval to 1 | Value accepted, due date updates | |
+| 5.3.9 | Valid range - maximum | Edit Time Interval to 1000 | Value accepted, due date updates | |
+| 5.3.10 | Invalid - zero | Edit Time Interval to 0 | Error: "Please enter a valid number between 1 and 1000" | |
+| 5.3.11 | Invalid - over maximum | Edit Time Interval to 1001 | Error: "Please enter a valid number between 1 and 1000" | |
+| 5.3.12 | Invalid - negative | Edit Time Interval to -5 | Error: "Please enter a valid number between 1 and 1000" | |
 
 ### 6.4 Status Date Prompt
 

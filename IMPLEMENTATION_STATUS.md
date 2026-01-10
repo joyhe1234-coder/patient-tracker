@@ -93,7 +93,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - MeasureStatus.baseDueDays fallback
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
 - [x] Time Interval conditional editability
-  - Editable for statuses with baseDueDays default (1-365 days)
+  - Editable for statuses with baseDueDays default (1-1000 days)
   - NOT editable for dropdown-based intervals (month/week selections)
   - When edited, Due Date = Status Date + Time Interval
   - Row colors update accordingly (overdue detection)
@@ -294,4 +294,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 10, 2026 - Member Info columns hidden by default; N/A cells styled with italic text and diagonal stripe overlay
+January 10, 2026 - Time Interval editable range changed to 1-1000 days
