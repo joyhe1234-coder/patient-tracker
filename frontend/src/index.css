@@ -16,13 +16,36 @@ html, body, #root {
   --ag-even-row-background-color: #ffffff;
   --ag-row-hover-color: transparent;
   --ag-selected-row-background-color: transparent;
+  --ag-range-selection-background-color: transparent;
   --ag-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --ag-font-size: 14px;
 }
 
-/* Selected row indicator - use border instead of background to preserve measure status colors */
+/* Status row colors - using classes instead of inline styles */
+.ag-theme-alpine .row-status-gray { background-color: #E9EBF3 !important; }
+.ag-theme-alpine .row-status-purple { background-color: #E5D9F2 !important; }
+.ag-theme-alpine .row-status-green { background-color: #D4EDDA !important; }
+.ag-theme-alpine .row-status-blue { background-color: #CCE5FF !important; }
+.ag-theme-alpine .row-status-yellow { background-color: #FFF9E6 !important; }
+.ag-theme-alpine .row-status-orange { background-color: #FFE8CC !important; }
+.ag-theme-alpine .row-status-white { background-color: #FFFFFF !important; }
+.ag-theme-alpine .row-status-duplicate { background-color: #FEF3C7 !important; }
+
+/* Selected row indicator - use outline, preserve status color */
 .ag-theme-alpine .ag-row-selected {
-  border-left: 4px solid #3b82f6 !important;
+  outline: 2px solid #2196F3 !important;
+  outline-offset: -2px;
+}
+
+/* Focused cell indicator - clear blue border */
+.ag-theme-alpine .ag-cell-focus {
+  outline: 2px solid #2196F3 !important;
+  outline-offset: -2px;
+}
+
+/* Cell being edited - highlight with box shadow */
+.ag-theme-alpine .ag-cell-inline-editing {
+  box-shadow: inset 0 0 0 2px #2196F3 !important;
 }
 
 /* Custom scrollbar */

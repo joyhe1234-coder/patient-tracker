@@ -90,17 +90,17 @@ export async function calculateDueDate(
   return { dueDate: null, timeIntervalDays: null };
 }
 
-// Helper: Add days to a date
+// Helper: Add days to a date (using UTC to avoid timezone issues)
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
-  result.setDate(result.getDate() + days);
+  result.setUTCDate(result.getUTCDate() + days);
   return result;
 }
 
-// Helper: Add months to a date
+// Helper: Add months to a date (using UTC to avoid timezone issues)
 function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
+  result.setUTCMonth(result.getUTCMonth() + months);
   return result;
 }
 

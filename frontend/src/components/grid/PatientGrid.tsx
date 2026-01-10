@@ -44,15 +44,14 @@ interface PatientGridProps {
   showMemberInfo?: boolean;
 }
 
-// Date formatter for display
+// Date formatter for display - use UTC to avoid timezone shifts
 const formatDate = (value: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
-  return date.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-  });
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${month}/${day}/${year}`;
 };
 
 // DOB formatter - masked for privacy
@@ -61,13 +60,13 @@ const formatDobMasked = (value: string | null): string => {
   return '###';
 };
 
-// Format date for editing (MM/DD/YYYY)
+// Format date for editing (MM/DD/YYYY) - use UTC to avoid timezone shifts
 const formatDateForEdit = (value: string | null): string => {
   if (!value) return '';
   const date = new Date(value);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${month}/${day}/${year}`;
 };
 
@@ -81,8 +80,8 @@ const formatPhone = (value: string | null): string => {
   return value;
 };
 
-// Parse date with MM/DD/YYYY format validation
-const parseAndValidateDate = (input: string): Date | null => {
+// Parse date with MM/DD/YYYY format validation - returns ISO string at UTC noon
+const parseAndValidateDate = (input: string): string | null => {
   if (!input || !input.trim()) return null;
 
   const trimmed = input.trim();
@@ -91,8 +90,18 @@ const parseAndValidateDate = (input: string): Date | null => {
   const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (match) {
     const [, month, day, year] = match;
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    if (!isNaN(date.getTime())) return date;
+    const m = parseInt(month);
+    const d = parseInt(day);
+    const y = parseInt(year);
+
+    // Basic validation
+    if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) {
+      return null;
+    }
+
+    // Return ISO string at UTC noon to avoid timezone boundary issues
+    const isoString = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00.000Z`;
+    return isoString;
   }
 
   return null;
@@ -201,9 +210,14 @@ export default function PatientGrid({
           onSaveStatusChange?.('idle');
         }, 2000);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save:', error);
       onSaveStatusChange?.('error');
+
+      // Show error message to user
+      const axiosError = error as { response?: { data?: { error?: { message?: string } } } };
+      const errorMessage = axiosError?.response?.data?.error?.message || 'Failed to save changes.';
+      alert(errorMessage);
 
       // Revert to old value
       event.node.setDataValue(colDef.field, oldValue);
@@ -253,12 +267,12 @@ export default function PatientGrid({
           alert('Date of Birth is required and cannot be empty.');
           return false;
         }
-        const date = parseAndValidateDate(params.newValue);
-        if (!date) {
+        const isoDate = parseAndValidateDate(params.newValue);
+        if (!isoDate) {
           showDateFormatError();
           return false;
         }
-        params.data.memberDob = date.toISOString();
+        params.data.memberDob = isoDate;
         return true;
       },
     },
@@ -335,12 +349,12 @@ export default function PatientGrid({
           params.data.statusDate = null;
           return true;
         }
-        const date = parseAndValidateDate(params.newValue);
-        if (!date) {
+        const isoDate = parseAndValidateDate(params.newValue);
+        if (!isoDate) {
           showDateFormatError();
           return false; // Reject the change
         }
-        params.data.statusDate = date.toISOString();
+        params.data.statusDate = isoDate;
         return true;
       },
     },
@@ -398,108 +412,90 @@ export default function PatientGrid({
     resizable: true,
   }), []);
 
-  // Row styling based on Measure Status and duplicate detection
-  const getRowStyle = useCallback((params: RowClassParams<GridRow>) => {
-    const status = params.data?.measureStatus || '';
-    const isDuplicate = params.data?.isDuplicate || false;
+  // Status arrays for row class rules
+  const grayStatuses = [
+    'No longer applicable',
+    'Screening unnecessary',
+  ];
 
-    // Priority 0: Duplicate rows (highest priority)
-    if (isDuplicate) {
-      return { backgroundColor: '#FEF3C7' }; // Light yellow for duplicates
-    }
+  const purpleStatuses = [
+    'Patient declined AWV',
+    'Patient declined',
+    'Patient declined screening',
+    'Declined BP control',
+    'Contraindicated',
+  ];
 
-    // Color mapping based on status categories
-    // Gray (#E9EBF3): No longer applicable, Screening unnecessary
-    const grayStatuses = [
-      'No longer applicable',
-      'Screening unnecessary',
-    ];
+  const greenStatuses = [
+    'AWV completed',
+    'Diabetic eye exam completed',
+    'Colon cancer screening completed',
+    'Screening test completed',
+    'Screening completed',
+    'GC/Clamydia screening completed',
+    'Urine microalbumin completed',
+    'Blood pressure at goal',
+    'Lab completed',
+    'Vaccination completed',
+    'HgbA1c at goal',
+    'Chronic diagnosis confirmed',
+    'Patient on ACE/ARB',
+  ];
 
-    // Light Purple (#E5D9F2): Declined, Contraindicated
-    const purpleStatuses = [
-      'Patient declined AWV',
-      'Patient declined',
-      'Patient declined screening',
-      'Declined BP control',
-      'Contraindicated',
-    ];
+  const blueStatuses = [
+    'AWV scheduled',
+    'Diabetic eye exam scheduled',
+    'Diabetic eye exam referral made',
+    'Colon cancer screening ordered',
+    'Screening test ordered',
+    'Screening appt made',
+    'Test ordered',
+    'Urine microalbumin ordered',
+    'Appointment scheduled',
+    'ACE/ARB prescribed',
+    'Vaccination scheduled',
+    'HgbA1c ordered',
+    'Lab ordered',
+    'Obtaining outside records',
+    'HgbA1c NOT at goal',
+    'Scheduled call back - BP not at goal',
+    'Scheduled call back - BP at goal',
+    'Will call later to schedule',
+  ];
 
-    // Light Green (#D4EDDA): Completed, At Goal
-    const greenStatuses = [
-      'AWV completed',
-      'Diabetic eye exam completed',
-      'Colon cancer screening completed',
-      'Screening test completed',
-      'Screening completed',
-      'GC/Clamydia screening completed',
-      'Urine microalbumin completed',
-      'Blood pressure at goal',
-      'Lab completed',
-      'Vaccination completed',
-      'HgbA1c at goal',
-      'Chronic diagnosis confirmed',
-      'Patient on ACE/ARB',
-    ];
+  const yellowStatuses = [
+    'Patient called to schedule AWV',
+    'Diabetic eye exam discussed',
+    'Screening discussed',
+    'Patient contacted for screening',
+    'Vaccination discussed',
+  ];
 
-    // Light Blue (#CCE5FF): Scheduled, Ordered, In Progress
-    const blueStatuses = [
-      'AWV scheduled',
-      'Diabetic eye exam scheduled',
-      'Diabetic eye exam referral made',
-      'Colon cancer screening ordered',
-      'Screening test ordered',
-      'Screening appt made',
-      'Test ordered',
-      'Urine microalbumin ordered',
-      'Appointment scheduled',
-      'ACE/ARB prescribed',
-      'Vaccination scheduled',
-      'HgbA1c ordered',
-      'Lab ordered',
-      'Obtaining outside records',
-      'HgbA1c NOT at goal',
-      'Scheduled call back - BP not at goal',
-      'Scheduled call back - BP at goal',
-      'Will call later to schedule',
-    ];
+  const orangeStatuses = [
+    'Chronic diagnosis resolved',
+    'Chronic diagnosis invalid',
+  ];
 
-    // Pale Yellow (#FFF9E6): Called to schedule, Discussed, Contacted
-    const yellowStatuses = [
-      'Patient called to schedule AWV',
-      'Diabetic eye exam discussed',
-      'Screening discussed',
-      'Patient contacted for screening',
-      'Vaccination discussed',
-    ];
-
-    // Light Orange (#FFE8CC): Chronic diagnosis resolved/invalid
-    const orangeStatuses = [
-      'Chronic diagnosis resolved',
-      'Chronic diagnosis invalid',
-    ];
-
-    if (grayStatuses.includes(status)) {
-      return { backgroundColor: '#E9EBF3' };
-    }
-    if (purpleStatuses.includes(status)) {
-      return { backgroundColor: '#E5D9F2' };
-    }
-    if (greenStatuses.includes(status)) {
-      return { backgroundColor: '#D4EDDA' };
-    }
-    if (blueStatuses.includes(status)) {
-      return { backgroundColor: '#CCE5FF' };
-    }
-    if (yellowStatuses.includes(status)) {
-      return { backgroundColor: '#FFF9E6' };
-    }
-    if (orangeStatuses.includes(status)) {
-      return { backgroundColor: '#FFE8CC' };
-    }
-
-    // Default: White (no special coloring)
-    return { backgroundColor: '#FFFFFF' };
-  }, []);
+  // Row class rules based on Measure Status and duplicate detection
+  const rowClassRules = useMemo(() => ({
+    'row-status-duplicate': (params: RowClassParams<GridRow>) => params.data?.isDuplicate === true,
+    'row-status-gray': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && grayStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-purple': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && purpleStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-green': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && greenStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-blue': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && blueStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-yellow': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && yellowStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-orange': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && orangeStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-white': (params: RowClassParams<GridRow>) => {
+      if (params.data?.isDuplicate) return false;
+      const status = params.data?.measureStatus || '';
+      return !grayStatuses.includes(status) &&
+             !purpleStatuses.includes(status) &&
+             !greenStatuses.includes(status) &&
+             !blueStatuses.includes(status) &&
+             !yellowStatuses.includes(status) &&
+             !orangeStatuses.includes(status);
+    },
+  }), []);
 
   return (
     <div
@@ -515,7 +511,7 @@ export default function PatientGrid({
         rowSelection="single"
         suppressRowClickSelection={false}
         getRowId={(params) => String(params.data.id)}
-        getRowStyle={getRowStyle}
+        rowClassRules={rowClassRules}
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
         onSelectionChanged={onSelectionChanged}

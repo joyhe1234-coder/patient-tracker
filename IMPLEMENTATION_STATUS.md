@@ -34,9 +34,11 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Add Row functionality with modal (basic patient info only)
 - [x] Delete Row with confirmation dialog
-- [x] Row selection for delete operations (blue left border indicator)
+- [x] Row selection indicator (blue outline, preserves status colors)
+- [x] Active cell indicator (blue outline border)
 - [x] Date formatting (display and edit as MM/DD/YYYY)
 - [x] Date validation with error popup for invalid format
+- [x] Timezone-safe date handling (UTC noon to prevent date shift)
 - [x] DOB masking (displays as ### for privacy)
 - [x] Phone number formatting ((555) 123-4567)
 - [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
@@ -68,9 +70,10 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - **Pale Yellow** (#FFF9E6): Called to schedule, Discussed, Contacted
   - **Light Orange** (#FFE8CC): Chronic diagnosis resolved/invalid
   - **White** (#FFFFFF): Not Addressed (default)
-- [x] Row colors preserved during row selection and editing
+- [x] Row colors preserved during row selection and editing (using CSS classes via rowClassRules)
 - [x] Explicit status-to-color mapping (no pattern matching conflicts)
 - [x] Real-time color updates when Measure Status changes
+- [x] Selection/focus uses outline instead of background color override
 
 ### Phase 5: Business Logic & Calculations
 
@@ -86,10 +89,11 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - Shows contextual prompt text (e.g., "Date Completed", "Date Ordered")
   - **Dark gray cell background** with white italic text when status date is missing
   - Special overrides for "Patient deceased" and "Patient in hospice"
-- [x] Duplicate detection (same patient + quality measure)
+- [x] Duplicate detection (same patient name + DOB)
   - Visual indicator: Light yellow background (#FEF3C7)
-  - Warning modal when creating duplicate entries
-  - Backend duplicate flag synchronization on create/update/delete
+  - Error modal when creating duplicate patient (no proceed option, form data preserved)
+  - Backend validation prevents updating DOB to create duplicate patient
+  - Backend duplicate flag synchronization on create/delete
 - [x] Backend services layer:
   - `dueDateCalculator.ts` - Due date calculation logic
   - `duplicateDetector.ts` - Duplicate detection and flag management
@@ -227,4 +231,4 @@ docker compose up -d --build
 
 ## Last Updated
 
-January 9, 2026 - Phase 5 Complete, UI improvements (date format MM/DD/YYYY, row color fixes)
+January 9, 2026 - UI polish: timezone-safe dates, duplicate error handling, row selection with outline

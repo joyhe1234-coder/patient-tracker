@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 interface AddRowModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (data: NewRowData) => void;
+  onAdd: (data: NewRowData) => Promise<boolean>;
 }
 
 export interface NewRowData {
@@ -51,18 +51,28 @@ export default function AddRowModal({ isOpen, onClose, onAdd }: AddRowModalProps
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onAdd(formData);
-      // Reset form
-      setFormData({
-        memberName: '',
-        memberDob: '',
-        memberTelephone: '',
-        memberAddress: '',
+      // Convert date to UTC noon to avoid timezone issues
+      const [year, month, day] = formData.memberDob.split('-');
+      const isoDate = `${year}-${month}-${day}T12:00:00.000Z`;
+
+      const success = await onAdd({
+        ...formData,
+        memberDob: isoDate,
       });
-      setErrors({});
+
+      // Only reset form if creation was successful
+      if (success) {
+        setFormData({
+          memberName: '',
+          memberDob: '',
+          memberTelephone: '',
+          memberAddress: '',
+        });
+        setErrors({});
+      }
     }
   };
 

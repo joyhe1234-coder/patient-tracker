@@ -75,43 +75,37 @@ export default function MainPage() {
   };
 
   // Handle add new row - check for duplicates first
-  const handleAddRow = async (data: NewRowData) => {
+  // Duplicate = same patient name + DOB already exists
+  // Returns true if row was created successfully, false otherwise
+  const handleAddRow = async (data: NewRowData): Promise<boolean> => {
     try {
-      // Check if this would create a duplicate
+      // Check if this would create a duplicate (same name + DOB)
       const checkResponse = await api.post('/data/check-duplicate', {
         memberName: data.memberName,
         memberDob: data.memberDob,
-        qualityMeasure: 'Annual Wellness Visit', // Default quality measure
       });
 
       if (checkResponse.data.success && checkResponse.data.data.isDuplicate) {
-        // Show duplicate warning modal
+        // Show duplicate error modal - don't allow creation
         setPendingRowData(data);
         setShowDuplicateWarning(true);
-        return;
+        return false; // Signal failure - keep form data
       }
 
       // No duplicate, proceed with creation
       await createRow(data);
+      return true; // Signal success
     } catch (err) {
       console.error('Failed to check duplicate:', err);
       // If check fails, proceed with creation anyway
       await createRow(data);
+      return true;
     }
   };
 
-  // Handle proceeding with duplicate creation
-  const handleProceedWithDuplicate = async () => {
-    if (pendingRowData) {
-      await createRow(pendingRowData);
-      setPendingRowData(null);
-      setShowDuplicateWarning(false);
-    }
-  };
-
-  // Handle canceling duplicate creation
-  const handleCancelDuplicate = () => {
-    setPendingRowData(null);
+  // Handle closing duplicate error modal
+  const handleCloseDuplicateError = () => {
+    // Keep pendingRowData so form retains the values
     setShowDuplicateWarning(false);
   };
 
@@ -211,13 +205,11 @@ export default function MainPage() {
         onCancel={() => setShowDeleteModal(false)}
       />
 
-      {/* Duplicate Warning Modal */}
+      {/* Duplicate Error Modal */}
       <DuplicateWarningModal
         isOpen={showDuplicateWarning}
         patientName={pendingRowData?.memberName || ''}
-        qualityMeasure="Annual Wellness Visit"
-        onProceed={handleProceedWithDuplicate}
-        onCancel={handleCancelDuplicate}
+        onClose={handleCloseDuplicateError}
       />
     </div>
   );
