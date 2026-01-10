@@ -17,10 +17,14 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const corsOrigins = process.env.NODE_ENV === 'production'
+  ? process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : true  // Allow all origins if not specified (for Render deployment)
+  : ['http://localhost:5173', 'http://localhost:3000']; // Vite dev server
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? false  // Same origin in production
-    : ['http://localhost:5173', 'http://localhost:3000'], // Vite dev server
+  origin: corsOrigins,
   credentials: true,
 }));
 
