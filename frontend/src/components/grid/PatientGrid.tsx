@@ -240,13 +240,14 @@ export default function PatientGrid({
     if (newValue === oldValue) return;
     if (!data || !colDef.field) return;
 
-    // Clear sort if editing a sorted column (data is no longer in sorted order)
+    // Store the row ID to preserve selection after update
+    const rowId = data.id;
+
+    // Clear ALL sorts when any cell is edited to prevent row reordering
     const columnState = gridApi.getColumnState();
-    const editedColumnState = columnState.find(col => col.colId === colDef.field);
-    if (editedColumnState?.sort) {
-      // Clear sort on this column while keeping row in place
+    const hasSortedColumns = columnState.some(col => col.sort);
+    if (hasSortedColumns) {
       gridApi.applyColumnState({
-        state: [{ colId: colDef.field, sort: null }],
         defaultState: { sort: null },
       });
     }
@@ -305,12 +306,19 @@ export default function PatientGrid({
       const response = await api.put(`/data/${data.id}`, updatePayload);
 
       if (response.data.success) {
-        // Update the row data in the grid using transaction API
-        // This properly updates the grid's internal state and triggers getRowStyle
-        gridApi.applyTransaction({ update: [response.data.data] });
+        // Update row data directly on the node instead of using applyTransaction
+        // This prevents row reordering
+        const updatedData = response.data.data;
+        node.setData(updatedData);
+
+        // Refresh the row to update styling (row colors)
+        gridApi.refreshCells({ rowNodes: [node], force: true });
+
+        // Ensure row stays selected
+        node.setSelected(true);
 
         // Update the row with server response (for React state)
-        onRowUpdated?.(response.data.data);
+        onRowUpdated?.(updatedData);
         onSaveStatusChange?.('saved');
 
         // Reset to idle after 2 seconds
