@@ -243,6 +243,16 @@ export default function PatientGrid({
     // Store the row ID to preserve selection after update
     const rowId = data.id;
 
+    // Clear sort indicator on the edited column (if it was sorted)
+    // Rows stay in place because we use node.setData() and don't update React state
+    const columnState = gridApi.getColumnState();
+    const editedColumnState = columnState.find(col => col.colId === colDef.field);
+    if (editedColumnState?.sort) {
+      gridApi.applyColumnState({
+        state: [{ colId: colDef.field, sort: null }],
+      });
+    }
+
     // Show saving status
     onSaveStatusChange?.('saving');
 
