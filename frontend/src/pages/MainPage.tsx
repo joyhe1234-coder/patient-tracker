@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
+import StatusFilterBar, { StatusColor, getRowStatusColor } from '../components/layout/StatusFilterBar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import DuplicateWarningModal from '../components/modals/DuplicateWarningModal';
@@ -23,6 +24,43 @@ export default function MainPage() {
 
   // Column visibility
   const [showMemberInfo, setShowMemberInfo] = useState(false);
+
+  // Status color filters
+  const [activeFilters, setActiveFilters] = useState<StatusColor[]>(['all']);
+
+  // Calculate row counts by status color
+  const rowCounts = useMemo(() => {
+    const counts: Record<StatusColor, number> = {
+      all: 0,
+      white: 0,
+      yellow: 0,
+      blue: 0,
+      green: 0,
+      purple: 0,
+      orange: 0,
+      gray: 0,
+      red: 0,
+    };
+
+    rowData.forEach((row) => {
+      const color = getRowStatusColor(row);
+      counts[color]++;
+    });
+
+    return counts;
+  }, [rowData]);
+
+  // Filter row data based on active filters
+  const filteredRowData = useMemo(() => {
+    if (activeFilters.includes('all') || activeFilters.length === 0) {
+      return rowData;
+    }
+
+    return rowData.filter((row) => {
+      const color = getRowStatusColor(row);
+      return activeFilters.includes(color);
+    });
+  }, [rowData, activeFilters]);
 
   useEffect(() => {
     loadData();
@@ -174,9 +212,15 @@ export default function MainPage() {
         onToggleMemberInfo={() => setShowMemberInfo(!showMemberInfo)}
       />
 
+      <StatusFilterBar
+        activeFilters={activeFilters}
+        onFilterChange={setActiveFilters}
+        rowCounts={rowCounts}
+      />
+
       <div className="flex-1 p-4">
         <PatientGrid
-          rowData={rowData}
+          rowData={filteredRowData}
           onRowUpdated={handleRowUpdated}
           onSaveStatusChange={setSaveStatus}
           onRowSelected={handleRowSelected}
@@ -184,7 +228,7 @@ export default function MainPage() {
         />
       </div>
 
-      <StatusBar rowCount={rowData.length} />
+      <StatusBar rowCount={filteredRowData.length} totalRowCount={rowData.length} />
 
       {/* Add Row Modal */}
       <AddRowModal

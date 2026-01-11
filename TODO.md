@@ -6,12 +6,14 @@ This document tracks planned features and enhancements for future development.
 
 ## High Priority
 
-### Sorting
+### Sorting & Filtering
 - [x] Column header click to sort ascending/descending
 - [x] Sort indicator icons in column headers
 - [x] No auto-sort during editing (rows stay in place while editing)
+- [x] Status color filter bar (filter by row color with clickable chips)
+- [x] Filter counts displayed on each chip
 - [ ] Multi-column sort support
-- [ ] Persist sort preferences
+- [ ] Persist sort/filter preferences
 
 ### External Data Import
 - [ ] Import wizard for external spreadsheets (Excel, CSV)

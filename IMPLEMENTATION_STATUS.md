@@ -46,6 +46,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Member Info columns hidden by default
 - [x] Column sorting (click header to sort ascending/descending)
 - [x] No auto-sort during editing (rows stay in place, sort only on header click)
+- [x] Status color filter bar (clickable chips to filter by row color/status category)
+- [x] Filter counts displayed on each chip
+- [x] Status bar shows "Showing X of Y rows" when filtering
 
 ### Phase 3: Cascading Dropdowns
 
@@ -296,4 +299,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 10, 2026 - Added column sorting with no auto-sort during editing
+January 10, 2026 - Added status color filter bar with clickable chips
