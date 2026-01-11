@@ -243,15 +243,6 @@ export default function PatientGrid({
     // Store the row ID to preserve selection after update
     const rowId = data.id;
 
-    // Clear ALL sorts when any cell is edited to prevent row reordering
-    const columnState = gridApi.getColumnState();
-    const hasSortedColumns = columnState.some(col => col.sort);
-    if (hasSortedColumns) {
-      gridApi.applyColumnState({
-        defaultState: { sort: null },
-      });
-    }
-
     // Show saving status
     onSaveStatusChange?.('saving');
 
@@ -317,8 +308,11 @@ export default function PatientGrid({
         // Ensure row stays selected
         node.setSelected(true);
 
-        // Update the row with server response (for React state)
-        onRowUpdated?.(updatedData);
+        // Note: We intentionally don't call onRowUpdated here to prevent
+        // React state update which causes AG Grid to re-render and potentially reorder rows.
+        // The grid already has the updated data via node.setData().
+        // Filter counts may be slightly out of sync until next data reload.
+
         onSaveStatusChange?.('saved');
 
         // Reset to idle after 2 seconds
