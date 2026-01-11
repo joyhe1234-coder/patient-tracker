@@ -701,13 +701,13 @@ async function main() {
     { name: 'Morris, Scott', dob: new Date('1950-07-19'), phone: '5554001003', address: '403 Tradition Blvd' },
     { name: 'Nguyen, Raymond', dob: new Date('1951-08-20'), phone: '5554001004', address: '404 Classic Lane' },
 
-    // Duplicate test patients (same name + DOB)
+    // Additional test patients
     { name: 'Murphy, Patrick', dob: new Date('1985-09-21'), phone: '5555001001', address: '501 Twin Oaks Dr' },
-    { name: 'Murphy, Patrick', dob: new Date('1985-09-21'), phone: '5555001002', address: '502 Twin Oaks Dr' },
+    { name: 'Cox, Diana', dob: new Date('1986-10-22'), phone: '5555001002', address: '502 Willow Lane' },
 
     // Overdue patients (various statuses)
-    { name: 'Rivera, Jack', dob: new Date('1986-10-22'), phone: '5556001001', address: '601 Deadline Ave' },
-    { name: 'Cook, Adam', dob: new Date('1987-11-23'), phone: '5556001002', address: '602 Urgent Lane' },
+    { name: 'Rivera, Jack', dob: new Date('1987-11-23'), phone: '5556001001', address: '601 Deadline Ave' },
+    { name: 'Cook, Adam', dob: new Date('1988-12-24'), phone: '5556001002', address: '602 Urgent Lane' },
   ];
 
   // Define measures for each patient
@@ -803,9 +803,9 @@ async function main() {
     { patientName: 'Morris, Scott', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis resolved', statusDate: daysAgo(30), tracking1: 'Attestation sent', tracking2: null, notes: 'Orange - resolved, attested' },
     { patientName: 'Nguyen, Raymond', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis invalid', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Orange - invalid' },
 
-    // Duplicate patients (two rows for same patient - yellow highlight)
-    { patientName: 'Murphy, Patrick', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'Duplicate patient row 1 - should be yellow' },
-    { patientName: 'Murphy, Patrick', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'Duplicate patient row 2 - should be yellow' },
+    // Additional test patients
+    { patientName: 'Murphy, Patrick', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'White - not addressed' },
+    { patientName: 'Cox, Diana', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'White - not addressed' },
 
     // Overdue patients
     { patientName: 'Rivera, Jack', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination scheduled', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Red - overdue (was scheduled 10 days ago, due in 1 day)' },
