@@ -218,8 +218,25 @@ export default function PatientGrid({
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
 
+  // Store the frozen row order when sort is cleared during editing
+  const frozenRowOrderRef = useRef<number[] | null>(null);
+
   const onGridReady = useCallback((_params: GridReadyEvent<GridRow>) => {
     // Grid is ready, can access API via gridRef.current.api if needed
+  }, []);
+
+  // Post-sort callback to maintain frozen row order when sort is cleared
+  const postSortRows = useCallback((params: { nodes: { data: GridRow }[] }) => {
+    if (frozenRowOrderRef.current && frozenRowOrderRef.current.length > 0) {
+      const orderMap = new Map(frozenRowOrderRef.current.map((id, index) => [id, index]));
+      params.nodes.sort((a, b) => {
+        const orderA = orderMap.get(a.data?.id) ?? Infinity;
+        const orderB = orderMap.get(b.data?.id) ?? Infinity;
+        return orderA - orderB;
+      });
+      // Clear the frozen order after applying it once
+      frozenRowOrderRef.current = null;
+    }
   }, []);
 
   // Handle row selection change
@@ -239,6 +256,29 @@ export default function PatientGrid({
     // Don't save if value hasn't changed
     if (newValue === oldValue) return;
     if (!data || !colDef.field) return;
+
+    // Store the row ID to preserve selection after update
+    const rowId = data.id;
+
+    // Clear sort indicator on the edited column (if it was sorted)
+    // Capture current row order first, then clear sort - postSortRows will maintain order
+    const columnState = gridApi.getColumnState();
+    const editedColumnState = columnState.find(col => col.colId === colDef.field);
+    if (editedColumnState?.sort) {
+      // Capture current visual row order BEFORE clearing sort
+      const currentOrder: number[] = [];
+      gridApi.forEachNodeAfterFilterAndSort((rowNode) => {
+        if (rowNode.data) {
+          currentOrder.push(rowNode.data.id);
+        }
+      });
+      frozenRowOrderRef.current = currentOrder;
+
+      // Clear the sort - postSortRows callback will maintain the frozen order
+      gridApi.applyColumnState({
+        state: [{ colId: colDef.field, sort: null }],
+      });
+    }
 
     // Show saving status
     onSaveStatusChange?.('saving');
@@ -294,12 +334,22 @@ export default function PatientGrid({
       const response = await api.put(`/data/${data.id}`, updatePayload);
 
       if (response.data.success) {
-        // Update the row data in the grid using transaction API
-        // This properly updates the grid's internal state and triggers getRowStyle
-        gridApi.applyTransaction({ update: [response.data.data] });
+        // Update row data directly on the node instead of using applyTransaction
+        // This prevents row reordering
+        const updatedData = response.data.data;
+        node.setData(updatedData);
 
-        // Update the row with server response (for React state)
-        onRowUpdated?.(response.data.data);
+        // Refresh the row to update styling (row colors)
+        gridApi.refreshCells({ rowNodes: [node], force: true });
+
+        // Ensure row stays selected
+        node.setSelected(true);
+
+        // Note: We intentionally don't call onRowUpdated here to prevent
+        // React state update which causes AG Grid to re-render and potentially reorder rows.
+        // The grid already has the updated data via node.setData().
+        // Filter counts may be slightly out of sync until next data reload.
+
         onSaveStatusChange?.('saved');
 
         // Reset to idle after 2 seconds
@@ -758,6 +808,8 @@ export default function PatientGrid({
         onSelectionChanged={onSelectionChanged}
         stopEditingWhenCellsLoseFocus={true}
         singleClickEdit={true}
+        deltaSort={false}
+        postSortRows={postSortRows}
       />
     </div>
   );
