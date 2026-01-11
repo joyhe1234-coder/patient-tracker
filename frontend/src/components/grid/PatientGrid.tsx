@@ -218,8 +218,25 @@ export default function PatientGrid({
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
 
+  // Store the frozen row order when sort is cleared during editing
+  const frozenRowOrderRef = useRef<number[] | null>(null);
+
   const onGridReady = useCallback((_params: GridReadyEvent<GridRow>) => {
     // Grid is ready, can access API via gridRef.current.api if needed
+  }, []);
+
+  // Post-sort callback to maintain frozen row order when sort is cleared
+  const postSortRows = useCallback((params: { nodes: { data: GridRow }[] }) => {
+    if (frozenRowOrderRef.current && frozenRowOrderRef.current.length > 0) {
+      const orderMap = new Map(frozenRowOrderRef.current.map((id, index) => [id, index]));
+      params.nodes.sort((a, b) => {
+        const orderA = orderMap.get(a.data?.id) ?? Infinity;
+        const orderB = orderMap.get(b.data?.id) ?? Infinity;
+        return orderA - orderB;
+      });
+      // Clear the frozen order after applying it once
+      frozenRowOrderRef.current = null;
+    }
   }, []);
 
   // Handle row selection change
@@ -244,10 +261,20 @@ export default function PatientGrid({
     const rowId = data.id;
 
     // Clear sort indicator on the edited column (if it was sorted)
-    // Rows stay in place because we use node.setData() and don't update React state
+    // Capture current row order first, then clear sort - postSortRows will maintain order
     const columnState = gridApi.getColumnState();
     const editedColumnState = columnState.find(col => col.colId === colDef.field);
     if (editedColumnState?.sort) {
+      // Capture current visual row order BEFORE clearing sort
+      const currentOrder: number[] = [];
+      gridApi.forEachNodeAfterFilterAndSort((rowNode) => {
+        if (rowNode.data) {
+          currentOrder.push(rowNode.data.id);
+        }
+      });
+      frozenRowOrderRef.current = currentOrder;
+
+      // Clear the sort - postSortRows callback will maintain the frozen order
       gridApi.applyColumnState({
         state: [{ colId: colDef.field, sort: null }],
       });
@@ -782,6 +809,7 @@ export default function PatientGrid({
         stopEditingWhenCellsLoseFocus={true}
         singleClickEdit={true}
         deltaSort={false}
+        postSortRows={postSortRows}
       />
     </div>
   );
