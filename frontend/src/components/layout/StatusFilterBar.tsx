@@ -19,13 +19,13 @@ const STATUS_CATEGORIES: Array<{
 }> = [
   { id: 'all', label: 'All', bgColor: 'bg-white', textColor: 'text-gray-700', borderColor: 'border-gray-400' },
   { id: 'white', label: 'Not Started', bgColor: 'bg-white', textColor: 'text-gray-700', borderColor: 'border-gray-300' },
-  { id: 'yellow', label: 'Contacted', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', borderColor: 'border-yellow-400' },
+  { id: 'red', label: 'Overdue', bgColor: 'bg-red-100', textColor: 'text-red-800', borderColor: 'border-red-400' },
   { id: 'blue', label: 'In Progress', bgColor: 'bg-blue-100', textColor: 'text-blue-800', borderColor: 'border-blue-400' },
+  { id: 'yellow', label: 'Contacted', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', borderColor: 'border-yellow-400' },
   { id: 'green', label: 'Completed', bgColor: 'bg-green-100', textColor: 'text-green-800', borderColor: 'border-green-400' },
   { id: 'purple', label: 'Declined', bgColor: 'bg-purple-100', textColor: 'text-purple-800', borderColor: 'border-purple-400' },
   { id: 'orange', label: 'Resolved', bgColor: 'bg-orange-100', textColor: 'text-orange-800', borderColor: 'border-orange-400' },
   { id: 'gray', label: 'N/A', bgColor: 'bg-gray-200', textColor: 'text-gray-600', borderColor: 'border-gray-400' },
-  { id: 'red', label: 'Overdue', bgColor: 'bg-red-100', textColor: 'text-red-800', borderColor: 'border-red-400' },
 ];
 
 export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts }: StatusFilterBarProps) {
