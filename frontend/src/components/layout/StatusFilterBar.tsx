@@ -32,28 +32,17 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
   const isAllSelected = activeFilters.includes('all') || activeFilters.length === 0;
 
   const handleChipClick = (id: StatusColor) => {
+    // Single-select behavior: clicking a chip selects only that filter
+    // Clicking the already-selected filter switches back to 'all'
     if (id === 'all') {
-      // Toggle all - if all selected, keep all; if not, select all
       onFilterChange(['all']);
-      return;
-    }
-
-    // Remove 'all' from filters when selecting specific categories
-    let newFilters = activeFilters.filter(f => f !== 'all');
-
-    if (newFilters.includes(id)) {
-      // Deselect this filter
-      newFilters = newFilters.filter(f => f !== id);
-      // If nothing selected, default back to 'all'
-      if (newFilters.length === 0) {
-        newFilters = ['all'];
-      }
+    } else if (activeFilters.includes(id) && !activeFilters.includes('all')) {
+      // Clicking the same filter again - go back to 'all'
+      onFilterChange(['all']);
     } else {
-      // Add this filter
-      newFilters = [...newFilters, id];
+      // Select only this filter
+      onFilterChange([id]);
     }
-
-    onFilterChange(newFilters);
   };
 
   const totalRows = useMemo(() => {
