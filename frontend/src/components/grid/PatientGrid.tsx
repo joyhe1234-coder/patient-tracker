@@ -240,6 +240,17 @@ export default function PatientGrid({
     if (newValue === oldValue) return;
     if (!data || !colDef.field) return;
 
+    // Clear sort if editing a sorted column (data is no longer in sorted order)
+    const columnState = gridApi.getColumnState();
+    const editedColumnState = columnState.find(col => col.colId === colDef.field);
+    if (editedColumnState?.sort) {
+      // Clear sort on this column while keeping row in place
+      gridApi.applyColumnState({
+        state: [{ colId: colDef.field, sort: null }],
+        defaultState: { sort: null },
+      });
+    }
+
     // Show saving status
     onSaveStatusChange?.('saving');
 
