@@ -28,7 +28,7 @@ services:
   - type: web
     name: patient-tracker-frontend
     runtime: node
-    plan: free
+    plan: starter
     rootDir: frontend
     buildCommand: npm install && npm run build && npm install -g serve
     startCommand: serve -s dist -l 10000
