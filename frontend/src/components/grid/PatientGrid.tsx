@@ -758,6 +758,7 @@ export default function PatientGrid({
         onSelectionChanged={onSelectionChanged}
         stopEditingWhenCellsLoseFocus={true}
         singleClickEdit={true}
+        deltaSort={false}
       />
     </div>
   );
