@@ -597,97 +597,97 @@ async function main() {
     return d;
   };
 
-  // Create patients for comprehensive testing
+  // Create patients for comprehensive testing (realistic names)
   const testPatients = [
     // AWV patients
-    { name: 'AWV - Not Addressed', dob: new Date('1955-01-15'), phone: '5551001001', address: '101 AWV Lane' },
-    { name: 'AWV - Called to Schedule', dob: new Date('1956-02-20'), phone: '5551001002', address: '102 AWV Lane' },
-    { name: 'AWV - Scheduled', dob: new Date('1957-03-25'), phone: '5551001003', address: '103 AWV Lane' },
-    { name: 'AWV - Completed', dob: new Date('1958-04-10'), phone: '5551001004', address: '104 AWV Lane' },
-    { name: 'AWV - Declined', dob: new Date('1959-05-15'), phone: '5551001005', address: '105 AWV Lane' },
-    { name: 'AWV - Overdue', dob: new Date('1960-06-20'), phone: '5551001006', address: '106 AWV Lane' },
+    { name: 'Smith, John', dob: new Date('1955-01-15'), phone: '5551001001', address: '101 Oak Street' },
+    { name: 'Johnson, Mary', dob: new Date('1956-02-20'), phone: '5551001002', address: '102 Maple Ave' },
+    { name: 'Williams, Robert', dob: new Date('1957-03-25'), phone: '5551001003', address: '103 Pine Road' },
+    { name: 'Brown, Patricia', dob: new Date('1958-04-10'), phone: '5551001004', address: '104 Cedar Lane' },
+    { name: 'Jones, Michael', dob: new Date('1959-05-15'), phone: '5551001005', address: '105 Birch Blvd' },
+    { name: 'Garcia, Linda', dob: new Date('1960-06-20'), phone: '5551001006', address: '106 Elm Court' },
 
     // Screening - Breast Cancer
-    { name: 'Breast - Not Addressed', dob: new Date('1961-07-01'), phone: '5552001001', address: '201 Screening St' },
-    { name: 'Breast - Discussed', dob: new Date('1962-08-02'), phone: '5552001002', address: '202 Screening St' },
-    { name: 'Breast - Mammogram Ordered', dob: new Date('1963-09-03'), phone: '5552001003', address: '203 Screening St' },
-    { name: 'Breast - MRI Ordered', dob: new Date('1964-10-04'), phone: '5552001004', address: '204 Screening St' },
-    { name: 'Breast - Completed', dob: new Date('1965-11-05'), phone: '5552001005', address: '205 Screening St' },
-    { name: 'Breast - Declined', dob: new Date('1966-12-06'), phone: '5552001006', address: '206 Screening St' },
-    { name: 'Breast - Unnecessary', dob: new Date('1967-01-07'), phone: '5552001007', address: '207 Screening St' },
+    { name: 'Miller, Barbara', dob: new Date('1961-07-01'), phone: '5552001001', address: '201 First St' },
+    { name: 'Davis, Elizabeth', dob: new Date('1962-08-02'), phone: '5552001002', address: '202 Second Ave' },
+    { name: 'Martinez, Susan', dob: new Date('1963-09-03'), phone: '5552001003', address: '203 Third Blvd' },
+    { name: 'Rodriguez, Jessica', dob: new Date('1964-10-04'), phone: '5552001004', address: '204 Fourth Lane' },
+    { name: 'Wilson, Sarah', dob: new Date('1965-11-05'), phone: '5552001005', address: '205 Fifth Road' },
+    { name: 'Anderson, Karen', dob: new Date('1966-12-06'), phone: '5552001006', address: '206 Sixth Court' },
+    { name: 'Taylor, Nancy', dob: new Date('1967-01-07'), phone: '5552001007', address: '207 Seventh Way' },
 
     // Screening - Colon Cancer
-    { name: 'Colon - Colonoscopy Ordered', dob: new Date('1950-02-08'), phone: '5552002001', address: '208 Screening St' },
-    { name: 'Colon - Cologuard Ordered', dob: new Date('1951-03-09'), phone: '5552002002', address: '209 Screening St' },
-    { name: 'Colon - FOBT Ordered', dob: new Date('1952-04-10'), phone: '5552002003', address: '210 Screening St' },
-    { name: 'Colon - Completed', dob: new Date('1953-05-11'), phone: '5552002004', address: '211 Screening St' },
+    { name: 'Thomas, James', dob: new Date('1950-02-08'), phone: '5552002001', address: '208 Main Street' },
+    { name: 'Hernandez, David', dob: new Date('1951-03-09'), phone: '5552002002', address: '209 Center Ave' },
+    { name: 'Moore, Richard', dob: new Date('1952-04-10'), phone: '5552002003', address: '210 Park Blvd' },
+    { name: 'Martin, Charles', dob: new Date('1953-05-11'), phone: '5552002004', address: '211 Lake Road' },
 
     // Screening - Cervical Cancer (with month tracking)
-    { name: 'Cervical - In 1 Month', dob: new Date('1980-06-12'), phone: '5552003001', address: '212 Screening St' },
-    { name: 'Cervical - In 3 Months', dob: new Date('1981-07-13'), phone: '5552003002', address: '213 Screening St' },
-    { name: 'Cervical - In 6 Months', dob: new Date('1982-08-14'), phone: '5552003003', address: '214 Screening St' },
-    { name: 'Cervical - Appt Made', dob: new Date('1983-09-15'), phone: '5552003004', address: '215 Screening St' },
-    { name: 'Cervical - Completed', dob: new Date('1984-10-16'), phone: '5552003005', address: '216 Screening St' },
+    { name: 'Jackson, Jennifer', dob: new Date('1980-06-12'), phone: '5552003001', address: '212 River Lane' },
+    { name: 'Thompson, Michelle', dob: new Date('1981-07-13'), phone: '5552003002', address: '213 Hill Court' },
+    { name: 'White, Amanda', dob: new Date('1982-08-14'), phone: '5552003003', address: '214 Valley Way' },
+    { name: 'Lopez, Melissa', dob: new Date('1983-09-15'), phone: '5552003004', address: '215 Forest Dr' },
+    { name: 'Lee, Stephanie', dob: new Date('1984-10-16'), phone: '5552003005', address: '216 Mountain Ave' },
 
     // Quality - Diabetic Eye Exam
-    { name: 'DiabeticEye - Discussed', dob: new Date('1954-11-17'), phone: '5553001001', address: '301 Quality Ave' },
-    { name: 'DiabeticEye - Referral Made', dob: new Date('1955-12-18'), phone: '5553001002', address: '302 Quality Ave' },
-    { name: 'DiabeticEye - Scheduled', dob: new Date('1956-01-19'), phone: '5553001003', address: '303 Quality Ave' },
-    { name: 'DiabeticEye - Completed', dob: new Date('1957-02-20'), phone: '5553001004', address: '304 Quality Ave' },
+    { name: 'Gonzalez, Joseph', dob: new Date('1954-11-17'), phone: '5553001001', address: '301 Spring St' },
+    { name: 'Harris, Thomas', dob: new Date('1955-12-18'), phone: '5553001002', address: '302 Summer Lane' },
+    { name: 'Clark, Christopher', dob: new Date('1956-01-19'), phone: '5553001003', address: '303 Autumn Blvd' },
+    { name: 'Lewis, Daniel', dob: new Date('1957-02-20'), phone: '5553001004', address: '304 Winter Road' },
 
     // Quality - GC/Chlamydia
-    { name: 'GCChlamydia - Contacted', dob: new Date('1990-03-21'), phone: '5553002001', address: '305 Quality Ave' },
-    { name: 'GCChlamydia - Test Ordered', dob: new Date('1991-04-22'), phone: '5553002002', address: '306 Quality Ave' },
-    { name: 'GCChlamydia - Completed', dob: new Date('1992-05-23'), phone: '5553002003', address: '307 Quality Ave' },
+    { name: 'Robinson, Ashley', dob: new Date('1990-03-21'), phone: '5553002001', address: '305 North Ave' },
+    { name: 'Walker, Brittany', dob: new Date('1991-04-22'), phone: '5553002002', address: '306 South Blvd' },
+    { name: 'Perez, Samantha', dob: new Date('1992-05-23'), phone: '5553002003', address: '307 East Lane' },
 
     // Quality - Diabetic Nephropathy
-    { name: 'Nephropathy - Contacted', dob: new Date('1958-06-24'), phone: '5553003001', address: '308 Quality Ave' },
-    { name: 'Nephropathy - Ordered', dob: new Date('1959-07-25'), phone: '5553003002', address: '309 Quality Ave' },
-    { name: 'Nephropathy - Completed', dob: new Date('1960-08-26'), phone: '5553003003', address: '310 Quality Ave' },
+    { name: 'Hall, Matthew', dob: new Date('1958-06-24'), phone: '5553003001', address: '308 West Court' },
+    { name: 'Young, Anthony', dob: new Date('1959-07-25'), phone: '5553003002', address: '309 Central Way' },
+    { name: 'Allen, Mark', dob: new Date('1960-08-26'), phone: '5553003003', address: '310 Plaza Dr' },
 
     // Quality - Hypertension (with call interval tracking)
-    { name: 'HTN - BP at Goal', dob: new Date('1961-09-27'), phone: '5553004001', address: '311 Quality Ave' },
-    { name: 'HTN - Call 1wk Not at Goal', dob: new Date('1962-10-28'), phone: '5553004002', address: '312 Quality Ave' },
-    { name: 'HTN - Call 2wks Not at Goal', dob: new Date('1963-11-29'), phone: '5553004003', address: '313 Quality Ave' },
-    { name: 'HTN - Call 4wks at Goal', dob: new Date('1964-12-30'), phone: '5553004004', address: '314 Quality Ave' },
-    { name: 'HTN - Appt Scheduled', dob: new Date('1965-01-01'), phone: '5553004005', address: '315 Quality Ave' },
-    { name: 'HTN - Declined', dob: new Date('1966-02-02'), phone: '5553004006', address: '316 Quality Ave' },
+    { name: 'Sanchez, Donald', dob: new Date('1961-09-27'), phone: '5553004001', address: '311 Commerce St' },
+    { name: 'Wright, Steven', dob: new Date('1962-10-28'), phone: '5553004002', address: '312 Market Ave' },
+    { name: 'King, Paul', dob: new Date('1963-11-29'), phone: '5553004003', address: '313 Trade Blvd' },
+    { name: 'Scott, Andrew', dob: new Date('1964-12-30'), phone: '5553004004', address: '314 Business Lane' },
+    { name: 'Green, Joshua', dob: new Date('1965-01-01'), phone: '5553004005', address: '315 Corporate Road' },
+    { name: 'Baker, Kenneth', dob: new Date('1966-02-02'), phone: '5553004006', address: '316 Industrial Way' },
 
     // Quality - ACE/ARB
-    { name: 'ACEARB - On Medication', dob: new Date('1967-03-03'), phone: '5553005001', address: '317 Quality Ave' },
-    { name: 'ACEARB - Prescribed', dob: new Date('1968-04-04'), phone: '5553005002', address: '318 Quality Ave' },
-    { name: 'ACEARB - Contraindicated', dob: new Date('1969-05-05'), phone: '5553005003', address: '319 Quality Ave' },
+    { name: 'Adams, Kevin', dob: new Date('1967-03-03'), phone: '5553005001', address: '317 Harbor St' },
+    { name: 'Nelson, Brian', dob: new Date('1968-04-04'), phone: '5553005002', address: '318 Marina Ave' },
+    { name: 'Hill, George', dob: new Date('1969-05-05'), phone: '5553005003', address: '319 Beach Blvd' },
 
     // Quality - Vaccination
-    { name: 'Vaccine - Discussed', dob: new Date('1970-06-06'), phone: '5553006001', address: '320 Quality Ave' },
-    { name: 'Vaccine - Scheduled', dob: new Date('1971-07-07'), phone: '5553006002', address: '321 Quality Ave' },
-    { name: 'Vaccine - Completed', dob: new Date('1972-08-08'), phone: '5553006003', address: '322 Quality Ave' },
-    { name: 'Vaccine - Declined', dob: new Date('1973-09-09'), phone: '5553006004', address: '323 Quality Ave' },
+    { name: 'Ramirez, Edward', dob: new Date('1970-06-06'), phone: '5553006001', address: '320 Ocean Lane' },
+    { name: 'Campbell, Ronald', dob: new Date('1971-07-07'), phone: '5553006002', address: '321 Bay Road' },
+    { name: 'Mitchell, Timothy', dob: new Date('1972-08-08'), phone: '5553006003', address: '322 Shore Court' },
+    { name: 'Roberts, Jason', dob: new Date('1973-09-09'), phone: '5553006004', address: '323 Coastal Way' },
 
     // Quality - Diabetes Control (HgbA1c with tracking)
-    { name: 'HgbA1c - Ordered', dob: new Date('1974-10-10'), phone: '5553007001', address: '324 Quality Ave' },
-    { name: 'HgbA1c - At Goal 3mo', dob: new Date('1975-11-11'), phone: '5553007002', address: '325 Quality Ave' },
-    { name: 'HgbA1c - At Goal 6mo', dob: new Date('1976-12-12'), phone: '5553007003', address: '326 Quality Ave' },
-    { name: 'HgbA1c - NOT at Goal 3mo', dob: new Date('1977-01-13'), phone: '5553007004', address: '327 Quality Ave' },
-    { name: 'HgbA1c - Declined', dob: new Date('1978-02-14'), phone: '5553007005', address: '328 Quality Ave' },
+    { name: 'Carter, Jeffrey', dob: new Date('1974-10-10'), phone: '5553007001', address: '324 Garden St' },
+    { name: 'Phillips, Ryan', dob: new Date('1975-11-11'), phone: '5553007002', address: '325 Flower Ave' },
+    { name: 'Evans, Jacob', dob: new Date('1976-12-12'), phone: '5553007003', address: '326 Rose Blvd' },
+    { name: 'Turner, Gary', dob: new Date('1977-01-13'), phone: '5553007004', address: '327 Lily Lane' },
+    { name: 'Torres, Nicholas', dob: new Date('1978-02-14'), phone: '5553007005', address: '328 Daisy Road' },
 
     // Quality - Annual Serum K&Cr
-    { name: 'SerumKCr - Ordered', dob: new Date('1979-03-15'), phone: '5553008001', address: '329 Quality Ave' },
-    { name: 'SerumKCr - Completed', dob: new Date('1980-04-16'), phone: '5553008002', address: '330 Quality Ave' },
+    { name: 'Parker, Eric', dob: new Date('1979-03-15'), phone: '5553008001', address: '329 Sunrise Court' },
+    { name: 'Collins, Stephen', dob: new Date('1980-04-16'), phone: '5553008002', address: '330 Sunset Way' },
 
     // Chronic DX
-    { name: 'ChronicDX - Confirmed', dob: new Date('1948-05-17'), phone: '5554001001', address: '401 Chronic Blvd' },
-    { name: 'ChronicDX - Resolved NoAttest', dob: new Date('1949-06-18'), phone: '5554001002', address: '402 Chronic Blvd' },
-    { name: 'ChronicDX - Resolved Attested', dob: new Date('1950-07-19'), phone: '5554001003', address: '403 Chronic Blvd' },
-    { name: 'ChronicDX - Invalid', dob: new Date('1951-08-20'), phone: '5554001004', address: '404 Chronic Blvd' },
+    { name: 'Edwards, Larry', dob: new Date('1948-05-17'), phone: '5554001001', address: '401 Heritage St' },
+    { name: 'Stewart, Frank', dob: new Date('1949-06-18'), phone: '5554001002', address: '402 Legacy Ave' },
+    { name: 'Morris, Scott', dob: new Date('1950-07-19'), phone: '5554001003', address: '403 Tradition Blvd' },
+    { name: 'Nguyen, Raymond', dob: new Date('1951-08-20'), phone: '5554001004', address: '404 Classic Lane' },
 
     // Duplicate test patients (same name + DOB)
-    { name: 'Duplicate Test Patient', dob: new Date('1985-09-21'), phone: '5555001001', address: '501 Duplicate Dr' },
-    { name: 'Duplicate Test Patient', dob: new Date('1985-09-21'), phone: '5555001002', address: '502 Duplicate Dr' },
+    { name: 'Murphy, Patrick', dob: new Date('1985-09-21'), phone: '5555001001', address: '501 Twin Oaks Dr' },
+    { name: 'Murphy, Patrick', dob: new Date('1985-09-21'), phone: '5555001002', address: '502 Twin Oaks Dr' },
 
     // Overdue patients (various statuses)
-    { name: 'Overdue - Blue Status', dob: new Date('1986-10-22'), phone: '5556001001', address: '601 Overdue Way' },
-    { name: 'Overdue - Yellow Status', dob: new Date('1987-11-23'), phone: '5556001002', address: '602 Overdue Way' },
+    { name: 'Rivera, Jack', dob: new Date('1986-10-22'), phone: '5556001001', address: '601 Deadline Ave' },
+    { name: 'Cook, Adam', dob: new Date('1987-11-23'), phone: '5556001002', address: '602 Urgent Lane' },
   ];
 
   // Define measures for each patient
@@ -702,94 +702,94 @@ async function main() {
     notes: string | null;
   }> = [
     // AWV
-    { patientName: 'AWV - Not Addressed', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'White row - default' },
-    { patientName: 'AWV - Called to Schedule', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Patient called to schedule AWV', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Yellow row - contacted' },
-    { patientName: 'AWV - Scheduled', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'AWV scheduled', statusDate: daysFromNow(7), tracking1: null, tracking2: null, notes: 'Blue row - scheduled' },
-    { patientName: 'AWV - Completed', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'AWV completed', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Green row - completed' },
-    { patientName: 'AWV - Declined', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Patient declined AWV', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Purple row - declined' },
-    { patientName: 'AWV - Overdue', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Patient called to schedule AWV', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Red row - overdue (called 14 days ago, due in 7)' },
+    { patientName: 'Smith, John', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'White row - default' },
+    { patientName: 'Johnson, Mary', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Patient called to schedule AWV', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Yellow row - contacted' },
+    { patientName: 'Williams, Robert', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'AWV scheduled', statusDate: daysFromNow(7), tracking1: null, tracking2: null, notes: 'Blue row - scheduled' },
+    { patientName: 'Brown, Patricia', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'AWV completed', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Green row - completed' },
+    { patientName: 'Jones, Michael', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Patient declined AWV', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Purple row - declined' },
+    { patientName: 'Garcia, Linda', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Patient called to schedule AWV', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Red row - overdue (called 14 days ago, due in 7)' },
 
     // Breast Cancer Screening
-    { patientName: 'Breast - Not Addressed', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: null },
-    { patientName: 'Breast - Discussed', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(5), tracking1: null, tracking2: null, notes: 'Yellow - discussed' },
-    { patientName: 'Breast - Mammogram Ordered', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening test ordered', statusDate: daysAgo(3), tracking1: 'Mammogram', tracking2: null, notes: 'Blue - Mammogram ordered (14 days)' },
-    { patientName: 'Breast - MRI Ordered', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening test ordered', statusDate: daysAgo(5), tracking1: 'Breast MRI', tracking2: null, notes: 'Blue - MRI ordered (21 days)' },
-    { patientName: 'Breast - Completed', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening test completed', statusDate: daysAgo(60), tracking1: null, tracking2: null, notes: 'Green - completed' },
-    { patientName: 'Breast - Declined', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Patient declined screening', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Purple - declined' },
-    { patientName: 'Breast - Unnecessary', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening unnecessary', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Gray - unnecessary' },
+    { patientName: 'Miller, Barbara', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: null },
+    { patientName: 'Davis, Elizabeth', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(5), tracking1: null, tracking2: null, notes: 'Yellow - discussed' },
+    { patientName: 'Martinez, Susan', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening test ordered', statusDate: daysAgo(3), tracking1: 'Mammogram', tracking2: null, notes: 'Blue - Mammogram ordered (14 days)' },
+    { patientName: 'Rodriguez, Jessica', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening test ordered', statusDate: daysAgo(5), tracking1: 'Breast MRI', tracking2: null, notes: 'Blue - MRI ordered (21 days)' },
+    { patientName: 'Wilson, Sarah', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening test completed', statusDate: daysAgo(60), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Anderson, Karen', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Patient declined screening', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Purple - declined' },
+    { patientName: 'Taylor, Nancy', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Screening unnecessary', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Gray - unnecessary' },
 
     // Colon Cancer Screening
-    { patientName: 'Colon - Colonoscopy Ordered', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening ordered', statusDate: daysAgo(10), tracking1: 'Colonoscopy', tracking2: null, notes: 'Blue - Colonoscopy (42 days)' },
-    { patientName: 'Colon - Cologuard Ordered', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening ordered', statusDate: daysAgo(5), tracking1: 'Cologuard', tracking2: null, notes: 'Blue - Cologuard (21 days)' },
-    { patientName: 'Colon - FOBT Ordered', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening ordered', statusDate: daysAgo(3), tracking1: 'FOBT', tracking2: null, notes: 'Blue - FOBT (21 days)' },
-    { patientName: 'Colon - Completed', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening completed', statusDate: daysAgo(90), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Thomas, James', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening ordered', statusDate: daysAgo(10), tracking1: 'Colonoscopy', tracking2: null, notes: 'Blue - Colonoscopy (42 days)' },
+    { patientName: 'Hernandez, David', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening ordered', statusDate: daysAgo(5), tracking1: 'Cologuard', tracking2: null, notes: 'Blue - Cologuard (21 days)' },
+    { patientName: 'Moore, Richard', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening ordered', statusDate: daysAgo(3), tracking1: 'FOBT', tracking2: null, notes: 'Blue - FOBT (21 days)' },
+    { patientName: 'Martin, Charles', requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening', measureStatus: 'Colon cancer screening completed', statusDate: daysAgo(90), tracking1: null, tracking2: null, notes: 'Green - completed' },
 
     // Cervical Cancer Screening (month tracking)
-    { patientName: 'Cervical - In 1 Month', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(5), tracking1: 'In 1 Month', tracking2: null, notes: 'Yellow - In 1 Month (30 days)' },
-    { patientName: 'Cervical - In 3 Months', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(10), tracking1: 'In 3 Months', tracking2: null, notes: 'Yellow - In 3 Months (90 days)' },
-    { patientName: 'Cervical - In 6 Months', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(30), tracking1: 'In 6 Months', tracking2: null, notes: 'Yellow - In 6 Months (180 days)' },
-    { patientName: 'Cervical - Appt Made', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening appt made', statusDate: daysFromNow(14), tracking1: null, tracking2: null, notes: 'Blue - appointment made' },
-    { patientName: 'Cervical - Completed', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening completed', statusDate: daysAgo(120), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Jackson, Jennifer', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(5), tracking1: 'In 1 Month', tracking2: null, notes: 'Yellow - In 1 Month (30 days)' },
+    { patientName: 'Thompson, Michelle', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(10), tracking1: 'In 3 Months', tracking2: null, notes: 'Yellow - In 3 Months (90 days)' },
+    { patientName: 'White, Amanda', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(30), tracking1: 'In 6 Months', tracking2: null, notes: 'Yellow - In 6 Months (180 days)' },
+    { patientName: 'Lopez, Melissa', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening appt made', statusDate: daysFromNow(14), tracking1: null, tracking2: null, notes: 'Blue - appointment made' },
+    { patientName: 'Lee, Stephanie', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening completed', statusDate: daysAgo(120), tracking1: null, tracking2: null, notes: 'Green - completed' },
 
     // Diabetic Eye Exam
-    { patientName: 'DiabeticEye - Discussed', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam discussed', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Yellow - discussed (42 days)' },
-    { patientName: 'DiabeticEye - Referral Made', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam referral made', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Blue - referral (42 days)' },
-    { patientName: 'DiabeticEye - Scheduled', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam scheduled', statusDate: daysFromNow(10), tracking1: null, tracking2: null, notes: 'Blue - scheduled' },
-    { patientName: 'DiabeticEye - Completed', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam completed', statusDate: daysAgo(45), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Gonzalez, Joseph', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam discussed', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Yellow - discussed (42 days)' },
+    { patientName: 'Harris, Thomas', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam referral made', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Blue - referral (42 days)' },
+    { patientName: 'Clark, Christopher', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam scheduled', statusDate: daysFromNow(10), tracking1: null, tracking2: null, notes: 'Blue - scheduled' },
+    { patientName: 'Lewis, Daniel', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam completed', statusDate: daysAgo(45), tracking1: null, tracking2: null, notes: 'Green - completed' },
 
     // GC/Chlamydia
-    { patientName: 'GCChlamydia - Contacted', requestType: 'Quality', qualityMeasure: 'GC/Chlamydia Screening', measureStatus: 'Patient contacted for screening', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Yellow - contacted (10 days)' },
-    { patientName: 'GCChlamydia - Test Ordered', requestType: 'Quality', qualityMeasure: 'GC/Chlamydia Screening', measureStatus: 'Test ordered', statusDate: daysAgo(2), tracking1: null, tracking2: null, notes: 'Blue - ordered (5 days)' },
-    { patientName: 'GCChlamydia - Completed', requestType: 'Quality', qualityMeasure: 'GC/Chlamydia Screening', measureStatus: 'GC/Clamydia screening completed', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Robinson, Ashley', requestType: 'Quality', qualityMeasure: 'GC/Chlamydia Screening', measureStatus: 'Patient contacted for screening', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Yellow - contacted (10 days)' },
+    { patientName: 'Walker, Brittany', requestType: 'Quality', qualityMeasure: 'GC/Chlamydia Screening', measureStatus: 'Test ordered', statusDate: daysAgo(2), tracking1: null, tracking2: null, notes: 'Blue - ordered (5 days)' },
+    { patientName: 'Perez, Samantha', requestType: 'Quality', qualityMeasure: 'GC/Chlamydia Screening', measureStatus: 'GC/Clamydia screening completed', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Green - completed' },
 
     // Diabetic Nephropathy
-    { patientName: 'Nephropathy - Contacted', requestType: 'Quality', qualityMeasure: 'Diabetic Nephropathy', measureStatus: 'Patient contacted for screening', statusDate: daysAgo(4), tracking1: null, tracking2: null, notes: 'Yellow - contacted (10 days)' },
-    { patientName: 'Nephropathy - Ordered', requestType: 'Quality', qualityMeasure: 'Diabetic Nephropathy', measureStatus: 'Urine microalbumin ordered', statusDate: daysAgo(2), tracking1: null, tracking2: null, notes: 'Blue - ordered (5 days)' },
-    { patientName: 'Nephropathy - Completed', requestType: 'Quality', qualityMeasure: 'Diabetic Nephropathy', measureStatus: 'Urine microalbumin completed', statusDate: daysAgo(60), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Hall, Matthew', requestType: 'Quality', qualityMeasure: 'Diabetic Nephropathy', measureStatus: 'Patient contacted for screening', statusDate: daysAgo(4), tracking1: null, tracking2: null, notes: 'Yellow - contacted (10 days)' },
+    { patientName: 'Young, Anthony', requestType: 'Quality', qualityMeasure: 'Diabetic Nephropathy', measureStatus: 'Urine microalbumin ordered', statusDate: daysAgo(2), tracking1: null, tracking2: null, notes: 'Blue - ordered (5 days)' },
+    { patientName: 'Allen, Mark', requestType: 'Quality', qualityMeasure: 'Diabetic Nephropathy', measureStatus: 'Urine microalbumin completed', statusDate: daysAgo(60), tracking1: null, tracking2: null, notes: 'Green - completed' },
 
     // Hypertension (with call intervals and BP reading)
-    { patientName: 'HTN - BP at Goal', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Blood pressure at goal', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Green - BP at goal' },
-    { patientName: 'HTN - Call 1wk Not at Goal', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Scheduled call back - BP not at goal', statusDate: daysAgo(3), tracking1: 'Call every 1 wk', tracking2: '145/92', notes: 'Blue - call in 1 wk, BP reading in tracking2' },
-    { patientName: 'HTN - Call 2wks Not at Goal', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Scheduled call back - BP not at goal', statusDate: daysAgo(5), tracking1: 'Call every 2 wks', tracking2: '150/95', notes: 'Blue - call in 2 wks' },
-    { patientName: 'HTN - Call 4wks at Goal', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Scheduled call back - BP at goal', statusDate: daysAgo(10), tracking1: 'Call every 4 wks', tracking2: '128/82', notes: 'Blue - call in 4 wks, at goal' },
-    { patientName: 'HTN - Appt Scheduled', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Appointment scheduled', statusDate: daysFromNow(5), tracking1: null, tracking2: null, notes: 'Blue - appointment' },
-    { patientName: 'HTN - Declined', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Declined BP control', statusDate: daysAgo(15), tracking1: null, tracking2: null, notes: 'Purple - declined' },
+    { patientName: 'Sanchez, Donald', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Blood pressure at goal', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Green - BP at goal' },
+    { patientName: 'Wright, Steven', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Scheduled call back - BP not at goal', statusDate: daysAgo(3), tracking1: 'Call every 1 wk', tracking2: '145/92', notes: 'Blue - call in 1 wk, BP reading in tracking2' },
+    { patientName: 'King, Paul', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Scheduled call back - BP not at goal', statusDate: daysAgo(5), tracking1: 'Call every 2 wks', tracking2: '150/95', notes: 'Blue - call in 2 wks' },
+    { patientName: 'Scott, Andrew', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Scheduled call back - BP at goal', statusDate: daysAgo(10), tracking1: 'Call every 4 wks', tracking2: '128/82', notes: 'Blue - call in 4 wks, at goal' },
+    { patientName: 'Green, Joshua', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Appointment scheduled', statusDate: daysFromNow(5), tracking1: null, tracking2: null, notes: 'Blue - appointment' },
+    { patientName: 'Baker, Kenneth', requestType: 'Quality', qualityMeasure: 'Hypertension Management', measureStatus: 'Declined BP control', statusDate: daysAgo(15), tracking1: null, tracking2: null, notes: 'Purple - declined' },
 
     // ACE/ARB
-    { patientName: 'ACEARB - On Medication', requestType: 'Quality', qualityMeasure: 'ACE/ARB in DM or CAD', measureStatus: 'Patient on ACE/ARB', statusDate: daysAgo(90), tracking1: null, tracking2: null, notes: 'Green - on medication' },
-    { patientName: 'ACEARB - Prescribed', requestType: 'Quality', qualityMeasure: 'ACE/ARB in DM or CAD', measureStatus: 'ACE/ARB prescribed', statusDate: daysAgo(5), tracking1: null, tracking2: null, notes: 'Blue - prescribed (14 days)' },
-    { patientName: 'ACEARB - Contraindicated', requestType: 'Quality', qualityMeasure: 'ACE/ARB in DM or CAD', measureStatus: 'Contraindicated', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Purple - contraindicated' },
+    { patientName: 'Adams, Kevin', requestType: 'Quality', qualityMeasure: 'ACE/ARB in DM or CAD', measureStatus: 'Patient on ACE/ARB', statusDate: daysAgo(90), tracking1: null, tracking2: null, notes: 'Green - on medication' },
+    { patientName: 'Nelson, Brian', requestType: 'Quality', qualityMeasure: 'ACE/ARB in DM or CAD', measureStatus: 'ACE/ARB prescribed', statusDate: daysAgo(5), tracking1: null, tracking2: null, notes: 'Blue - prescribed (14 days)' },
+    { patientName: 'Hill, George', requestType: 'Quality', qualityMeasure: 'ACE/ARB in DM or CAD', measureStatus: 'Contraindicated', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Purple - contraindicated' },
 
     // Vaccination
-    { patientName: 'Vaccine - Discussed', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination discussed', statusDate: daysAgo(2), tracking1: null, tracking2: null, notes: 'Yellow - discussed (7 days)' },
-    { patientName: 'Vaccine - Scheduled', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination scheduled', statusDate: daysFromNow(3), tracking1: null, tracking2: null, notes: 'Blue - scheduled' },
-    { patientName: 'Vaccine - Completed', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination completed', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Green - completed' },
-    { patientName: 'Vaccine - Declined', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Patient declined', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Purple - declined' },
+    { patientName: 'Ramirez, Edward', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination discussed', statusDate: daysAgo(2), tracking1: null, tracking2: null, notes: 'Yellow - discussed (7 days)' },
+    { patientName: 'Campbell, Ronald', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination scheduled', statusDate: daysFromNow(3), tracking1: null, tracking2: null, notes: 'Blue - scheduled' },
+    { patientName: 'Mitchell, Timothy', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination completed', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Roberts, Jason', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Patient declined', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Purple - declined' },
 
     // Diabetes Control (HgbA1c with tracking1=value, tracking2=interval)
-    { patientName: 'HgbA1c - Ordered', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c ordered', statusDate: daysAgo(5), tracking1: null, tracking2: null, notes: 'Blue - ordered (14 days)' },
-    { patientName: 'HgbA1c - At Goal 3mo', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c at goal', statusDate: daysAgo(30), tracking1: '6.5', tracking2: '3 months', notes: 'Green - at goal, value 6.5, retest 3mo' },
-    { patientName: 'HgbA1c - At Goal 6mo', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c at goal', statusDate: daysAgo(60), tracking1: '6.8', tracking2: '6 months', notes: 'Green - at goal, value 6.8, retest 6mo' },
-    { patientName: 'HgbA1c - NOT at Goal 3mo', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c NOT at goal', statusDate: daysAgo(45), tracking1: '8.2', tracking2: '3 months', notes: 'Blue - NOT at goal, value 8.2, retest 3mo' },
-    { patientName: 'HgbA1c - Declined', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'Patient declined', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Purple - declined' },
+    { patientName: 'Carter, Jeffrey', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c ordered', statusDate: daysAgo(5), tracking1: null, tracking2: null, notes: 'Blue - ordered (14 days)' },
+    { patientName: 'Phillips, Ryan', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c at goal', statusDate: daysAgo(30), tracking1: '6.5', tracking2: '3 months', notes: 'Green - at goal, value 6.5, retest 3mo' },
+    { patientName: 'Evans, Jacob', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c at goal', statusDate: daysAgo(60), tracking1: '6.8', tracking2: '6 months', notes: 'Green - at goal, value 6.8, retest 6mo' },
+    { patientName: 'Turner, Gary', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'HgbA1c NOT at goal', statusDate: daysAgo(45), tracking1: '8.2', tracking2: '3 months', notes: 'Blue - NOT at goal, value 8.2, retest 3mo' },
+    { patientName: 'Torres, Nicholas', requestType: 'Quality', qualityMeasure: 'Diabetes Control', measureStatus: 'Patient declined', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Purple - declined' },
 
     // Annual Serum K&Cr
-    { patientName: 'SerumKCr - Ordered', requestType: 'Quality', qualityMeasure: 'Annual Serum K&Cr', measureStatus: 'Lab ordered', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Blue - ordered (7 days)' },
-    { patientName: 'SerumKCr - Completed', requestType: 'Quality', qualityMeasure: 'Annual Serum K&Cr', measureStatus: 'Lab completed', statusDate: daysAgo(45), tracking1: null, tracking2: null, notes: 'Green - completed' },
+    { patientName: 'Parker, Eric', requestType: 'Quality', qualityMeasure: 'Annual Serum K&Cr', measureStatus: 'Lab ordered', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Blue - ordered (7 days)' },
+    { patientName: 'Collins, Stephen', requestType: 'Quality', qualityMeasure: 'Annual Serum K&Cr', measureStatus: 'Lab completed', statusDate: daysAgo(45), tracking1: null, tracking2: null, notes: 'Green - completed' },
 
     // Chronic DX
-    { patientName: 'ChronicDX - Confirmed', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis confirmed', statusDate: daysAgo(60), tracking1: null, tracking2: null, notes: 'Green - confirmed' },
-    { patientName: 'ChronicDX - Resolved NoAttest', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis resolved', statusDate: daysAgo(5), tracking1: 'Attestation not sent', tracking2: null, notes: 'Orange - resolved, attestation not sent (14 days)' },
-    { patientName: 'ChronicDX - Resolved Attested', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis resolved', statusDate: daysAgo(30), tracking1: 'Attestation sent', tracking2: null, notes: 'Orange - resolved, attested' },
-    { patientName: 'ChronicDX - Invalid', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis invalid', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Orange - invalid' },
+    { patientName: 'Edwards, Larry', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis confirmed', statusDate: daysAgo(60), tracking1: null, tracking2: null, notes: 'Green - confirmed' },
+    { patientName: 'Stewart, Frank', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis resolved', statusDate: daysAgo(5), tracking1: 'Attestation not sent', tracking2: null, notes: 'Orange - resolved, attestation not sent (14 days)' },
+    { patientName: 'Morris, Scott', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis resolved', statusDate: daysAgo(30), tracking1: 'Attestation sent', tracking2: null, notes: 'Orange - resolved, attested' },
+    { patientName: 'Nguyen, Raymond', requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code', measureStatus: 'Chronic diagnosis invalid', statusDate: daysAgo(20), tracking1: null, tracking2: null, notes: 'Orange - invalid' },
 
     // Duplicate patients (two rows for same patient - yellow highlight)
-    { patientName: 'Duplicate Test Patient', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'Duplicate patient row 1 - should be yellow' },
-    { patientName: 'Duplicate Test Patient', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'Duplicate patient row 2 - should be yellow' },
+    { patientName: 'Murphy, Patrick', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'Duplicate patient row 1 - should be yellow' },
+    { patientName: 'Murphy, Patrick', requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'Duplicate patient row 2 - should be yellow' },
 
     // Overdue patients
-    { patientName: 'Overdue - Blue Status', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination scheduled', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Red - overdue (was scheduled 10 days ago, due in 1 day)' },
-    { patientName: 'Overdue - Yellow Status', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam discussed', statusDate: daysAgo(50), tracking1: null, tracking2: null, notes: 'Red - overdue (discussed 50 days ago, due in 42)' },
+    { patientName: 'Rivera, Jack', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination scheduled', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Red - overdue (was scheduled 10 days ago, due in 1 day)' },
+    { patientName: 'Cook, Adam', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam discussed', statusDate: daysAgo(50), tracking1: null, tracking2: null, notes: 'Red - overdue (discussed 50 days ago, due in 42)' },
   ];
 
   // Create patients and measures
