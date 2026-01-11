@@ -44,6 +44,8 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Phone number formatting ((555) 123-4567)
 - [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
 - [x] Member Info columns hidden by default
+- [x] Column sorting (click header to sort ascending/descending)
+- [x] No auto-sort during editing (rows stay in place, sort only on header click)
 
 ### Phase 3: Cascading Dropdowns
 
@@ -294,4 +296,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 10, 2026 - Time Interval editable range changed to 1-1000 days
+January 10, 2026 - Added column sorting with no auto-sort during editing

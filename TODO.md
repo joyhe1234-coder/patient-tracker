@@ -7,9 +7,10 @@ This document tracks planned features and enhancements for future development.
 ## High Priority
 
 ### Sorting
-- [ ] Column header click to sort ascending/descending
+- [x] Column header click to sort ascending/descending
+- [x] Sort indicator icons in column headers
+- [x] No auto-sort during editing (rows stay in place while editing)
 - [ ] Multi-column sort support
-- [ ] Sort indicator icons in column headers
 - [ ] Persist sort preferences
 
 ### External Data Import
