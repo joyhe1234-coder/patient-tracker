@@ -230,8 +230,10 @@ export default function PatientGrid({
     if (frozenRowOrderRef.current && frozenRowOrderRef.current.length > 0) {
       const orderMap = new Map(frozenRowOrderRef.current.map((id, index) => [id, index]));
       params.nodes.sort((a, b) => {
-        const orderA = orderMap.get(a.data?.id) ?? Infinity;
-        const orderB = orderMap.get(b.data?.id) ?? Infinity;
+        const idA = a.data?.id;
+        const idB = b.data?.id;
+        const orderA = idA !== undefined ? (orderMap.get(idA) ?? Infinity) : Infinity;
+        const orderB = idB !== undefined ? (orderMap.get(idB) ?? Infinity) : Infinity;
         return orderA - orderB;
       });
       // Clear the frozen order after applying it once
