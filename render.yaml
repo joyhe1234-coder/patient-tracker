@@ -24,9 +24,9 @@ services:
         generateValue: true
     healthCheckPath: /api/health
 
+staticSites:
   # Frontend Static Site
-  - type: static
-    name: patient-tracker-frontend
+  - name: patient-tracker-frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
