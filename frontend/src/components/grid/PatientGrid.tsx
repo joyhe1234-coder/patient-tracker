@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams } from 'ag-grid-community';
+import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
@@ -226,7 +226,7 @@ export default function PatientGrid({
   }, []);
 
   // Post-sort callback to maintain frozen row order when sort is cleared
-  const postSortRows = useCallback((params: { nodes: { data: GridRow | undefined }[] }) => {
+  const postSortRows = useCallback((params: PostSortRowsParams<GridRow>) => {
     if (frozenRowOrderRef.current && frozenRowOrderRef.current.length > 0) {
       const orderMap = new Map(frozenRowOrderRef.current.map((id, index) => [id, index]));
       params.nodes.sort((a, b) => {
