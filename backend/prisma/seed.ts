@@ -584,25 +584,11 @@ async function main() {
   // COMPREHENSIVE SAMPLE DATA (all combinations)
   // ============================================
 
-  // Clean up old sample patients first (delete patients with test phone numbers)
-  console.log('Cleaning up old sample data...');
-  await prisma.patientMeasure.deleteMany({
-    where: {
-      patient: {
-        memberTelephone: {
-          startsWith: '555',
-        },
-      },
-    },
-  });
-  await prisma.patient.deleteMany({
-    where: {
-      memberTelephone: {
-        startsWith: '555',
-      },
-    },
-  });
-  console.log('Old sample data cleaned up');
+  // Clean up ALL existing patients and measures for a fresh start
+  console.log('Cleaning up all existing patient data...');
+  await prisma.patientMeasure.deleteMany({});
+  await prisma.patient.deleteMany({});
+  console.log('All patient data cleaned up');
 
   // Helper to create dates relative to today
   const today = new Date();
