@@ -259,8 +259,6 @@ export default function PatientGrid({
     if (newValue === oldValue) return;
     if (!data || !colDef.field) return;
 
-    // Store the row ID to preserve selection after update
-    const rowId = data.id;
 
     // Clear sort indicator on the edited column (if it was sorted)
     // Capture current row order first, then clear sort - postSortRows will maintain order
