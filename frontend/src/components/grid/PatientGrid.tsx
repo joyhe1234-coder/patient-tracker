@@ -226,7 +226,7 @@ export default function PatientGrid({
   }, []);
 
   // Post-sort callback to maintain frozen row order when sort is cleared
-  const postSortRows = useCallback((params: { nodes: { data: GridRow }[] }) => {
+  const postSortRows = useCallback((params: { nodes: { data: GridRow | undefined }[] }) => {
     if (frozenRowOrderRef.current && frozenRowOrderRef.current.length > 0) {
       const orderMap = new Map(frozenRowOrderRef.current.map((id, index) => [id, index]));
       params.nodes.sort((a, b) => {
