@@ -129,6 +129,26 @@ npm run db:seed
 npm run db:studio
 ```
 
+## Cloud Deployment (Render)
+
+This application includes a `render.yaml` Blueprint for one-click deployment to Render:
+
+1. Sign up at https://render.com with GitHub
+2. Click **New → Blueprint** → Select `patient-tracker` repo
+3. Click **Apply** - Render creates all services automatically
+
+**Services Created:**
+- PostgreSQL database (free tier)
+- Backend API (starter plan ~$7/month)
+- Frontend static site (free)
+
+## Documentation
+
+- [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) - Feature implementation progress
+- [TODO.md](./TODO.md) - Planned features and enhancements
+- [REGRESSION_TEST_PLAN.md](./REGRESSION_TEST_PLAN.md) - Manual test cases
+- [docs/requirements.md](./docs/requirements.md) - Complete requirements document
+
 ## License
 
 Private - Internal Use Only
