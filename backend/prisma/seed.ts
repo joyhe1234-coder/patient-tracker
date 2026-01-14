@@ -694,6 +694,10 @@ async function main() {
     // Overdue patients (various statuses)
     { name: 'Rivera, Jack', dob: new Date('1987-11-23'), phone: '5556001001', address: '601 Deadline Ave' },
     { name: 'Cook, Adam', dob: new Date('1988-12-24'), phone: '5556001002', address: '602 Urgent Lane' },
+
+    // Test: Completed measure with passed due date (annual measure needing renewal)
+    { name: 'Bennett, Carol', dob: new Date('1952-03-15'), phone: '5557001001', address: '701 Renewal St' },
+    { name: 'Foster, William', dob: new Date('1953-04-20'), phone: '5557001002', address: '702 Annual Ave' },
   ];
 
   // Define measures for each patient
@@ -796,6 +800,10 @@ async function main() {
     // Overdue patients
     { patientName: 'Rivera, Jack', requestType: 'Quality', qualityMeasure: 'Vaccination', measureStatus: 'Vaccination scheduled', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Red - overdue (was scheduled 10 days ago, due in 1 day)' },
     { patientName: 'Cook, Adam', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam discussed', statusDate: daysAgo(50), tracking1: null, tracking2: null, notes: 'Red - overdue (discussed 50 days ago, due in 42)' },
+
+    // Completed measures with passed due date (annual renewal needed) - should turn RED
+    { patientName: 'Bennett, Carol', requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit', measureStatus: 'AWV completed', statusDate: daysAgo(400), tracking1: null, tracking2: null, notes: 'Red - completed 400 days ago, due date passed (365 day interval)' },
+    { patientName: 'Foster, William', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam completed', statusDate: daysAgo(380), tracking1: null, tracking2: null, notes: 'Red - completed 380 days ago, due date passed (365 day interval)' },
   ];
 
   // Create patients and measures

@@ -94,12 +94,14 @@ export function getRowStatusColor(row: {
 
   const status = row.measureStatus || '';
 
-  // Check overdue first (for pending statuses only)
+  // Check overdue first
+  // Applies to all statuses EXCEPT declined (purple), N/A (gray), and resolved (orange)
+  // Completed (green) statuses CAN be overdue - indicates need for new annual measure
   const isOverdue = (): boolean => {
     if (!row.dueDate) return false;
-    // Don't show overdue for completed/declined/resolved statuses
+    // Don't show overdue for declined/N/A/resolved statuses
     if (grayStatuses.includes(status) || purpleStatuses.includes(status) ||
-        greenStatuses.includes(status) || orangeStatuses.includes(status)) {
+        orangeStatuses.includes(status)) {
       return false;
     }
     const dueDate = new Date(row.dueDate);

@@ -86,8 +86,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Real-time color updates when Measure Status changes
 - [x] Selection/focus uses outline instead of background color override
 - [x] Overdue row coloring (light red) when due date has passed
-  - Only applies to pending statuses (blue, yellow, white)
-  - Does not apply to completed, declined, or resolved statuses
+  - Applies to pending statuses (blue, yellow, white) AND completed statuses (green)
+  - Completed rows turn red when due date passes (indicates annual renewal needed)
+  - Does not apply to declined or resolved statuses (purple, gray, orange)
   - Color priority: duplicate > overdue > status-based
 
 ### Phase 5: Business Logic & Calculations
