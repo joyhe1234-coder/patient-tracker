@@ -32,7 +32,6 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] AG Grid displaying 14 columns
 - [x] Cell editing with single-click activation
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
-- [x] Add Row functionality with modal (basic patient info only)
 - [x] Delete Row with confirmation dialog
 - [x] Row selection indicator (blue outline, preserves status colors)
 - [x] Active cell indicator (blue outline border)
@@ -44,7 +43,28 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Phone number formatting ((555) 123-4567)
 - [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
 - [x] Member Info columns hidden by default
+
+### Phase 3: Adding & Duplicating Rows
+
+**Status: In Progress**
+
+- [x] Add Row functionality with modal (basic patient info only)
+- [x] Duplicate detection (same patient name + DOB)
+- [x] Duplicate visual indicator: Light yellow background (#FEF3C7)
+- [x] Error modal when creating duplicate patient (no proceed option, form data preserved)
+- [x] Backend validation prevents updating DOB to create duplicate patient
+- [x] Backend duplicate flag synchronization on create/delete
+- [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
+- [ ] Duplicate row functionality (create copy of existing row)
+- [ ] Duplicate row with new patient info (copy measures to different patient)
+- [ ] Bulk add multiple rows at once
+
+### Phase 4: Sorting & Filtering
+
+**Status: In Progress**
+
 - [x] Column sorting (click header to sort ascending/descending)
+- [x] Sort indicator icons in column headers
 - [x] No auto-sort during editing (rows stay in place, sort only on header click)
 - [x] Sort indicator cleared when editing sorted column (row position preserved)
 - [x] Row position and selection preserved during all edits
@@ -52,8 +72,12 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Single-select filter behavior (click to select, click again to deselect)
 - [x] Filter counts displayed on each chip
 - [x] Status bar shows "Showing X of Y rows" when filtering
+- [ ] Multi-column sort support
+- [ ] Persist sort/filter preferences (localStorage or user settings)
+- [ ] Quick search/filter by patient name
+- [ ] Advanced filter builder (multiple conditions)
 
-### Phase 3: Cascading Dropdowns
+### Phase 5: Cascading Dropdowns
 
 **Status: Complete**
 
@@ -68,7 +92,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Auto-reset of dependent fields when parent changes
 - [x] Dropdown configuration stored in `src/config/dropdownConfig.ts`
 
-### Phase 4: Conditional Row Formatting
+### Phase 6: Conditional Row Formatting
 
 **Status: Complete**
 
@@ -91,7 +115,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - Does not apply to declined or resolved statuses (purple, gray, orange)
   - Color priority: duplicate > overdue > status-based
 
-### Phase 5: Business Logic & Calculations
+### Phase 7: Business Logic & Calculations
 
 **Status: Complete**
 
@@ -122,18 +146,12 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - **Tracking #3:**
     - Editable free text placeholder for future use
     - Inherits row status color
-- [x] Duplicate detection (same patient name + DOB)
-  - Visual indicator: Light yellow background (#FEF3C7)
-  - Error modal when creating duplicate patient (no proceed option, form data preserved)
-  - Backend validation prevents updating DOB to create duplicate patient
-  - Backend duplicate flag synchronization on create/delete
 - [x] Backend services layer:
   - `dueDateCalculator.ts` - Due date calculation logic
   - `duplicateDetector.ts` - Duplicate detection and flag management
   - `statusDatePromptResolver.ts` - Status date prompt resolution
-- [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
 
-### Phase 6: Complete Countdown Period Configuration
+### Phase 8: Complete Countdown Period Configuration
 
 **Status: Complete**
 
@@ -158,7 +176,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ## Future Phases
 
-### Phase 7: HgbA1c Goal Configuration
+### Phase 9: HgbA1c Goal Configuration
 
 **Planned Features:**
 - [ ] HgbA1c Goal dropdown for Diabetes Control rows (Less than 7/8/9)
@@ -166,7 +184,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] "Patient Declined" checkbox
 - [ ] Special color logic (GREEN/ORANGE/RED/GRAY) based on goal vs actual
 
-### Phase 8: View-Only Mode & Edit Locking
+### Phase 10: View-Only Mode & Edit Locking
 
 **Planned Features:**
 - [ ] View-only mode for non-editors
@@ -174,7 +192,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Lock status indicator
 - [ ] Force-release lock (admin only)
 
-### Phase 9: Authentication & Multi-Physician Support
+### Phase 11: Authentication & Multi-Physician Support
 
 **Planned Features:**
 - [ ] Login page for editors
@@ -184,7 +202,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Multi-physician data isolation (each physician sees only their patients)
 - [ ] Physician table and Patient.physicianId schema changes
 
-### Phase 10: Excel-like Behaviors
+### Phase 12: Excel-like Behaviors
 
 **Planned Features:**
 - [ ] Keyboard navigation (Arrow keys, Tab, Enter)
@@ -192,9 +210,8 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Undo/Redo (Ctrl+Z, Ctrl+Y)
 - [ ] Fill handle (drag to fill)
 - [ ] Context menu (right-click)
-- [ ] Quick filter/search bar
 
-### Phase 11: Additional Features
+### Phase 13: Additional Features
 
 **Planned Features:**
 - [ ] CSV import/export
@@ -205,7 +222,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] ~~Zebra striping~~ (not needed - using measure status colors instead)
 - [ ] Drag-and-drop row reordering
 
-### Phase 12: Reference Data Sheets
+### Phase 14: Reference Data Sheets
 
 **Planned Features:**
 - [ ] HCC Code List sheet
@@ -303,4 +320,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 10, 2026 - Added sorting/filtering with row position preservation
+January 14, 2026 - Reorganized phases: added Phase 3 (Adding & Duplicating Rows) and Phase 4 (Sorting & Filtering)

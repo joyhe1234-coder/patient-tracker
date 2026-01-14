@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.1.0-snapshot] - 2026-01-14
+
+### Added
+- **Claude Code Integration** - Project context system for AI-assisted development
+  - `CLAUDE.md` - Auto-read project context file with pre-commit workflow
+  - `.claude/` directory for organized project documentation
+  - `/commit` slash command for smart commits with auto-documentation updates
+
+### Changed
+- **Phase Restructuring** - Reorganized implementation phases for clarity
+  - Added Phase 3: Adding & Duplicating Rows (in progress)
+  - Added Phase 4: Sorting & Filtering (in progress)
+  - Renumbered subsequent phases (5-14)
+- **Documentation Location** - Moved project docs to `.claude/` folder
+  - `CHANGELOG.md`, `IMPLEMENTATION_STATUS.md`, `TODO.md`, `REGRESSION_TEST_PLAN.md`
+  - Added template files: `context.md`, `patterns.md`, `notes.md`
+
+---
+
 ## [2.0.0-snapshot] - 2026-01-10
 
 ### Added

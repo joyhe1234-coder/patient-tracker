@@ -1,0 +1,48 @@
+# Claude Project Context
+
+## IMPORTANT: Pre-Commit Workflow
+
+**Before ANY git commit, you MUST update these documents first:**
+
+1. **`.claude/IMPLEMENTATION_STATUS.md`** - Update to reflect:
+   - New features/components added
+   - Changes to existing functionality
+   - Current completion status of each module
+
+2. **`.claude/REGRESSION_TEST_PLAN.md`** - Update to reflect:
+   - New test cases needed for added functionality
+   - Modified test cases for changed behavior
+   - Mark completed tests
+
+3. **`.claude/CHANGELOG.md`** - Add entry for:
+   - What changed (features, fixes, refactors)
+   - Date of change
+   - Brief description of impact
+
+4. **`.claude/TODO.md`** - Update to reflect:
+   - Mark completed tasks as done
+   - Add new tasks discovered during implementation
+   - Update priorities if needed
+
+**Workflow:** Read current docs → Make updates based on staged changes → Stage doc updates → Then commit all together.
+
+---
+
+Read the following files before starting work:
+
+## Project Documentation
+- `README.md` - Project overview (in root)
+- `.claude/IMPLEMENTATION_STATUS.md` - Current implementation status
+- `.claude/TODO.md` - Task list and priorities
+- `.claude/CHANGELOG.md` - Version history and changes
+- `.claude/REGRESSION_TEST_PLAN.md` - Testing requirements
+
+## Claude-Specific Context
+- `.claude/context.md` - Project structure and tech stack
+- `.claude/patterns.md` - Code conventions and patterns
+- `.claude/notes.md` - Session notes and current focus
+
+## Quick Commands
+- Dev server: `docker-compose up`
+- Build: [add command]
+- Test: [add command]
