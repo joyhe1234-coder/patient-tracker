@@ -1,5 +1,35 @@
 # Claude Project Context
 
+## IMPORTANT: Implementation Request Workflow
+
+**When the user asks to implement a requirement, ALWAYS follow this workflow:**
+
+### Step 1: Clarify & Rephrase
+Before any implementation, rephrase the requirement in an organized format:
+- **Summary**: One-sentence description of what needs to be done
+- **Current Behavior**: How the system works now (if applicable)
+- **New Behavior**: How it should work after implementation
+- **Affected Components**: List files/modules that will change
+- **Edge Cases**: Any special scenarios to handle
+
+### Step 2: Show Implementation Plan
+Present a clear plan with:
+- Database/schema changes (if any)
+- Backend changes (services, routes, models)
+- Frontend changes (components, pages, state)
+- Documentation updates needed
+- Migration or manual steps required
+
+### Step 3: Get Approval
+Wait for user confirmation before writing any code. Ask:
+- "Does this plan look correct?"
+- Clarify any ambiguities before proceeding
+
+### Step 4: Implement
+Only after approval, proceed with implementation.
+
+---
+
 ## IMPORTANT: Pre-Commit Workflow
 
 **Before ANY git commit, you MUST update these documents first:**
