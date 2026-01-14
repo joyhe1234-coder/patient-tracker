@@ -113,14 +113,20 @@ export default function MainPage() {
   };
 
   // Handle add new row - check for duplicates first
-  // Duplicate = same patient name + DOB already exists
+  // Duplicate = same patient + requestType + qualityMeasure
   // Returns true if row was created successfully, false otherwise
   const handleAddRow = async (data: NewRowData): Promise<boolean> => {
     try {
-      // Check if this would create a duplicate (same name + DOB)
+      // Default values for new rows
+      const defaultRequestType = 'AWV';
+      const defaultQualityMeasure = 'Annual Wellness Visit';
+
+      // Check if this would create a duplicate (same patient + requestType + qualityMeasure)
       const checkResponse = await api.post('/data/check-duplicate', {
         memberName: data.memberName,
         memberDob: data.memberDob,
+        requestType: defaultRequestType,
+        qualityMeasure: defaultQualityMeasure,
       });
 
       if (checkResponse.data.success && checkResponse.data.data.isDuplicate) {

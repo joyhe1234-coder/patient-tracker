@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.0-snapshot] - 2026-01-14
+
+### Changed
+- **Duplicate Detection Logic Updated** - New duplicate definition
+  - Duplicates now defined as: same patient (memberName + memberDob) + requestType + qualityMeasure
+  - Skip duplicate check if requestType OR qualityMeasure is null/empty
+  - Updated error modal message to reflect new criteria
+
+### Database Changes
+- **Schema Migration Required** - Fields made nullable
+  - `requestType`: String → String? (nullable, no default)
+  - `qualityMeasure`: String → String? (nullable, no default)
+  - `measureStatus`: String with default → String? (nullable, no default)
+  - Run: `npx prisma migrate dev --name make-measure-fields-nullable`
+
+---
+
 ## [2.1.0-snapshot] - 2026-01-14
 
 ### Added

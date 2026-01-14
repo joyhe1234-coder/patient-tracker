@@ -49,11 +49,13 @@ This document tracks the implementation progress of the Patient Quality Measure 
 **Status: In Progress**
 
 - [x] Add Row functionality with modal (basic patient info only)
-- [x] Duplicate detection (same patient name + DOB)
+- [x] Duplicate detection: same patient (memberName + memberDob) + requestType + qualityMeasure
+  - Skip duplicate check if requestType OR qualityMeasure is null/empty
+  - Schema updated: requestType, qualityMeasure, measureStatus are now nullable (no defaults)
 - [x] Duplicate visual indicator: Light yellow background (#FEF3C7)
-- [x] Error modal when creating duplicate patient (no proceed option, form data preserved)
-- [x] Backend validation prevents updating DOB to create duplicate patient
-- [x] Backend duplicate flag synchronization on create/delete
+- [x] Error modal when creating duplicate row (no proceed option, form data preserved)
+- [x] Backend validation prevents updating to create duplicate row
+- [x] Backend duplicate flag synchronization on create/update/delete
 - [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
 - [ ] Duplicate row functionality (create copy of existing row)
 - [ ] Duplicate row with new patient info (copy measures to different patient)

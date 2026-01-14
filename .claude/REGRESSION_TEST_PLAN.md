@@ -374,24 +374,63 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 8. Duplicate Detection
 
-### TC-8.1: Add Duplicate Patient
+### TC-8.1: Add Duplicate Row (Same Patient + Request Type + Quality Measure)
 **Steps:**
 1. Click "Add Row" button
 2. Enter Member Name matching an existing patient
 3. Enter DOB matching the same existing patient
+4. Click Add (row uses default AWV + Annual Wellness Visit)
+
+**Expected:**
+- Error modal appears: "Duplicate Row Error"
+- Row is NOT created (if patient already has AWV row)
+- Form data is preserved for correction
+
+### TC-8.2: Add Row With Same Patient But Different Request Type
+**Steps:**
+1. Add a row for "Patient A" with Request Type "AWV"
+2. Click "Add Row" again
+3. Enter same "Patient A" name and DOB
 4. Click Add
 
 **Expected:**
-- Error modal appears: "Duplicate Patient"
-- Row is NOT created
-- Form data is preserved for correction
+- Row IS created successfully (NOT a duplicate because AWV is default)
+- Wait - this would be duplicate. User should change Request Type in grid after creation
 
-### TC-8.2: Duplicate Visual Indicator
+### TC-8.3: Duplicate Detection Skip When Fields Empty
 **Steps:**
-1. Find two rows with the same patient (name + DOB)
+1. Create a row with empty/null Request Type (via direct database or API)
+2. Create another row with same patient and empty Request Type
 
 **Expected:**
-- Both rows have light yellow duplicate indicator background
+- Row IS created (duplicate check skipped when requestType is empty/null)
+- Neither row marked as duplicate
+
+### TC-8.4: Duplicate Visual Indicator
+**Steps:**
+1. Create two rows with same patient + requestType + qualityMeasure
+   (e.g., via API or by editing requestType/qualityMeasure in grid)
+
+**Expected:**
+- Both rows have light yellow duplicate indicator background (#FEF3C7)
+
+### TC-8.5: Update Row Creates Duplicate
+**Steps:**
+1. Have two rows for same patient with different qualityMeasure
+2. Edit one row to have same requestType + qualityMeasure as the other
+
+**Expected:**
+- Both rows become marked as duplicates
+- Both show yellow background
+
+### TC-8.6: Delete Removes Duplicate Status
+**Steps:**
+1. Have two duplicate rows (same patient + requestType + qualityMeasure)
+2. Delete one of the rows
+
+**Expected:**
+- Remaining row is no longer marked as duplicate
+- Yellow background removed from remaining row
 
 ---
 
@@ -624,8 +663,12 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-7.1 | | | |
 | TC-7.2 | | | |
 | TC-7.3 | | | |
-| TC-8.1 | | | |
-| TC-8.2 | | | |
+| TC-8.1 | | | Same patient+type+measure |
+| TC-8.2 | | | Same patient, diff type |
+| TC-8.3 | | | Skip when fields empty |
+| TC-8.4 | | | Visual indicator |
+| TC-8.5 | | | Update creates duplicate |
+| TC-8.6 | | | Delete removes duplicate |
 | TC-9.1 | | | |
 | TC-9.2 | | | |
 | TC-9.3 | | | |

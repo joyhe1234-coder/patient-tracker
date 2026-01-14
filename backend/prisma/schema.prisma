@@ -32,9 +32,9 @@ model PatientMeasure {
   id                    Int       @id @default(autoincrement())
   patientId             Int       @map("patient_id")
   patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  requestType           String    @map("request_type")
-  qualityMeasure        String    @map("quality_measure")
-  measureStatus         String    @map("measure_status") @default("Not Addressed")
+  requestType           String?   @map("request_type")
+  qualityMeasure        String?   @map("quality_measure")
+  measureStatus         String?   @map("measure_status")
   statusDate            DateTime? @map("status_date") @db.Date
   statusDatePrompt      String?   @map("status_date_prompt")
   tracking1             String?   @map("tracking_1")
