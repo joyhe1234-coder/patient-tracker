@@ -2864,13 +2864,19 @@ export class HgbA1cService {
 
 ### Overdue Rule (RED)
 
-When the due date passes without a status change, the row turns **RED** (#FFCDD2).
+When the due date passes, the row turns **RED** (#FFCDD2).
 
 **Rules:**
-- Only applies to "pending" statuses (LIGHT BLUE, YELLOW, WHITE)
-- Does NOT apply to completed, declined, or resolved statuses (GREEN, GRAY, PINK/ORANGE)
+- Applies to pending statuses (LIGHT BLUE, YELLOW, WHITE) AND completed statuses (GREEN)
+- Completed (GREEN) rows turn RED when due date passes, indicating annual measure renewal is needed
+- Does NOT apply to declined or resolved statuses (PURPLE, GRAY, PINK/ORANGE) - these are terminal states
 - If a new date is entered, the row returns to its status-based color and the timer resets
 - Color priority: Duplicate > Overdue > Status-based
+
+**Examples:**
+- AWV completed 400 days ago → Due date was 365 days after completion → Row turns RED (needs new AWV this year)
+- Lab ordered 10 days ago with 7-day countdown → Due date passed → Row turns RED
+- Patient declined → No due date → Stays PURPLE (no renewal reminder needed)
 
 ### Countdown Periods by Quality Measure
 

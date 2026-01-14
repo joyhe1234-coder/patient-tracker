@@ -741,15 +741,15 @@ export default function PatientGrid({
   ];
 
   // Helper function to check if a row is overdue (dueDate < today)
-  // Only applies to pending statuses (blue, yellow, white) - not completed/declined/resolved
+  // Applies to all statuses EXCEPT declined (purple), N/A (gray), and resolved (orange)
+  // Completed (green) statuses CAN be overdue - indicates need for new annual measure
   const isRowOverdue = (data: GridRow | undefined): boolean => {
     if (!data?.dueDate) return false;
 
-    // Don't show overdue for completed/declined/resolved statuses
+    // Don't show overdue for declined/N/A/resolved statuses
     const status = data.measureStatus || '';
     if (grayStatuses.includes(status) ||
         purpleStatuses.includes(status) ||
-        greenStatuses.includes(status) ||
         orangeStatuses.includes(status)) {
       return false;
     }
