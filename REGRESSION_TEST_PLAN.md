@@ -218,7 +218,7 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Colors match the status category
 
-### TC-5.2: Overdue Row Color
+### TC-5.2: Overdue Row Color (Pending Status)
 **Steps:**
 1. Find a row with Due Date in the past
 2. Ensure Measure Status is pending (blue/yellow/white category)
@@ -226,6 +226,34 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Row displays as light red (overdue)
 - Overdue color takes priority over status color
+
+### TC-5.2b: Overdue Row Color (Completed Status)
+**Steps:**
+1. Find patient "Bennett, Carol" (AWV completed 400+ days ago)
+2. Verify the Due Date is in the past (365 days after completion)
+
+**Expected:**
+- Row displays as light red (overdue), NOT green
+- Indicates annual measure renewal is needed
+
+### TC-5.2c: Non-Overdue Terminal Statuses
+**Steps:**
+1. Find a row with "Patient declined AWV" (purple)
+2. Verify no due date or past due date
+
+**Expected:**
+- Row stays purple (NOT red)
+- Declined statuses never turn red
+
+### TC-5.2d: Completed Row Turns Red on Edit
+**Steps:**
+1. Find a green (completed) row with future due date
+2. Change Status Date to over 365 days ago
+3. Press Tab
+
+**Expected:**
+- Due Date recalculates to past date
+- Row immediately turns red (overdue)
 
 ### TC-5.3: Color Preserved During Selection
 **Steps:**
@@ -283,6 +311,30 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Measure Status resets/clears
 - Previous status value is NOT retained
+
+### TC-6.5: Chronic DX Auto-Fill
+**Steps:**
+1. Set Request Type to "Chronic DX"
+
+**Expected:**
+- Quality Measure auto-fills with "Chronic Diagnosis Code"
+- Cannot select other quality measures
+
+### TC-6.6: Screening Quality Measures
+**Steps:**
+1. Set Request Type to "Screening"
+2. Click Quality Measure dropdown
+
+**Expected:**
+- Shows exactly 3 options: Breast Cancer Screening, Colon Cancer Screening, Cervical Cancer Screening
+
+### TC-6.7: Quality Request Type Options
+**Steps:**
+1. Set Request Type to "Quality"
+2. Click Quality Measure dropdown
+
+**Expected:**
+- Shows 8 options: Diabetic Eye Exam, GC/Chlamydia Screening, Diabetic Nephropathy, Hypertension Management, ACE/ARB in DM or CAD, Vaccination, Diabetes Control, Annual Serum K&Cr
 
 ---
 
@@ -428,11 +480,93 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Dropdown shows month options (1 month, 2 months, etc.)
 
+### TC-11.4: Tracking #1 Free Text for HgbA1c
+**Steps:**
+1. Set Quality Measure to "Diabetes Control"
+2. Set Measure Status to "HgbA1c at goal"
+3. Click Tracking #1 cell
+
+**Expected:**
+- Cell shows prompt "HgbA1c value" when empty
+- Accepts free text input (e.g., "6.5", "8.2")
+- NOT a dropdown
+
+### TC-11.5: Tracking #2 Free Text for Hypertension
+**Steps:**
+1. Set Quality Measure to "Hypertension Management"
+2. Set Measure Status to "Scheduled call back - BP not at goal"
+3. Click Tracking #2 cell
+
+**Expected:**
+- Cell shows prompt "BP reading" when empty
+- Accepts free text input (e.g., "145/92")
+- Tracking #1 shows call interval dropdown
+
+### TC-11.6: Cervical Cancer Month Tracking
+**Steps:**
+1. Set Quality Measure to "Cervical Cancer Screening"
+2. Set Measure Status to "Screening discussed"
+3. Click Tracking #1 cell
+
+**Expected:**
+- Dropdown shows: In 1 Month through In 11 Months
+- Selecting "In 3 Months" sets due date to statusDate + 90 days
+
+### TC-11.7: Chronic Diagnosis Attestation Tracking
+**Steps:**
+1. Set Quality Measure to "Chronic Diagnosis Code"
+2. Set Measure Status to "Chronic diagnosis resolved"
+3. Click Tracking #1 cell
+
+**Expected:**
+- Dropdown shows: Attestation not sent, Attestation sent
+- "Attestation not sent" sets due date to statusDate + 14 days
+- "Attestation sent" has no due date
+
 ---
 
-## 12. Error Handling
+## 12. Time Interval Editability
 
-### TC-12.1: Network Error Recovery
+### TC-12.1: Time Interval Editable (Base Due Days)
+**Steps:**
+1. Set Measure Status to "AWV scheduled" (baseDueDays = 1)
+2. Click Time Interval cell
+3. Change value to 7
+
+**Expected:**
+- Cell is editable
+- Due Date updates to Status Date + 7 days
+- Value is saved
+
+### TC-12.2: Time Interval Read-Only (Tracking Dropdown)
+**Steps:**
+1. Set Quality Measure to "Colon Cancer Screening"
+2. Set Measure Status to "Colon cancer screening ordered"
+3. Set Tracking #1 to "Colonoscopy"
+4. Click Time Interval cell
+
+**Expected:**
+- Cell is NOT editable (read-only)
+- Shows 42 (from tracking rule)
+- Must change Tracking #1 to change interval
+
+### TC-12.3: Time Interval Read-Only (HgbA1c)
+**Steps:**
+1. Set Quality Measure to "Diabetes Control"
+2. Set Measure Status to "HgbA1c at goal"
+3. Set Tracking #2 to "3 months"
+4. Click Time Interval cell
+
+**Expected:**
+- Cell is NOT editable (read-only)
+- Shows 90 (3 months)
+- Must change Tracking #2 to change interval
+
+---
+
+## 13. Error Handling
+
+### TC-13.1: Network Error Recovery
 **Steps:**
 1. Stop backend server
 2. Try to edit a cell
@@ -442,7 +576,7 @@ This document contains manual test cases for verifying system functionality. Run
 - Error indicator shows
 - Retry button or auto-retry works
 
-### TC-12.2: Validation Error
+### TC-13.2: Validation Error
 **Steps:**
 1. Try to save invalid data
 
@@ -475,12 +609,18 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-4.5 | | | |
 | TC-5.1 | | | |
 | TC-5.2 | | | |
+| TC-5.2b | | | Completed row overdue |
+| TC-5.2c | | | Terminal status no red |
+| TC-5.2d | | | Edit triggers red |
 | TC-5.3 | | | |
 | TC-5.4 | | | |
 | TC-6.1 | | | |
 | TC-6.2 | | | |
 | TC-6.3 | | | |
 | TC-6.4 | | | |
+| TC-6.5 | | | Chronic DX auto-fill |
+| TC-6.6 | | | Screening options |
+| TC-6.7 | | | Quality options |
 | TC-7.1 | | | |
 | TC-7.2 | | | |
 | TC-7.3 | | | |
@@ -494,11 +634,18 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-11.1 | | | |
 | TC-11.2 | | | |
 | TC-11.3 | | | |
-| TC-12.1 | | | |
-| TC-12.2 | | | |
+| TC-11.4 | | | HgbA1c free text |
+| TC-11.5 | | | Hypertension BP reading |
+| TC-11.6 | | | Cervical month tracking |
+| TC-11.7 | | | Chronic attestation |
+| TC-12.1 | | | Time interval editable |
+| TC-12.2 | | | Time interval read-only (tracking) |
+| TC-12.3 | | | Time interval read-only (HgbA1c) |
+| TC-13.1 | | | |
+| TC-13.2 | | | |
 
 ---
 
 ## Last Updated
 
-January 10, 2026 - Initial test plan with all Phase 1-6 features
+January 13, 2026 - Added overdue logic for completed rows, cascading dropdown tests, tracking field tests, time interval editability tests
