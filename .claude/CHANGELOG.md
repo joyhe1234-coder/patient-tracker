@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Duplicate Detection Logic Updated** - New duplicate definition
   - Duplicates now defined as: same patient (memberName + memberDob) + requestType + qualityMeasure
   - Skip duplicate check if requestType OR qualityMeasure is null/empty
-  - Updated error modal message to reflect new criteria
+  - Duplicate errors now shown via browser alert (removed DuplicateWarningModal)
   - **Duplicate blocking on updates** - Prevents editing requestType/qualityMeasure to create duplicates
   - On duplicate error, fields reset to empty instead of reverting to old value
 

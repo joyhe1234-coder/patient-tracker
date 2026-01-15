@@ -662,29 +662,31 @@ This document contains manual test cases for verifying system functionality. Run
 - Due Date updates to Status Date + 7 days
 - Value is saved
 
-### TC-12.2: Time Interval Read-Only (Tracking Dropdown)
+### TC-12.2: Time Interval Override (Tracking Dropdown Status)
 **Steps:**
 1. Set Quality Measure to "Colon Cancer Screening"
 2. Set Measure Status to "Colon cancer screening ordered"
-3. Set Tracking #1 to "Colonoscopy"
+3. Set Tracking #1 to "Colonoscopy" (default interval: 42)
 4. Click Time Interval cell
+5. Change value to 30
 
 **Expected:**
-- Cell is NOT editable (read-only)
-- Shows 42 (from tracking rule)
-- Must change Tracking #1 to change interval
+- Cell IS editable (manual override allowed)
+- Due Date updates to Status Date + 30 days
+- Override is saved to database
 
-### TC-12.3: Time Interval Read-Only (HgbA1c)
+### TC-12.3: Time Interval Override (HgbA1c Status)
 **Steps:**
 1. Set Quality Measure to "Diabetes Control"
 2. Set Measure Status to "HgbA1c at goal"
-3. Set Tracking #2 to "3 months"
+3. Set Tracking #2 to "3 months" (default interval: 90)
 4. Click Time Interval cell
+5. Change value to 60
 
 **Expected:**
-- Cell is NOT editable (read-only)
-- Shows 90 (3 months)
-- Must change Tracking #2 to change interval
+- Cell IS editable (manual override allowed)
+- Due Date updates to Status Date + 60 days
+- Override is saved to database
 
 ---
 
@@ -774,8 +776,8 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-11.6 | | | Cervical month tracking |
 | TC-11.7 | | | Chronic attestation |
 | TC-12.1 | | | Time interval editable |
-| TC-12.2 | | | Time interval read-only (tracking) |
-| TC-12.3 | | | Time interval read-only (HgbA1c) |
+| TC-12.2 | | | Time interval override (tracking) |
+| TC-12.3 | | | Time interval override (HgbA1c) |
 | TC-13.1 | | | |
 | TC-13.2 | | | |
 

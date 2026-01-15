@@ -16,7 +16,7 @@ This document tracks planned features and enhancements for future development.
   - [x] Skip duplicate check if requestType OR qualityMeasure is null/empty
   - [x] Schema change: requestType, qualityMeasure, measureStatus now nullable
 - [x] Duplicate visual indicator: Light yellow background
-- [x] Error modal when creating duplicate row
+- [x] Error alert when creating/editing to duplicate row
 - [x] Duplicate blocking on updates (prevent editing to create duplicates)
 - [x] Reset to empty on duplicate error (not revert to old value)
 - [x] Backend duplicate flag synchronization on create/update/delete
@@ -27,6 +27,7 @@ This document tracks planned features and enhancements for future development.
 - [x] Time interval manual override for all statuses
 - [ ] Duplicate row functionality (create copy of existing row)
 - [ ] Duplicate row with new patient info (copy measures to different patient)
+- [ ] Bulk add multiple rows at once
 
 ### Phase 4: Sorting & Filtering
 - [x] Column header click to sort ascending/descending
