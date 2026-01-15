@@ -23,8 +23,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Pushes develop to remote
   - Merges develop into main and pushes
   - Returns to develop branch
+  - Verifies Render deployment status via MCP
+- **Render MCP Integration** - Added MCP server for deployment monitoring
+  - Check deployment status, logs, and metrics
+  - Documented in CLAUDE.md for Claude Code awareness
 
 ### Changed
+- **Cascading Field Clearing** - When parent field changes, all downstream fields are cleared
+  - requestType change → clears qualityMeasure*, measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - qualityMeasure change → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - measureStatus change → clears statusDate, tracking1/2/3, dueDate, timeInterval
+  - *qualityMeasure auto-fills for AWV/Chronic DX
+  - Notes field is preserved (not cleared)
+- **Time Interval Manual Override** - Time interval now editable for all statuses
+  - Previously locked for dropdown-based statuses (e.g., "Screening test ordered")
+  - Now allows manual override regardless of status type
 - **Duplicate Detection Logic Updated** - New duplicate definition
   - Duplicates now defined as: same patient (memberName + memberDob) + requestType + qualityMeasure
   - Skip duplicate check if requestType OR qualityMeasure is null/empty

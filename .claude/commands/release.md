@@ -1,11 +1,11 @@
 ---
-allowed-tools: Bash(git:*), Read, Edit, Glob, Grep
-description: Release workflow - commit, push develop, merge to main, push main
+allowed-tools: Bash(git:*), Read, Edit, Glob, Grep, mcp__render__*
+description: Release workflow - commit, push, merge to main, and verify Render deployment
 ---
 
 # Release Workflow
 
-This skill performs a complete release cycle: commit changes, push develop, merge to main, and push main.
+This skill performs a complete release cycle: commit changes, push develop, merge to main, push main, and verify deployment on Render.
 
 ## Step 1: Analyze Changes
 
@@ -69,7 +69,24 @@ Read and update each of these files based on the code changes:
 1. Switch back to develop branch: `git checkout develop`
 2. Confirm you're on develop: `git branch --show-current`
 
-## Step 8: Confirm
+## Step 8: Verify Render Deployment
+
+Use Render MCP to monitor deployment status:
+
+1. Wait 30-60 seconds for Render to detect the push and start deployment
+2. Use Render MCP to list recent deploys for the services:
+   - `patient-tracker-api` (backend)
+   - `patient-tracker-frontend` (frontend)
+3. Check deployment status:
+   - If "live" or "succeeded" → deployment successful
+   - If "build_failed" or "deploy_failed" → fetch logs to diagnose
+   - If "building" or "deploying" → wait and check again
+4. If deployment failed:
+   - Use Render MCP to fetch deployment logs
+   - Report the error to the user
+   - Suggest fixes based on the error
+
+## Step 9: Confirm
 
 Show the user:
 - Summary of documentation updates made
@@ -78,5 +95,6 @@ Show the user:
 - Confirmation that main was updated and pushed
 - Current branch (should be develop)
 - Result of `git log -1` on both branches
+- **Render deployment status** for both frontend and backend services
 
 $ARGUMENTS

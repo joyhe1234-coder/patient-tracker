@@ -336,6 +336,56 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Shows 8 options: Diabetic Eye Exam, GC/Chlamydia Screening, Diabetic Nephropathy, Hypertension Management, ACE/ARB in DM or CAD, Vaccination, Diabetes Control, Annual Serum K&Cr
 
+### TC-6.8: Cascading Clear on Request Type Change
+**Steps:**
+1. Fill in a complete row: Request Type, Quality Measure, Measure Status, Status Date, Tracking #1, Due Date populated
+2. Change Request Type to a different value
+
+**Expected:**
+- Quality Measure clears (or auto-fills for AWV/Chronic DX)
+- Measure Status clears
+- Status Date clears
+- Tracking #1, #2, #3 clear
+- Due Date clears
+- Time Interval clears
+- Notes are PRESERVED (not cleared)
+
+### TC-6.9: Cascading Clear on Quality Measure Change
+**Steps:**
+1. Fill in row with Measure Status, Status Date, Tracking values
+2. Change Quality Measure to a different value
+
+**Expected:**
+- Measure Status clears
+- Status Date clears
+- Tracking #1, #2, #3 clear
+- Due Date clears
+- Time Interval clears
+- Notes are PRESERVED
+
+### TC-6.10: Cascading Clear on Measure Status Change
+**Steps:**
+1. Fill in row with Status Date, Tracking #1 = "Colonoscopy", Due Date calculated
+2. Change Measure Status to a different value
+
+**Expected:**
+- Status Date clears
+- Tracking #1, #2, #3 clear
+- Due Date clears
+- Time Interval clears
+- Notes are PRESERVED
+
+### TC-6.11: Time Interval Manual Override
+**Steps:**
+1. Set up row with "Screening test ordered" status (previously non-editable)
+2. Click on Time Interval cell
+3. Enter a new value (e.g., 30)
+
+**Expected:**
+- Time Interval is editable
+- Due Date recalculates based on new interval
+- Change is saved to database
+
 ---
 
 ## 7. Due Date Calculation
@@ -695,6 +745,10 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-6.5 | | | Chronic DX auto-fill |
 | TC-6.6 | | | Screening options |
 | TC-6.7 | | | Quality options |
+| TC-6.8 | | | Cascade clear on requestType |
+| TC-6.9 | | | Cascade clear on qualityMeasure |
+| TC-6.10 | | | Cascade clear on measureStatus |
+| TC-6.11 | | | Time interval manual override |
 | TC-7.1 | | | |
 | TC-7.2 | | | |
 | TC-7.3 | | | |

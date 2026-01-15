@@ -20,6 +20,11 @@ This document tracks planned features and enhancements for future development.
 - [x] Duplicate blocking on updates (prevent editing to create duplicates)
 - [x] Reset to empty on duplicate error (not revert to old value)
 - [x] Backend duplicate flag synchronization on create/update/delete
+- [x] Cascading field clearing when parent field changes
+  - requestType → clears downstream (qualityMeasure*, measureStatus, statusDate, tracking, dueDate, interval)
+  - qualityMeasure → clears downstream (measureStatus, statusDate, tracking, dueDate, interval)
+  - measureStatus → clears downstream (statusDate, tracking, dueDate, interval)
+- [x] Time interval manual override for all statuses
 - [ ] Duplicate row functionality (create copy of existing row)
 - [ ] Duplicate row with new patient info (copy measures to different patient)
 

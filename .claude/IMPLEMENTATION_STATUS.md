@@ -62,6 +62,12 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] On duplicate error during edit, fields reset to empty (not revert to old value)
 - [x] Backend duplicate flag synchronization on create/update/delete
 - [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
+- [x] Cascading field clearing when parent field changes:
+  - requestType → clears qualityMeasure (unless auto-fill), measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - qualityMeasure → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - measureStatus → clears statusDate, tracking1/2/3, dueDate, timeInterval
+  - Notes preserved (not cleared)
+- [x] Time interval manual override - editable for all statuses (removed dropdown restriction)
 - [ ] Duplicate row functionality (create copy of existing row)
 - [ ] Duplicate row with new patient info (copy measures to different patient)
 - [ ] Bulk add multiple rows at once
