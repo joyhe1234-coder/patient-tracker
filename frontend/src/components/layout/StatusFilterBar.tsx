@@ -81,7 +81,7 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
 // Helper function to determine the status color of a row
 // This matches the logic in PatientGrid.tsx rowClassRules
 export function getRowStatusColor(row: {
-  measureStatus: string;
+  measureStatus: string | null;
   isDuplicate: boolean;
   dueDate: string | null;
 }): Exclude<StatusColor, 'all'> {

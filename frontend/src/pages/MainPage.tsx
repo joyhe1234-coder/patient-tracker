@@ -6,7 +6,6 @@ import Toolbar from '../components/layout/Toolbar';
 import StatusFilterBar, { StatusColor, getRowStatusColor } from '../components/layout/StatusFilterBar';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
-import DuplicateWarningModal from '../components/modals/DuplicateWarningModal';
 import { api } from '../api/axios';
 
 export default function MainPage() {
@@ -20,8 +19,6 @@ export default function MainPage() {
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
-  const [pendingRowData, setPendingRowData] = useState<NewRowData | null>(null);
 
   // Column visibility
   const [showMemberInfo, setShowMemberInfo] = useState(false);
@@ -125,12 +122,6 @@ export default function MainPage() {
       console.error('Failed to add row:', err);
       return false;
     }
-  };
-
-  // Handle closing duplicate error modal
-  const handleCloseDuplicateError = () => {
-    // Keep pendingRowData so form retains the values
-    setShowDuplicateWarning(false);
   };
 
   // Handle delete row
@@ -240,13 +231,6 @@ export default function MainPage() {
         confirmColor="red"
         onConfirm={handleDeleteRow}
         onCancel={() => setShowDeleteModal(false)}
-      />
-
-      {/* Duplicate Error Modal */}
-      <DuplicateWarningModal
-        isOpen={showDuplicateWarning}
-        patientName={pendingRowData?.memberName || ''}
-        onClose={handleCloseDuplicateError}
       />
     </div>
   );
