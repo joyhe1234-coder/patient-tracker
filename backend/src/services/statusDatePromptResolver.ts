@@ -8,7 +8,7 @@ import { prisma } from '../config/database.js';
  * 2. MeasureStatus.datePrompt from configuration
  */
 export async function resolveStatusDatePrompt(
-  measureStatus: string,
+  measureStatus: string | null,
   tracking1: string | null
 ): Promise<string | null> {
   // Priority 1: Special tracking1 overrides
@@ -18,6 +18,11 @@ export async function resolveStatusDatePrompt(
 
   if (tracking1 === 'Patient in hospice') {
     return 'Date Reported';
+  }
+
+  // No measure status = no prompt
+  if (!measureStatus) {
+    return null;
   }
 
   // Priority 2: Lookup from MeasureStatus configuration
@@ -37,7 +42,10 @@ export async function resolveStatusDatePrompt(
  * Get default date prompts for common statuses
  * Used when database config is not yet seeded
  */
-export function getDefaultDatePrompt(measureStatus: string): string | null {
+export function getDefaultDatePrompt(measureStatus: string | null): string | null {
+  if (!measureStatus) {
+    return null;
+  }
   const defaultPrompts: Record<string, string> = {
     // AWV statuses
     'Patient called to schedule AWV': 'Date Called',

@@ -414,14 +414,28 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Both rows have light yellow duplicate indicator background (#FEF3C7)
 
-### TC-8.5: Update Row Creates Duplicate
+### TC-8.5: Update Row Blocked When Creating Duplicate
 **Steps:**
 1. Have two rows for same patient with different qualityMeasure
-2. Edit one row to have same requestType + qualityMeasure as the other
+2. Edit one row's requestType or qualityMeasure to match the other row
 
 **Expected:**
-- Both rows become marked as duplicates
-- Both show yellow background
+- Error alert appears: "A row with the same patient, request type, and quality measure already exists."
+- The edited field resets to EMPTY (not reverts to old value)
+- Dependent fields also reset (qualityMeasure and measureStatus if requestType was edited)
+- Update is NOT saved to database
+
+### TC-8.5b: Duplicate Error Resets Dependent Fields
+**Steps:**
+1. Have a row with Request Type = "AWV", Quality Measure = "Annual Wellness Visit"
+2. Have another row for same patient with Request Type = "Quality", Quality Measure = "Breast Cancer Screening"
+3. Change the second row's Request Type to "AWV"
+
+**Expected:**
+- Error alert appears (would create duplicate)
+- Request Type resets to empty
+- Quality Measure resets to empty
+- Measure Status resets to empty
 
 ### TC-8.6: Delete Removes Duplicate Status
 **Steps:**
@@ -436,16 +450,37 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 9. Add/Delete Operations
 
-### TC-9.1: Add New Row
+### TC-9.1: Add New Row - First Row Position
 **Steps:**
-1. Click "Add Row" button
-2. Fill in Member Name, DOB, Telephone, Address
-3. Click Add
+1. Note the current first row in the grid
+2. Click "Add Row" button
+3. Fill in Member Name, DOB, Telephone, Address
+4. Click Add
 
 **Expected:**
-- New row appears in grid
-- "Saved" indicator shows
-- Row has default Request Type, Quality Measure values
+- New row appears as FIRST row in grid (not at bottom)
+- Previous first row is now second row
+- Request Type cell is focused and in edit mode
+- requestType, qualityMeasure, measureStatus are empty (not defaulted)
+
+### TC-9.1b: Add New Row - Sort Cleared
+**Steps:**
+1. Sort grid by any column (e.g., Member Name)
+2. Click "Add Row" and add a new row
+
+**Expected:**
+- Sort indicator is cleared from column header
+- Row positions are preserved (no re-sorting)
+- New row is at top
+
+### TC-9.1c: Add New Row - Persists After Refresh
+**Steps:**
+1. Add a new row
+2. Refresh the page
+
+**Expected:**
+- New row is still the first row in grid
+- Row order is preserved (new row has rowOrder: 0)
 
 ### TC-9.2: Delete Row
 **Steps:**
@@ -667,9 +702,12 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-8.2 | | | Same patient, diff type |
 | TC-8.3 | | | Skip when fields empty |
 | TC-8.4 | | | Visual indicator |
-| TC-8.5 | | | Update creates duplicate |
+| TC-8.5 | | | Update blocked when creating duplicate |
+| TC-8.5b | | | Duplicate error resets dependent fields |
 | TC-8.6 | | | Delete removes duplicate |
-| TC-9.1 | | | |
+| TC-9.1 | | | First row position |
+| TC-9.1b | | | Sort cleared on add |
+| TC-9.1c | | | Persists after refresh |
 | TC-9.2 | | | |
 | TC-9.3 | | | |
 | TC-10.1 | | | |

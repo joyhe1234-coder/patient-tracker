@@ -99,9 +99,11 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    // Get max row order
-    const maxOrder = await prisma.patientMeasure.aggregate({
-      _max: { rowOrder: true },
+    // Shift all existing rows down by incrementing their rowOrder
+    await prisma.patientMeasure.updateMany({
+      data: {
+        rowOrder: { increment: 1 },
+      },
     });
 
     // Parse status date
@@ -141,7 +143,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         dueDate,
         timeIntervalDays,
         notes: notes || null,
-        rowOrder: (maxOrder._max.rowOrder || 0) + 1,
+        rowOrder: 0, // New row is always first
         isDuplicate,
       },
       include: {
@@ -330,6 +332,36 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
         statusDatePrompt = getDefaultDatePrompt(finalMeasureStatus);
       }
       measureUpdate.statusDatePrompt = statusDatePrompt;
+    }
+
+    // Check for duplicates if requestType or qualityMeasure changed
+    const duplicateFieldsChanging =
+      'requestType' in updateData ||
+      'qualityMeasure' in updateData;
+
+    if (duplicateFieldsChanging) {
+      // Determine final values for duplicate check
+      const finalRequestType = measureUpdate.requestType !== undefined
+        ? measureUpdate.requestType as string | null
+        : existing.requestType;
+      const finalQualityMeasure = measureUpdate.qualityMeasure !== undefined
+        ? measureUpdate.qualityMeasure as string | null
+        : existing.qualityMeasure;
+
+      // Check if this would create a duplicate (exclude current row from check)
+      const { isDuplicate } = await checkForDuplicate(
+        existing.patientId,
+        finalRequestType,
+        finalQualityMeasure,
+        existing.id // Exclude current row from duplicate check
+      );
+
+      if (isDuplicate) {
+        return next(createError(
+          'A row with the same patient, request type, and quality measure already exists.',
+          409
+        ));
+      }
     }
 
     // Update measure

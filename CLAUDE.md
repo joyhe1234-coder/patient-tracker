@@ -1,5 +1,20 @@
 # Claude Project Context
 
+## IMPORTANT: Git Branching Rules
+
+**All new implementation work MUST happen on `develop` or feature branches, NEVER on `main`.**
+
+- **develop**: Primary development branch for ongoing work
+- **feature/xxx**: Feature branches for specific features (branch from develop)
+- **main**: Production-ready code only - updated via `/release` command
+
+Before starting any implementation:
+1. Verify you're on `develop` or a feature branch: `git branch --show-current`
+2. If on `main`, switch to develop first: `git checkout develop`
+3. Never commit directly to `main`
+
+---
+
 ## IMPORTANT: Implementation Request Workflow
 
 **When the user asks to implement a requirement, ALWAYS follow this workflow:**

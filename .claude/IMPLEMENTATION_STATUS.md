@@ -49,12 +49,17 @@ This document tracks the implementation progress of the Patient Quality Measure 
 **Status: In Progress**
 
 - [x] Add Row functionality with modal (basic patient info only)
+- [x] New row appears as first row (rowOrder: 0, other rows shift down)
+- [x] New row has empty requestType, qualityMeasure, measureStatus (no defaults)
+- [x] Request Type cell auto-focused for immediate editing after add
+- [x] Column sort cleared when new row is added (preserves row order)
 - [x] Duplicate detection: same patient (memberName + memberDob) + requestType + qualityMeasure
   - Skip duplicate check if requestType OR qualityMeasure is null/empty
   - Schema updated: requestType, qualityMeasure, measureStatus are now nullable (no defaults)
 - [x] Duplicate visual indicator: Light yellow background (#FEF3C7)
 - [x] Error modal when creating duplicate row (no proceed option, form data preserved)
 - [x] Backend validation prevents updating to create duplicate row
+- [x] On duplicate error during edit, fields reset to empty (not revert to old value)
 - [x] Backend duplicate flag synchronization on create/update/delete
 - [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
 - [ ] Duplicate row functionality (create copy of existing row)

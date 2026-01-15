@@ -16,12 +16,12 @@ export interface DueDateResult {
  */
 export async function calculateDueDate(
   statusDate: Date | null,
-  measureStatus: string,
+  measureStatus: string | null,
   tracking1: string | null,
   tracking2: string | null
 ): Promise<DueDateResult> {
-  // No status date = no due date
-  if (!statusDate) {
+  // No status date or no measure status = no due date
+  if (!statusDate || !measureStatus) {
     return { dueDate: null, timeIntervalDays: null };
   }
 

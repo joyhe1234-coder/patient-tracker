@@ -8,11 +8,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.2.0-snapshot] - 2026-01-14
 
+### Added
+- **New Row Behavior** - Improved add row experience
+  - New rows appear as first row (top of grid)
+  - Other rows shift down (rowOrder incremented)
+  - Request Type cell auto-focused for immediate editing
+  - Column sort cleared on new row add (preserves row positions)
+  - New rows have empty requestType, qualityMeasure, measureStatus (no defaults)
+- **Git Branching Rules** - Development workflow documentation
+  - All implementation must happen on `develop` or `feature/*` branches
+  - Never commit directly to `main`
+- **Release Skill** - `/release` command for complete release workflow
+  - Commits with documentation updates
+  - Pushes develop to remote
+  - Merges develop into main and pushes
+  - Returns to develop branch
+
 ### Changed
 - **Duplicate Detection Logic Updated** - New duplicate definition
   - Duplicates now defined as: same patient (memberName + memberDob) + requestType + qualityMeasure
   - Skip duplicate check if requestType OR qualityMeasure is null/empty
   - Updated error modal message to reflect new criteria
+  - **Duplicate blocking on updates** - Prevents editing requestType/qualityMeasure to create duplicates
+  - On duplicate error, fields reset to empty instead of reverting to old value
 
 ### Database Changes
 - **Schema Migration Required** - Fields made nullable

@@ -8,11 +8,17 @@ This document tracks planned features and enhancements for future development.
 
 ### Phase 3: Adding & Duplicating Rows
 - [x] Add Row functionality with modal (basic patient info only)
+- [x] New row appears as first row (shifts other rows down)
+- [x] New row has empty fields (no defaults for requestType, qualityMeasure, measureStatus)
+- [x] Request Type cell auto-focused after add
+- [x] Column sort cleared on new row (preserves row order)
 - [x] Duplicate detection updated: same patient + requestType + qualityMeasure
   - [x] Skip duplicate check if requestType OR qualityMeasure is null/empty
   - [x] Schema change: requestType, qualityMeasure, measureStatus now nullable
 - [x] Duplicate visual indicator: Light yellow background
 - [x] Error modal when creating duplicate row
+- [x] Duplicate blocking on updates (prevent editing to create duplicates)
+- [x] Reset to empty on duplicate error (not revert to old value)
 - [x] Backend duplicate flag synchronization on create/update/delete
 - [ ] Duplicate row functionality (create copy of existing row)
 - [ ] Duplicate row with new patient info (copy measures to different patient)
