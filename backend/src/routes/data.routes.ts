@@ -290,7 +290,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     // Check if timeIntervalDays was explicitly updated by user
     const timeIntervalExplicitlySet = 'timeIntervalDays' in updateData;
-    const isDropdownIntervalStatus = DROPDOWN_INTERVAL_STATUSES.includes(finalMeasureStatus);
+    const isDropdownIntervalStatus = finalMeasureStatus ? DROPDOWN_INTERVAL_STATUSES.includes(finalMeasureStatus) : false;
 
     // Check if due date related fields changed
     const dueDateFieldsChanged =
@@ -479,6 +479,86 @@ router.post('/check-duplicate', async (req: Request, res: Response, next: NextFu
       data: {
         isDuplicate: existingMeasures.length > 0,
         existingCount: existingMeasures.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/data/duplicate - Duplicate a row with patient data only
+router.post('/duplicate', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sourceRowId } = req.body;
+
+    if (!sourceRowId) {
+      throw createError('Missing required field: sourceRowId', 400, 'VALIDATION_ERROR');
+    }
+
+    // 1. Fetch source row with patient data
+    const sourceRow = await prisma.patientMeasure.findUnique({
+      where: { id: sourceRowId },
+      include: { patient: true },
+    });
+
+    if (!sourceRow) {
+      throw createError('Source row not found', 404, 'NOT_FOUND');
+    }
+
+    // 2. Get the rowOrder of source row
+    const sourceRowOrder = sourceRow.rowOrder;
+
+    // 3. Shift rows below source down (increment rowOrder for rows > sourceRowOrder)
+    await prisma.patientMeasure.updateMany({
+      where: { rowOrder: { gt: sourceRowOrder } },
+      data: { rowOrder: { increment: 1 } },
+    });
+
+    // 4. Create new measure with patient data only (all measure fields null)
+    const newMeasure = await prisma.patientMeasure.create({
+      data: {
+        patientId: sourceRow.patientId,
+        rowOrder: sourceRowOrder + 1, // Right below source
+        // All measure fields left null
+        requestType: null,
+        qualityMeasure: null,
+        measureStatus: null,
+        statusDate: null,
+        statusDatePrompt: null,
+        tracking1: null,
+        tracking2: null,
+        tracking3: null,
+        dueDate: null,
+        timeIntervalDays: null,
+        notes: null,
+        isDuplicate: false, // New row with empty fields is not a duplicate
+      },
+      include: { patient: true },
+    });
+
+    // 5. Return flattened data (same format as create)
+    res.status(201).json({
+      success: true,
+      data: {
+        id: newMeasure.id,
+        patientId: newMeasure.patientId,
+        memberName: newMeasure.patient.memberName,
+        memberDob: newMeasure.patient.memberDob,
+        memberTelephone: newMeasure.patient.memberTelephone,
+        memberAddress: newMeasure.patient.memberAddress,
+        requestType: newMeasure.requestType,
+        qualityMeasure: newMeasure.qualityMeasure,
+        measureStatus: newMeasure.measureStatus,
+        statusDate: newMeasure.statusDate,
+        statusDatePrompt: newMeasure.statusDatePrompt,
+        tracking1: newMeasure.tracking1,
+        tracking2: newMeasure.tracking2,
+        tracking3: newMeasure.tracking3,
+        dueDate: newMeasure.dueDate,
+        timeIntervalDays: newMeasure.timeIntervalDays,
+        notes: newMeasure.notes,
+        rowOrder: newMeasure.rowOrder,
+        isDuplicate: newMeasure.isDuplicate,
       },
     });
   } catch (error) {

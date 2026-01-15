@@ -25,7 +25,7 @@ This document tracks planned features and enhancements for future development.
   - qualityMeasure → clears downstream (measureStatus, statusDate, tracking, dueDate, interval)
   - measureStatus → clears downstream (statusDate, tracking, dueDate, interval)
 - [x] Time interval manual override for all statuses
-- [ ] Duplicate row functionality (create copy of existing row)
+- [x] Duplicate row functionality (create copy of existing row with patient data only)
 - [ ] Duplicate row with new patient info (copy measures to different patient)
 - [ ] Bulk add multiple rows at once
 

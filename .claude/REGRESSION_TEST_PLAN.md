@@ -500,6 +500,38 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 9. Add/Delete Operations
 
+### TC-9.0: Duplicate Row Button
+**Steps:**
+1. Ensure no row is selected
+2. Observe "Duplicate" button in toolbar
+
+**Expected:**
+- Duplicate button is disabled (grayed out)
+
+### TC-9.0b: Duplicate Row - Creates Copy Below
+**Steps:**
+1. Select a row in the middle of the grid (e.g., row 5)
+2. Note the patient's name, DOB, phone, address
+3. Click "Duplicate" button
+
+**Expected:**
+- New row appears directly below selected row (at position 6)
+- New row has same memberName, memberDob, phone, address
+- New row has empty requestType, qualityMeasure, measureStatus
+- New row is selected (highlighted)
+- Request Type cell is focused for editing
+
+### TC-9.0c: Duplicate Row - Persists After Refresh
+**Steps:**
+1. Duplicate a row
+2. Note the new row's position
+3. Refresh the page
+
+**Expected:**
+- New row is still in the same position (below original)
+- Patient data is preserved
+- Row order is correct
+
 ### TC-9.1: Add New Row - First Row Position
 **Steps:**
 1. Note the current first row in the grid
@@ -761,6 +793,9 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-8.5 | | | Update blocked when creating duplicate |
 | TC-8.5b | | | Duplicate error resets dependent fields |
 | TC-8.6 | | | Delete removes duplicate |
+| TC-9.0 | | | Duplicate button disabled |
+| TC-9.0b | | | Duplicate creates copy below |
+| TC-9.0c | | | Duplicate persists after refresh |
 | TC-9.1 | | | First row position |
 | TC-9.1b | | | Sort cleared on add |
 | TC-9.1c | | | Persists after refresh |
@@ -785,4 +820,4 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## Last Updated
 
-January 13, 2026 - Added overdue logic for completed rows, cascading dropdown tests, tracking field tests, time interval editability tests
+January 14, 2026 - Added Duplicate Row button test cases (TC-9.0, TC-9.0b, TC-9.0c)

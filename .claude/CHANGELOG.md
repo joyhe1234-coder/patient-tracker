@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.0-snapshot] - 2026-01-14
+
+### Added
+- **Duplicate Row Button** - Copy existing row with patient data only
+  - Button enabled when a row is selected
+  - Copies memberName, memberDob, phone, address
+  - Leaves measure fields empty (requestType, qualityMeasure, measureStatus, etc.)
+  - New row inserted directly below selected row
+  - New row automatically selected with Request Type focused
+  - API endpoint: POST `/api/data/duplicate`
+
+---
+
 ## [2.2.0-snapshot] - 2026-01-14
 
 ### Added

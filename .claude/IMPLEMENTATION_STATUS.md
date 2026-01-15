@@ -68,7 +68,12 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - measureStatus → clears statusDate, tracking1/2/3, dueDate, timeInterval
   - Notes preserved (not cleared)
 - [x] Time interval manual override - editable for all statuses (removed dropdown restriction)
-- [ ] Duplicate row functionality (create copy of existing row)
+- [x] Duplicate row functionality (create copy of existing row)
+  - "Duplicate" button in toolbar (enabled when row selected)
+  - Copies patient data only (memberName, memberDob, phone, address)
+  - New row inserted directly below selected row
+  - New row selected with Request Type cell focused
+  - API endpoint: POST `/api/data/duplicate`
 - [ ] Duplicate row with new patient info (copy measures to different patient)
 - [ ] Bulk add multiple rows at once
 

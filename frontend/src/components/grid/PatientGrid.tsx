@@ -210,6 +210,9 @@ export default function PatientGrid({
       // Find the row node with the new row ID
       const rowNode = api.getRowNode(String(newRowId));
       if (rowNode) {
+        // Select the new row
+        rowNode.setSelected(true);
+
         // Focus the Request Type cell (first editable column after patient info)
         api.setFocusedCell(rowNode.rowIndex!, 'requestType');
         api.startEditingCell({
