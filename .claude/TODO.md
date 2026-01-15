@@ -4,9 +4,27 @@ This document tracks planned features and enhancements for future development.
 
 ---
 
-## High Priority
+## In Progress
 
-### Sorting & Filtering
+### Phase 3: Adding & Duplicating Rows
+- [x] Add Row functionality with modal (basic patient info only)
+- [x] New row appears as first row (shifts other rows down)
+- [x] New row has empty fields (no defaults for requestType, qualityMeasure, measureStatus)
+- [x] Request Type cell auto-focused after add
+- [x] Column sort cleared on new row (preserves row order)
+- [x] Duplicate detection updated: same patient + requestType + qualityMeasure
+  - [x] Skip duplicate check if requestType OR qualityMeasure is null/empty
+  - [x] Schema change: requestType, qualityMeasure, measureStatus now nullable
+- [x] Duplicate visual indicator: Light yellow background
+- [x] Error modal when creating duplicate row
+- [x] Duplicate blocking on updates (prevent editing to create duplicates)
+- [x] Reset to empty on duplicate error (not revert to old value)
+- [x] Backend duplicate flag synchronization on create/update/delete
+- [ ] Duplicate row functionality (create copy of existing row)
+- [ ] Duplicate row with new patient info (copy measures to different patient)
+- [ ] Bulk add multiple rows at once
+
+### Phase 4: Sorting & Filtering
 - [x] Column header click to sort ascending/descending
 - [x] Sort indicator icons in column headers
 - [x] No auto-sort during editing (rows stay in place while editing)
@@ -16,7 +34,13 @@ This document tracks planned features and enhancements for future development.
 - [x] Single-select filter behavior
 - [x] Filter counts displayed on each chip
 - [ ] Multi-column sort support
-- [ ] Persist sort/filter preferences
+- [ ] Persist sort/filter preferences (localStorage or user settings)
+- [ ] Quick search/filter by patient name
+- [ ] Advanced filter builder (multiple conditions)
+
+---
+
+## High Priority
 
 ### External Data Import
 - [ ] Import wizard for external spreadsheets (Excel, CSV)
@@ -58,19 +82,19 @@ This document tracks planned features and enhancements for future development.
 
 ## Backlog (From IMPLEMENTATION_STATUS.md)
 
-### Phase 7: HgbA1c Goal Configuration
+### Phase 9: HgbA1c Goal Configuration
 - [ ] HgbA1c Goal dropdown for Diabetes Control rows (Less than 7/8/9)
 - [ ] "Goal Reached for Year" checkbox
 - [ ] "Patient Declined" checkbox
 - [ ] Special color logic (GREEN/ORANGE/RED/GRAY) based on goal vs actual
 
-### Phase 8: View-Only Mode & Edit Locking
+### Phase 10: View-Only Mode & Edit Locking
 - [ ] View-only mode for non-editors
 - [ ] Single-editor locking system
 - [ ] Lock status indicator
 - [ ] Force-release lock (admin only)
 
-### Phase 9: Authentication & Multi-Physician Support
+### Phase 11: Authentication & Multi-Physician Support
 - [ ] Login page for editors
 - [ ] JWT-based authentication
 - [ ] Admin panel for user management
@@ -78,15 +102,14 @@ This document tracks planned features and enhancements for future development.
 - [ ] Multi-physician data isolation
 - [ ] Physician table and Patient.physicianId schema changes
 
-### Phase 10: Excel-like Behaviors
+### Phase 12: Excel-like Behaviors
 - [ ] Keyboard navigation (Arrow keys, Tab, Enter)
 - [ ] Copy/Paste support
 - [ ] Undo/Redo (Ctrl+Z, Ctrl+Y)
 - [ ] Fill handle (drag to fill)
 - [ ] Context menu (right-click)
-- [ ] Quick filter/search bar
 
-### Phase 11: Additional Features
+### Phase 13: Additional Features
 - [ ] CSV import/export
 - [ ] Print/PDF export
 - [ ] Cell comments
@@ -94,7 +117,7 @@ This document tracks planned features and enhancements for future development.
 - [ ] Column pinning (first 3 columns fixed)
 - [ ] Drag-and-drop row reordering
 
-### Phase 12: Reference Data Sheets
+### Phase 14: Reference Data Sheets
 - [ ] HCC Code List sheet
 - [ ] P4P Summary Guidelines sheet
 - [ ] Tab navigation between sheets
@@ -109,4 +132,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 10, 2026
+January 14, 2026

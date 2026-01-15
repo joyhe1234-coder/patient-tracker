@@ -32,17 +32,17 @@ export default function DuplicateWarningModal({
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900">
-                Duplicate Patient Error
+                Duplicate Row Error
               </h3>
               <div className="mt-2 text-sm text-gray-600">
                 <p>
-                  A patient with the same name and date of birth already exists:
+                  A row with the same patient name, date of birth, request type, and quality measure already exists:
                 </p>
                 <ul className="mt-2 ml-4 list-disc">
                   <li><strong>Patient:</strong> {patientName}</li>
                 </ul>
                 <p className="mt-3">
-                  Please use a different name or date of birth, or update the existing patient record.
+                  Please use a different patient, request type, or quality measure, or update the existing row.
                 </p>
               </div>
             </div>

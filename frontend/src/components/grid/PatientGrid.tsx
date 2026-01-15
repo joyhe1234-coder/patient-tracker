@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef } from 'react';
+import { useMemo, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -60,9 +60,9 @@ export interface GridRow {
   memberDob: string;
   memberTelephone: string | null;
   memberAddress: string | null;
-  requestType: string;
-  qualityMeasure: string;
-  measureStatus: string;
+  requestType: string | null;
+  qualityMeasure: string | null;
+  measureStatus: string | null;
   statusDate: string | null;
   statusDatePrompt: string | null;
   tracking1: string | null;
@@ -83,6 +83,8 @@ interface PatientGridProps {
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
   onRowSelected?: (id: number | null) => void;
   showMemberInfo?: boolean;
+  newRowId?: number | null;
+  onNewRowFocused?: () => void;
 }
 
 // Date formatter for display - use UTC to avoid timezone shifts
@@ -214,12 +216,38 @@ export default function PatientGrid({
   onRowUpdated,
   onSaveStatusChange,
   onRowSelected,
-  showMemberInfo = false
+  showMemberInfo = false,
+  newRowId,
+  onNewRowFocused,
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
 
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);
+
+  // Handle new row focus - clear sort and focus Request Type cell
+  useEffect(() => {
+    if (newRowId && gridRef.current?.api) {
+      const api = gridRef.current.api;
+
+      // Clear any existing sort
+      api.applyColumnState({ defaultState: { sort: null } });
+
+      // Find the row node with the new row ID
+      const rowNode = api.getRowNode(String(newRowId));
+      if (rowNode) {
+        // Focus the Request Type cell (first editable column after patient info)
+        api.setFocusedCell(rowNode.rowIndex!, 'requestType');
+        api.startEditingCell({
+          rowIndex: rowNode.rowIndex!,
+          colKey: 'requestType',
+        });
+      }
+
+      // Notify parent that focus is complete
+      onNewRowFocused?.();
+    }
+  }, [newRowId, onNewRowFocused]);
 
   const onGridReady = useCallback((_params: GridReadyEvent<GridRow>) => {
     // Grid is ready, can access API via gridRef.current.api if needed
@@ -301,22 +329,22 @@ export default function PatientGrid({
         } else if (newValue !== oldValue) {
           // Reset Quality Measure if Request Type changed and no auto-fill
           const validMeasures = getQualityMeasuresForRequestType(newValue);
-          if (!validMeasures.includes(data.qualityMeasure)) {
-            updatePayload.qualityMeasure = '';
-            node.setDataValue('qualityMeasure', '');
+          if (!validMeasures.includes(data.qualityMeasure || '')) {
+            updatePayload.qualityMeasure = null;
+            node.setDataValue('qualityMeasure', null);
           }
         }
-        // Reset Measure Status when Request Type changes
-        updatePayload.measureStatus = 'Not Addressed';
-        node.setDataValue('measureStatus', 'Not Addressed');
+        // Reset Measure Status when Request Type changes (to empty, not a default)
+        updatePayload.measureStatus = null;
+        node.setDataValue('measureStatus', null);
       }
 
       if (colDef.field === 'qualityMeasure') {
         // Reset Measure Status when Quality Measure changes
         const validStatuses = getMeasureStatusesForQualityMeasure(newValue);
-        if (!validStatuses.includes(data.measureStatus)) {
-          updatePayload.measureStatus = 'Not Addressed';
-          node.setDataValue('measureStatus', 'Not Addressed');
+        if (!validStatuses.includes(data.measureStatus || '')) {
+          updatePayload.measureStatus = null;
+          node.setDataValue('measureStatus', null);
         }
       }
 
@@ -362,12 +390,25 @@ export default function PatientGrid({
       onSaveStatusChange?.('error');
 
       // Show error message to user
-      const axiosError = error as { response?: { data?: { error?: { message?: string } } } };
+      const axiosError = error as { response?: { data?: { error?: { message?: string } }, status?: number } };
       const errorMessage = axiosError?.response?.data?.error?.message || 'Failed to save changes.';
+      const statusCode = axiosError?.response?.status;
       alert(errorMessage);
 
-      // Revert to old value
-      event.node.setDataValue(colDef.field, oldValue);
+      // For duplicate errors (409), reset to empty instead of reverting
+      if (statusCode === 409 && (colDef.field === 'requestType' || colDef.field === 'qualityMeasure')) {
+        event.node.setDataValue(colDef.field, null);
+        // Also reset dependent fields
+        if (colDef.field === 'requestType') {
+          event.node.setDataValue('qualityMeasure', null);
+          event.node.setDataValue('measureStatus', null);
+        } else if (colDef.field === 'qualityMeasure') {
+          event.node.setDataValue('measureStatus', null);
+        }
+      } else {
+        // Revert to old value for other errors
+        event.node.setDataValue(colDef.field, oldValue);
+      }
 
       // Reset to idle after 3 seconds
       setTimeout(() => {
@@ -385,7 +426,12 @@ export default function PatientGrid({
       editable: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: REQUEST_TYPES,
+        values: ['', ...REQUEST_TYPES], // Empty option first for new rows
+      },
+      valueGetter: (params) => params.data?.requestType || '', // Convert null to '' for dropdown
+      valueSetter: (params) => {
+        params.data.requestType = params.newValue === '' ? null : params.newValue;
+        return true;
       },
     },
     {
@@ -445,8 +491,13 @@ export default function PatientGrid({
       editable: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: (params: ICellEditorParams<GridRow>) => ({
-        values: getQualityMeasuresForRequestType(params.data?.requestType || ''),
+        values: ['', ...getQualityMeasuresForRequestType(params.data?.requestType || '')],
       }),
+      valueGetter: (params) => params.data?.qualityMeasure || '', // Convert null to '' for dropdown
+      valueSetter: (params) => {
+        params.data.qualityMeasure = params.newValue === '' ? null : params.newValue;
+        return true;
+      },
     },
     {
       field: 'measureStatus',
@@ -455,8 +506,13 @@ export default function PatientGrid({
       editable: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: (params: ICellEditorParams<GridRow>) => ({
-        values: getMeasureStatusesForQualityMeasure(params.data?.qualityMeasure || ''),
+        values: ['', ...getMeasureStatusesForQualityMeasure(params.data?.qualityMeasure || '')],
       }),
+      valueGetter: (params) => params.data?.measureStatus || '', // Convert null to '' for dropdown
+      valueSetter: (params) => {
+        params.data.measureStatus = params.newValue === '' ? null : params.newValue;
+        return true;
+      },
     },
     {
       field: 'statusDate',

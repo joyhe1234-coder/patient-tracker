@@ -74,8 +74,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       notes,
     } = req.body;
 
-    if (!memberName || !memberDob || !requestType || !qualityMeasure) {
-      throw createError('Missing required fields', 400, 'VALIDATION_ERROR');
+    if (!memberName || !memberDob) {
+      throw createError('Missing required fields (memberName, memberDob)', 400, 'VALIDATION_ERROR');
     }
 
     // Find or create patient
@@ -99,14 +99,17 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    // Get max row order
-    const maxOrder = await prisma.patientMeasure.aggregate({
-      _max: { rowOrder: true },
+    // Shift all existing rows down by incrementing their rowOrder
+    await prisma.patientMeasure.updateMany({
+      data: {
+        rowOrder: { increment: 1 },
+      },
     });
 
     // Parse status date
     const parsedStatusDate = statusDate ? new Date(statusDate) : null;
-    const finalMeasureStatus = measureStatus || 'Not Addressed';
+    // measureStatus is now nullable with no default
+    const finalMeasureStatus = measureStatus || null;
 
     // Calculate due date and time interval
     const { dueDate, timeIntervalDays } = await calculateDueDate(
@@ -122,15 +125,15 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       statusDatePrompt = getDefaultDatePrompt(finalMeasureStatus);
     }
 
-    // Check for duplicates before creating (same patient name + DOB)
-    const { isDuplicate } = await checkForDuplicate(patient.id);
+    // Check for duplicates before creating (same patient + requestType + qualityMeasure)
+    const { isDuplicate } = await checkForDuplicate(patient.id, requestType, qualityMeasure);
 
     // Create patient measure
     const measure = await prisma.patientMeasure.create({
       data: {
         patientId: patient.id,
-        requestType,
-        qualityMeasure,
+        requestType: requestType || null,
+        qualityMeasure: qualityMeasure || null,
         measureStatus: finalMeasureStatus,
         statusDate: parsedStatusDate,
         statusDatePrompt,
@@ -140,7 +143,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         dueDate,
         timeIntervalDays,
         notes: notes || null,
-        rowOrder: (maxOrder._max.rowOrder || 0) + 1,
+        rowOrder: 0, // New row is always first
         isDuplicate,
       },
       include: {
@@ -331,6 +334,36 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       measureUpdate.statusDatePrompt = statusDatePrompt;
     }
 
+    // Check for duplicates if requestType or qualityMeasure changed
+    const duplicateFieldsChanging =
+      'requestType' in updateData ||
+      'qualityMeasure' in updateData;
+
+    if (duplicateFieldsChanging) {
+      // Determine final values for duplicate check
+      const finalRequestType = measureUpdate.requestType !== undefined
+        ? measureUpdate.requestType as string | null
+        : existing.requestType;
+      const finalQualityMeasure = measureUpdate.qualityMeasure !== undefined
+        ? measureUpdate.qualityMeasure as string | null
+        : existing.qualityMeasure;
+
+      // Check if this would create a duplicate (exclude current row from check)
+      const { isDuplicate } = await checkForDuplicate(
+        existing.patientId,
+        finalRequestType,
+        finalQualityMeasure,
+        existing.id // Exclude current row from duplicate check
+      );
+
+      if (isDuplicate) {
+        return next(createError(
+          'A row with the same patient, request type, and quality measure already exists.',
+          409
+        ));
+      }
+    }
+
     // Update measure
     const updated = await prisma.patientMeasure.update({
       where: { id: parseInt(id, 10) },
@@ -342,6 +375,15 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
         patient: true,
       },
     });
+
+    // Update duplicate flags if requestType or qualityMeasure changed
+    const duplicateFieldsChanged =
+      'requestType' in updateData ||
+      'qualityMeasure' in updateData;
+
+    if (duplicateFieldsChanged) {
+      await updateDuplicateFlags(updated.patientId);
+    }
 
     // Re-fetch to get updated isDuplicate flag
     const finalMeasure = await prisma.patientMeasure.findUnique({
@@ -383,12 +425,23 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // POST /api/data/check-duplicate - Check if a duplicate would be created
-// Duplicate = same patient (name + DOB) already has existing rows
+// Duplicate = same patient (name + DOB) + requestType + qualityMeasure
+// Skip check if requestType or qualityMeasure is null/empty
 router.post('/check-duplicate', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { memberName, memberDob } = req.body;
+    const { memberName, memberDob, requestType, qualityMeasure } = req.body;
 
+    // Skip duplicate check if required patient fields are missing
     if (!memberName || !memberDob) {
+      return res.json({
+        success: true,
+        data: { isDuplicate: false, existingCount: 0 },
+      });
+    }
+
+    // Skip duplicate check if requestType or qualityMeasure is null/empty
+    const isNullOrEmpty = (value: string | null | undefined) => !value || value.trim() === '';
+    if (isNullOrEmpty(requestType) || isNullOrEmpty(qualityMeasure)) {
       return res.json({
         success: true,
         data: { isDuplicate: false, existingCount: 0 },
@@ -412,10 +465,12 @@ router.post('/check-duplicate', async (req: Request, res: Response, next: NextFu
       });
     }
 
-    // Check for existing measures for this patient
+    // Check for existing measures with same patient + requestType + qualityMeasure
     const existingMeasures = await prisma.patientMeasure.findMany({
       where: {
         patientId: patient.id,
+        requestType,
+        qualityMeasure,
       },
     });
 

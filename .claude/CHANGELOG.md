@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.0-snapshot] - 2026-01-14
+
+### Added
+- **New Row Behavior** - Improved add row experience
+  - New rows appear as first row (top of grid)
+  - Other rows shift down (rowOrder incremented)
+  - Request Type cell auto-focused for immediate editing
+  - Column sort cleared on new row add (preserves row positions)
+  - New rows have empty requestType, qualityMeasure, measureStatus (no defaults)
+- **Git Branching Rules** - Development workflow documentation
+  - All implementation must happen on `develop` or `feature/*` branches
+  - Never commit directly to `main`
+- **Release Skill** - `/release` command for complete release workflow
+  - Commits with documentation updates
+  - Pushes develop to remote
+  - Merges develop into main and pushes
+  - Returns to develop branch
+
+### Changed
+- **Duplicate Detection Logic Updated** - New duplicate definition
+  - Duplicates now defined as: same patient (memberName + memberDob) + requestType + qualityMeasure
+  - Skip duplicate check if requestType OR qualityMeasure is null/empty
+  - Updated error modal message to reflect new criteria
+  - **Duplicate blocking on updates** - Prevents editing requestType/qualityMeasure to create duplicates
+  - On duplicate error, fields reset to empty instead of reverting to old value
+
+### Database Changes
+- **Schema Migration Required** - Fields made nullable
+  - `requestType`: String → String? (nullable, no default)
+  - `qualityMeasure`: String → String? (nullable, no default)
+  - `measureStatus`: String with default → String? (nullable, no default)
+  - Run: `npx prisma migrate dev --name make-measure-fields-nullable`
+
+---
+
+## [2.1.0-snapshot] - 2026-01-14
+
+### Added
+- **Claude Code Integration** - Project context system for AI-assisted development
+  - `CLAUDE.md` - Auto-read project context file with pre-commit workflow
+  - `.claude/` directory for organized project documentation
+  - `/commit` slash command for smart commits with auto-documentation updates
+
+### Changed
+- **Phase Restructuring** - Reorganized implementation phases for clarity
+  - Added Phase 3: Adding & Duplicating Rows (in progress)
+  - Added Phase 4: Sorting & Filtering (in progress)
+  - Renumbered subsequent phases (5-14)
+- **Documentation Location** - Moved project docs to `.claude/` folder
+  - `CHANGELOG.md`, `IMPLEMENTATION_STATUS.md`, `TODO.md`, `REGRESSION_TEST_PLAN.md`
+  - Added template files: `context.md`, `patterns.md`, `notes.md`
+
+---
+
 ## [2.0.0-snapshot] - 2026-01-10
 
 ### Added

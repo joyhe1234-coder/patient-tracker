@@ -15,6 +15,7 @@ export default function MainPage() {
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
+  const [newRowId, setNewRowId] = useState<number | null>(null);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -92,17 +93,16 @@ export default function MainPage() {
   const createRow = async (data: NewRowData) => {
     try {
       setSaveStatus('saving');
-      const response = await api.post('/data', {
-        ...data,
-        requestType: 'AWV',
-        qualityMeasure: 'Annual Wellness Visit',
-        measureStatus: 'Not Addressed',
-      });
+      // No defaults - requestType, qualityMeasure, measureStatus will be null
+      const response = await api.post('/data', data);
 
       if (response.data.success) {
-        setRowData((prev) => [...prev, response.data.data]);
+        // Insert new row at beginning (it has rowOrder: 0)
+        setRowData((prev) => [response.data.data, ...prev]);
         setShowAddModal(false);
         setSaveStatus('saved');
+        // Set newRowId to trigger focus on Request Type cell
+        setNewRowId(response.data.data.id);
         setTimeout(() => setSaveStatus('idle'), 2000);
       }
     } catch (err) {
@@ -112,32 +112,18 @@ export default function MainPage() {
     }
   };
 
-  // Handle add new row - check for duplicates first
-  // Duplicate = same patient name + DOB already exists
+  // Handle add new row
+  // No duplicate check needed - requestType/qualityMeasure are null on new rows
   // Returns true if row was created successfully, false otherwise
   const handleAddRow = async (data: NewRowData): Promise<boolean> => {
     try {
-      // Check if this would create a duplicate (same name + DOB)
-      const checkResponse = await api.post('/data/check-duplicate', {
-        memberName: data.memberName,
-        memberDob: data.memberDob,
-      });
-
-      if (checkResponse.data.success && checkResponse.data.data.isDuplicate) {
-        // Show duplicate error modal - don't allow creation
-        setPendingRowData(data);
-        setShowDuplicateWarning(true);
-        return false; // Signal failure - keep form data
-      }
-
-      // No duplicate, proceed with creation
-      await createRow(data);
-      return true; // Signal success
-    } catch (err) {
-      console.error('Failed to check duplicate:', err);
-      // If check fails, proceed with creation anyway
+      // No duplicate check - new rows have null requestType/qualityMeasure
+      // Duplicate check is skipped when these fields are null
       await createRow(data);
       return true;
+    } catch (err) {
+      console.error('Failed to add row:', err);
+      return false;
     }
   };
 
@@ -172,6 +158,11 @@ export default function MainPage() {
   // Handle row selection from grid
   const handleRowSelected = useCallback((id: number | null) => {
     setSelectedRowId(id);
+  }, []);
+
+  // Clear newRowId after grid has focused the cell
+  const handleNewRowFocused = useCallback(() => {
+    setNewRowId(null);
   }, []);
 
   if (loading) {
@@ -225,6 +216,8 @@ export default function MainPage() {
           onSaveStatusChange={setSaveStatus}
           onRowSelected={handleRowSelected}
           showMemberInfo={showMemberInfo}
+          newRowId={newRowId}
+          onNewRowFocused={handleNewRowFocused}
         />
       </div>
 
