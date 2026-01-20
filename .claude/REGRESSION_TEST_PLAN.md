@@ -336,6 +336,56 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:**
 - Shows 8 options: Diabetic Eye Exam, GC/Chlamydia Screening, Diabetic Nephropathy, Hypertension Management, ACE/ARB in DM or CAD, Vaccination, Diabetes Control, Annual Serum K&Cr
 
+### TC-6.8: Cascading Clear on Request Type Change
+**Steps:**
+1. Fill in a complete row: Request Type, Quality Measure, Measure Status, Status Date, Tracking #1, Due Date populated
+2. Change Request Type to a different value
+
+**Expected:**
+- Quality Measure clears (or auto-fills for AWV/Chronic DX)
+- Measure Status clears
+- Status Date clears
+- Tracking #1, #2, #3 clear
+- Due Date clears
+- Time Interval clears
+- Notes are PRESERVED (not cleared)
+
+### TC-6.9: Cascading Clear on Quality Measure Change
+**Steps:**
+1. Fill in row with Measure Status, Status Date, Tracking values
+2. Change Quality Measure to a different value
+
+**Expected:**
+- Measure Status clears
+- Status Date clears
+- Tracking #1, #2, #3 clear
+- Due Date clears
+- Time Interval clears
+- Notes are PRESERVED
+
+### TC-6.10: Cascading Clear on Measure Status Change
+**Steps:**
+1. Fill in row with Status Date, Tracking #1 = "Colonoscopy", Due Date calculated
+2. Change Measure Status to a different value
+
+**Expected:**
+- Status Date clears
+- Tracking #1, #2, #3 clear
+- Due Date clears
+- Time Interval clears
+- Notes are PRESERVED
+
+### TC-6.11: Time Interval Manual Override
+**Steps:**
+1. Set up row with "Screening test ordered" status (previously non-editable)
+2. Click on Time Interval cell
+3. Enter a new value (e.g., 30)
+
+**Expected:**
+- Time Interval is editable
+- Due Date recalculates based on new interval
+- Change is saved to database
+
 ---
 
 ## 7. Due Date Calculation
@@ -449,6 +499,38 @@ This document contains manual test cases for verifying system functionality. Run
 ---
 
 ## 9. Add/Delete Operations
+
+### TC-9.0: Duplicate Row Button
+**Steps:**
+1. Ensure no row is selected
+2. Observe "Duplicate" button in toolbar
+
+**Expected:**
+- Duplicate button is disabled (grayed out)
+
+### TC-9.0b: Duplicate Row - Creates Copy Below
+**Steps:**
+1. Select a row in the middle of the grid (e.g., row 5)
+2. Note the patient's name, DOB, phone, address
+3. Click "Duplicate" button
+
+**Expected:**
+- New row appears directly below selected row (at position 6)
+- New row has same memberName, memberDob, phone, address
+- New row has empty requestType, qualityMeasure, measureStatus
+- New row is selected (highlighted)
+- Request Type cell is focused for editing
+
+### TC-9.0c: Duplicate Row - Persists After Refresh
+**Steps:**
+1. Duplicate a row
+2. Note the new row's position
+3. Refresh the page
+
+**Expected:**
+- New row is still in the same position (below original)
+- Patient data is preserved
+- Row order is correct
 
 ### TC-9.1: Add New Row - First Row Position
 **Steps:**
@@ -612,29 +694,31 @@ This document contains manual test cases for verifying system functionality. Run
 - Due Date updates to Status Date + 7 days
 - Value is saved
 
-### TC-12.2: Time Interval Read-Only (Tracking Dropdown)
+### TC-12.2: Time Interval Override (Tracking Dropdown Status)
 **Steps:**
 1. Set Quality Measure to "Colon Cancer Screening"
 2. Set Measure Status to "Colon cancer screening ordered"
-3. Set Tracking #1 to "Colonoscopy"
+3. Set Tracking #1 to "Colonoscopy" (default interval: 42)
 4. Click Time Interval cell
+5. Change value to 30
 
 **Expected:**
-- Cell is NOT editable (read-only)
-- Shows 42 (from tracking rule)
-- Must change Tracking #1 to change interval
+- Cell IS editable (manual override allowed)
+- Due Date updates to Status Date + 30 days
+- Override is saved to database
 
-### TC-12.3: Time Interval Read-Only (HgbA1c)
+### TC-12.3: Time Interval Override (HgbA1c Status)
 **Steps:**
 1. Set Quality Measure to "Diabetes Control"
 2. Set Measure Status to "HgbA1c at goal"
-3. Set Tracking #2 to "3 months"
+3. Set Tracking #2 to "3 months" (default interval: 90)
 4. Click Time Interval cell
+5. Change value to 60
 
 **Expected:**
-- Cell is NOT editable (read-only)
-- Shows 90 (3 months)
-- Must change Tracking #2 to change interval
+- Cell IS editable (manual override allowed)
+- Due Date updates to Status Date + 60 days
+- Override is saved to database
 
 ---
 
@@ -695,6 +779,10 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-6.5 | | | Chronic DX auto-fill |
 | TC-6.6 | | | Screening options |
 | TC-6.7 | | | Quality options |
+| TC-6.8 | | | Cascade clear on requestType |
+| TC-6.9 | | | Cascade clear on qualityMeasure |
+| TC-6.10 | | | Cascade clear on measureStatus |
+| TC-6.11 | | | Time interval manual override |
 | TC-7.1 | | | |
 | TC-7.2 | | | |
 | TC-7.3 | | | |
@@ -705,6 +793,9 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-8.5 | | | Update blocked when creating duplicate |
 | TC-8.5b | | | Duplicate error resets dependent fields |
 | TC-8.6 | | | Delete removes duplicate |
+| TC-9.0 | | | Duplicate button disabled |
+| TC-9.0b | | | Duplicate creates copy below |
+| TC-9.0c | | | Duplicate persists after refresh |
 | TC-9.1 | | | First row position |
 | TC-9.1b | | | Sort cleared on add |
 | TC-9.1c | | | Persists after refresh |
@@ -720,8 +811,8 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-11.6 | | | Cervical month tracking |
 | TC-11.7 | | | Chronic attestation |
 | TC-12.1 | | | Time interval editable |
-| TC-12.2 | | | Time interval read-only (tracking) |
-| TC-12.3 | | | Time interval read-only (HgbA1c) |
+| TC-12.2 | | | Time interval override (tracking) |
+| TC-12.3 | | | Time interval override (HgbA1c) |
 | TC-13.1 | | | |
 | TC-13.2 | | | |
 
@@ -729,4 +820,4 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## Last Updated
 
-January 13, 2026 - Added overdue logic for completed rows, cascading dropdown tests, tracking field tests, time interval editability tests
+January 14, 2026 - Added Duplicate Row button test cases (TC-9.0, TC-9.0b, TC-9.0c)

@@ -57,12 +57,23 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - Skip duplicate check if requestType OR qualityMeasure is null/empty
   - Schema updated: requestType, qualityMeasure, measureStatus are now nullable (no defaults)
 - [x] Duplicate visual indicator: Light yellow background (#FEF3C7)
-- [x] Error modal when creating duplicate row (no proceed option, form data preserved)
+- [x] Error alert when creating/editing duplicate row (browser alert, fields reset to empty)
 - [x] Backend validation prevents updating to create duplicate row
 - [x] On duplicate error during edit, fields reset to empty (not revert to old value)
 - [x] Backend duplicate flag synchronization on create/update/delete
 - [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
-- [ ] Duplicate row functionality (create copy of existing row)
+- [x] Cascading field clearing when parent field changes:
+  - requestType → clears qualityMeasure (unless auto-fill), measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - qualityMeasure → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - measureStatus → clears statusDate, tracking1/2/3, dueDate, timeInterval
+  - Notes preserved (not cleared)
+- [x] Time interval manual override - editable for all statuses (removed dropdown restriction)
+- [x] Duplicate row functionality (create copy of existing row)
+  - "Duplicate" button in toolbar (enabled when row selected)
+  - Copies patient data only (memberName, memberDob, phone, address)
+  - New row inserted directly below selected row
+  - New row selected with Request Type cell focused
+  - API endpoint: POST `/api/data/duplicate`
 - [ ] Duplicate row with new patient info (copy measures to different patient)
 - [ ] Bulk add multiple rows at once
 
@@ -132,9 +143,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - DueDayRule lookup for measureStatus + tracking1 combinations
   - MeasureStatus.baseDueDays fallback
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
-- [x] Time Interval conditional editability
-  - Editable for statuses with baseDueDays default (1-1000 days)
-  - NOT editable for dropdown-based intervals (month/week selections)
+- [x] Time Interval editability
+  - Editable for ALL statuses (manual override allowed)
+  - ~~Previously NOT editable for dropdown-based intervals~~ (removed restriction)
   - When edited, Due Date = Status Date + Time Interval
   - Row colors update accordingly (overdue detection)
 - [x] Status Date prompt when Measure Status changes
@@ -272,7 +283,7 @@ patient-tracker/
 │       ├── components/
 │       │   ├── grid/        # PatientGrid component
 │       │   ├── layout/      # Header, Toolbar, StatusBar
-│       │   └── modals/      # AddRowModal, ConfirmModal, DuplicateWarningModal
+│       │   └── modals/      # AddRowModal, ConfirmModal (DuplicateWarningModal unused)
 │       ├── config/          # Dropdown configurations
 │       ├── pages/           # MainPage
 │       └── App.tsx          # Root component

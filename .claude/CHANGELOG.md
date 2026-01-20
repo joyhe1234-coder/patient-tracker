@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.3.0-snapshot] - 2026-01-14
+
+### Added
+- **Duplicate Row Button** - Copy existing row with patient data only
+  - Button enabled when a row is selected
+  - Copies memberName, memberDob, phone, address
+  - Leaves measure fields empty (requestType, qualityMeasure, measureStatus, etc.)
+  - New row inserted directly below selected row
+  - New row automatically selected with Request Type focused
+  - API endpoint: POST `/api/data/duplicate`
+
+---
+
 ## [2.2.0-snapshot] - 2026-01-14
 
 ### Added
@@ -23,12 +36,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Pushes develop to remote
   - Merges develop into main and pushes
   - Returns to develop branch
+  - Verifies Render deployment status via MCP
+- **Render MCP Integration** - Added MCP server for deployment monitoring
+  - Check deployment status, logs, and metrics
+  - Documented in CLAUDE.md for Claude Code awareness
 
 ### Changed
+- **Cascading Field Clearing** - When parent field changes, all downstream fields are cleared
+  - requestType change → clears qualityMeasure*, measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - qualityMeasure change → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
+  - measureStatus change → clears statusDate, tracking1/2/3, dueDate, timeInterval
+  - *qualityMeasure auto-fills for AWV/Chronic DX
+  - Notes field is preserved (not cleared)
+- **Time Interval Manual Override** - Time interval now editable for all statuses
+  - Previously locked for dropdown-based statuses (e.g., "Screening test ordered")
+  - Now allows manual override regardless of status type
 - **Duplicate Detection Logic Updated** - New duplicate definition
   - Duplicates now defined as: same patient (memberName + memberDob) + requestType + qualityMeasure
   - Skip duplicate check if requestType OR qualityMeasure is null/empty
-  - Updated error modal message to reflect new criteria
+  - Duplicate errors now shown via browser alert (removed DuplicateWarningModal)
   - **Duplicate blocking on updates** - Prevents editing requestType/qualityMeasure to create duplicates
   - On duplicate error, fields reset to empty instead of reverting to old value
 

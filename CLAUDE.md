@@ -89,5 +89,30 @@ Read the following files before starting work:
 
 ## Quick Commands
 - Dev server: `docker-compose up`
-- Build: [add command]
+- Build: `cd frontend && npm run build`
 - Test: [add command]
+
+---
+
+## Available MCP Servers
+
+### Render MCP (Deployment & Infrastructure)
+The Render MCP server is configured and available for managing deployments.
+
+**Use Render MCP to:**
+- Check deployment status and history
+- View service logs for debugging
+- Query metrics (CPU, memory, response times)
+- List services and their configurations
+- Run read-only database queries
+
+**Common commands:**
+- After a release, check deployment status via Render MCP
+- If deployment fails, use Render MCP to fetch logs and diagnose issues
+- Monitor service health and performance metrics
+
+**Limitations:**
+- Cannot trigger deploys (must push to git)
+- Cannot delete resources
+- Cannot modify scaling settings
+- Can only modify environment variables

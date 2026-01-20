@@ -124,6 +124,39 @@ export default function MainPage() {
     }
   };
 
+  // Handle duplicate row
+  const handleDuplicateRow = async () => {
+    if (!selectedRowId) return;
+
+    try {
+      setSaveStatus('saving');
+      const response = await api.post('/data/duplicate', { sourceRowId: selectedRowId });
+
+      if (response.data.success) {
+        const newRow = response.data.data;
+
+        // Insert new row after the selected row in the array
+        setRowData((prev) => {
+          const sourceIndex = prev.findIndex((r) => r.id === selectedRowId);
+          if (sourceIndex === -1) return [...prev, newRow];
+
+          const updated = [...prev];
+          updated.splice(sourceIndex + 1, 0, newRow);
+          return updated;
+        });
+
+        // Focus the new row
+        setNewRowId(newRow.id);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to duplicate row:', err);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
+
   // Handle delete row
   const handleDeleteRow = async () => {
     if (!selectedRowId) return;
@@ -187,6 +220,8 @@ export default function MainPage() {
     <div className="flex-1 flex flex-col">
       <Toolbar
         onAddRow={() => setShowAddModal(true)}
+        onDuplicateRow={handleDuplicateRow}
+        canDuplicate={selectedRowId !== null}
         onDeleteRow={() => setShowDeleteModal(true)}
         canDelete={selectedRowId !== null}
         saveStatus={saveStatus}

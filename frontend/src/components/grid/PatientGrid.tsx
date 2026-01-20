@@ -12,27 +12,8 @@ import {
   getAutoFillQualityMeasure,
 } from '../../config/dropdownConfig';
 
-// Statuses that use dropdown/range for interval (NOT editable)
-const DROPDOWN_INTERVAL_STATUSES = [
-  // Cervical Cancer - uses "In X Months" dropdown
-  'Screening discussed',
-  // HgbA1c - uses tracking2 month dropdown
-  'HgbA1c at goal',
-  'HgbA1c NOT at goal',
-  // Colon Cancer - uses test type dropdown
-  'Colon cancer screening ordered',
-  // Breast Cancer - uses test type dropdown
-  'Screening test ordered',
-  // Hypertension - uses "Call every X wks" dropdown
-  'Scheduled call back - BP not at goal',
-  'Scheduled call back - BP at goal',
-  // Chronic DX - uses attestation dropdown
-  'Chronic diagnosis resolved',
-  'Chronic diagnosis invalid',
-];
-
 // Helper function to determine if time interval is editable
-// Editable when: has status date + has baseDueDays default (not dropdown-based)
+// Editable when: has status date + has time interval value
 const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   if (!data) return false;
 
@@ -42,14 +23,7 @@ const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   // No time interval calculated = status has no baseDueDays
   if (data.timeIntervalDays === null || data.timeIntervalDays === undefined) return false;
 
-  const status = data.measureStatus || '';
-
-  // Statuses that use dropdown for interval are NOT editable
-  if (DROPDOWN_INTERVAL_STATUSES.includes(status)) {
-    return false;
-  }
-
-  // Otherwise, time interval is editable (uses baseDueDays default)
+  // Allow manual override for all statuses (including dropdown-based ones)
   return true;
 };
 
@@ -236,6 +210,9 @@ export default function PatientGrid({
       // Find the row node with the new row ID
       const rowNode = api.getRowNode(String(newRowId));
       if (rowNode) {
+        // Select the new row
+        rowNode.setSelected(true);
+
         // Focus the Request Type cell (first editable column after patient info)
         api.setFocusedCell(rowNode.rowIndex!, 'requestType');
         api.startEditingCell({
@@ -319,44 +296,70 @@ export default function PatientGrid({
         [colDef.field]: processedValue,
       };
 
-      // Handle cascading logic
+      // Handle cascading logic - clear all downstream fields when parent changes
+      // Hierarchy: requestType → qualityMeasure → measureStatus → statusDate → tracking1/2/3 → dueDate/timeInterval
+      // Keep: notes (not cleared on cascade)
+
       if (colDef.field === 'requestType') {
         // Auto-fill Quality Measure for AWV and Chronic DX
         const autoFillQM = getAutoFillQualityMeasure(newValue);
         if (autoFillQM) {
           updatePayload.qualityMeasure = autoFillQM;
           node.setDataValue('qualityMeasure', autoFillQM);
-        } else if (newValue !== oldValue) {
-          // Reset Quality Measure if Request Type changed and no auto-fill
-          const validMeasures = getQualityMeasuresForRequestType(newValue);
-          if (!validMeasures.includes(data.qualityMeasure || '')) {
-            updatePayload.qualityMeasure = null;
-            node.setDataValue('qualityMeasure', null);
-          }
+        } else {
+          // Clear Quality Measure (always, not just if invalid)
+          updatePayload.qualityMeasure = null;
+          node.setDataValue('qualityMeasure', null);
         }
-        // Reset Measure Status when Request Type changes (to empty, not a default)
+        // Clear all downstream fields including calculated fields
         updatePayload.measureStatus = null;
+        updatePayload.statusDate = null;
+        updatePayload.tracking1 = null;
+        updatePayload.tracking2 = null;
+        updatePayload.tracking3 = null;
+        updatePayload.dueDate = null;
+        updatePayload.timeIntervalDays = null;
         node.setDataValue('measureStatus', null);
+        node.setDataValue('statusDate', null);
+        node.setDataValue('tracking1', null);
+        node.setDataValue('tracking2', null);
+        node.setDataValue('tracking3', null);
+        node.setDataValue('dueDate', null);
+        node.setDataValue('timeIntervalDays', null);
       }
 
       if (colDef.field === 'qualityMeasure') {
-        // Reset Measure Status when Quality Measure changes
-        const validStatuses = getMeasureStatusesForQualityMeasure(newValue);
-        if (!validStatuses.includes(data.measureStatus || '')) {
-          updatePayload.measureStatus = null;
-          node.setDataValue('measureStatus', null);
-        }
+        // Clear all downstream fields including calculated fields
+        updatePayload.measureStatus = null;
+        updatePayload.statusDate = null;
+        updatePayload.tracking1 = null;
+        updatePayload.tracking2 = null;
+        updatePayload.tracking3 = null;
+        updatePayload.dueDate = null;
+        updatePayload.timeIntervalDays = null;
+        node.setDataValue('measureStatus', null);
+        node.setDataValue('statusDate', null);
+        node.setDataValue('tracking1', null);
+        node.setDataValue('tracking2', null);
+        node.setDataValue('tracking3', null);
+        node.setDataValue('dueDate', null);
+        node.setDataValue('timeIntervalDays', null);
       }
 
       if (colDef.field === 'measureStatus') {
-        // Reset Tracking #1 if new status doesn't have tracking options
-        const trackingOptions = getTracking1OptionsForStatus(newValue);
-        if (!trackingOptions && data.tracking1) {
-          // Keep tracking1 as free text if no dropdown options
-        } else if (trackingOptions && data.tracking1 && !trackingOptions.includes(data.tracking1)) {
-          updatePayload.tracking1 = null;
-          node.setDataValue('tracking1', null);
-        }
+        // Clear statusDate, tracking fields, and calculated fields
+        updatePayload.statusDate = null;
+        updatePayload.tracking1 = null;
+        updatePayload.tracking2 = null;
+        updatePayload.tracking3 = null;
+        updatePayload.dueDate = null;
+        updatePayload.timeIntervalDays = null;
+        node.setDataValue('statusDate', null);
+        node.setDataValue('tracking1', null);
+        node.setDataValue('tracking2', null);
+        node.setDataValue('tracking3', null);
+        node.setDataValue('dueDate', null);
+        node.setDataValue('timeIntervalDays', null);
       }
 
       const response = await api.put(`/data/${data.id}`, updatePayload);
