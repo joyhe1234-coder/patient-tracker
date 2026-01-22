@@ -77,17 +77,6 @@ This document defines the mapping from spreadsheet columns to our database schem
 |--------------------|---------------|------------------|
 | BP Control | Quality | Hypertension Management |
 
-### Quality - ACE/ARB in DM or CAD (Statin-related)
-
-| Spreadsheet Column | → requestType | → qualityMeasure |
-|--------------------|---------------|------------------|
-| Cholesterol (Statins) | Quality | ACE/ARB in DM or CAD |
-| Statin Use in Persons with Diabetes | Quality | ACE/ARB in DM or CAD |
-| Received Statin Therapy (SPD) | Quality | ACE/ARB in DM or CAD |
-| Statin Adherence 80% (SPD) | Quality | ACE/ARB in DM or CAD |
-| Received Statin Therapy (SPC) | Quality | ACE/ARB in DM or CAD |
-| Statin Adherence 80% (SPC) | Quality | ACE/ARB in DM or CAD |
-
 ### Quality - Vaccination
 
 | Spreadsheet Column | → requestType | → qualityMeasure |
@@ -115,12 +104,18 @@ This document defines the mapping from spreadsheet columns to our database schem
 
 ## Unmapped Columns (No Matching Quality Measure)
 
-These columns don't map to our existing quality measures. Decision needed (Q1).
+These columns don't map to our existing quality measures. Will be skipped during import.
 
-| Spreadsheet Column | Suggested Action |
-|--------------------|------------------|
-| Well-Child Visits in the First 15 Months | TBD - New measure or skip? |
-| Well-Child Visits for Age 15 Months-30 Months | TBD - New measure or skip? |
+| Spreadsheet Column | Category |
+|--------------------|----------|
+| Cholesterol (Statins) | Statin-related |
+| Statin Use in Persons with Diabetes | Statin-related |
+| Received Statin Therapy (SPD) | Statin-related |
+| Statin Adherence 80% (SPD) | Statin-related |
+| Received Statin Therapy (SPC) | Statin-related |
+| Statin Adherence 80% (SPC) | Statin-related |
+| Well-Child Visits in the First 15 Months | Well-Child |
+| Well-Child Visits for Age 15 Months-30 Months | Well-Child |
 | Child and Adolescent Well-Care Visits-3-11 Years | TBD - New measure or skip? |
 | Child and Adolescent Well-Care Visits-Total | TBD - New measure or skip? |
 | Child and Adolescent Well-Care Visits-12-17 Years | TBD - New measure or skip? |
@@ -144,23 +139,54 @@ These columns don't map to our existing quality measures. Decision needed (Q1).
 
 ## Status Value Mapping
 
-**Decision:** TBD - See Q2 in IMPORT_REQUIREMENTS.md
+**Decision:** Measure-specific mapping (Decided 2026-01-22)
 
-| Spreadsheet Value | → measureStatus | Status |
-|-------------------|-----------------|--------|
-| Compliant | TBD | |
-| Non Compliant | TBD | |
-| Missing Value (blank) | (skip row) | Confirmed |
+| Spreadsheet Value | → measureStatus |
+|-------------------|-----------------|
+| Compliant | Measure-specific (see table below) |
+| Non Compliant | "Not Addressed" |
+| Missing Value (blank) | (skip row - don't create) |
+
+### Compliant Status Mapping
+
+| Request Type | Quality Measure | Compliant → measureStatus |
+|--------------|-----------------|---------------------------|
+| AWV | Annual Wellness Visit | AWV completed |
+| Screening | Breast Cancer Screening | Screening test completed |
+| Screening | Colon Cancer Screening | Colon cancer screening completed |
+| Screening | Cervical Cancer Screening | Screening completed |
+| Quality | Diabetic Eye Exam | Diabetic eye exam completed |
+| Quality | Diabetes Control | HgbA1c at goal |
+| Quality | Diabetic Nephropathy | Urine microalbumin completed |
+| Quality | GC/Chlamydia Screening | GC/Clamydia screening completed |
+| Quality | Hypertension Management | Blood pressure at goal |
+| Quality | Vaccination | Vaccination completed |
+
+**Configuration Tool:** `/hill-mapping` page allows customizing and exporting this mapping
+
+---
+
+## App Measures Not in Spreadsheet
+
+These quality measures exist in our app but have **no corresponding spreadsheet column** - they won't be populated by import:
+
+| Request Type | Quality Measure | Notes |
+|--------------|-----------------|-------|
+| Chronic DX | Chronic Diagnosis Code | No spreadsheet column |
+| Quality | ACE/ARB in DM or CAD | No spreadsheet column (statin columns don't match) |
+| Quality | Annual Serum K&Cr | No spreadsheet column |
 
 ---
 
 ## Summary
 
-| Category | Count |
-|----------|-------|
-| Mapped to existing measures | 42 columns |
-| Unmapped (need decision) | 20 columns |
-| Total quality measure columns | 62 columns |
+| Direction | Count | Description |
+|-----------|-------|-------------|
+| Spreadsheet → App (mapped) | 36 columns | Will be imported |
+| Spreadsheet → App (unmapped) | 26 columns | Skipped during import |
+| App → Spreadsheet (no column) | 3 measures | Won't be populated by import |
+| **Total spreadsheet columns** | 62 columns | |
+| **Total app measures** | 13 measures | |
 
 ---
 
@@ -176,4 +202,4 @@ These columns don't map to our existing quality measures. Decision needed (Q1).
 
 ## Last Updated
 
-January 14, 2026
+January 21, 2026

@@ -50,7 +50,8 @@ This document tracks planned features and enhancements for future development.
 - [x] Column mapping completed (42 of 62 columns mapped)
 - [x] Merge logic defined
 - [x] Duplicate row visual requirements updated (left stripe + filter chip)
-- [ ] Q2: Status Value Mapping (Compliant/Non Compliant → measureStatus)
+- [x] Q2: Status Value Mapping (measure-specific mapping decided)
+- [x] Hill Measure Mapping page (`/hill-mapping`) with CSV export
 - [ ] Q4: Unmapped Patient Columns (Sex, MembID, LOB)
 - [ ] Q5: "Has Sticket" Column decision
 - [ ] Q6: Duplicate Measures handling (age-range sub-categories)
@@ -147,4 +148,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 21, 2026
+January 22, 2026

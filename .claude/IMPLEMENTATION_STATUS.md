@@ -107,7 +107,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [x] Import modes defined: Replace All vs Merge
 - [x] Merge logic matrix defined (6 scenarios)
 - [x] Duplicate row visual requirements updated (left stripe + filter chip)
-- [ ] Remaining questions: Q2 (status mapping), Q4-Q8
+- [x] Q2 Status Value Mapping resolved (measure-specific mapping)
+- [x] Hill Measure Mapping page (`/hill-mapping`) for configuring status mappings
+- [ ] Remaining questions: Q4-Q8
 - [ ] Implementation: Phase 5a - Basic Import
 - [ ] Implementation: Phase 5b - Measure Import
 - [ ] Implementation: Phase 5c - Polish
@@ -357,4 +359,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 21, 2026 - Added Phase 5 (CSV Import) with requirements documentation, renumbered subsequent phases
+January 22, 2026 - Added Hill Measure Mapping page, resolved Q2 status mapping

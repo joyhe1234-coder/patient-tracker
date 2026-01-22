@@ -1,19 +1,48 @@
 import { Activity } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Header() {
+  const location = useLocation();
+
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Activity className="w-8 h-8 text-blue-600" />
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Patient Quality Measure Tracker
-            </h1>
-            <p className="text-sm text-gray-500">
-              Track and manage patient quality measures
-            </p>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <Activity className="w-8 h-8 text-blue-600" />
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Patient Quality Measure Tracker
+              </h1>
+              <p className="text-sm text-gray-500">
+                Track and manage patient quality measures
+              </p>
+            </div>
           </div>
+
+          {/* Navigation */}
+          <nav className="flex items-center gap-4 ml-8">
+            <Link
+              to="/"
+              className={`text-sm font-medium ${
+                location.pathname === '/'
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              Patient Grid
+            </Link>
+            <Link
+              to="/hill-mapping"
+              className={`text-sm font-medium ${
+                location.pathname === '/hill-mapping'
+                  ? 'text-blue-600'
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              Import Mapping
+            </Link>
+          </nav>
         </div>
 
         <div className="flex items-center gap-4">

@@ -100,8 +100,8 @@ LONG FORMAT (Database):
 
 | Category | Count | Status |
 |----------|-------|--------|
-| Mapped to existing measures | 42 columns | ✓ Ready |
-| Unmapped (no matching measure) | 20 columns | Skip for now |
+| Mapped to existing measures | 36 columns | ✓ Ready |
+| Unmapped (no matching measure) | 26 columns | Skip for now |
 | **Total quality measure columns** | 62 columns | |
 
 ### Mapped Columns by Request Type
@@ -117,13 +117,13 @@ LONG FORMAT (Database):
 | Quality | Diabetic Nephropathy | 3 |
 | Quality | GC/Chlamydia Screening | 3 |
 | Quality | Hypertension Management | 1 |
-| Quality | ACE/ARB in DM or CAD | 6 |
 | Quality | Vaccination | 18 |
-| **Total** | | **42** |
+| **Total** | | **36** |
 
 ### Unmapped Columns (Skip for v3.0.0)
 
-These 20 columns will be skipped during import - no matching quality measure in our system:
+These 26 columns will be skipped during import - no matching quality measure in our system:
+- Statin-related (6 columns) - Cholesterol, Statin Use, Statin Therapy/Adherence
 - Well-Child Visits (2 columns)
 - Child/Adolescent Well-Care (5 columns)
 - Medication Review (1 column)
@@ -132,6 +132,13 @@ These 20 columns will be skipped during import - no matching quality measure in 
 - PPC - Prenatal/Postpartum (2 columns)
 - Depression Screening (2 columns)
 - Pharyngitis Testing (4 columns)
+
+### App Measures Not in Spreadsheet
+
+These 3 quality measures exist in our app but have no spreadsheet column:
+- Chronic DX / Chronic Diagnosis Code
+- Quality / ACE/ARB in DM or CAD
+- Quality / Annual Serum K&Cr
 
 ---
 
@@ -172,37 +179,34 @@ See `IMPORT_COLUMN_MAPPING.md` for complete mapping table.
 
 ## Open Questions
 
-### Q2: Status Value Mapping ⚠️ NEXT DECISION NEEDED
+### Q2: Status Value Mapping ✓
 
-**Import values:**
-- Compliant
-- Non Compliant
-- Missing Value (blank)
-
-**Our system has detailed statuses** like:
-- AWV scheduled, AWV completed, Patient called to schedule AWV, Patient declined AWV
-- Screening ordered, Screening completed, Screening discussed
-- etc.
-
-**How should we map import values to measureStatus?**
+**Decision:** Measure-specific mapping (Decided 2026-01-22)
 
 | Import Value | → measureStatus | Notes |
 |--------------|-----------------|-------|
-| Compliant | ??? | Need to decide |
-| Non Compliant | ??? | Need to decide |
-| Missing Value (blank) | (skip row) | Don't create row - Confirmed |
+| Compliant | Measure-specific "completed" status | See table below |
+| Non Compliant | "Not Addressed" | All measures |
+| Missing Value (blank) | (skip row) | Don't create row |
 
-**Options for Compliant:**
-- **A. Generic**: Map all to "Completed" (new generic status)
-- **B. Measure-Specific**: Map to measure's completion status (e.g., "AWV completed", "Screening completed")
-- **C. Simple Flag**: Add `isCompliant` boolean field, ignore detailed status
+**Compliant Status Mapping by Quality Measure:**
 
-**Options for Non Compliant:**
-- **A. Not Addressed**: Map to "Not Addressed" (existing status)
-- **B. Needs Action**: Create new "Needs Action" or "Non Compliant" status
-- **C. Blank**: Leave measureStatus null/empty
+| Request Type | Quality Measure | Compliant → measureStatus |
+|--------------|-----------------|---------------------------|
+| AWV | Annual Wellness Visit | AWV completed |
+| Screening | Breast Cancer Screening | Screening test completed |
+| Screening | Colon Cancer Screening | Colon cancer screening completed |
+| Screening | Cervical Cancer Screening | Screening completed |
+| Quality | Diabetic Eye Exam | Diabetic eye exam completed |
+| Quality | Diabetes Control | HgbA1c at goal |
+| Quality | Diabetic Nephropathy | Urine microalbumin completed |
+| Quality | GC/Chlamydia Screening | GC/Clamydia screening completed |
+| Quality | Hypertension Management | Blood pressure at goal |
+| Quality | Vaccination | Vaccination completed |
 
-**Decision:** _______________
+**Non Compliant:** All measures map to "Not Addressed"
+
+**Configuration Tool:** `/hill-mapping` page allows customizing these mappings and exporting to CSV
 
 ---
 
@@ -334,6 +338,7 @@ Once Q2 (Status Mapping) is resolved, we can begin implementation:
 | 2026-01-14 | Import Behavior | User choice: Replace All OR Merge |
 | 2026-01-21 | Merge Logic | Matrix defined - see Merge Mode Details section |
 | 2026-01-21 | Duplicate Visual | Left stripe (not background color) + filter chip |
+| 2026-01-22 | Q2: Status Value Mapping | Measure-specific mapping - see Q2 section |
 
 ---
 

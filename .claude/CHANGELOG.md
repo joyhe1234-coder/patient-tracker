@@ -11,12 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - **CSV Import Requirements Documentation** (Phase 5)
   - `IMPORT_REQUIREMENTS.md` - Requirements and open questions
-  - `IMPORT_COLUMN_MAPPING.md` - 42 columns mapped to existing quality measures
+  - `IMPORT_COLUMN_MAPPING.md` - 36 columns mapped to existing quality measures
   - `IMPORT_SPREADSHEET_REFERENCE.md` - Complete column listing
   - Import modes: Replace All vs Merge
   - Merge logic matrix for 6 scenarios
   - Duplicate row visual change: left stripe instead of background color
   - "Duplicates" filter chip requirement
+- **Hill Spreadsheet Quality Measure Mapping Page** (`/hill-mapping`)
+  - Configure Compliant/Non Compliant → measureStatus mapping
+  - 10 quality measures with dropdown status selection
+  - Defaults: Compliant → "completed" status, Non Compliant → "Not Addressed"
+  - Export to CSV functionality
+  - Navigation links added to header
 
 ---
 
