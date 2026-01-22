@@ -95,7 +95,26 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Quick search/filter by patient name
 - [ ] Advanced filter builder (multiple conditions)
 
-### Phase 5: Cascading Dropdowns
+### Phase 5: CSV Import
+
+**Status: Planning**
+
+Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
+
+- [x] Requirements document created with open questions
+- [x] Spreadsheet column reference documented (62 quality measure columns)
+- [x] Column mapping completed (42 columns → existing 13 quality measures)
+- [x] Import modes defined: Replace All vs Merge
+- [x] Merge logic matrix defined (6 scenarios)
+- [x] Duplicate row visual requirements updated (left stripe + filter chip)
+- [ ] Remaining questions: Q2 (status mapping), Q4-Q8
+- [ ] Implementation: Phase 5a - Basic Import
+- [ ] Implementation: Phase 5b - Measure Import
+- [ ] Implementation: Phase 5c - Polish
+
+---
+
+### Phase 6: Cascading Dropdowns (formerly Phase 5)
 
 **Status: Complete**
 
@@ -110,7 +129,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Auto-reset of dependent fields when parent changes
 - [x] Dropdown configuration stored in `src/config/dropdownConfig.ts`
 
-### Phase 6: Conditional Row Formatting
+### Phase 7: Conditional Row Formatting (formerly Phase 6)
 
 **Status: Complete**
 
@@ -133,7 +152,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - Does not apply to declined or resolved statuses (purple, gray, orange)
   - Color priority: duplicate > overdue > status-based
 
-### Phase 7: Business Logic & Calculations
+### Phase 8: Business Logic & Calculations (formerly Phase 7)
 
 **Status: Complete**
 
@@ -169,7 +188,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - `duplicateDetector.ts` - Duplicate detection and flag management
   - `statusDatePromptResolver.ts` - Status date prompt resolution
 
-### Phase 8: Complete Countdown Period Configuration
+### Phase 9: Complete Countdown Period Configuration (formerly Phase 8)
 
 **Status: Complete**
 
@@ -194,7 +213,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ## Future Phases
 
-### Phase 9: HgbA1c Goal Configuration
+### Phase 10: HgbA1c Goal Configuration
 
 **Planned Features:**
 - [ ] HgbA1c Goal dropdown for Diabetes Control rows (Less than 7/8/9)
@@ -202,7 +221,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] "Patient Declined" checkbox
 - [ ] Special color logic (GREEN/ORANGE/RED/GRAY) based on goal vs actual
 
-### Phase 10: View-Only Mode & Edit Locking
+### Phase 11: View-Only Mode & Edit Locking
 
 **Planned Features:**
 - [ ] View-only mode for non-editors
@@ -210,7 +229,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Lock status indicator
 - [ ] Force-release lock (admin only)
 
-### Phase 11: Authentication & Multi-Physician Support
+### Phase 12: Authentication & Multi-Physician Support
 
 **Planned Features:**
 - [ ] Login page for editors
@@ -220,7 +239,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Multi-physician data isolation (each physician sees only their patients)
 - [ ] Physician table and Patient.physicianId schema changes
 
-### Phase 12: Excel-like Behaviors
+### Phase 13: Excel-like Behaviors
 
 **Planned Features:**
 - [ ] Keyboard navigation (Arrow keys, Tab, Enter)
@@ -229,7 +248,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] Fill handle (drag to fill)
 - [ ] Context menu (right-click)
 
-### Phase 13: Additional Features
+### Phase 14: Additional Features
 
 **Planned Features:**
 - [ ] CSV import/export
@@ -240,7 +259,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [ ] ~~Zebra striping~~ (not needed - using measure status colors instead)
 - [ ] Drag-and-drop row reordering
 
-### Phase 14: Reference Data Sheets
+### Phase 15: Reference Data Sheets
 
 **Planned Features:**
 - [ ] HCC Code List sheet
@@ -338,4 +357,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 14, 2026 - Reorganized phases: added Phase 3 (Adding & Duplicating Rows) and Phase 4 (Sorting & Filtering)
+January 21, 2026 - Added Phase 5 (CSV Import) with requirements documentation, renumbered subsequent phases

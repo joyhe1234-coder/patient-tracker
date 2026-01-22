@@ -9,7 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.0.0-snapshot] - Unreleased
 
 ### Added
-- (Next development cycle)
+- **CSV Import Requirements Documentation** (Phase 5)
+  - `IMPORT_REQUIREMENTS.md` - Requirements and open questions
+  - `IMPORT_COLUMN_MAPPING.md` - 42 columns mapped to existing quality measures
+  - `IMPORT_SPREADSHEET_REFERENCE.md` - Complete column listing
+  - Import modes: Replace All vs Merge
+  - Merge logic matrix for 6 scenarios
+  - Duplicate row visual change: left stripe instead of background color
+  - "Duplicates" filter chip requirement
 
 ---
 
