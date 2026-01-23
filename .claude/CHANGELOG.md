@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.0.0-snapshot] - Unreleased
+## [3.0.0] - 2026-01-22
 
 ### Added
 - **CSV Import Requirements Documentation** (Phase 5)
