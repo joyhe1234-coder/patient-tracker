@@ -56,7 +56,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Duplicate detection: same patient (memberName + memberDob) + requestType + qualityMeasure
   - Skip duplicate check if requestType OR qualityMeasure is null/empty
   - Schema updated: requestType, qualityMeasure, measureStatus are now nullable (no defaults)
-- [x] Duplicate visual indicator: Light yellow background (#FEF3C7)
+- [x] Duplicate visual indicator: Orange left stripe (#F97316) - preserves status color
 - [x] Error alert when creating/editing duplicate row (browser alert, fields reset to empty)
 - [x] Backend validation prevents updating to create duplicate row
 - [x] On duplicate error during edit, fields reset to empty (not revert to old value)

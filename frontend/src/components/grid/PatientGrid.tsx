@@ -824,18 +824,18 @@ export default function PatientGrid({
   };
 
   // Row class rules based on Measure Status, duplicate detection, and overdue status
-  // Priority: duplicate > overdue > status-based colors
+  // Duplicate is ADDITIVE (left stripe via CSS) - can combine with status colors
+  // Priority for background: overdue > status-based colors
   const rowClassRules = useMemo(() => ({
     'row-status-duplicate': (params: RowClassParams<GridRow>) => params.data?.isDuplicate === true,
-    'row-status-overdue': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && isRowOverdue(params.data),
-    'row-status-gray': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && grayStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-purple': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && purpleStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-green': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && greenStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-blue': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && blueStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-yellow': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && yellowStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-orange': (params: RowClassParams<GridRow>) => !params.data?.isDuplicate && !isRowOverdue(params.data) && orangeStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-overdue': (params: RowClassParams<GridRow>) => isRowOverdue(params.data),
+    'row-status-gray': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && grayStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-purple': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && purpleStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && greenStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-blue': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && blueStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-yellow': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && yellowStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && orangeStatuses.includes(params.data?.measureStatus || ''),
     'row-status-white': (params: RowClassParams<GridRow>) => {
-      if (params.data?.isDuplicate) return false;
       if (isRowOverdue(params.data)) return false;
       const status = params.data?.measureStatus || '';
       return !grayStatuses.includes(status) &&

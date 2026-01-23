@@ -24,6 +24,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Export to CSV functionality
   - Navigation links added to header
 
+### Changed
+- **Duplicate Row Visual Indicator** - Changed from yellow background to orange left stripe
+  - 4px orange (#F97316) border on left edge of duplicate rows
+  - Row background now preserves measure status color (not overridden)
+  - Duplicate styling is additive - can combine with any status color
+- **Duplicates Filter Chip** - Added to status filter bar
+  - Shows count of duplicate rows
+  - Click to filter grid to show only duplicates
+- **Duplicate Mbr Button** - Renamed from "Duplicate" to "Duplicate Mbr"
+
 ---
 
 ## [2.3.0] - 2026-01-14
