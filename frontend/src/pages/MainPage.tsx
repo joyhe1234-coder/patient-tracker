@@ -30,6 +30,7 @@ export default function MainPage() {
   const rowCounts = useMemo(() => {
     const counts: Record<StatusColor, number> = {
       all: 0,
+      duplicate: 0,
       white: 0,
       yellow: 0,
       blue: 0,
@@ -41,6 +42,11 @@ export default function MainPage() {
     };
 
     rowData.forEach((row) => {
+      // Count duplicates separately (not mutually exclusive with status colors)
+      if (row.isDuplicate) {
+        counts.duplicate++;
+      }
+      // Count by status color
       const color = getRowStatusColor(row);
       counts[color]++;
     });
@@ -55,6 +61,11 @@ export default function MainPage() {
     }
 
     return rowData.filter((row) => {
+      // Special handling for duplicate filter
+      if (activeFilters.includes('duplicate')) {
+        return row.isDuplicate;
+      }
+      // Regular status color filtering
       const color = getRowStatusColor(row);
       return activeFilters.includes(color);
     });

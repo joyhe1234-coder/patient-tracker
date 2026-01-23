@@ -43,19 +43,30 @@ This document tracks planned features and enhancements for future development.
 - [ ] Quick search/filter by patient name
 - [ ] Advanced filter builder (multiple conditions)
 
+### Phase 5: CSV Import (v3.0.0)
+**Requirements documented in:** `.claude/IMPORT_REQUIREMENTS.md`
+
+- [x] Requirements document created
+- [x] Column mapping completed (42 of 62 columns mapped)
+- [x] Merge logic defined
+- [x] Duplicate row visual requirements updated (left stripe + filter chip)
+- [x] Q2: Status Value Mapping (measure-specific mapping decided)
+- [x] Hill Measure Mapping page (`/hill-mapping`) with CSV export
+- [ ] Q4: Unmapped Patient Columns (Sex, MembID, LOB)
+- [ ] Q5: "Has Sticket" Column decision
+- [ ] Q6: Duplicate Measures handling (age-range sub-categories)
+- [ ] Q7: Column Mapping UI decision
+- [ ] Q8: Date Fields decision
+- [ ] Implementation: Phase 5a - Basic Import (file upload, patient data)
+- [ ] Implementation: Phase 5b - Measure Import (quality measures, validation)
+- [ ] Implementation: Phase 5c - Polish (preview, progress indicator)
+
 ---
 
 ## High Priority
 
 ### External Data Import
-- [ ] Import wizard for external spreadsheets (Excel, CSV)
-- [ ] Column mapping interface (source column → target field)
-- [ ] Preview imported data before committing
-- [ ] Handle mismatched column structures
-- [ ] Data validation during import
-- [ ] Duplicate detection during import
-- [ ] Merge vs. replace options for existing records
-- [ ] Import history/audit log
+See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
@@ -137,4 +148,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 14, 2026
+January 22, 2026

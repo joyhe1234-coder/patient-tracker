@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 // Status color categories matching PatientGrid row class rules
-export type StatusColor = 'all' | 'white' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'red';
+export type StatusColor = 'all' | 'duplicate' | 'white' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'red';
 
 interface StatusFilterBarProps {
   activeFilters: StatusColor[];
@@ -18,6 +18,7 @@ const STATUS_CATEGORIES: Array<{
   borderColor: string;
 }> = [
   { id: 'all', label: 'All', bgColor: 'bg-white', textColor: 'text-gray-700', borderColor: 'border-gray-400' },
+  { id: 'duplicate', label: 'Duplicates', bgColor: 'bg-orange-100', textColor: 'text-orange-800', borderColor: 'border-orange-500' },
   { id: 'white', label: 'Not Started', bgColor: 'bg-white', textColor: 'text-gray-700', borderColor: 'border-gray-300' },
   { id: 'red', label: 'Overdue', bgColor: 'bg-red-100', textColor: 'text-red-800', borderColor: 'border-red-400' },
   { id: 'blue', label: 'In Progress', bgColor: 'bg-blue-100', textColor: 'text-blue-800', borderColor: 'border-blue-400' },

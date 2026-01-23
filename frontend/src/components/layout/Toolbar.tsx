@@ -42,7 +42,7 @@ export default function Toolbar({
           }`}
         >
           <Copy className="w-4 h-4" />
-          Duplicate
+          Duplicate Mbr
         </button>
 
         <button

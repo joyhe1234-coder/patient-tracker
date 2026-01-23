@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0-snapshot] - Unreleased
+
+### Added
+- **CSV Import Requirements Documentation** (Phase 5)
+  - `IMPORT_REQUIREMENTS.md` - Requirements and open questions
+  - `IMPORT_COLUMN_MAPPING.md` - 36 columns mapped to existing quality measures
+  - `IMPORT_SPREADSHEET_REFERENCE.md` - Complete column listing
+  - Import modes: Replace All vs Merge
+  - Merge logic matrix for 6 scenarios
+  - Duplicate row visual change: left stripe instead of background color
+  - "Duplicates" filter chip requirement
+- **Hill Spreadsheet Quality Measure Mapping Page** (`/hill-mapping`)
+  - Configure Compliant/Non Compliant → measureStatus mapping
+  - 10 quality measures with dropdown status selection
+  - Defaults: Compliant → "completed" status, Non Compliant → "Not Addressed"
+  - Export to CSV functionality
+  - Navigation links added to header
+
+### Changed
+- **Duplicate Row Visual Indicator** - Changed from yellow background to orange left stripe
+  - 4px orange (#F97316) border on left edge of duplicate rows
+  - Row background now preserves measure status color (not overridden)
+  - Duplicate styling is additive - can combine with any status color
+- **Duplicates Filter Chip** - Added to status filter bar
+  - Shows count of duplicate rows
+  - Click to filter grid to show only duplicates
+- **Duplicate Mbr Button** - Renamed from "Duplicate" to "Duplicate Mbr"
+
+---
+
 ## [2.3.0] - 2026-01-14
 
 ### Added
