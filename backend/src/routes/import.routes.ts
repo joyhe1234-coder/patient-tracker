@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { listSystems, loadSystemConfig, systemExists } from '../services/import/configLoader.js';
+import { parseFile, validateRequiredColumns } from '../services/import/fileParser.js';
 import { createError } from '../middleware/errorHandler.js';
+import { handleUpload } from '../middleware/upload.js';
 
 const router = Router();
 
@@ -49,6 +51,48 @@ router.get('/systems/:systemId', async (req: Request, res: Response, next: NextF
     });
   } catch (error) {
     next(createError(`Failed to load system config: ${(error as Error).message}`, 500));
+  }
+});
+
+/**
+ * POST /api/import/parse
+ * Parse an uploaded file and return the parsed data
+ * Used for testing and previewing file content
+ */
+router.post('/parse', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    const systemId = req.body.systemId || 'hill';
+
+    if (!file) {
+      return next(createError('No file uploaded', 400));
+    }
+
+    // Parse the file
+    const parseResult = parseFile(file.buffer, file.originalname);
+
+    // Load system config to validate columns
+    let columnValidation = null;
+    if (systemExists(systemId)) {
+      const config = loadSystemConfig(systemId);
+      const requiredPatientColumns = Object.keys(config.patientColumns);
+      columnValidation = validateRequiredColumns(parseResult.headers, requiredPatientColumns);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        fileName: parseResult.fileName,
+        fileType: parseResult.fileType,
+        totalRows: parseResult.totalRows,
+        headers: parseResult.headers,
+        columnValidation,
+        // Return first 10 rows as preview
+        previewRows: parseResult.rows.slice(0, 10)
+      }
+    });
+  } catch (error) {
+    next(createError(`Failed to parse file: ${(error as Error).message}`, 400));
   }
 });
 
