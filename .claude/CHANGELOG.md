@@ -20,10 +20,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Supports major, minor, patch increments
   - Tags main branch with vX.X.X
   - Bumps to next snapshot version after release
+- **Phase 5a: Import Config Loader** - Multi-system configuration support
+  - `backend/src/config/import/systems.json` - Healthcare system registry
+  - `backend/src/config/import/hill.json` - Hill Healthcare mapping config
+  - `backend/src/services/import/configLoader.ts` - Config loading service
+  - API endpoints: `GET /api/import/systems`, `GET /api/import/systems/:systemId`
+- **Phase 5b: File Parser + Import Test Page**
+  - `backend/src/services/import/fileParser.ts` - CSV/Excel parser with title row detection
+  - `backend/src/middleware/upload.ts` - Multer file upload middleware
+  - API endpoint: `POST /api/import/parse` - Parse uploaded file
+  - `frontend/src/pages/ImportTestPage.tsx` - UI for testing file parsing
+  - Navigation link "Import Test" added to header
+  - Route `/import-test` added to App.tsx
 
 ### Changed
 
 ### Fixed
+- **Prisma/Alpine OpenSSL compatibility** - Added `linux-musl-openssl-3.0.x` binary target
+- **Docker config files** - Added COPY for `src/config` to `dist/config` in Dockerfile
 
 ---
 

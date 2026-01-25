@@ -117,8 +117,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [ ] Remaining questions: Q4-Q8
 
 #### Implementation Phases
-- [ ] 5a: Config files + Config Loader
-- [ ] 5b: File Parser (CSV/Excel)
+- [x] 5a: Config files + Config Loader
+- [x] 5b: File Parser (CSV/Excel) + Import Test Page
 - [ ] 5c: Column Mapper + Transformer
 - [ ] 5d: Validator + Error Reporter
 - [ ] 5e: Diff Calculator
@@ -376,4 +376,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 22, 2026 - Complete import implementation plan with 13 phases, multi-system support, preview before commit
+January 24, 2026 - Phase 5a (Config Loader) and 5b (File Parser + Import Test Page) implemented

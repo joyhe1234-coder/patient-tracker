@@ -744,6 +744,58 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
+## 14. Import Test Page
+
+### TC-14.1: Navigate to Import Test Page
+**Steps:**
+1. Click "Import Test" link in header navigation
+
+**Expected:**
+- Page loads at `/import-test`
+- Shows file upload section with "Choose File" button
+
+### TC-14.2: Upload CSV File
+**Steps:**
+1. Navigate to Import Test page
+2. Click file input and select a CSV file
+3. Click "Parse File" button
+
+**Expected:**
+- Loading state shows "Parsing..."
+- Results display with file metadata (name, type, row count, column count)
+- Headers section shows all detected column names
+- Preview table shows first 10 rows
+
+### TC-14.3: Upload Excel File
+**Steps:**
+1. Navigate to Import Test page
+2. Click file input and select an Excel (.xlsx) file
+3. Click "Parse File" button
+
+**Expected:**
+- File is parsed successfully
+- Title/report rows are automatically skipped
+- Headers are detected from first data row
+- Preview shows actual data rows
+
+### TC-14.4: Column Validation Display
+**Steps:**
+1. Upload file with required columns
+
+**Expected:**
+- Green badge shows "All required columns found" if valid
+- Red badge shows "Missing columns" with list if invalid
+
+### TC-14.5: Error Handling
+**Steps:**
+1. Upload unsupported file type (e.g., .txt)
+
+**Expected:**
+- Error message displays
+- No crash or unhandled error
+
+---
+
 ## Test Execution Checklist
 
 | Test Case | Pass | Fail | Notes |
@@ -815,9 +867,14 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-12.3 | | | Time interval override (HgbA1c) |
 | TC-13.1 | | | |
 | TC-13.2 | | | |
+| TC-14.1 | | | Import Test navigation |
+| TC-14.2 | | | CSV file upload |
+| TC-14.3 | | | Excel file upload |
+| TC-14.4 | | | Column validation |
+| TC-14.5 | | | Error handling |
 
 ---
 
 ## Last Updated
 
-January 14, 2026 - Added Duplicate Row button test cases (TC-9.0, TC-9.0b, TC-9.0c)
+January 24, 2026 - Added Import Test Page test cases (TC-14.1 to TC-14.5)
