@@ -101,18 +101,35 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
+#### Requirements (Complete)
 - [x] Requirements document created with open questions
 - [x] Spreadsheet column reference documented (62 quality measure columns)
-- [x] Column mapping completed (42 columns → existing 13 quality measures)
+- [x] Column mapping completed (36 columns → existing 10 quality measures)
 - [x] Import modes defined: Replace All vs Merge
 - [x] Merge logic matrix defined (6 scenarios)
 - [x] Duplicate row visual requirements updated (left stripe + filter chip)
 - [x] Q2 Status Value Mapping resolved (measure-specific mapping)
 - [x] Hill Measure Mapping page (`/hill-mapping`) for configuring status mappings
+- [x] Multi-healthcare system support designed (config files per system)
+- [x] Preview before commit strategy (in-memory diff)
+- [x] Implementation plan with 13 phases and 11 modules
+- [x] API contracts defined (/preview, /execute)
 - [ ] Remaining questions: Q4-Q8
-- [ ] Implementation: Phase 5a - Basic Import
-- [ ] Implementation: Phase 5b - Measure Import
-- [ ] Implementation: Phase 5c - Polish
+
+#### Implementation Phases
+- [ ] 5a: Config files + Config Loader
+- [ ] 5b: File Parser (CSV/Excel)
+- [ ] 5c: Column Mapper + Transformer
+- [ ] 5d: Validator + Error Reporter
+- [ ] 5e: Diff Calculator
+- [ ] 5f: Preview Cache
+- [ ] 5g: Import Executor (Replace All + Merge)
+- [ ] 5h: Preview API endpoint
+- [ ] 5i: Execute API endpoint
+- [ ] 5j: Import UI - Upload page
+- [ ] 5k: Import UI - Preview page
+- [ ] 5l: Import UI - Results display
+- [ ] 5m: Mapping UI (/import-mapping)
 
 ---
 
@@ -359,4 +376,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 22, 2026 - Added Hill Measure Mapping page, resolved Q2 status mapping
+January 22, 2026 - Complete import implementation plan with 13 phases, multi-system support, preview before commit

@@ -9,6 +9,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0-snapshot] - Unreleased
 
 ### Added
+- **CSV Import Implementation Plan** (Phase 5)
+  - Multi-healthcare system support (Hill, Kaiser, etc.)
+  - Config files stored on server (`backend/src/config/import/`)
+  - Preview before commit (in-memory diff calculation)
+  - 13 implementation phases defined
+  - 11 backend/frontend modules identified
+  - API contracts for `/api/import/preview` and `/api/import/execute`
+- **`/version` Command** - Semantic versioning release workflow
+  - Supports major, minor, patch increments
+  - Tags main branch with vX.X.X
+  - Bumps to next snapshot version after release
 
 ### Changed
 
