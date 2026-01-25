@@ -1,0 +1,9 @@
+{
+  "systems": {
+    "hill": {
+      "name": "Hill Healthcare",
+      "configFile": "hill.json"
+    }
+  },
+  "default": "hill"
+}
