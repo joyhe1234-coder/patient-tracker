@@ -1,0 +1,9 @@
+Patient,DOB,Phone,Address,Breast Cancer Screening E Q1,Breast Cancer Screening E Q2,Breast Cancer Screening 42-51 Years E Q1,Breast Cancer Screening 42-51 Years E Q2,Breast Cancer Screening 52-74 Years E Q1,Breast Cancer Screening 52-74 Years E Q2,Colorectal Cancer Screening E Q1,Colorectal Cancer Screening E Q2,Colorectal Cancer Screening 45-50 Years E Q1,Colorectal Cancer Screening 45-50 Years E Q2,Colorectal Cancer Screening 51-75 Years E Q1,Colorectal Cancer Screening 51-75 Years E Q2
+"AllCompliant, Test1",01/15/1965,5551111111,100 Test St,01/10/2026,Compliant,01/10/2026,Compliant,01/10/2026,Compliant,01/05/2026,Compliant,01/05/2026,Compliant,01/05/2026,Compliant
+"AnyNonCompliant, Test2",03/22/1970,5552222222,200 Test St,01/08/2026,Compliant,01/08/2026,Non Compliant,01/08/2026,Compliant,01/03/2026,Compliant,01/03/2026,Compliant,01/03/2026,Non Compliant
+"AllNonCompliant, Test3",07/08/1958,5553333333,300 Test St,01/06/2026,NC,01/06/2026,Non Compliant,01/06/2026,NC,01/04/2026,No,01/04/2026,NC,01/04/2026,Non Compliant
+"MixedEmpty, Test4",11/30/1972,5554444444,400 Test St,,,,Compliant,01/07/2026,,01/02/2026,Compliant,,,,
+"EmptyPlusNonCompliant, Test5",05/17/1980,5555555555,500 Test St,,,,,01/04/2026,NC,,,01/01/2026,Non Compliant,,
+"AllEmpty, Test6",09/03/1968,5556666666,600 Test St,,,,,,,,,,,,
+"CaseInsensitive, Test7",02/14/1955,5557777777,700 Test St,01/09/2026,COMPLIANT,01/09/2026,compliant,01/09/2026,Compliant,01/05/2026,C,01/05/2026,Yes,01/05/2026,c
+"Abbreviations, Test8",06/25/1975,5558888888,800 Test St,01/03/2026,C,01/03/2026,Yes,01/03/2026,c,01/06/2026,NC,01/06/2026,No,01/06/2026,nc

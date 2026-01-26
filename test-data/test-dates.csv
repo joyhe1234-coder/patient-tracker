@@ -1,0 +1,9 @@
+Patient,DOB,Phone,Address,Annual Wellness Visit Q1,Annual Wellness Visit Q2
+"Format1, MMDDYYYY",01/15/1965,5551111111,100 Test St,01/10/2026,Compliant
+"Format2, MDYYYY",1/5/1970,5552222222,200 Test St,1/5/2026,Compliant
+"Format3, MDYY",3/8/70,5553333333,300 Test St,1/8/26,Compliant
+"Format4, YYYYMMDD",1975-07-22,5554444444,400 Test St,2026-01-12,Compliant
+"Format5, MDYYYY Dot",6.15.1968,5555555555,500 Test St,1.14.2026,Compliant
+"Format6, ExcelSerial",25000,5556666666,600 Test St,45678,Compliant
+"Format7, Invalid",abc,5557777777,700 Test St,01/15/2026,Compliant
+"Format8, Empty",,5558888888,800 Test St,01/16/2026,Compliant

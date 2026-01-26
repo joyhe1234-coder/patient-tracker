@@ -1,0 +1,11 @@
+Patient,DOB,Phone,Address,Annual Wellness Visit Q1,Annual Wellness Visit Q2,Eye Exam Q1,Eye Exam Q2
+"Complete, Patient1",01/15/1965,5551111111,100 Main St,01/10/2026,Compliant,01/05/2026,Compliant
+"NoPhone, Patient2",03/22/1970,,200 Oak Ave,01/08/2026,Compliant,01/03/2026,Non Compliant
+"NoPhone, Patient3",07/08/1958,,300 Pine Rd,01/06/2026,Compliant,01/04/2026,Compliant
+"Complete, Patient4",11/30/1972,5554444444,400 Elm St,01/14/2026,Non Compliant,01/07/2026,Compliant
+"NoPhone, Patient5",05/17/1980,,500 Maple Dr,01/09/2026,Compliant,12/28/2025,Compliant
+"NoAddress, Patient6",09/03/1968,5556666666,,01/11/2026,Compliant,01/07/2026,Non Compliant
+"NoPhone, Patient7",02/14/1955,,700 Birch Way,01/12/2026,Non Compliant,01/05/2026,Compliant
+"Complete, Patient8",06/25/1975,5558888888,800 Spruce Ct,01/13/2026,Compliant,01/03/2026,Compliant
+"NoPhoneNoAddress, Patient9",12/01/1962,,,01/08/2026,Compliant,12/22/2025,Compliant
+"Complete, Patient10",08/19/1978,5550000000,1000 Ash Pl,01/15/2026,Compliant,01/10/2026,Compliant

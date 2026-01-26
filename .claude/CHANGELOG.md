@@ -47,6 +47,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Validation checks: required fields, date formats, valid values, duplicates
   - Error messages include member name for easy identification
   - Reports errors, warnings, and duplicate groups
+- **"Any Non-Compliant Wins" Logic**
+  - Multiple CSV columns can map to same quality measure (e.g., age-specific columns)
+  - If ANY column shows non-compliant, result is non-compliant
+  - Applies to: Breast Cancer, Colon Cancer, Diabetes, Nephropathy, Chlamydia, Vaccination
+- **Import Test Data Files**
+  - `test-data/` folder with 7 CSV files for testing import
+  - Covers: valid data, date formats, multi-column, validation errors, duplicates, no measures, warnings
+  - README.md with expected results for each test file
+- **Comprehensive Import Test Plan**
+  - 56 new test cases (TC-15 to TC-21) added to REGRESSION_TEST_PLAN.md
+  - Covers column mapping, transformation, date parsing, validation, error reporting, UI
 
 ### Changed
 

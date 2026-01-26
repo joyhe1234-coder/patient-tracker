@@ -796,6 +796,508 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
+## 15. Column Mapping (Phase 5c)
+
+### TC-15.1: Patient Column Mapping
+**Steps:**
+1. Upload CSV with columns: Patient, DOB, Phone, Address
+2. Click Transform or Validate
+
+**Expected:**
+- Columns mapped to: memberName, memberDob, memberTelephone, memberAddress
+- Mapping stats show 4 mapped patient columns
+
+### TC-15.2: Measure Column Mapping (Q1/Q2)
+**Steps:**
+1. Upload file with "Annual Wellness Visit Q1" and "Annual Wellness Visit Q2" columns
+2. Click Transform
+
+**Expected:**
+- Both columns mapped to "Annual Wellness Visit" quality measure
+- Q1 = statusDate field, Q2 = complianceStatus field
+
+### TC-15.3: Skip Columns
+**Steps:**
+1. Upload file with columns: Age, Sex, MembID, LOB
+2. Click Transform
+
+**Expected:**
+- Columns appear in "Skipped" count
+- Not included in mapped columns
+- No error for these columns
+
+### TC-15.4: Unmapped Columns
+**Steps:**
+1. Upload file with unknown column "CustomField"
+2. Click Transform
+
+**Expected:**
+- Column appears in "Unmapped Columns" list
+- Warning displayed but not blocking
+
+### TC-15.5: Missing Required Columns
+**Steps:**
+1. Upload file missing "Patient" column
+2. Click Parse
+
+**Expected:**
+- Column validation shows "Missing: Patient"
+- Red indicator for missing required column
+
+### TC-15.6: Multiple Columns → Same Quality Measure
+**Steps:**
+1. Upload file with columns:
+   - "Breast Cancer Screening E Q2"
+   - "Breast Cancer Screening 42-51 Years E Q2"
+   - "Breast Cancer Screening 52-74 Years E Q2"
+2. Click Transform
+
+**Expected:**
+- All three columns grouped under "Breast Cancer Screening"
+- Single output row per patient for Breast Cancer Screening (not 3 rows)
+- Compliance determined by "any non-compliant wins" logic
+
+---
+
+## 16. Data Transformation (Phase 5c)
+
+### TC-16.1: Wide to Long Format
+**Steps:**
+1. Upload file with 50 patients, each having 10 measure columns with data
+2. Click Transform
+
+**Expected:**
+- Original Rows: 50
+- Generated Rows: ~500 (50 patients × 10 measures)
+- Each patient has multiple output rows (one per measure)
+
+### TC-16.2: Original vs Generated Rows Display
+**Steps:**
+1. Upload file with 100 input rows
+2. Click Transform
+3. Observe stats display
+
+**Expected:**
+- "Original Rows" shows 100 (gray box)
+- "Generated Rows" shows X (blue box)
+- Both values clearly labeled and separate
+
+### TC-16.3: Empty Measure Columns Skipped
+**Steps:**
+1. Upload file where Patient A has data in 5 of 10 measure columns
+2. Click Transform
+
+**Expected:**
+- Only 5 rows generated for Patient A
+- Empty measure columns do not create rows
+
+### TC-16.4: Status Date = Import Date
+**Steps:**
+1. Upload file with compliance values
+2. Click Transform
+3. Check statusDate in preview
+
+**Expected:**
+- All rows have statusDate = today's date (YYYY-MM-DD format)
+- statusDate does NOT come from Q1 column
+
+### TC-16.5: Patients With No Measures
+**Steps:**
+1. Upload file where Patient B has ALL measure columns empty
+2. Click Transform
+
+**Expected:**
+- "No Measures" stat shows count ≥ 1
+- Purple section "Patients with No Measures" appears
+- Patient B listed with Row #, Name, DOB
+- Patient B has 0 generated rows
+
+### TC-16.6: Phone Number Normalization
+**Steps:**
+1. Upload file with Phone = "5551234567"
+2. Click Transform
+3. Check memberTelephone in preview
+
+**Expected:**
+- Phone displays as "(555) 123-4567"
+- 11-digit numbers starting with 1 also normalized
+
+---
+
+## 17. Date Parsing (Phase 5c)
+
+### TC-17.1: MM/DD/YYYY Format
+**Input:** DOB = "01/15/2026"
+**Expected:** Parsed as 2026-01-15
+
+### TC-17.2: M/D/YYYY Format
+**Input:** DOB = "1/5/2026"
+**Expected:** Parsed as 2026-01-05
+
+### TC-17.3: M/D/YY Format
+**Input:** DOB = "1/5/26"
+**Expected:** Parsed as 2026-01-05
+
+### TC-17.4: YYYY-MM-DD Format
+**Input:** DOB = "2026-01-15"
+**Expected:** Parsed as 2026-01-15
+
+### TC-17.5: M.D.YYYY Format
+**Input:** DOB = "1.15.2026"
+**Expected:** Parsed as 2026-01-15
+
+### TC-17.6: Excel Serial Number
+**Input:** DOB = "44941" (Excel serial)
+**Expected:** Parsed as valid date (Excel epoch conversion)
+
+### TC-17.7: Invalid Date
+**Input:** DOB = "abc"
+**Expected:**
+- Transform error: "Invalid date format: abc"
+- Row still processed but memberDob = null
+
+---
+
+## 18. "Any Non-Compliant Wins" Logic (Phase 5c)
+
+### TC-18.1: All Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = "Compliant"
+- Breast Cancer Screening 42-51 Q2 = "Compliant"
+
+**Expected:** measureStatus = "Screening test completed" (compliant mapping)
+
+### TC-18.2: Any Non-Compliant Wins
+**Data:**
+- Breast Cancer Screening E Q2 = "Compliant"
+- Breast Cancer Screening 42-51 Q2 = "Non Compliant"
+
+**Expected:** measureStatus = "Not Addressed" (non-compliant wins)
+
+### TC-18.3: All Non-Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = "NC"
+- Breast Cancer Screening 42-51 Q2 = "Non Compliant"
+
+**Expected:** measureStatus = "Not Addressed"
+
+### TC-18.4: Mixed Empty + Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = ""
+- Breast Cancer Screening 42-51 Q2 = "Compliant"
+- Breast Cancer Screening 52-74 Q2 = ""
+
+**Expected:** measureStatus = "Screening test completed" (uses non-empty compliant)
+
+### TC-18.5: Mixed Empty + Non-Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = ""
+- Breast Cancer Screening 42-51 Q2 = "NC"
+
+**Expected:** measureStatus = "Not Addressed"
+
+### TC-18.6: All Empty
+**Data:**
+- Breast Cancer Screening E Q2 = ""
+- Breast Cancer Screening 42-51 Q2 = ""
+- Breast Cancer Screening 52-74 Q2 = ""
+
+**Expected:** No row generated for Breast Cancer Screening (skipped)
+
+### TC-18.7: Case Insensitive
+**Data:**
+- Col1 = "COMPLIANT"
+- Col2 = "compliant"
+
+**Expected:** Both recognized as compliant
+
+### TC-18.8: Compliant Abbreviations
+**Data:**
+- Col1 = "C"
+- Col2 = "Yes"
+
+**Expected:** Both recognized as compliant
+
+### TC-18.9: Non-Compliant Abbreviations
+**Data:**
+- Col1 = "NC"
+- Col2 = "No"
+
+**Expected:** Both recognized as non-compliant → "Not Addressed"
+
+---
+
+## 19. Validation (Phase 5d)
+
+### TC-19.1: Missing Member Name
+**Data:** Row with memberName = "" or null
+**Expected:**
+- Error: "Member name is required"
+- Error severity: error (blocking)
+- Error includes "(Unknown)" as member name
+
+### TC-19.2: Missing DOB
+**Data:** Row with memberDob = null
+**Expected:**
+- Error: "Date of birth is required"
+- Error severity: error (blocking)
+
+### TC-19.3: Invalid DOB Format
+**Data:** Row with memberDob = "invalid-date"
+**Expected:**
+- Error: "Invalid date of birth format"
+- Error includes value: "invalid-date"
+
+### TC-19.4: Missing Request Type
+**Data:** Row with requestType = ""
+**Expected:**
+- Error: "Request type is required"
+- Error severity: error (blocking)
+
+### TC-19.5: Invalid Request Type
+**Data:** Row with requestType = "Unknown"
+**Expected:**
+- Error: "Invalid request type: Unknown"
+- Error severity: error (blocking)
+
+### TC-19.6: Missing Quality Measure
+**Data:** Row with qualityMeasure = ""
+**Expected:**
+- Error: "Quality measure is required"
+- Error severity: error (blocking)
+
+### TC-19.7: Invalid Quality Measure for Request Type
+**Data:** requestType = "AWV", qualityMeasure = "Breast Cancer Screening"
+**Expected:**
+- Warning: "Invalid quality measure for request type"
+- Warning severity: warning (non-blocking)
+
+### TC-19.8: Missing Measure Status
+**Data:** Row with measureStatus = null
+**Expected:**
+- Warning: "Measure status is empty - will be set to Not Addressed"
+- Warning severity: warning (non-blocking)
+
+### TC-19.9: Missing Phone
+**Data:** Row with memberTelephone = null
+**Expected:**
+- Warning: "Phone number is missing"
+- Warning severity: warning (non-blocking)
+
+### TC-19.10: Duplicate Within Import
+**Data:** Two rows with same:
+- memberName = "John Smith"
+- memberDob = "1980-01-15"
+- requestType = "AWV"
+- qualityMeasure = "Annual Wellness Visit"
+
+**Expected:**
+- Warning on second row: "Duplicate of row X: same patient + measure"
+- Both rows in "Duplicate Groups" section
+- Duplicate count = 1 group
+
+---
+
+## 20. Error Reporting (Phase 5d)
+
+### TC-20.1: Error Message Includes Member Name
+**Steps:**
+1. Upload file with validation errors for patient "John Smith"
+2. Click Validate
+3. Check error messages
+
+**Expected:**
+- Error format: "Row 5 (John Smith) - memberDob: Date of birth is required"
+- Member name in parentheses after row number
+
+### TC-20.2: Error Count Display
+**Steps:**
+1. Upload file with 3 validation errors
+2. Click Validate
+
+**Expected:**
+- Errors section header: "Errors (3)"
+- Red background on section
+- 3 error items listed
+
+### TC-20.3: Warning Count Display
+**Steps:**
+1. Upload file with 5 warnings (missing phone, etc.)
+2. Click Validate
+
+**Expected:**
+- Warnings section header: "Warnings (5)"
+- Yellow background on section
+- 5 warning items listed
+
+### TC-20.4: Duplicate Groups Display
+**Steps:**
+1. Upload file with 2 sets of duplicate rows
+2. Click Validate
+
+**Expected:**
+- Duplicates section header: "Duplicate Groups (2)"
+- Orange background on section
+- Each group shows patient name, measure, and row numbers
+
+### TC-20.5: Validation Summary - All Valid
+**Steps:**
+1. Upload file with all valid data, no warnings
+2. Click Validate
+
+**Expected:**
+- Green banner: "All X rows passed validation"
+- Status: "success"
+- canProceed: true
+
+### TC-20.6: Validation Summary - Warnings Only
+**Steps:**
+1. Upload file with valid data but some warnings
+2. Click Validate
+
+**Expected:**
+- Yellow banner: "X rows validated with Y warning(s). Import can proceed."
+- Status: "warning"
+- canProceed: true
+
+### TC-20.7: Validation Summary - Has Errors
+**Steps:**
+1. Upload file with validation errors
+2. Click Validate
+
+**Expected:**
+- Red banner: "Validation failed: X error(s) in Y row(s). Please fix errors before importing."
+- Status: "error"
+- canProceed: false
+
+### TC-20.8: Can Proceed - False (Errors)
+**Steps:**
+1. Upload file with errors
+2. Click Validate
+
+**Expected:**
+- "Fix Errors First" button/badge shown (red)
+- Import action should be disabled
+
+### TC-20.9: Can Proceed - True (Warnings Only)
+**Steps:**
+1. Upload file with warnings but no errors
+2. Click Validate
+
+**Expected:**
+- "Ready to Import" button/badge shown (green)
+- Import action should be enabled
+
+---
+
+## 21. Import Test Page UI (Phase 5c-5d)
+
+### TC-21.1: Transform Button
+**Steps:**
+1. Upload CSV file
+2. Click "Transform" button
+
+**Expected:**
+- Loading state shows "Transforming..."
+- Transform Results tab opens automatically
+- Stats and preview displayed
+
+### TC-21.2: Validate Button
+**Steps:**
+1. Upload CSV file
+2. Click "Validate" button
+
+**Expected:**
+- Loading state shows "Validating..."
+- Validation Results tab opens automatically
+- Stats, errors, warnings, duplicates displayed
+
+### TC-21.3: Tab Navigation
+**Steps:**
+1. Upload and process file
+2. Click between Parse/Transform/Validate tabs
+
+**Expected:**
+- Correct content shown for each tab
+- Tab state preserved (doesn't re-fetch)
+- Active tab visually highlighted
+
+### TC-21.4: Stats Grid - Transform Tab
+**Steps:**
+1. Upload file and Transform
+2. Check stats section
+
+**Expected:**
+- 6 stat boxes displayed in grid:
+  - Original Rows (gray)
+  - Generated Rows (blue)
+  - Unique Patients (purple)
+  - Measures/Patient (orange)
+  - Errors (gray)
+  - No Measures (purple if > 0)
+
+### TC-21.5: Stats Grid - Validate Tab
+**Steps:**
+1. Upload file and Validate
+2. Check stats section
+
+**Expected:**
+- 7 stat boxes displayed:
+  - Original Rows (gray)
+  - Generated Rows (blue)
+  - Valid Rows (green)
+  - Error Rows (red if > 0)
+  - Warning Rows (yellow if > 0)
+  - Duplicates (orange if > 0)
+  - No Measures (purple if > 0)
+
+### TC-21.6: Preview Table
+**Steps:**
+1. Process file (Transform or Validate)
+2. Scroll to preview section
+
+**Expected:**
+- Table shows first 20 transformed rows
+- Columns: #, Member Name, DOB, Request Type, Quality Measure, Measure Status, Status Date
+- Alternating row colors for readability
+
+### TC-21.7: Patients No Measures Section
+**Steps:**
+1. Upload file with patients having empty measures
+2. Transform or Validate
+
+**Expected:**
+- Purple section appears: "Patients with No Measures (X)"
+- Description text explains these won't be imported
+- Table shows: Row #, Member Name, DOB
+- Scrollable if many patients
+
+### TC-21.8: Scrollable Error List
+**Steps:**
+1. Upload file with many errors (20+)
+2. Validate
+
+**Expected:**
+- Error section has max-height with scroll
+- All errors accessible via scrolling
+- Section doesn't overflow page
+
+---
+
+## Test Data Files Needed
+
+| File | Description | Use For Tests |
+|------|-------------|---------------|
+| `test-valid.csv` | 10 patients, all valid data, various measures | TC-15.*, TC-16.1-16.4, TC-20.5 |
+| `test-dates.csv` | Rows with various date formats | TC-17.* |
+| `test-multi-column.csv` | Multiple columns per measure (age brackets) | TC-18.* |
+| `test-validation-errors.csv` | Missing/invalid fields | TC-19.* |
+| `test-duplicates.csv` | Duplicate patient+measure rows | TC-19.10, TC-20.4 |
+| `test-no-measures.csv` | Patients with all empty measure columns | TC-16.5, TC-21.7 |
+| `test-warnings.csv` | Valid data with warnings (missing phone) | TC-20.3, TC-20.6, TC-20.9 |
+
+---
+
 ## Test Execution Checklist
 
 | Test Case | Pass | Fail | Notes |
@@ -872,9 +1374,71 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-14.3 | | | Excel file upload |
 | TC-14.4 | | | Column validation |
 | TC-14.5 | | | Error handling |
+| **15. Column Mapping** | | | |
+| TC-15.1 | | | Patient column mapping |
+| TC-15.2 | | | Measure column mapping Q1/Q2 |
+| TC-15.3 | | | Skip columns |
+| TC-15.4 | | | Unmapped columns |
+| TC-15.5 | | | Missing required columns |
+| TC-15.6 | | | Multiple columns → same measure |
+| **16. Data Transformation** | | | |
+| TC-16.1 | | | Wide to long format |
+| TC-16.2 | | | Original vs generated rows |
+| TC-16.3 | | | Empty measure columns skipped |
+| TC-16.4 | | | Status date = import date |
+| TC-16.5 | | | Patients with no measures |
+| TC-16.6 | | | Phone number normalization |
+| **17. Date Parsing** | | | |
+| TC-17.1 | | | MM/DD/YYYY format |
+| TC-17.2 | | | M/D/YYYY format |
+| TC-17.3 | | | M/D/YY format |
+| TC-17.4 | | | YYYY-MM-DD format |
+| TC-17.5 | | | M.D.YYYY format |
+| TC-17.6 | | | Excel serial number |
+| TC-17.7 | | | Invalid date |
+| **18. Non-Compliant Wins Logic** | | | |
+| TC-18.1 | | | All compliant |
+| TC-18.2 | | | Any non-compliant wins |
+| TC-18.3 | | | All non-compliant |
+| TC-18.4 | | | Mixed empty + compliant |
+| TC-18.5 | | | Mixed empty + non-compliant |
+| TC-18.6 | | | All empty (skip) |
+| TC-18.7 | | | Case insensitive |
+| TC-18.8 | | | Compliant abbreviations |
+| TC-18.9 | | | Non-compliant abbreviations |
+| **19. Validation** | | | |
+| TC-19.1 | | | Missing member name |
+| TC-19.2 | | | Missing DOB |
+| TC-19.3 | | | Invalid DOB format |
+| TC-19.4 | | | Missing request type |
+| TC-19.5 | | | Invalid request type |
+| TC-19.6 | | | Missing quality measure |
+| TC-19.7 | | | Invalid quality measure |
+| TC-19.8 | | | Missing measure status |
+| TC-19.9 | | | Missing phone |
+| TC-19.10 | | | Duplicate within import |
+| **20. Error Reporting** | | | |
+| TC-20.1 | | | Error includes member name |
+| TC-20.2 | | | Error count display |
+| TC-20.3 | | | Warning count display |
+| TC-20.4 | | | Duplicate groups display |
+| TC-20.5 | | | Summary - all valid |
+| TC-20.6 | | | Summary - warnings only |
+| TC-20.7 | | | Summary - has errors |
+| TC-20.8 | | | Can proceed false (errors) |
+| TC-20.9 | | | Can proceed true (warnings) |
+| **21. Import Test Page UI** | | | |
+| TC-21.1 | | | Transform button |
+| TC-21.2 | | | Validate button |
+| TC-21.3 | | | Tab navigation |
+| TC-21.4 | | | Stats grid - Transform |
+| TC-21.5 | | | Stats grid - Validate |
+| TC-21.6 | | | Preview table |
+| TC-21.7 | | | Patients no measures section |
+| TC-21.8 | | | Scrollable error list |
 
 ---
 
 ## Last Updated
 
-January 24, 2026 - Added Import Test Page test cases (TC-14.1 to TC-14.5)
+January 25, 2026 - Added comprehensive import test cases (TC-15 to TC-21) for Phase 5c-5d

@@ -205,6 +205,8 @@ function getTodayISOString(): string {
 
 /**
  * Transform a single measure from a row
+ * Handles multiple columns mapping to the same quality measure
+ * Uses "any non-compliant wins" logic
  */
 function transformMeasureRow(
   row: ParsedRow,
@@ -215,8 +217,8 @@ function transformMeasureRow(
     memberAddress: string | null;
   },
   measureGroup: {
-    q1Column?: string;
-    q2Column?: string;
+    q1Columns: string[];
+    q2Columns: string[];
     requestType: string;
     qualityMeasure: string;
   },
@@ -224,28 +226,74 @@ function transformMeasureRow(
   rowIndex: number,
   _errors: TransformError[]
 ): TransformedRow | null {
-  // Get Q1 (date) and Q2 (compliance status) values
-  const q1Value = measureGroup.q1Column ? row[measureGroup.q1Column] : undefined;
-  const q2Value = measureGroup.q2Column ? row[measureGroup.q2Column] : undefined;
+  // Collect all Q2 (compliance status) values from all columns
+  const q2Values: string[] = [];
+  let primaryQ2Column: string | undefined;
 
-  // Skip if both Q1 and Q2 are empty (no data for this measure)
-  if (!q1Value && !q2Value) {
+  for (const col of measureGroup.q2Columns) {
+    const value = row[col];
+    if (value && value.trim()) {
+      q2Values.push(value.trim());
+      if (!primaryQ2Column) {
+        primaryQ2Column = col;
+      }
+    }
+  }
+
+  // Check if any Q1 columns have data
+  let hasQ1Data = false;
+  for (const col of measureGroup.q1Columns) {
+    if (row[col] && row[col].trim()) {
+      hasQ1Data = true;
+      break;
+    }
+  }
+
+  // Skip if no Q1 and no Q2 data for this measure
+  if (!hasQ1Data && q2Values.length === 0) {
     return null;
   }
 
-  // Map compliance status (Q2) to measure status
+  // Apply "any non-compliant wins" logic
+  // Check if ANY column shows non-compliant
   let measureStatus: string | null = null;
-  if (q2Value) {
-    measureStatus = mapComplianceToStatus(
-      q2Value.trim(),
-      measureGroup.qualityMeasure,
-      config
-    );
+  let hasNonCompliant = false;
+  let hasCompliant = false;
 
-    if (!measureStatus && q2Value.trim()) {
-      // Default to the raw value if mapping not found
-      measureStatus = q2Value.trim();
+  for (const q2Value of q2Values) {
+    const normalizedValue = q2Value.toLowerCase().trim();
+
+    // Check for non-compliant values
+    if (
+      normalizedValue === 'non compliant' ||
+      normalizedValue === 'non-compliant' ||
+      normalizedValue === 'noncompliant' ||
+      normalizedValue === 'nc' ||
+      normalizedValue === 'no'
+    ) {
+      hasNonCompliant = true;
     }
+
+    // Check for compliant values
+    if (
+      normalizedValue === 'compliant' ||
+      normalizedValue === 'c' ||
+      normalizedValue === 'yes'
+    ) {
+      hasCompliant = true;
+    }
+  }
+
+  // Determine final status: non-compliant wins over compliant
+  if (hasNonCompliant) {
+    const statusMapping = config.statusMapping[measureGroup.qualityMeasure];
+    measureStatus = statusMapping?.nonCompliant || 'Not Addressed';
+  } else if (hasCompliant) {
+    const statusMapping = config.statusMapping[measureGroup.qualityMeasure];
+    measureStatus = statusMapping?.compliant || null;
+  } else if (q2Values.length > 0) {
+    // Has values but not recognized as compliant/non-compliant, use first raw value
+    measureStatus = q2Values[0];
   }
 
   // Status date is set to import date (today) when we have measure status data
@@ -259,7 +307,7 @@ function transformMeasureRow(
     measureStatus,
     statusDate,
     sourceRowIndex: rowIndex,
-    sourceMeasureColumn: measureGroup.q2Column || measureGroup.q1Column || '',
+    sourceMeasureColumn: primaryQ2Column || measureGroup.q1Columns[0] || '',
   };
 }
 

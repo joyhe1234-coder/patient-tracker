@@ -1,0 +1,11 @@
+Patient,DOB,Phone,Address,Annual Wellness Visit Q1,Annual Wellness Visit Q2,Eye Exam Q1,Eye Exam Q2
+"Valid, Patient1",01/15/1965,5551111111,100 Test St,01/10/2026,Compliant,01/05/2026,Compliant
+,01/15/1970,5552222222,200 Test St,01/08/2026,Compliant,01/03/2026,Non Compliant
+"MissingDOB, Patient3",,5553333333,300 Test St,01/06/2026,Compliant,01/04/2026,Compliant
+"InvalidDOB, Patient4",invalid-date,5554444444,400 Test St,01/07/2026,Non Compliant,01/02/2026,Compliant
+"Valid, Patient5",05/17/1980,5555555555,500 Test St,01/09/2026,Compliant,12/28/2025,Compliant
+"NoMeasureData, Patient6",09/03/1968,5556666666,600 Test St,,,,
+"Valid, Patient7",02/14/1955,5557777777,700 Test St,01/11/2026,Non Compliant,01/05/2026,Compliant
+"PartialData, Patient8",06/25/1975,5558888888,800 Test St,01/13/2026,Compliant,,,
+"Valid, Patient9",12/01/1962,5559999999,900 Test St,01/08/2026,Compliant,12/22/2025,Non Compliant
+"Valid, Patient10",08/19/1978,5550000000,1000 Test St,01/15/2026,Compliant,01/03/2026,Compliant

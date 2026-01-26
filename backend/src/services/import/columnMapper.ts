@@ -181,12 +181,13 @@ export function getMeasureColumnMappings(mappings: ColumnMapping[]): ColumnMappi
 
 /**
  * Group measure columns by quality measure
- * Returns a map of qualityMeasure -> { q1Column, q2Column }
+ * Returns a map of qualityMeasure -> { q1Columns, q2Columns }
+ * Multiple columns can map to the same quality measure (e.g., age-specific columns)
  */
 export function groupMeasureColumns(
   mappings: ColumnMapping[]
-): Map<string, { q1Column?: string; q2Column?: string; requestType: string; qualityMeasure: string }> {
-  const grouped = new Map<string, { q1Column?: string; q2Column?: string; requestType: string; qualityMeasure: string }>();
+): Map<string, { q1Columns: string[]; q2Columns: string[]; requestType: string; qualityMeasure: string }> {
+  const grouped = new Map<string, { q1Columns: string[]; q2Columns: string[]; requestType: string; qualityMeasure: string }>();
 
   for (const mapping of getMeasureColumnMappings(mappings)) {
     if (!mapping.measureInfo) continue;
@@ -195,6 +196,8 @@ export function groupMeasureColumns(
 
     if (!grouped.has(key)) {
       grouped.set(key, {
+        q1Columns: [],
+        q2Columns: [],
         requestType: mapping.measureInfo.requestType,
         qualityMeasure: mapping.measureInfo.qualityMeasure,
       });
@@ -202,9 +205,9 @@ export function groupMeasureColumns(
 
     const entry = grouped.get(key)!;
     if (mapping.targetField === 'statusDate') {
-      entry.q1Column = mapping.sourceColumn;
+      entry.q1Columns.push(mapping.sourceColumn);
     } else if (mapping.targetField === 'complianceStatus') {
-      entry.q2Column = mapping.sourceColumn;
+      entry.q2Columns.push(mapping.sourceColumn);
     }
   }
 
