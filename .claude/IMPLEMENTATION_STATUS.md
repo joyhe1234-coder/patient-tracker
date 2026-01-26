@@ -119,8 +119,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 #### Implementation Phases
 - [x] 5a: Config files + Config Loader
 - [x] 5b: File Parser (CSV/Excel) + Import Test Page
-- [ ] 5c: Column Mapper + Transformer
-- [ ] 5d: Validator + Error Reporter
+- [x] 5c: Column Mapper + Transformer
+- [x] 5d: Validator + Error Reporter
 - [ ] 5e: Diff Calculator
 - [ ] 5f: Preview Cache
 - [ ] 5g: Import Executor (Replace All + Merge)
@@ -310,7 +310,16 @@ patient-tracker/
 │   │   ├── services/        # Business logic services
 │   │   │   ├── dueDateCalculator.ts
 │   │   │   ├── duplicateDetector.ts
-│   │   │   └── statusDatePromptResolver.ts
+│   │   │   ├── statusDatePromptResolver.ts
+│   │   │   └── import/       # CSV Import services
+│   │   │       ├── configLoader.ts
+│   │   │       ├── fileParser.ts
+│   │   │       ├── columnMapper.ts
+│   │   │       ├── dataTransformer.ts
+│   │   │       ├── validator.ts
+│   │   │       └── errorReporter.ts
+│   │   ├── utils/           # Utility functions
+│   │   │   └── dateParser.ts
 │   │   └── index.ts         # Server entry point
 │   └── prisma/
 │       ├── schema.prisma    # Database schema
@@ -376,4 +385,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 24, 2026 - Phase 5a (Config Loader) and 5b (File Parser + Import Test Page) implemented
+January 25, 2026 - Phase 5c (Column Mapper + Transformer) and 5d (Validator + Error Reporter) implemented

@@ -59,8 +59,8 @@ This document tracks planned features and enhancements for future development.
 - [ ] Q8: Date Fields decision
 - [x] Implementation: Phase 5a - Config Loader (systems registry, Hill config)
 - [x] Implementation: Phase 5b - File Parser (CSV/Excel) + Import Test Page
-- [ ] Implementation: Phase 5c - Column Mapper + Transformer
-- [ ] Implementation: Phase 5d - Validator + Error Reporter
+- [x] Implementation: Phase 5c - Column Mapper + Transformer
+- [x] Implementation: Phase 5d - Validator + Error Reporter
 - [ ] Implementation: Phase 5e-5f - Diff Calculator + Preview Cache
 - [ ] Implementation: Phase 5g-5i - Import Executor + APIs
 - [ ] Implementation: Phase 5j-5l - Full Import UI
@@ -152,4 +152,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 24, 2026
+January 25, 2026

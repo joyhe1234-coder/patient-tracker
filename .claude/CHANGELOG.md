@@ -32,6 +32,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `frontend/src/pages/ImportTestPage.tsx` - UI for testing file parsing
   - Navigation link "Import Test" added to header
   - Route `/import-test` added to App.tsx
+- **Phase 5c: Column Mapper + Data Transformer**
+  - `backend/src/services/import/columnMapper.ts` - Maps CSV headers to internal fields using config
+  - `backend/src/services/import/dataTransformer.ts` - Wide-to-long format transformation
+  - `backend/src/utils/dateParser.ts` - Flexible date parsing (Excel serial, MM/DD/YYYY, etc.)
+  - API endpoint: `POST /api/import/analyze` - Analyze column mappings
+  - API endpoint: `POST /api/import/transform` - Transform data to long format
+  - Status date set to import date (today) instead of from CSV columns
+  - Tracks patients with no measures generated (empty measure columns)
+- **Phase 5d: Validator + Error Reporter**
+  - `backend/src/services/import/validator.ts` - Validates transformed data
+  - `backend/src/services/import/errorReporter.ts` - Generates validation reports
+  - API endpoint: `POST /api/import/validate` - Validate before import
+  - Validation checks: required fields, date formats, valid values, duplicates
+  - Error messages include member name for easy identification
+  - Reports errors, warnings, and duplicate groups
 
 ### Changed
 

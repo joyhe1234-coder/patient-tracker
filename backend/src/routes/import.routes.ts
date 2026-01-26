@@ -1,6 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { listSystems, loadSystemConfig, systemExists } from '../services/import/configLoader.js';
 import { parseFile, validateRequiredColumns } from '../services/import/fileParser.js';
+import { mapColumns } from '../services/import/columnMapper.js';
+import { transformData, groupByPatient } from '../services/import/dataTransformer.js';
+import { validateRows } from '../services/import/validator.js';
+import { generateErrorReport, getCondensedReport } from '../services/import/errorReporter.js';
 import { createError } from '../middleware/errorHandler.js';
 import { handleUpload } from '../middleware/upload.js';
 
@@ -93,6 +97,169 @@ router.post('/parse', handleUpload, async (req: Request, res: Response, next: Ne
     });
   } catch (error) {
     next(createError(`Failed to parse file: ${(error as Error).message}`, 400));
+  }
+});
+
+/**
+ * POST /api/import/analyze
+ * Analyze column mappings for an uploaded file
+ */
+router.post('/analyze', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    const systemId = req.body.systemId || 'hill';
+
+    if (!file) {
+      return next(createError('No file uploaded', 400));
+    }
+
+    if (!systemExists(systemId)) {
+      return next(createError(`System not found: ${systemId}`, 404));
+    }
+
+    // Parse the file
+    const parseResult = parseFile(file.buffer, file.originalname);
+
+    // Analyze column mappings
+    const mappingResult = mapColumns(parseResult.headers, systemId);
+
+    res.json({
+      success: true,
+      data: {
+        fileName: parseResult.fileName,
+        fileType: parseResult.fileType,
+        totalRows: parseResult.totalRows,
+        mapping: mappingResult
+      }
+    });
+  } catch (error) {
+    next(createError(`Failed to analyze file: ${(error as Error).message}`, 400));
+  }
+});
+
+/**
+ * POST /api/import/transform
+ * Transform file data from wide format to long format
+ * Returns transformed rows ready for preview/import
+ */
+router.post('/transform', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    const systemId = req.body.systemId || 'hill';
+
+    if (!file) {
+      return next(createError('No file uploaded', 400));
+    }
+
+    if (!systemExists(systemId)) {
+      return next(createError(`System not found: ${systemId}`, 404));
+    }
+
+    // Parse the file
+    const parseResult = parseFile(file.buffer, file.originalname);
+
+    // Transform the data
+    const transformResult = transformData(
+      parseResult.headers,
+      parseResult.rows,
+      systemId
+    );
+
+    // Group by patient for summary
+    const patientGroups = groupByPatient(transformResult.rows);
+
+    res.json({
+      success: true,
+      data: {
+        fileName: parseResult.fileName,
+        fileType: parseResult.fileType,
+        stats: {
+          ...transformResult.stats,
+          uniquePatients: patientGroups.size
+        },
+        mapping: {
+          mapped: transformResult.mapping.stats.mapped,
+          skipped: transformResult.mapping.stats.skipped,
+          unmapped: transformResult.mapping.stats.unmapped,
+          unmappedColumns: transformResult.mapping.unmappedColumns.slice(0, 10), // First 10 unmapped
+          missingRequired: transformResult.mapping.missingRequired
+        },
+        errors: transformResult.errors.slice(0, 20), // First 20 errors
+        patientsWithNoMeasures: transformResult.patientsWithNoMeasures, // Patients with no measures
+        // Preview first 20 transformed rows
+        previewRows: transformResult.rows.slice(0, 20)
+      }
+    });
+  } catch (error) {
+    next(createError(`Failed to transform file: ${(error as Error).message}`, 400));
+  }
+});
+
+/**
+ * POST /api/import/validate
+ * Validate transformed data before import
+ * Returns validation results with errors, warnings, and duplicates
+ */
+router.post('/validate', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    const systemId = req.body.systemId || 'hill';
+
+    if (!file) {
+      return next(createError('No file uploaded', 400));
+    }
+
+    if (!systemExists(systemId)) {
+      return next(createError(`System not found: ${systemId}`, 404));
+    }
+
+    // Parse the file
+    const parseResult = parseFile(file.buffer, file.originalname);
+
+    // Transform the data
+    const transformResult = transformData(
+      parseResult.headers,
+      parseResult.rows,
+      systemId
+    );
+
+    // Validate the transformed data
+    const validationResult = validateRows(transformResult.rows);
+
+    // Generate error report
+    const errorReport = generateErrorReport(validationResult, transformResult.rows);
+    const condensedReport = getCondensedReport(errorReport);
+
+    // Group by patient for summary
+    const patientGroups = groupByPatient(transformResult.rows);
+
+    res.json({
+      success: true,
+      data: {
+        fileName: parseResult.fileName,
+        fileType: parseResult.fileType,
+        transformStats: {
+          inputRows: transformResult.stats.inputRows,
+          outputRows: transformResult.stats.outputRows,
+          uniquePatients: patientGroups.size,
+          patientsWithNoMeasures: transformResult.stats.patientsWithNoMeasures
+        },
+        patientsWithNoMeasures: transformResult.patientsWithNoMeasures,
+        validation: {
+          valid: validationResult.valid,
+          canProceed: condensedReport.summary.canProceed,
+          stats: validationResult.stats,
+          summary: condensedReport.summary,
+          errors: condensedReport.topErrors,
+          warnings: condensedReport.topWarnings,
+          duplicates: condensedReport.duplicates
+        },
+        // Preview first 20 transformed rows
+        previewRows: transformResult.rows.slice(0, 20)
+      }
+    });
+  } catch (error) {
+    next(createError(`Failed to validate file: ${(error as Error).message}`, 400));
   }
 });
 
