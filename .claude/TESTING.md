@@ -23,8 +23,8 @@ Both approaches use the same test data files in `test-data/` folder.
 
 - **Framework:** Jest + ts-jest (ESM mode)
 - **Location:** `backend/src/services/import/__tests__/`
-- **Total Tests:** 69 tests across 4 test files
-- **Run Time:** ~3 seconds
+- **Total Tests:** 130 tests across 7 test files
+- **Run Time:** ~4 seconds
 
 ### Test Files
 
@@ -34,6 +34,9 @@ Both approaches use the same test data files in `test-data/` folder.
 | `columnMapper.test.ts` | 13 | Column mapping, Q1/Q2 grouping, skip columns, stats |
 | `dataTransformer.test.ts` | 17 | Wide-to-long transformation, "any non-compliant wins", date parsing |
 | `validator.test.ts` | 23 | Validation rules, error deduplication, duplicate detection |
+| `configLoader.test.ts` | 22 | System config loading, registry, validation |
+| `errorReporter.test.ts` | 25 | Error report generation, formatting, condensed reports |
+| `integration.test.ts` | 14 | Full pipeline tests, edge cases, error propagation |
 
 ### Running Jest Tests
 
@@ -64,10 +67,13 @@ PASS src/services/import/__tests__/columnMapper.test.ts (13 tests)
 PASS src/services/import/__tests__/fileParser.test.ts (16 tests)
 PASS src/services/import/__tests__/dataTransformer.test.ts (17 tests)
 PASS src/services/import/__tests__/validator.test.ts (23 tests)
+PASS src/services/import/__tests__/configLoader.test.ts (22 tests)
+PASS src/services/import/__tests__/errorReporter.test.ts (25 tests)
+PASS src/services/import/__tests__/integration.test.ts (14 tests)
 
-Test Suites: 4 passed, 4 total
-Tests:       69 passed, 69 total
-Time:        ~3s
+Test Suites: 7 passed, 7 total
+Tests:       130 passed, 130 total
+Time:        ~4s
 ```
 
 ---
@@ -222,7 +228,10 @@ patient-tracker/
 │           ├── fileParser.test.ts
 │           ├── columnMapper.test.ts
 │           ├── dataTransformer.test.ts
-│           └── validator.test.ts
+│           ├── validator.test.ts
+│           ├── configLoader.test.ts
+│           ├── errorReporter.test.ts
+│           └── integration.test.ts
 └── test-data/
     ├── test-valid.csv                    # Test input files
     ├── test-dates.csv
@@ -252,7 +261,7 @@ patient-tracker/
 
 ```bash
 cd backend
-npm test                          # All 69 unit tests pass
+npm test                          # All 130 unit tests pass
 npm run test:cli -- --compare     # All 7 files match baselines
 ```
 
@@ -351,4 +360,4 @@ cd backend && npm run test:cli
 
 ## Last Updated
 
-January 26, 2026 - Added both Option 1 (Jest) and Option 3 (CLI) testing approaches
+January 26, 2026 - Expanded to 130 tests across 7 test files (added configLoader, errorReporter, integration tests)
