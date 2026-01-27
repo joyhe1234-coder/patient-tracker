@@ -1,0 +1,188 @@
+{
+  "file": "test-duplicates.csv",
+  "parse": {
+    "totalRows": 8,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Annual Wellness Visit Q1",
+      "Annual Wellness Visit Q2",
+      "Eye Exam Q1",
+      "Eye Exam Q2",
+      "BP Control Q1",
+      "BP Control Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 10,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 3,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 8,
+    "outputRows": 24,
+    "patientsWithNoMeasures": 0,
+    "errors": 0
+  },
+  "validation": {
+    "valid": true,
+    "errors": 0,
+    "warnings": 9,
+    "duplicateGroups": 6
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 7
+      }
+    ],
+    "validationErrors": [],
+    "patientsWithNoMeasures": []
+  }
+}

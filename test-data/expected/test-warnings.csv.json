@@ -1,0 +1,162 @@
+{
+  "file": "test-warnings.csv",
+  "parse": {
+    "totalRows": 10,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Annual Wellness Visit Q1",
+      "Annual Wellness Visit Q2",
+      "Eye Exam Q1",
+      "Eye Exam Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 8,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 2,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 10,
+    "outputRows": 20,
+    "patientsWithNoMeasures": 0,
+    "errors": 0
+  },
+  "validation": {
+    "valid": true,
+    "errors": 0,
+    "warnings": 5,
+    "duplicateGroups": 0
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "Complete, Patient1",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Complete, Patient1",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "NoPhone, Patient2",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "NoPhone, Patient2",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "NoPhone, Patient3",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "NoPhone, Patient3",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Complete, Patient4",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Complete, Patient4",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "NoPhone, Patient5",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "NoPhone, Patient5",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "NoAddress, Patient6",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "NoAddress, Patient6",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "NoPhone, Patient7",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "NoPhone, Patient7",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Complete, Patient8",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Complete, Patient8",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "NoPhoneNoAddress, Patient9",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "NoPhoneNoAddress, Patient9",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Complete, Patient10",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Complete, Patient10",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 9
+      }
+    ],
+    "validationErrors": [],
+    "patientsWithNoMeasures": []
+  }
+}

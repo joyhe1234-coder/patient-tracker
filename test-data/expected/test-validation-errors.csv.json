@@ -1,0 +1,150 @@
+{
+  "file": "test-validation-errors.csv",
+  "parse": {
+    "totalRows": 10,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Annual Wellness Visit Q1",
+      "Annual Wellness Visit Q2",
+      "Eye Exam Q1",
+      "Eye Exam Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 8,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 2,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 10,
+    "outputRows": 15,
+    "patientsWithNoMeasures": 1,
+    "errors": 2
+  },
+  "validation": {
+    "valid": false,
+    "errors": 2,
+    "warnings": 0,
+    "duplicateGroups": 0
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "Valid, Patient1",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Valid, Patient1",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "MissingDOB, Patient3",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "MissingDOB, Patient3",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "InvalidDOB, Patient4",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "InvalidDOB, Patient4",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Valid, Patient5",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Valid, Patient5",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Valid, Patient7",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Valid, Patient7",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "PartialData, Patient8",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Valid, Patient9",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Valid, Patient9",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Valid, Patient10",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Valid, Patient10",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 9
+      }
+    ],
+    "validationErrors": [
+      {
+        "rowIndex": 2,
+        "field": "memberDob",
+        "message": "Date of birth is required",
+        "memberName": "MissingDOB, Patient3"
+      },
+      {
+        "rowIndex": 3,
+        "field": "memberDob",
+        "message": "Date of birth is required",
+        "memberName": "InvalidDOB, Patient4"
+      }
+    ],
+    "patientsWithNoMeasures": [
+      {
+        "rowIndex": 5,
+        "memberName": "NoMeasureData, Patient6"
+      }
+    ]
+  }
+}

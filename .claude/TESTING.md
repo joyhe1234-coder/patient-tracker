@@ -45,13 +45,23 @@ patient-tracker/
 
 ## Running Tests
 
-### Backend Tests
+### Backend Unit Tests (Jest)
 ```bash
 cd backend
-npm test                    # Run all tests
+npm test                    # Run all tests (69 tests)
 npm test -- --watch         # Watch mode
 npm test -- --coverage      # With coverage report
 npm test -- fileParser      # Run specific test file
+```
+
+### CLI Test Script (Option 3)
+```bash
+cd backend
+npm run test:cli                      # Run all test files
+npm run test:cli -- test-valid.csv    # Run specific file
+npm run test:cli -- --save            # Save results as expected (baseline)
+npm run test:cli -- --compare         # Compare against expected (CI mode)
+npm run test:cli -- --details         # Include detailed row data
 ```
 
 ### Frontend Tests
