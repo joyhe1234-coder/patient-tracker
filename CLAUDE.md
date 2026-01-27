@@ -81,6 +81,7 @@ Read the following files before starting work:
 - `.claude/TODO.md` - Task list and priorities
 - `.claude/CHANGELOG.md` - Version history and changes
 - `.claude/REGRESSION_TEST_PLAN.md` - Testing requirements
+- `.claude/TESTING.md` - **Testing guide: framework setup, patterns, and examples**
 
 ## Claude-Specific Context
 - `.claude/context.md` - Project structure and tech stack
@@ -90,7 +91,8 @@ Read the following files before starting work:
 ## Quick Commands
 - Dev server: `docker-compose up`
 - Build: `cd frontend && npm run build`
-- Test: [add command]
+- Backend tests: `cd backend && npm test`
+- Frontend tests: `cd frontend && npm test`
 
 ---
 
