@@ -11,6 +11,8 @@ export interface ParseResult {
   totalRows: number;
   fileName: string;
   fileType: 'csv' | 'xlsx';
+  /** 1-indexed spreadsheet row number where data starts (after headers) */
+  dataStartRow: number;
 }
 
 export interface ParseError {
@@ -52,12 +54,36 @@ export function parseCSV(buffer: Buffer, fileName: string): ParseResult {
     return obj;
   });
 
+  // Check if first row is a title row
+  let headerRowIndex = 0;
+  if (isTitleRow(data[0])) {
+    headerRowIndex = 1;
+    // Re-parse with correct header row
+    const actualHeaders = data[headerRowIndex].map(h => (h || '').trim());
+    const actualRows: ParsedRow[] = data.slice(headerRowIndex + 1).map(row => {
+      const obj: ParsedRow = {};
+      actualHeaders.forEach((header, index) => {
+        obj[header] = row[index]?.trim() || undefined;
+      });
+      return obj;
+    });
+    return {
+      headers: actualHeaders,
+      rows: actualRows,
+      totalRows: actualRows.length,
+      fileName,
+      fileType: 'csv',
+      dataStartRow: headerRowIndex + 2  // 1-indexed: title row + header row + 1
+    };
+  }
+
   return {
     headers,
     rows,
     totalRows: rows.length,
     fileName,
-    fileType: 'csv'
+    fileType: 'csv',
+    dataStartRow: 2  // 1-indexed: header row at 1, data starts at 2
   };
 }
 
@@ -145,7 +171,8 @@ export function parseExcel(buffer: Buffer, fileName: string): ParseResult {
     rows,
     totalRows: rows.length,
     fileName,
-    fileType: 'xlsx'
+    fileType: 'xlsx',
+    dataStartRow: headerRowIndex + 2  // 1-indexed: headerRowIndex is 0 or 1, +1 for 1-index, +1 for data after header
   };
 }
 

@@ -64,6 +64,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - **Prisma/Alpine OpenSSL compatibility** - Added `linux-musl-openssl-3.0.x` binary target
 - **Docker config files** - Added COPY for `src/config` to `dist/config` in Dockerfile
+- **Validation Error Row Numbers** - Now show original spreadsheet row numbers instead of transformed row indices
+  - Added `dataStartRow` tracking to handle files with title rows
+  - Errors deduplicated per patient+field (no longer repeated for each generated row)
+  - CSV parser now detects title rows and calculates correct data start position
+  - API returns `dataStartRow` for frontend to calculate display row numbers
 
 ---
 

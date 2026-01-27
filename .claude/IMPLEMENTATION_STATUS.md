@@ -121,6 +121,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [x] 5b: File Parser (CSV/Excel) + Import Test Page
 - [x] 5c: Column Mapper + Transformer
 - [x] 5d: Validator + Error Reporter
+  - Error row numbers now reference original spreadsheet rows (not transformed indices)
+  - Title row detection for files with report headers
+  - Error deduplication per patient+field
 - [ ] 5e: Diff Calculator
 - [ ] 5f: Preview Cache
 - [ ] 5g: Import Executor (Replace All + Merge)
@@ -385,4 +388,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 25, 2026 - Phase 5c (Column Mapper + Transformer) and 5d (Validator + Error Reporter) implemented
+January 26, 2026 - Phase 5d enhanced with correct row number display and error deduplication

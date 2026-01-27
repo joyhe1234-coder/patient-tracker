@@ -65,6 +65,7 @@ const VALID_QUALITY_MEASURES: Record<string, string[]> = {
 
 /**
  * Validate all transformed rows
+ * Errors are reported by original spreadsheet row number and deduplicated per patient+field
  */
 export function validateRows(rows: TransformedRow[]): ValidationResult {
   const errors: ValidationError[] = [];
@@ -72,36 +73,58 @@ export function validateRows(rows: TransformedRow[]): ValidationResult {
   const rowsWithErrors = new Set<number>();
   const rowsWithWarnings = new Set<number>();
 
+  // Track errors we've already reported to deduplicate per patient/source row
+  // Key: "sourceRowIndex|field"
+  const reportedErrors = new Set<string>();
+  const reportedWarnings = new Set<string>();
+
   // Validate each row
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const rowErrors = validateRow(row, i);
+  for (const row of rows) {
+    // Use sourceRowIndex from the row (original spreadsheet row, 0-indexed)
+    const sourceRowIndex = row.sourceRowIndex;
+    const rowErrors = validateRow(row, sourceRowIndex);
 
     for (const error of rowErrors) {
+      // Create dedup key: sourceRowIndex + field
+      const dedupKey = `${sourceRowIndex}|${error.field}`;
+
       if (error.severity === 'error') {
-        errors.push(error);
-        rowsWithErrors.add(i);
+        // Only add if we haven't reported this error for this source row
+        if (!reportedErrors.has(dedupKey)) {
+          reportedErrors.add(dedupKey);
+          errors.push(error);
+          rowsWithErrors.add(sourceRowIndex);
+        }
       } else {
-        warnings.push(error);
-        rowsWithWarnings.add(i);
+        // Only add if we haven't reported this warning for this source row
+        if (!reportedWarnings.has(dedupKey)) {
+          reportedWarnings.add(dedupKey);
+          warnings.push(error);
+          rowsWithWarnings.add(sourceRowIndex);
+        }
       }
     }
   }
 
-  // Check for duplicates within the import
+  // Check for duplicates within the import (by source row)
   const duplicates = findDuplicates(rows);
 
-  // Add warnings for duplicates
+  // Add warnings for duplicates (using source row indices)
   for (const dup of duplicates) {
     for (const rowIndex of dup.rows.slice(1)) {
-      warnings.push({
-        rowIndex,
-        field: 'duplicate',
-        message: `Duplicate of row ${dup.rows[0] + 1}: same patient + measure`,
-        severity: 'warning',
-        memberName: dup.patient,
-      });
-      rowsWithWarnings.add(rowIndex);
+      // Dedup key for duplicates
+      const dedupKey = `${rowIndex}|duplicate|${dup.measure}`;
+      if (!reportedWarnings.has(dedupKey)) {
+        reportedWarnings.add(dedupKey);
+        warnings.push({
+          rowIndex,
+          field: 'duplicate',
+          message: `Duplicate entry: same patient + measure combination`,
+          severity: 'warning',
+          memberName: dup.patient,
+        });
+        rowsWithWarnings.add(rowIndex);
+      }
     }
   }
 
@@ -240,29 +263,33 @@ function isValidDateString(dateStr: string): boolean {
 /**
  * Find duplicate rows within the import
  * Duplicates are defined as same patient (name + DOB) + same quality measure
+ * Uses sourceRowIndex to track original spreadsheet row numbers
  */
 function findDuplicates(rows: TransformedRow[]): DuplicateGroup[] {
   const groups = new Map<string, number[]>();
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
+  for (const row of rows) {
     // Create key from patient + measure
     const key = `${row.memberName}|${row.memberDob}|${row.requestType}|${row.qualityMeasure}`;
 
     if (!groups.has(key)) {
       groups.set(key, []);
     }
-    groups.get(key)!.push(i);
+    // Use sourceRowIndex (original spreadsheet row, 0-indexed)
+    groups.get(key)!.push(row.sourceRowIndex);
   }
 
   // Return only groups with more than 1 row (actual duplicates)
+  // Deduplicate the row indices in case multiple transformed rows came from same source
   const duplicates: DuplicateGroup[] = [];
   for (const [key, rowIndices] of groups) {
-    if (rowIndices.length > 1) {
+    // Deduplicate source row indices
+    const uniqueRowIndices = [...new Set(rowIndices)];
+    if (uniqueRowIndices.length > 1) {
       const parts = key.split('|');
       duplicates.push({
         key,
-        rows: rowIndices,
+        rows: uniqueRowIndices,
         patient: parts[0],
         measure: parts[3],
       });

@@ -158,11 +158,12 @@ router.post('/transform', handleUpload, async (req: Request, res: Response, next
     // Parse the file
     const parseResult = parseFile(file.buffer, file.originalname);
 
-    // Transform the data
+    // Transform the data (pass dataStartRow for correct row number display)
     const transformResult = transformData(
       parseResult.headers,
       parseResult.rows,
-      systemId
+      systemId,
+      parseResult.dataStartRow
     );
 
     // Group by patient for summary
@@ -173,6 +174,7 @@ router.post('/transform', handleUpload, async (req: Request, res: Response, next
       data: {
         fileName: parseResult.fileName,
         fileType: parseResult.fileType,
+        dataStartRow: transformResult.dataStartRow, // For UI to calculate display row numbers
         stats: {
           ...transformResult.stats,
           uniquePatients: patientGroups.size
@@ -216,11 +218,12 @@ router.post('/validate', handleUpload, async (req: Request, res: Response, next:
     // Parse the file
     const parseResult = parseFile(file.buffer, file.originalname);
 
-    // Transform the data
+    // Transform the data (pass dataStartRow for correct row number display)
     const transformResult = transformData(
       parseResult.headers,
       parseResult.rows,
-      systemId
+      systemId,
+      parseResult.dataStartRow
     );
 
     // Validate the transformed data
@@ -238,6 +241,7 @@ router.post('/validate', handleUpload, async (req: Request, res: Response, next:
       data: {
         fileName: parseResult.fileName,
         fileType: parseResult.fileType,
+        dataStartRow: transformResult.dataStartRow, // For UI to calculate display row numbers
         transformStats: {
           inputRows: transformResult.stats.inputRows,
           outputRows: transformResult.stats.outputRows,

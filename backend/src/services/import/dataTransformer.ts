@@ -38,6 +38,8 @@ export interface TransformResult {
   patientsWithNoMeasures: PatientWithNoMeasures[];
   // Mapping result from column analysis
   mapping: MappingResult;
+  // 1-indexed spreadsheet row where data starts (for display purposes)
+  dataStartRow: number;
   // Summary stats
   stats: {
     inputRows: number;
@@ -63,11 +65,13 @@ export interface PatientWithNoMeasures {
 
 /**
  * Transform parsed data from wide format to long format
+ * @param dataStartRow - 1-indexed spreadsheet row where data starts (for display purposes)
  */
 export function transformData(
   headers: string[],
   rows: ParsedRow[],
-  systemId: string
+  systemId: string,
+  dataStartRow: number = 2
 ): TransformResult {
   const config = loadSystemConfig(systemId);
   const mapping = mapColumns(headers, systemId);
@@ -132,6 +136,7 @@ export function transformData(
     errors,
     patientsWithNoMeasures,
     mapping,
+    dataStartRow,
     stats: {
       inputRows: rows.length,
       outputRows: transformedRows.length,

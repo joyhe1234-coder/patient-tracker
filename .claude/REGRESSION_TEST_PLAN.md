@@ -1282,6 +1282,46 @@ This document contains manual test cases for verifying system functionality. Run
 - All errors accessible via scrolling
 - Section doesn't overflow page
 
+### TC-21.9: Row Numbers Match Spreadsheet (No Title Row)
+**Steps:**
+1. Upload `test-validation-errors.csv` (no title row)
+2. Click Validate
+3. Check error row numbers
+
+**Expected:**
+- Row 3 in error corresponds to line 3 in spreadsheet (header is row 1)
+- Patient "MissingDOB, Patient3" error shows "Row 4" (data starts at row 2)
+
+### TC-21.10: Row Numbers Match Spreadsheet (With Title Row)
+**Steps:**
+1. Upload Excel file with title/report row before headers
+2. Click Validate
+3. Check error row numbers
+
+**Expected:**
+- Row numbers account for title row (data starts at row 3)
+- Patient on first data row shows "Row 3" not "Row 2"
+
+### TC-21.11: Error Deduplication Per Patient
+**Steps:**
+1. Upload file with patient having validation error (e.g., missing DOB)
+2. Click Validate
+3. Count errors for that patient
+
+**Expected:**
+- Same error appears only ONCE per patient (not repeated for each generated row)
+- If patient generates 4 measure rows, DOB error shows 1 time, not 4
+
+### TC-21.12: Patients With No Measures Row Numbers
+**Steps:**
+1. Upload `test-no-measures.csv`
+2. Click Validate or Transform
+3. Check "Patients with No Measures" section row numbers
+
+**Expected:**
+- Row numbers match original spreadsheet positions
+- Row numbers account for title row if present
+
 ---
 
 ## Test Data Files Needed
@@ -1436,9 +1476,13 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-21.6 | | | Preview table |
 | TC-21.7 | | | Patients no measures section |
 | TC-21.8 | | | Scrollable error list |
+| TC-21.9 | | | Row numbers match spreadsheet (no title) |
+| TC-21.10 | | | Row numbers match spreadsheet (with title) |
+| TC-21.11 | | | Error deduplication per patient |
+| TC-21.12 | | | Patients no measures row numbers |
 
 ---
 
 ## Last Updated
 
-January 25, 2026 - Added comprehensive import test cases (TC-15 to TC-21) for Phase 5c-5d
+January 26, 2026 - Added row number accuracy test cases (TC-21.9 to TC-21.12)

@@ -22,6 +22,7 @@ interface PatientWithNoMeasures {
 interface TransformResult {
   fileName: string;
   fileType: string;
+  dataStartRow: number; // 1-indexed spreadsheet row where data starts
   stats: {
     inputRows: number;
     outputRows: number;
@@ -79,6 +80,7 @@ interface DuplicateGroup {
 interface ValidateResult {
   fileName: string;
   fileType: string;
+  dataStartRow: number; // 1-indexed spreadsheet row where data starts
   transformStats: {
     inputRows: number;
     outputRows: number;
@@ -364,7 +366,7 @@ export default function ImportTestPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Transform Results</h2>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="bg-gray-50 p-3 rounded">
                 <div className="text-sm text-gray-600">Original Rows</div>
                 <div className="text-2xl font-bold text-gray-700">{transformResult.stats.inputRows}</div>
@@ -376,10 +378,6 @@ export default function ImportTestPage() {
               <div className="bg-purple-50 p-3 rounded">
                 <div className="text-sm text-purple-600">Unique Patients</div>
                 <div className="text-2xl font-bold text-purple-700">{transformResult.stats.uniquePatients}</div>
-              </div>
-              <div className="bg-orange-50 p-3 rounded">
-                <div className="text-sm text-orange-600">Measures/Patient</div>
-                <div className="text-2xl font-bold text-orange-700">{transformResult.stats.measuresPerPatient}</div>
               </div>
               <div className="bg-gray-50 p-3 rounded">
                 <div className="text-sm text-gray-600">Errors</div>
@@ -415,7 +413,7 @@ export default function ImportTestPage() {
                   <tbody>
                     {transformResult.patientsWithNoMeasures.map((patient, idx) => (
                       <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-3 py-2 text-gray-500">{patient.rowIndex + 1}</td>
+                        <td className="px-3 py-2 text-gray-500">{patient.rowIndex + transformResult.dataStartRow}</td>
                         <td className="px-3 py-2 font-medium">{patient.memberName}</td>
                         <td className="px-3 py-2">{patient.memberDob || '-'}</td>
                       </tr>
@@ -428,7 +426,7 @@ export default function ImportTestPage() {
 
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Column Mapping</h2>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div className="bg-green-50 p-3 rounded text-center">
                 <div className="text-sm text-green-600">Mapped</div>
                 <div className="text-xl font-bold text-green-700">{transformResult.mapping.mapped}</div>
@@ -440,6 +438,10 @@ export default function ImportTestPage() {
               <div className="bg-yellow-50 p-3 rounded text-center">
                 <div className="text-sm text-yellow-600">Unmapped</div>
                 <div className="text-xl font-bold text-yellow-700">{transformResult.mapping.unmapped}</div>
+              </div>
+              <div className="bg-orange-50 p-3 rounded text-center">
+                <div className="text-sm text-orange-600">Measure Types</div>
+                <div className="text-xl font-bold text-orange-700">{transformResult.stats.measuresPerPatient}</div>
               </div>
             </div>
           </div>
@@ -576,7 +578,7 @@ export default function ImportTestPage() {
                   <div key={idx} className="bg-red-50 p-3 rounded text-sm flex items-start gap-2">
                     <span className="text-red-500 font-bold">!</span>
                     <div>
-                      <span className="font-medium">Row {err.rowIndex + 1}</span>
+                      <span className="font-medium">Row {err.rowIndex + validateResult.dataStartRow}</span>
                       {err.memberName && <span className="text-gray-700"> ({err.memberName})</span>}
                       <span className="text-gray-500"> - {err.field}: </span>
                       <span className="text-red-600">{err.message}</span>
@@ -597,7 +599,7 @@ export default function ImportTestPage() {
                   <div key={idx} className="bg-yellow-50 p-3 rounded text-sm flex items-start gap-2">
                     <span className="text-yellow-500 font-bold">⚠</span>
                     <div>
-                      <span className="font-medium">Row {warn.rowIndex + 1}</span>
+                      <span className="font-medium">Row {warn.rowIndex + validateResult.dataStartRow}</span>
                       {warn.memberName && <span className="text-gray-700"> ({warn.memberName})</span>}
                       <span className="text-gray-500"> - {warn.field}: </span>
                       <span className="text-yellow-700">{warn.message}</span>
@@ -620,7 +622,7 @@ export default function ImportTestPage() {
                     <div className="font-medium">{group.patient}</div>
                     <div className="text-sm text-gray-600">{group.measure}</div>
                     <div className="text-sm text-orange-600 mt-1">
-                      Rows: {group.rows.map(r => r + 1).join(', ')}
+                      Rows: {group.rows.map(r => r + validateResult.dataStartRow).join(', ')}
                     </div>
                   </div>
                 ))}
@@ -649,7 +651,7 @@ export default function ImportTestPage() {
                   <tbody>
                     {validateResult.patientsWithNoMeasures.map((patient, idx) => (
                       <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-3 py-2 text-gray-500">{patient.rowIndex + 1}</td>
+                        <td className="px-3 py-2 text-gray-500">{patient.rowIndex + validateResult.dataStartRow}</td>
                         <td className="px-3 py-2 font-medium">{patient.memberName}</td>
                         <td className="px-3 py-2">{patient.memberDob || '-'}</td>
                       </tr>
