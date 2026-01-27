@@ -67,7 +67,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - qualityMeasure → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
   - measureStatus → clears statusDate, tracking1/2/3, dueDate, timeInterval
   - Notes preserved (not cleared)
-- [x] Time interval manual override - editable for all statuses (removed dropdown restriction)
+- [x] Time interval manual override - editable for ALL statuses (allows overriding default from tracking)
 - [x] Duplicate row functionality (create copy of existing row)
   - "Duplicate" button in toolbar (enabled when row selected)
   - Copies patient data only (memberName, memberDob, phone, address)
@@ -185,10 +185,15 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - MeasureStatus.baseDueDays fallback
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
 - [x] Time Interval editability
-  - Editable for ALL statuses (manual override allowed)
-  - ~~Previously NOT editable for dropdown-based intervals~~ (removed restriction)
+  - Editable for statuses with **fixed default** or **test type dropdown** (Mammogram, Colonoscopy, etc.)
+  - **NOT editable** for 5 time period dropdown statuses (interval controlled by dropdown):
+    - Screening discussed (In 1-11 Months)
+    - HgbA1c at goal / NOT at goal (1-12 months)
+    - Scheduled call back - BP at/not at goal (Call every 1-8 wks)
+  - Default value comes from tracking selection (DueDayRule) or baseDueDays
   - When edited, Due Date = Status Date + Time Interval
   - Row colors update accordingly (overdue detection)
+  - See `.claude/TIME_INTERVAL_MATRIX.md` for complete editability matrix
 - [x] Status Date prompt when Measure Status changes
   - Shows contextual prompt text (e.g., "Date Completed", "Date Ordered")
   - Light gray cell background with italic text when status date is missing
@@ -388,4 +393,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 26, 2026 - Phase 5d enhanced with correct row number display and error deduplication
+January 26, 2026 - Fixed Time Interval editability (only 5 time period dropdown statuses are non-editable)

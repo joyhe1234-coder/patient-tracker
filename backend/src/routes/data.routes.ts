@@ -275,22 +275,18 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       ? measureUpdate.tracking2 as string | null
       : existing.tracking2;
 
-    // Statuses that use dropdown/range for interval (time interval NOT editable)
-    const DROPDOWN_INTERVAL_STATUSES = [
-      'Screening discussed',
-      'HgbA1c at goal',
-      'HgbA1c NOT at goal',
-      'Colon cancer screening ordered',
-      'Screening test ordered',
-      'Scheduled call back - BP not at goal',
-      'Scheduled call back - BP at goal',
-      'Chronic diagnosis resolved',
-      'Chronic diagnosis invalid',
-    ];
-
     // Check if timeIntervalDays was explicitly updated by user
     const timeIntervalExplicitlySet = 'timeIntervalDays' in updateData;
-    const isDropdownIntervalStatus = finalMeasureStatus ? DROPDOWN_INTERVAL_STATUSES.includes(finalMeasureStatus) : false;
+
+    // Statuses where interval is controlled by TIME PERIOD dropdown (NOT manually editable)
+    // These have dropdowns like "In X Months", "X months", "Call every X wks"
+    const TIME_PERIOD_DROPDOWN_STATUSES = [
+      'Screening discussed',           // Tracking #1: In 1-11 Months
+      'HgbA1c at goal',                // Tracking #2: 1-12 months
+      'HgbA1c NOT at goal',            // Tracking #2: 1-12 months
+      'Scheduled call back - BP not at goal',  // Tracking #1: Call every 1-8 wks
+      'Scheduled call back - BP at goal',      // Tracking #1: Call every 1-8 wks
+    ];
 
     // Check if due date related fields changed
     const dueDateFieldsChanged =
@@ -299,9 +295,13 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       'tracking1' in updateData ||
       'tracking2' in updateData;
 
-    if (timeIntervalExplicitlySet && !isDropdownIntervalStatus && finalStatusDate) {
-      // User edited time interval for a baseDueDays status
-      // Calculate dueDate = statusDate + timeIntervalDays
+    // Check if interval edit should be allowed
+    // Time period dropdown statuses cannot have interval manually edited
+    const isTimePeriodDropdownStatus = TIME_PERIOD_DROPDOWN_STATUSES.includes(finalMeasureStatus || '');
+    const canEditInterval = timeIntervalExplicitlySet && finalStatusDate && !isTimePeriodDropdownStatus;
+
+    if (canEditInterval) {
+      // User edited time interval - recalculate dueDate (manual override allowed)
       const interval = measureUpdate.timeIntervalDays as number;
       if (interval !== null && interval !== undefined) {
         const dueDate = new Date(finalStatusDate);

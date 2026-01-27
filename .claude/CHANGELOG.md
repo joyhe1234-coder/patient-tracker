@@ -68,6 +68,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Added `dataStartRow` tracking to handle files with title rows
   - Errors deduplicated per patient+field (no longer repeated for each generated row)
   - CSV parser now detects title rows and calculates correct data start position
+- **Time Interval Editability** - Corrected which statuses allow manual time interval editing
+  - Only 5 "time period dropdown" statuses (Screening discussed, HgbA1c at/not at goal, BP call back statuses) prevent manual interval editing
+  - Test type dropdown statuses (Screening test ordered, Colon cancer screening ordered, etc.) now allow interval editing
+  - Documented complete Time Interval Editability Matrix in `.claude/TIME_INTERVAL_MATRIX.md`
   - API returns `dataStartRow` for frontend to calculate display row numbers
 
 ---
