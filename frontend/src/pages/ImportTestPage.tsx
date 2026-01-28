@@ -77,6 +77,44 @@ interface DuplicateGroup {
   measure: string;
 }
 
+interface PreviewChange {
+  action: 'INSERT' | 'UPDATE' | 'SKIP' | 'BOTH' | 'DELETE';
+  memberName: string;
+  memberDob: string | null;
+  requestType: string;
+  qualityMeasure: string;
+  oldStatus: string | null;
+  newStatus: string | null;
+  reason: string;
+}
+
+interface PreviewResult {
+  previewId: string;
+  systemId: string;
+  mode: 'replace' | 'merge';
+  fileName: string;
+  expiresAt: string;
+  summary: {
+    inserts: number;
+    updates: number;
+    skips: number;
+    duplicates: number;
+    deletes: number;
+    total: number;
+    modifying: number;
+  };
+  patients: {
+    new: number;
+    existing: number;
+    total: number;
+  };
+  validation: {
+    warnings: number;
+    duplicatesInFile: number;
+  };
+  changes: PreviewChange[];
+}
+
 interface ValidateResult {
   fileName: string;
   fileType: string;
@@ -113,7 +151,8 @@ interface ValidateResult {
   previewRows: TransformedRow[];
 }
 
-type TabType = 'parse' | 'transform' | 'validate';
+type TabType = 'parse' | 'transform' | 'validate' | 'preview';
+type ImportMode = 'replace' | 'merge';
 
 export default function ImportTestPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -122,6 +161,9 @@ export default function ImportTestPage() {
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [transformResult, setTransformResult] = useState<TransformResult | null>(null);
   const [validateResult, setValidateResult] = useState<ValidateResult | null>(null);
+  const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
+  const [importMode, setImportMode] = useState<ImportMode>('merge');
+  const [actionFilter, setActionFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,6 +173,7 @@ export default function ImportTestPage() {
       setParseResult(null);
       setTransformResult(null);
       setValidateResult(null);
+      setPreviewResult(null);
       setError(null);
     }
   };
@@ -207,6 +250,32 @@ export default function ImportTestPage() {
     }
   };
 
+  const handlePreview = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+    setActionFilter('all');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('systemId', 'hill');
+      formData.append('mode', importMode);
+      const response = await api.post('/import/preview', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (response.data.success) {
+        setPreviewResult(response.data.data);
+        setActiveTab('preview');
+      } else {
+        setError(response.data.error?.message || 'Preview failed');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || err.message || 'Preview failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Import Test Page</h1>
@@ -254,6 +323,27 @@ export default function ImportTestPage() {
           >
             {loading && activeTab === 'validate' ? 'Validating...' : 'Validate'}
           </button>
+          <div className="flex items-center gap-2">
+            <select
+              value={importMode}
+              onChange={(e) => setImportMode(e.target.value as ImportMode)}
+              className="px-3 py-2 rounded border border-gray-300 text-sm"
+            >
+              <option value="merge">Merge Mode</option>
+              <option value="replace">Replace All</option>
+            </select>
+            <button
+              onClick={handlePreview}
+              disabled={!file || loading}
+              className={`px-4 py-2 rounded font-medium whitespace-nowrap ${
+                !file || loading
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
+              }`}
+            >
+              {loading && activeTab === 'preview' ? 'Previewing...' : 'Preview Import'}
+            </button>
+          </div>
         </div>
         {file && (
           <p className="mt-2 text-sm text-gray-600">
@@ -270,7 +360,7 @@ export default function ImportTestPage() {
       )}
 
       {/* Tab Navigation */}
-      {(parseResult || transformResult || validateResult) && (
+      {(parseResult || transformResult || validateResult || previewResult) && (
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">
             <button
@@ -302,6 +392,16 @@ export default function ImportTestPage() {
               }`}
             >
               Validation Results
+            </button>
+            <button
+              onClick={() => setActiveTab('preview')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'preview'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Import Preview
             </button>
           </nav>
         </div>
@@ -705,6 +805,186 @@ export default function ImportTestPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Results Tab */}
+      {activeTab === 'preview' && previewResult && (
+        <div className="space-y-6">
+          {/* Preview Header */}
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-lg shadow p-6">
+            <div className="flex items-center gap-4">
+              <div className="text-4xl text-orange-500">📋</div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">
+                  Import Preview - {previewResult.mode.toUpperCase()} Mode
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Preview ID: <code className="bg-gray-100 px-1 rounded">{previewResult.previewId}</code>
+                  {' • '}Expires: {new Date(previewResult.expiresAt).toLocaleTimeString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-orange-600">{previewResult.summary.modifying}</div>
+                <div className="text-sm text-gray-600">Changes to Apply</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Import Summary</h2>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+              <div className="bg-green-50 p-3 rounded text-center cursor-pointer hover:bg-green-100" onClick={() => setActionFilter('INSERT')}>
+                <div className="text-sm text-green-600">Inserts</div>
+                <div className="text-2xl font-bold text-green-700">{previewResult.summary.inserts}</div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded text-center cursor-pointer hover:bg-blue-100" onClick={() => setActionFilter('UPDATE')}>
+                <div className="text-sm text-blue-600">Updates</div>
+                <div className="text-2xl font-bold text-blue-700">{previewResult.summary.updates}</div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded text-center cursor-pointer hover:bg-gray-100" onClick={() => setActionFilter('SKIP')}>
+                <div className="text-sm text-gray-600">Skips</div>
+                <div className="text-2xl font-bold text-gray-700">{previewResult.summary.skips}</div>
+              </div>
+              <div className="bg-yellow-50 p-3 rounded text-center cursor-pointer hover:bg-yellow-100" onClick={() => setActionFilter('BOTH')}>
+                <div className="text-sm text-yellow-600">Duplicates</div>
+                <div className="text-2xl font-bold text-yellow-700">{previewResult.summary.duplicates}</div>
+              </div>
+              <div className="bg-red-50 p-3 rounded text-center cursor-pointer hover:bg-red-100" onClick={() => setActionFilter('DELETE')}>
+                <div className="text-sm text-red-600">Deletes</div>
+                <div className="text-2xl font-bold text-red-700">{previewResult.summary.deletes}</div>
+              </div>
+              <div className="bg-purple-50 p-3 rounded text-center cursor-pointer hover:bg-purple-100" onClick={() => setActionFilter('all')}>
+                <div className="text-sm text-purple-600">Total</div>
+                <div className="text-2xl font-bold text-purple-700">{previewResult.summary.total}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Patient Stats */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Patient Summary</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-green-50 p-3 rounded text-center">
+                <div className="text-sm text-green-600">New Patients</div>
+                <div className="text-2xl font-bold text-green-700">{previewResult.patients.new}</div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded text-center">
+                <div className="text-sm text-blue-600">Existing Patients</div>
+                <div className="text-2xl font-bold text-blue-700">{previewResult.patients.existing}</div>
+              </div>
+              <div className="bg-gray-50 p-3 rounded text-center">
+                <div className="text-sm text-gray-600">Total Patients</div>
+                <div className="text-2xl font-bold text-gray-700">{previewResult.patients.total}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Filter */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-gray-600">Filter by action:</span>
+              {['all', 'INSERT', 'UPDATE', 'SKIP', 'BOTH', 'DELETE'].map((action) => (
+                <button
+                  key={action}
+                  onClick={() => setActionFilter(action)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${
+                    actionFilter === action
+                      ? action === 'INSERT' ? 'bg-green-600 text-white' :
+                        action === 'UPDATE' ? 'bg-blue-600 text-white' :
+                        action === 'SKIP' ? 'bg-gray-600 text-white' :
+                        action === 'BOTH' ? 'bg-yellow-600 text-white' :
+                        action === 'DELETE' ? 'bg-red-600 text-white' :
+                        'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {action === 'all' ? 'All' : action}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Changes List */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              Changes Preview
+              {actionFilter !== 'all' && (
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  (showing {actionFilter} only)
+                </span>
+              )}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Action</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Member Name</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">DOB</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Request Type</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Quality Measure</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Old Status</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">New Status</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewResult.changes
+                    .filter(change => actionFilter === 'all' || change.action === actionFilter)
+                    .map((change, idx) => (
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          change.action === 'INSERT' ? 'bg-green-100 text-green-800' :
+                          change.action === 'UPDATE' ? 'bg-blue-100 text-blue-800' :
+                          change.action === 'SKIP' ? 'bg-gray-100 text-gray-800' :
+                          change.action === 'BOTH' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>{change.action}</span>
+                      </td>
+                      <td className="px-3 py-2 font-medium">{change.memberName}</td>
+                      <td className="px-3 py-2">{change.memberDob || '-'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded text-xs ${
+                          change.requestType === 'AWV' ? 'bg-blue-100 text-blue-800' :
+                          change.requestType === 'Quality' ? 'bg-purple-100 text-purple-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>{change.requestType}</span>
+                      </td>
+                      <td className="px-3 py-2">{change.qualityMeasure}</td>
+                      <td className="px-3 py-2">
+                        {change.oldStatus ? (
+                          <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
+                            {change.oldStatus}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {change.newStatus ? (
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            change.newStatus.toLowerCase().includes('completed') ||
+                            change.newStatus.toLowerCase().includes('at goal')
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {change.newStatus}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-3 py-2 text-gray-600 text-xs">{change.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {previewResult.changes.length >= 50 && (
+              <p className="mt-4 text-sm text-gray-500 text-center">
+                Showing first 50 changes. Full list available after import.
+              </p>
+            )}
           </div>
         </div>
       )}

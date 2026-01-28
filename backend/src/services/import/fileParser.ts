@@ -115,7 +115,8 @@ function isTitleRow(row: unknown[]): boolean {
  * Parse an Excel file buffer
  */
 export function parseExcel(buffer: Buffer, fileName: string): ParseResult {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  // Use raw: true to prevent XLSX from auto-converting dates to serial numbers
+  const workbook = XLSX.read(buffer, { type: 'buffer', raw: true });
 
   // Get the first sheet
   const sheetName = workbook.SheetNames[0];
@@ -128,11 +129,12 @@ export function parseExcel(buffer: Buffer, fileName: string): ParseResult {
     throw new Error('Could not read worksheet');
   }
 
-  // Convert to JSON with header row
+  // Convert to JSON with header row, preserving raw string values
   const jsonData = XLSX.utils.sheet_to_json(worksheet, {
     header: 1,
     defval: '',
-    blankrows: false
+    blankrows: false,
+    raw: true  // Preserve raw cell values (prevent date auto-conversion)
   }) as unknown[][];
 
   if (jsonData.length === 0) {

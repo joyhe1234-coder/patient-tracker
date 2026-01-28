@@ -17,12 +17,24 @@ const EXCEL_EPOCH = new Date(1899, 11, 30);
 
 /**
  * Check if a value is an Excel serial number
+ * Must be a pure numeric string or number (no date separators like / or -)
  */
 function isExcelSerialNumber(value: string | number): boolean {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (typeof value === 'number') {
+    // Pure number - check range
+    return !isNaN(value) && value > 1 && value < 100000 && Number.isInteger(value);
+  }
+
+  // String - must be entirely numeric (no slashes, dashes, etc.)
+  const trimmed = String(value).trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return false;  // Contains non-digit characters
+  }
+
+  const num = parseInt(trimmed, 10);
   // Excel dates are typically > 1 and < 2958465 (year 9999)
   // Realistic range for modern dates: 1 to 100000 (covers 1900-2173)
-  return !isNaN(num) && num > 1 && num < 100000 && Number.isInteger(num);
+  return !isNaN(num) && num > 1 && num < 100000;
 }
 
 /**

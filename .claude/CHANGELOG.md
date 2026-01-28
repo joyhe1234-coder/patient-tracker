@@ -93,10 +93,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Auto-cleanup every 5 minutes (expired entries removed)
   - Features: store, get, delete, extend TTL, cache statistics
   - 17 unit tests for cache operations
+- **Phase 5g: Preview API + UI**
+  - Preview endpoints in `import.routes.ts` (POST /preview, GET /preview/:id, DELETE /preview/:id)
+  - Preview tab in ImportTestPage.tsx with summary stats and changes table
+  - Action filter dropdown (All, INSERT, UPDATE, SKIP, BOTH, DELETE)
+  - Patient counts (new vs existing)
+- **Merge Logic Integration Tests**
+  - `mergeLogic.test.ts` - 12 integration tests for all 6 merge cases
+  - Tests merge mode (INSERT, UPDATE, SKIP, BOTH) and replace mode (DELETE all + INSERT)
+  - Edge case tests for blank values and case-insensitive status matching
+- **Merge Test Data File**
+  - `test-data/merge-test-cases.csv` - 15 rows covering all 6 merge cases
+  - `test-data/MERGE-TEST-CASES-README.md` - Documentation with expected results
+  - Expected counts: 9 INSERT, 4 UPDATE, 5 SKIP, 2 BOTH, 0 DELETE
 
 ### Changed
 
 ### Fixed
+- **Date Parser Excel Serial Detection** - Fixed bug where dates like "05/15/1970" were parsed as Excel serial numbers
+  - Root cause: `parseFloat("05/15/1970")` returns `5`, which was incorrectly treated as Excel serial
+  - Fix: Added regex check `/^\d+$/` to ensure string contains ONLY digits before treating as Excel serial
 - **Prisma/Alpine OpenSSL compatibility** - Added `linux-musl-openssl-3.0.x` binary target
 - **Docker config files** - Added COPY for `src/config` to `dist/config` in Dockerfile
 - **Validation Error Row Numbers** - Now show original spreadsheet row numbers instead of transformed row indices

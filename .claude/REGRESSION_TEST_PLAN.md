@@ -1324,6 +1324,139 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
+## 22. Import Preview (Phase 5e-5f)
+
+### TC-22.1: Preview Button and Mode Selection
+**Steps:**
+1. Navigate to Import Test page
+2. Upload a CSV file (test-data/merge-test-cases.csv)
+3. Select "Merge Mode" from dropdown
+4. Click "Preview Import" button
+
+**Expected:**
+- Preview tab appears with summary statistics
+- Mode shows "MERGE"
+- Preview ID and expiration time displayed
+
+### TC-22.2: Preview Summary Stats
+**Steps:**
+1. Upload merge-test-cases.csv
+2. Preview in Merge mode
+
+**Expected:**
+- Inserts: 9
+- Updates: 4
+- Skips: 5
+- Duplicates (BOTH): 2
+- Deletes: 0
+- Total: 20
+
+### TC-22.3: INSERT Action - New Patient
+**Steps:**
+1. In preview results, filter by INSERT action
+2. Look for "New Patient, Alice"
+
+**Expected:**
+- Action shows "INSERT"
+- Old Status is null/empty
+- New Status shows the status value
+- Reason: "New patient+measure combination"
+
+### TC-22.4: UPDATE Action - Upgrade to Compliant
+**Steps:**
+1. In preview results, filter by UPDATE action
+2. Look for "Smith, John"
+
+**Expected:**
+- Action shows "UPDATE"
+- Old Status: "Not Addressed"
+- New Status: "AWV completed"
+- Reason contains "Upgrading"
+
+### TC-22.5: SKIP Action - Both Compliant
+**Steps:**
+1. In preview results, filter by SKIP action
+2. Look for "Wilson, Sarah"
+
+**Expected:**
+- Action shows "SKIP"
+- Old Status: "Screening test completed"
+- New Status: "Screening test completed"
+- Reason: "Both compliant - keeping existing"
+
+### TC-22.6: SKIP Action - Both Non-Compliant
+**Steps:**
+1. In preview results, filter by SKIP action
+2. Look for "Jones, Michael"
+
+**Expected:**
+- Action shows "SKIP"
+- Old Status: "Patient declined AWV"
+- New Status: "Not Addressed"
+- Reason: "Both non-compliant - keeping existing"
+
+### TC-22.7: BOTH Action - Downgrade Detected
+**Steps:**
+1. In preview results, filter by BOTH action
+2. Look for "Brown, Patricia"
+
+**Expected:**
+- Action shows "BOTH"
+- Old Status: "AWV completed" (compliant)
+- New Status: "Not Addressed" (non-compliant)
+- Reason: "Downgrade detected - keeping both"
+
+### TC-22.8: Replace All Mode
+**Steps:**
+1. Upload merge-test-cases.csv
+2. Select "Replace All" mode
+3. Click "Preview Import"
+
+**Expected:**
+- Summary shows DELETE count > 0 (existing records)
+- Summary shows INSERT count > 0 (all import rows)
+- No UPDATE, SKIP, or BOTH actions
+- All deletes show reason: "Replace All mode"
+
+### TC-22.9: Patient Summary
+**Steps:**
+1. In preview results, check Patient Summary section
+
+**Expected:**
+- New Patients: 3 (Alice, Bob, Carol)
+- Existing Patients: 11
+- Total: 14
+
+### TC-22.10: Action Filter Buttons
+**Steps:**
+1. Click on each action card (INSERT, UPDATE, SKIP, etc.)
+2. Verify table filters correctly
+
+**Expected:**
+- Clicking "INSERT" shows only INSERT rows
+- Clicking "All" resets filter
+- Count in card matches filtered row count
+
+### TC-22.11: Preview Expiration
+**Steps:**
+1. Note the expiration time in preview header
+2. Verify it's approximately 30 minutes from now
+
+**Expected:**
+- Preview expires after 30 minutes
+- Attempting to load expired preview shows error
+
+### TC-22.12: Date Parsing in Preview
+**Steps:**
+1. Verify DOB dates display correctly in preview
+2. Check "Smith, John" shows DOB 1955-01-15
+
+**Expected:**
+- DOB dates are correctly parsed (MM/DD/YYYY in CSV → YYYY-MM-DD in display)
+- No dates showing 1900-xx-xx (Excel serial number bug)
+
+---
+
 ## Test Data Files Needed
 
 | File | Description | Use For Tests |
@@ -1335,6 +1468,7 @@ This document contains manual test cases for verifying system functionality. Run
 | `test-duplicates.csv` | Duplicate patient+measure rows | TC-19.10, TC-20.4 |
 | `test-no-measures.csv` | Patients with all empty measure columns | TC-16.5, TC-21.7 |
 | `test-warnings.csv` | Valid data with warnings (missing phone) | TC-20.3, TC-20.6, TC-20.9 |
+| `merge-test-cases.csv` | All 6 merge logic cases (INSERT/UPDATE/SKIP/BOTH/DELETE) | TC-22.* |
 
 ---
 
@@ -1480,12 +1614,25 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-21.10 | | | Row numbers match spreadsheet (with title) |
 | TC-21.11 | | | Error deduplication per patient |
 | TC-21.12 | | | Patients no measures row numbers |
+| **22. Import Preview** | | | |
+| TC-22.1 | | | Preview button and mode selection |
+| TC-22.2 | | | Preview summary stats |
+| TC-22.3 | | | INSERT action - new patient |
+| TC-22.4 | | | UPDATE action - upgrade to compliant |
+| TC-22.5 | | | SKIP action - both compliant |
+| TC-22.6 | | | SKIP action - both non-compliant |
+| TC-22.7 | | | BOTH action - downgrade detected |
+| TC-22.8 | | | Replace All mode |
+| TC-22.9 | | | Patient summary |
+| TC-22.10 | | | Action filter buttons |
+| TC-22.11 | | | Preview expiration |
+| TC-22.12 | | | Date parsing in preview |
 
 ---
 
 ---
 
-## 22. Automated E2E Tests (Playwright)
+## 24. Automated E2E Tests (Playwright)
 
 The following test cases are automated using Playwright. Run with `npm run e2e` in the frontend directory.
 
@@ -1519,7 +1666,7 @@ npm run e2e:report    # View test report
 
 ---
 
-## 23. Automated E2E Tests (Cypress)
+## 25. Automated E2E Tests (Cypress)
 
 Cypress tests for AG Grid cascading dropdown functionality. Cypress handles AG Grid dropdown selection better than Playwright due to native browser event simulation.
 

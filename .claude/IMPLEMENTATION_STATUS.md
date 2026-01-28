@@ -134,8 +134,21 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Stores diff results before commit for preview
   - Auto-cleanup of expired entries (5 min interval)
   - Unit tests: 17 tests for cache operations
-- [ ] 5g: Import Executor (Replace All + Merge)
-- [ ] 5h: Preview API endpoint
+- [x] 5g: Preview API endpoint
+  - POST /api/import/preview - Parse, transform, validate, calculate diff
+  - GET /api/import/preview/:previewId - Retrieve cached preview
+  - DELETE /api/import/preview/:previewId - Delete cached preview
+  - GET /api/import/preview-cache/stats - Cache statistics
+- [x] 5g-ui: Preview UI (Import Test Page)
+  - Preview tab with summary stats (INSERT, UPDATE, SKIP, BOTH, DELETE counts)
+  - Patient counts (new vs existing)
+  - Action filter dropdown for changes table
+  - Changes table with member, measure, action, old/new status, reason
+- [x] Merge Logic Integration Tests
+  - `mergeLogic.test.ts` - 12 integration tests for merge-test-cases.csv
+  - Tests all 6 merge cases (INSERT, UPDATE, SKIP, BOTH for merge mode; DELETE for replace mode)
+  - Test data file: `test-data/merge-test-cases.csv`
+- [ ] 5h: Import Executor (Replace All + Merge)
 - [ ] 5i: Execute API endpoint
 - [ ] 5j: Import UI - Upload page
 - [ ] 5k: Import UI - Preview page
@@ -444,4 +457,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 28, 2026 - Completed Phase 5e-5f (Diff Calculator + Preview Cache) with 39 unit tests
+January 28, 2026 - Completed Phase 5g (Preview API + UI) with integration tests for merge logic
