@@ -253,7 +253,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 ### E2E Testing (Playwright)
 - [x] Phase 2: Setup (playwright.config.ts, Page Object Model)
 - [x] Phase 3: CI/CD workflows (.github/workflows/test.yml, e2e-tests.yml)
-- [x] Phase 5: CRUD operation tests (25 passing, 5 skipped)
+- [x] Phase 5: CRUD operation tests (26 passing, 4 skipped)
   - smoke.spec.ts (4 tests)
   - add-row.spec.ts (9 tests)
   - duplicate-member.spec.ts (8 tests, 3 skipped)
@@ -268,7 +268,14 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - cypress/support/commands.ts - AG Grid helper commands
   - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
   - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
-- [ ] Phase 7: Additional Cypress tests for grid editing, time intervals
+
+### Test Data Management
+- [x] Phase 7: Test isolation and data management
+  - Serial mode for data-modifying test suites (delete-row, duplicate-member)
+  - Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows()
+  - Fixed phone/address test with Member Info toggle
+  - Playwright: 26 passing, 4 skipped (AG Grid limitations)
+- [ ] Phase 8: Import Excel E2E tests
 
 ---
 
@@ -427,4 +434,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 28, 2026 - Added Cypress E2E testing for cascading dropdowns (19 tests)
+January 28, 2026 - Added Phase 7 test data management (26 passing, 4 skipped)

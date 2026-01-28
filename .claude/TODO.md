@@ -75,7 +75,11 @@ This document tracks planned features and enhancements for future development.
   - Cypress framework added for better AG Grid dropdown handling
   - Request Type, Quality Measure, Measure Status, Tracking #1 tests
   - Row color tests, cascading field clearing tests
-- [ ] Phase 7: Test data management and isolation
+- [x] Phase 7: Test data management and isolation
+  - Added serial mode for data-modifying test suites
+  - Added waitForGridLoad(), toggleMemberInfo(), deselectAllRows() helpers
+  - Fixed phone/address test with Member Info toggle
+  - Playwright: 26 passing, 4 skipped (AG Grid limitations)
 - [ ] Phase 8: Import Excel E2E tests
 
 ---

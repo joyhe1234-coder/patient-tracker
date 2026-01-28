@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0-snapshot] - Unreleased
 
 ### Added
+- **Test Data Management** (Phase 7 of UI Testing Plan)
+  - Serial mode for data-modifying test suites (delete-row, duplicate-member)
+  - New Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows(), isMemberInfoVisible()
+  - Fixed phone/address duplication test by toggling Member Info visibility
+  - Playwright: 26 passing, 4 skipped (down from 25 passing, 5 skipped)
 - **Cypress E2E Testing** (Phase 6 of UI Testing Plan)
   - Cypress framework setup as alternative to Playwright for AG Grid dropdown tests
   - Custom AG Grid commands (openAgGridDropdown, selectAgGridDropdown, getAgGridDropdownOptions)

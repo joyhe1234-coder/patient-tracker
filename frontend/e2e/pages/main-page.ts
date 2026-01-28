@@ -28,6 +28,12 @@ export class MainPage {
     await this.grid.waitFor({ state: 'visible', timeout: 10000 });
   }
 
+  async waitForGridLoad() {
+    // Wait for grid to be visible and have rows loaded
+    await this.grid.waitFor({ state: 'visible', timeout: 10000 });
+    await this.page.waitForSelector('.ag-row[row-index]', { timeout: 10000 });
+  }
+
   async getRowCount(): Promise<number> {
     // Wait for grid to load
     await this.page.waitForSelector('.ag-row', { timeout: 5000 }).catch(() => {});
@@ -293,5 +299,24 @@ export class MainPage {
     const cell = await this.getCellByMemberName(memberName, colId);
     if (!cell) return '';
     return await cell.innerText();
+  }
+
+  async toggleMemberInfo() {
+    // Click the "Member Info" toggle button in the toolbar
+    const memberInfoButton = this.page.locator('button:has-text("Member Info")');
+    await memberInfoButton.click();
+    await this.page.waitForTimeout(300);
+  }
+
+  async deselectAllRows() {
+    // Click on the status bar to deselect all rows (outside grid)
+    await this.statusBar.click();
+    await this.page.waitForTimeout(200);
+  }
+
+  async isMemberInfoVisible(): Promise<boolean> {
+    // Check if Member Info columns are visible
+    const telephoneHeader = this.page.locator('.ag-header-cell[col-id="memberTelephone"]');
+    return await telephoneHeader.isVisible();
   }
 }

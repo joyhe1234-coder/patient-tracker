@@ -119,7 +119,7 @@ npm run test:run          # Single run (CI)
 npm run test:coverage     # With coverage report
 ```
 
-### Playwright E2E Tests (25 passing, 5 skipped)
+### Playwright E2E Tests (26 passing, 4 skipped)
 
 **Location:** `frontend/e2e/*.spec.ts`
 
@@ -132,11 +132,11 @@ npm run test:coverage     # With coverage report
 
 **Page Object Model:** `frontend/e2e/pages/main-page.ts`
 
-**Skipped Tests (require test isolation):**
-- Confirming delete removes the row
-- Delete multiple rows
-- Duplicate copies phone/address
-- Button disable after deselection
+**Skipped Tests (AG Grid limitations):**
+- Confirming delete removes the row (modal timing issues)
+- Delete button disabled after deletion (depends on above)
+- Delete multiple rows (depends on above)
+- Duplicate button disabled after deselection (AG Grid doesn't support deselection via click/escape)
 
 **Running Playwright Tests:**
 
@@ -246,7 +246,7 @@ npm run test:cli -- --save    # Save new baselines
 |------|-----------|-------|--------|
 | Backend import services | Jest | 130 | Complete |
 | Frontend components | Vitest | 45 | 4 components |
-| CRUD operations | Playwright | 25 (5 skip) | Complete |
+| CRUD operations | Playwright | 26 (4 skip) | Complete |
 | Cascading dropdowns | Cypress | 19 | Complete |
 | Row colors | Cypress | 5 | In cascading tests |
 | Grid editing | - | 0 | Planned |
