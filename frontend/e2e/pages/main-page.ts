@@ -20,7 +20,7 @@ export class MainPage {
     this.duplicateButton = page.locator('button:has-text("Duplicate Mbr")');
     this.deleteButton = page.locator('button:has-text("Delete Row")');
     this.saveIndicator = page.locator('text=Saving, text=Saved, text=Error');
-    this.statusBar = page.locator('.text-sm.text-gray-600');
+    this.statusBar = page.locator('.bg-gray-100.border-t');
   }
 
   async goto() {
@@ -35,7 +35,7 @@ export class MainPage {
   }
 
   async getCell(rowIndex: number, colId: string): Promise<Locator> {
-    // Use first() because AG Grid may have pinned columns in separate containers
+    // Simple selector that works with AG Grid's row and column structure
     return this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
   }
 
@@ -54,6 +54,58 @@ export class MainPage {
     await cell.dblclick();
   }
 
+  async openDropdown(rowIndex: number, colId: string): Promise<void> {
+    // Open a dropdown cell for editing and wait for the popup
+    const cell = this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
+
+    // First click to select/focus
+    await cell.click();
+    await this.page.waitForTimeout(100);
+
+    // Double-click to open editor
+    await cell.dblclick();
+    await this.page.waitForTimeout(400);
+
+    // Check if popup appeared (AG Grid uses various selectors)
+    let popupVisible = await this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]').count() > 0;
+
+    if (!popupVisible) {
+      // Try clicking on the dropdown arrow/button within the cell
+      const wrapper = cell.locator('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper').first();
+      if (await wrapper.count() > 0) {
+        await wrapper.click();
+        await this.page.waitForTimeout(300);
+      } else {
+        // Try pressing Enter/Space to open dropdown
+        await this.page.keyboard.press('Space');
+        await this.page.waitForTimeout(300);
+      }
+    }
+
+    // Wait for dropdown list items
+    await this.page.waitForSelector('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item', { state: 'attached', timeout: 5000 });
+  }
+
+  async openDropdownByMemberName(memberName: string, colId: string): Promise<void> {
+    const rowIndex = await this.findRowByMemberName(memberName);
+    if (rowIndex < 0) {
+      throw new Error(`Could not find row for member: ${memberName}`);
+    }
+    await this.openDropdown(rowIndex, colId);
+  }
+
+  async getDropdownOptions(): Promise<string[]> {
+    // Get all options from the currently open dropdown (AG Grid uses various selectors)
+    const listItems = this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]');
+    const count = await listItems.count();
+    const options: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const text = await listItems.nth(i).innerText();
+      options.push(text.trim());
+    }
+    return options;
+  }
+
   async editCell(rowIndex: number, colId: string, value: string) {
     await this.doubleClickCell(rowIndex, colId);
     await this.page.keyboard.press('Control+A');
@@ -62,11 +114,42 @@ export class MainPage {
   }
 
   async selectDropdownValue(rowIndex: number, colId: string, value: string) {
-    const cell = await this.getCell(rowIndex, colId);
+    // Get the cell - could be in any container (pinned left, center, or pinned right)
+    const cell = this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
+
+    // Single click to select/focus the row
     await cell.click();
-    // Wait for dropdown to appear
-    await this.page.waitForSelector('.ag-popup', { timeout: 2000 }).catch(() => {});
-    await this.page.locator(`.ag-popup .ag-list-item:has-text("${value}")`).click();
+    await this.page.waitForTimeout(150);
+
+    // Double-click to open the dropdown editor
+    await cell.dblclick();
+    await this.page.waitForTimeout(300);
+
+    // Wait for popup to appear
+    await this.page.waitForSelector('.ag-popup', { state: 'visible', timeout: 3000 }).catch(() => {});
+
+    // Find and click the option in the visible list
+    const listItems = this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item');
+    const itemCount = await listItems.count();
+
+    if (itemCount > 0) {
+      // Find the index of our target value
+      for (let i = 0; i < itemCount; i++) {
+        const itemText = await listItems.nth(i).innerText();
+        if (itemText.trim() === value) {
+          // Click this item directly
+          await listItems.nth(i).click();
+          await this.page.waitForTimeout(300);
+          return;
+        }
+      }
+    }
+
+    // Fallback: type first character to filter/jump and use keyboard
+    await this.page.keyboard.type(value.charAt(0));
+    await this.page.waitForTimeout(100);
+    await this.page.keyboard.press('Enter');
+    await this.page.waitForTimeout(300);
   }
 
   async selectRow(rowIndex: number) {
@@ -109,5 +192,106 @@ export class MainPage {
       const el = document.body.innerText;
       return el.includes('Saved');
     }, { timeout: 5000 }).catch(() => {});
+  }
+
+  async addTestRow(name: string = `Test ${Date.now()}`): Promise<void> {
+    // Add a new row using the Add Row modal
+    await this.addRowButton.click();
+    await this.page.waitForSelector('input[placeholder="Enter patient name"]');
+
+    await this.page.fill('input[placeholder="Enter patient name"]', name);
+    await this.page.fill('input[type="date"]', '1990-01-01');
+
+    // Submit using modal's Add Row button
+    const modal = this.page.locator('.bg-white.rounded-lg.shadow-xl');
+    await modal.locator('button:has-text("Add Row")').click();
+
+    // Wait for modal to close and grid to update
+    await this.page.locator('text=Add New Patient').waitFor({ state: 'hidden', timeout: 5000 });
+    await this.page.waitForTimeout(500);
+  }
+
+  async findRowByMemberName(name: string): Promise<number> {
+    // Find a row by member name and return its row index
+    // The memberName column could be in any container (pinned left, center, etc.)
+    const memberNameCells = this.page.locator('[col-id="memberName"]');
+    const cellCount = await memberNameCells.count();
+
+    for (let i = 0; i < cellCount; i++) {
+      const cell = memberNameCells.nth(i);
+      const cellText = await cell.innerText().catch(() => '');
+      if (cellText.includes(name)) {
+        // Get the row-index from the parent row element
+        const rowIndex = await cell.evaluate(el => {
+          let current = el.parentElement;
+          while (current) {
+            const idx = current.getAttribute('row-index');
+            if (idx !== null) return idx;
+            current = current.parentElement;
+          }
+          return null;
+        });
+        if (rowIndex !== null) {
+          return parseInt(rowIndex);
+        }
+      }
+    }
+    return -1;
+  }
+
+  async getCellByMemberName(memberName: string, colId: string): Promise<Locator | null> {
+    // Find cell by member name - more reliable than row index
+    const rowIndex = await this.findRowByMemberName(memberName);
+    if (rowIndex < 0) return null;
+    return this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
+  }
+
+  async selectDropdownByMemberName(memberName: string, colId: string, value: string) {
+    // Find the row index for this member
+    const rowIndex = await this.findRowByMemberName(memberName);
+    if (rowIndex < 0) {
+      throw new Error(`Could not find row for member: ${memberName}`);
+    }
+
+    // Get the cell - it could be in any container (pinned left, center, or pinned right)
+    const cell = this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
+
+    // Click to focus
+    await cell.click();
+    await this.page.waitForTimeout(100);
+
+    // Double-click to open editor
+    await cell.dblclick();
+    await this.page.waitForTimeout(400);
+
+    // Wait for popup list items (AG Grid uses various selectors)
+    await this.page.waitForSelector('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]', { state: 'attached', timeout: 5000 }).catch(() => {});
+
+    // Try to click directly on the option (AG Grid uses different selectors)
+    const listItems = this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]');
+    const itemCount = await listItems.count();
+
+    // Find and click the matching option
+    for (let i = 0; i < itemCount; i++) {
+      const itemText = await listItems.nth(i).innerText();
+      if (itemText.trim() === value) {
+        // Try clicking with force
+        await listItems.nth(i).click({ force: true });
+        await this.page.waitForTimeout(500);
+        return;
+      }
+    }
+
+    // Fallback: type first character to jump to the option
+    await this.page.keyboard.type(value.charAt(0));
+    await this.page.waitForTimeout(200);
+    await this.page.keyboard.press('Enter');
+    await this.page.waitForTimeout(400);
+  }
+
+  async getCellValueByMemberName(memberName: string, colId: string): Promise<string> {
+    const cell = await this.getCellByMemberName(memberName, colId);
+    if (!cell) return '';
+    return await cell.innerText();
   }
 }
