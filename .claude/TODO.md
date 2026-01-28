@@ -67,7 +67,8 @@ This document tracks planned features and enhancements for future development.
 - [x] Implementation: Phase 5g - Preview API endpoints
 - [x] Implementation: Phase 5h - Import Executor (Replace All + Merge)
   - `importExecutor.ts` - Execute database operations based on diff (16 tests)
-- [ ] Implementation: Phase 5i - Execute API endpoint
+- [x] Implementation: Phase 5i - Execute API endpoint
+  - POST /api/import/execute/:previewId
 - [ ] Implementation: Phase 5j-5l - Full Import UI
 
 ### UI Testing

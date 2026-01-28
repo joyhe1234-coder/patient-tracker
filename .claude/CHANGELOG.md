@@ -113,6 +113,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Prisma transactions ensure atomicity (all-or-nothing)
   - Post-execution: syncAllDuplicateFlags(), deletePreview()
   - 16 unit tests covering all scenarios
+- **Phase 5i: Execute API Endpoint**
+  - POST /api/import/execute/:previewId - Execute import from cached preview
+  - Returns execution stats and any errors
+  - Validates preview exists before executing
 
 ### Changed
 

@@ -7,6 +7,7 @@ import { validateRows } from '../services/import/validator.js';
 import { generateErrorReport, getCondensedReport } from '../services/import/errorReporter.js';
 import { calculateDiff, ImportMode, filterChangesByAction, getModifyingChanges } from '../services/import/diffCalculator.js';
 import { storePreview, getPreview, deletePreview, getPreviewSummary, getCacheStats } from '../services/import/previewCache.js';
+import { executeImport } from '../services/import/importExecutor.js';
 import { createError } from '../middleware/errorHandler.js';
 import { handleUpload } from '../middleware/upload.js';
 
@@ -459,6 +460,41 @@ router.delete('/preview/:previewId', async (req: Request, res: Response, next: N
     });
   } catch (error) {
     next(createError(`Failed to delete preview: ${(error as Error).message}`, 500));
+  }
+});
+
+/**
+ * POST /api/import/execute/:previewId
+ * Execute an import based on a cached preview
+ * Commits the changes to the database
+ */
+router.post('/execute/:previewId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { previewId } = req.params;
+
+    // Check if preview exists before executing
+    const preview = getPreview(previewId);
+    if (!preview) {
+      return next(createError('Preview not found or expired', 404));
+    }
+
+    // Execute the import
+    const result = await executeImport(previewId);
+
+    res.json({
+      success: result.success,
+      data: {
+        mode: result.mode,
+        stats: result.stats,
+        duration: result.duration,
+        errors: result.errors.length > 0 ? result.errors : undefined
+      },
+      message: result.success
+        ? `Import completed: ${result.stats.inserted} inserted, ${result.stats.updated} updated, ${result.stats.deleted} deleted, ${result.stats.skipped} skipped, ${result.stats.bothKept} kept both`
+        : `Import completed with ${result.errors.length} error(s)`
+    });
+  } catch (error) {
+    next(createError(`Failed to execute import: ${(error as Error).message}`, 500));
   }
 });
 
