@@ -92,6 +92,45 @@ See `.claude/TESTING.md` for detailed testing patterns and examples.
 
 ---
 
+## IMPORTANT: Release Workflow
+
+**When the user runs `/release` or asks to release, follow these steps:**
+
+### Step 1: Verify Clean State
+```bash
+git status  # Should show clean working tree
+git branch  # Should be on develop
+```
+
+### Step 2: Push and Merge
+```bash
+git push origin develop           # Push develop to remote
+git checkout main                 # Switch to main
+git pull origin main              # Get latest main
+git merge develop --no-edit       # Merge develop into main
+git push origin main              # Push main to remote
+git checkout develop              # Return to develop
+```
+
+### Step 3: Monitor Render Deployment
+After pushing to main, Render auto-deploys. **You MUST monitor the deployment:**
+
+1. **Check deployment status** using Render MCP:
+   - List recent deploys for the backend service
+   - Verify deploy status is "live" or "succeeded"
+
+2. **If deployment fails:**
+   - Fetch deploy logs via Render MCP
+   - Report the error to the user
+   - Do NOT consider the release complete until deployment succeeds
+
+3. **Confirm to user:**
+   - Report deployment status (success/failure)
+   - Include deploy ID and timestamp
+   - If failed, include relevant error logs
+
+---
+
 Read the following files before starting work:
 
 ## Project Documentation
