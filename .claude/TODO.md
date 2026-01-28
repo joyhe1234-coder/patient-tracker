@@ -61,7 +61,9 @@ This document tracks planned features and enhancements for future development.
 - [x] Implementation: Phase 5b - File Parser (CSV/Excel) + Import Test Page
 - [x] Implementation: Phase 5c - Column Mapper + Transformer
 - [x] Implementation: Phase 5d - Validator + Error Reporter
-- [ ] Implementation: Phase 5e-5f - Diff Calculator + Preview Cache
+- [x] Implementation: Phase 5e-5f - Diff Calculator + Preview Cache
+  - `diffCalculator.ts` - Compare import vs DB with merge logic (22 tests)
+  - `previewCache.ts` - In-memory TTL cache for previews (17 tests)
 - [ ] Implementation: Phase 5g-5i - Import Executor + APIs
 - [ ] Implementation: Phase 5j-5l - Full Import UI
 

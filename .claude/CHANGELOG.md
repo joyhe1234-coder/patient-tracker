@@ -81,6 +81,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Comprehensive Import Test Plan**
   - 56 new test cases (TC-15 to TC-21) added to REGRESSION_TEST_PLAN.md
   - Covers column mapping, transformation, date parsing, validation, error reporting, UI
+- **Phase 5e: Diff Calculator**
+  - `backend/src/services/import/diffCalculator.ts` - Compare import data vs database
+  - Merge logic matrix: 6 cases based on compliance status (compliant/non-compliant)
+  - Actions: INSERT (new record), UPDATE (upgrade), SKIP (keep existing), BOTH (downgrade), DELETE (replace mode)
+  - Status categorization using keyword matching
+  - 22 unit tests documenting all merge scenarios
+- **Phase 5f: Preview Cache**
+  - `backend/src/services/import/previewCache.ts` - In-memory cache with TTL
+  - 30-minute default TTL for preview entries
+  - Auto-cleanup every 5 minutes (expired entries removed)
+  - Features: store, get, delete, extend TTL, cache statistics
+  - 17 unit tests for cache operations
 
 ### Changed
 

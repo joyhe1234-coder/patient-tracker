@@ -124,8 +124,16 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Error row numbers now reference original spreadsheet rows (not transformed indices)
   - Title row detection for files with report headers
   - Error deduplication per patient+field
-- [ ] 5e: Diff Calculator
-- [ ] 5f: Preview Cache
+- [x] 5e: Diff Calculator
+  - `diffCalculator.ts` - Compare import data vs existing database records
+  - Implements merge logic matrix (6 cases based on compliance status)
+  - Actions: INSERT, UPDATE, SKIP, BOTH (downgrade), DELETE (replace mode)
+  - Unit tests: 22 tests covering all merge cases
+- [x] 5f: Preview Cache
+  - `previewCache.ts` - In-memory cache with TTL (30 min default)
+  - Stores diff results before commit for preview
+  - Auto-cleanup of expired entries (5 min interval)
+  - Unit tests: 17 tests for cache operations
 - [ ] 5g: Import Executor (Replace All + Merge)
 - [ ] 5h: Preview API endpoint
 - [ ] 5i: Execute API endpoint
@@ -366,7 +374,9 @@ patient-tracker/
 │   │   │       ├── columnMapper.ts
 │   │   │       ├── dataTransformer.ts
 │   │   │       ├── validator.ts
-│   │   │       └── errorReporter.ts
+│   │   │       ├── errorReporter.ts
+│   │   │       ├── diffCalculator.ts
+│   │   │       └── previewCache.ts
 │   │   ├── utils/           # Utility functions
 │   │   │   └── dateParser.ts
 │   │   └── index.ts         # Server entry point
@@ -434,4 +444,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 28, 2026 - Added Phase 7 test data management (26 passing, 4 skipped)
+January 28, 2026 - Completed Phase 5e-5f (Diff Calculator + Preview Cache) with 39 unit tests
