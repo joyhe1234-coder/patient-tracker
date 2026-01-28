@@ -1483,6 +1483,42 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
+---
+
+## 22. Automated E2E Tests (Playwright)
+
+The following test cases are automated using Playwright. Run with `npm run e2e` in the frontend directory.
+
+### Test Files
+
+| File | Description | Tests |
+|------|-------------|-------|
+| `e2e/smoke.spec.ts` | Basic page load and UI verification | 4 |
+| `e2e/add-row.spec.ts` | Add Row modal and form functionality | 9 |
+| `e2e/duplicate-member.spec.ts` | Duplicate Member button behavior | 8 (3 skipped) |
+| `e2e/delete-row.spec.ts` | Delete Row confirmation flow | 10 (4 skipped) |
+
+### Skipped Tests (Require Test Isolation)
+
+| Test | Reason |
+|------|--------|
+| Confirming delete removes the row | Race condition with parallel add-row tests |
+| Delete multiple rows | Race condition with parallel add-row tests |
+| Duplicate copies phone/address | Member Info columns hidden by default |
+| Button disable after deselection | Grid doesn't deselect on header click |
+
+### Running E2E Tests
+
+```bash
+cd frontend
+npm run e2e           # Run headless
+npm run e2e:headed    # Run with browser visible
+npm run e2e:ui        # Run with Playwright UI
+npm run e2e:report    # View test report
+```
+
+---
+
 ## Last Updated
 
-January 26, 2026 - Added row number accuracy test cases (TC-21.9 to TC-21.12)
+January 27, 2026 - Added automated E2E test section (22)

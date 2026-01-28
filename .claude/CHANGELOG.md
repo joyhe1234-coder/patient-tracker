@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0-snapshot] - Unreleased
 
 ### Added
+- **E2E Testing with Playwright** (Phase 5 of UI Testing Plan)
+  - Add Row tests: modal, validation, form submission, new row positioning
+  - Duplicate Member tests: button state, row creation, empty measure fields
+  - Delete Row tests: confirmation dialog, cancel, backdrop close
+  - Page Object Model for maintainable test structure
+  - 25 passing E2E tests, 5 skipped (require test isolation)
 - **CSV Import Implementation Plan** (Phase 5)
   - Multi-healthcare system support (Hill, Kaiser, etc.)
   - Config files stored on server (`backend/src/config/import/`)

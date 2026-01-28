@@ -238,6 +238,32 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ---
 
+## UI Testing Infrastructure
+
+**Status: In Progress**
+
+### Component Testing (React Testing Library + Vitest)
+- [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
+- [x] Phase 4: Component tests (45 tests total)
+  - StatusFilterBar.test.tsx (4 tests)
+  - Toolbar.test.tsx (15 tests)
+  - AddRowModal.test.tsx (15 tests)
+  - ConfirmModal.test.tsx (11 tests)
+
+### E2E Testing (Playwright)
+- [x] Phase 2: Setup (playwright.config.ts, Page Object Model)
+- [x] Phase 3: CI/CD workflows (.github/workflows/test.yml, e2e-tests.yml)
+- [x] Phase 5: CRUD operation tests (25 passing, 5 skipped)
+  - smoke.spec.ts (4 tests)
+  - add-row.spec.ts (9 tests)
+  - duplicate-member.spec.ts (8 tests, 3 skipped)
+  - delete-row.spec.ts (10 tests, 4 skipped)
+- [ ] Phase 6: Import Excel E2E tests
+- [ ] Phase 7: Grid editing, cascading dropdowns, time interval tests
+- [ ] Phase 8: Test data management and isolation
+
+---
+
 ## Future Phases
 
 ### Phase 10: HgbA1c Goal Configuration
@@ -393,4 +419,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 26, 2026 - Fixed Time Interval editability (only 5 time period dropdown statuses are non-editable)
+January 27, 2026 - Added UI Testing Infrastructure section (Phases 1-5 complete)

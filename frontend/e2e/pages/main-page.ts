@@ -35,7 +35,8 @@ export class MainPage {
   }
 
   async getCell(rowIndex: number, colId: string): Promise<Locator> {
-    return this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`);
+    // Use first() because AG Grid may have pinned columns in separate containers
+    return this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
   }
 
   async getCellValue(rowIndex: number, colId: string): Promise<string> {
@@ -69,7 +70,8 @@ export class MainPage {
   }
 
   async selectRow(rowIndex: number) {
-    const row = this.page.locator(`[row-index="${rowIndex}"]`);
+    // Use first() because AG Grid may have multiple row containers (pinned left/right/center)
+    const row = this.page.locator(`[row-index="${rowIndex}"]`).first();
     await row.click();
   }
 

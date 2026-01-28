@@ -65,6 +65,16 @@ This document tracks planned features and enhancements for future development.
 - [ ] Implementation: Phase 5g-5i - Import Executor + APIs
 - [ ] Implementation: Phase 5j-5l - Full Import UI
 
+### UI Testing
+- [x] Phase 1: React Testing Library + Vitest setup
+- [x] Phase 2: Playwright E2E setup
+- [x] Phase 3: GitHub Actions CI workflows
+- [x] Phase 4: Component tests (45 tests)
+- [x] Phase 5: CRUD E2E tests (25 passing, 5 skipped)
+- [ ] Phase 6: Import Excel E2E tests
+- [ ] Phase 7: Grid editing, cascading dropdowns, time interval tests
+- [ ] Phase 8: Test data management and isolation
+
 ---
 
 ## High Priority
@@ -152,4 +162,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 26, 2026
+January 27, 2026
