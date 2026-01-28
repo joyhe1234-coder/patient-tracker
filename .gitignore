@@ -31,3 +31,8 @@ backend/prisma/*.db-journal
 # Docker
 docker-compose.override.yml
 .claude/settings.local.json
+
+# Test outputs
+frontend/playwright-report/
+frontend/test-results/
+frontend/coverage/
