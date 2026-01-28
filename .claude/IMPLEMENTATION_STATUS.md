@@ -148,7 +148,13 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - `mergeLogic.test.ts` - 12 integration tests for merge-test-cases.csv
   - Tests all 6 merge cases (INSERT, UPDATE, SKIP, BOTH for merge mode; DELETE for replace mode)
   - Test data file: `test-data/merge-test-cases.csv`
-- [ ] 5h: Import Executor (Replace All + Merge)
+- [x] 5h: Import Executor (Replace All + Merge)
+  - `importExecutor.ts` - Execute import operations based on previewed diff
+  - Replace mode: Delete all existing records, insert all new
+  - Merge mode: Process INSERT, UPDATE, SKIP, BOTH actions
+  - Prisma transactions for atomicity
+  - Post-execution: sync duplicate flags, delete preview cache
+  - Unit tests: 16 tests covering all scenarios
 - [ ] 5i: Execute API endpoint
 - [ ] 5j: Import UI - Upload page
 - [ ] 5k: Import UI - Preview page
@@ -389,7 +395,8 @@ patient-tracker/
 │   │   │       ├── validator.ts
 │   │   │       ├── errorReporter.ts
 │   │   │       ├── diffCalculator.ts
-│   │   │       └── previewCache.ts
+│   │   │       ├── previewCache.ts
+│   │   │       └── importExecutor.ts
 │   │   ├── utils/           # Utility functions
 │   │   │   └── dateParser.ts
 │   │   └── index.ts         # Server entry point
@@ -457,4 +464,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 28, 2026 - Completed Phase 5g (Preview API + UI) with integration tests for merge logic
+January 28, 2026 - Completed Phase 5h (Import Executor) with 16 unit tests

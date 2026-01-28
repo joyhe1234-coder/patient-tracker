@@ -106,6 +106,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `test-data/merge-test-cases.csv` - 15 rows covering all 6 merge cases
   - `test-data/MERGE-TEST-CASES-README.md` - Documentation with expected results
   - Expected counts: 9 INSERT, 4 UPDATE, 5 SKIP, 2 BOTH, 0 DELETE
+- **Phase 5h: Import Executor**
+  - `backend/src/services/import/importExecutor.ts` - Execute database operations
+  - Replace mode: Bulk delete existing + insert all new records
+  - Merge mode: Process INSERT (create), UPDATE (upgrade status), SKIP, BOTH (downgrade - keep existing + add new)
+  - Prisma transactions ensure atomicity (all-or-nothing)
+  - Post-execution: syncAllDuplicateFlags(), deletePreview()
+  - 16 unit tests covering all scenarios
 
 ### Changed
 

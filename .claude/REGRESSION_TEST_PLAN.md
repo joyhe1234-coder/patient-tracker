@@ -1457,6 +1457,128 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
+## 23. Import Executor (Phase 5h)
+
+### TC-23.1: Execute Import - Preview Not Found
+**Steps:**
+1. Call executeImport with invalid preview ID
+
+**Expected:**
+- Error thrown: "Preview not found or expired"
+- No database changes
+
+### TC-23.2: Execute Import - Merge Mode INSERT
+**Steps:**
+1. Create preview with INSERT actions (new patient + measure)
+2. Call executeImport
+
+**Expected:**
+- New Patient record created
+- New PatientMeasure record created
+- Due date calculated
+- Stats show inserted: 1
+
+### TC-23.3: Execute Import - Merge Mode UPDATE
+**Steps:**
+1. Create preview with UPDATE action (upgrade status)
+2. Call executeImport
+
+**Expected:**
+- Existing PatientMeasure updated
+- measureStatus changed to new value
+- statusDate updated
+- dueDate recalculated
+- Stats show updated: 1
+
+### TC-23.4: Execute Import - Merge Mode SKIP
+**Steps:**
+1. Create preview with SKIP action (both compliant)
+2. Call executeImport
+
+**Expected:**
+- No database changes for this record
+- Stats show skipped: 1
+
+### TC-23.5: Execute Import - Merge Mode BOTH (Downgrade)
+**Steps:**
+1. Create preview with BOTH action (downgrade scenario)
+2. Call executeImport
+
+**Expected:**
+- Existing record unchanged
+- New record created (duplicate)
+- Stats show bothKept: 1
+
+### TC-23.6: Execute Import - Replace Mode DELETE
+**Steps:**
+1. Create preview with DELETE actions (replace mode)
+2. Call executeImport
+
+**Expected:**
+- All specified records deleted
+- Stats show deleted: N
+
+### TC-23.7: Execute Import - Replace Mode INSERT
+**Steps:**
+1. Create preview in replace mode with INSERT actions
+2. Call executeImport
+
+**Expected:**
+- All new records created
+- Stats show inserted: N
+
+### TC-23.8: Execute Import - Transaction Rollback
+**Steps:**
+1. Create preview that will cause database error mid-execution
+2. Call executeImport
+
+**Expected:**
+- Transaction rolls back all changes
+- result.success = false
+- result.errors contains transaction error
+
+### TC-23.9: Execute Import - Duplicate Flags Synced
+**Steps:**
+1. Execute import that creates duplicate records
+2. Check duplicate flags after
+
+**Expected:**
+- syncAllDuplicateFlags() called after execution
+- isDuplicate flags correctly set
+
+### TC-23.10: Execute Import - Preview Deleted After Success
+**Steps:**
+1. Execute import successfully
+2. Try to retrieve preview by ID
+
+**Expected:**
+- Preview no longer in cache
+- getPreview returns null
+
+### TC-23.11: Execute Import - Null DOB Handling
+**Steps:**
+1. Create preview with change that has null memberDob
+2. Call executeImport
+
+**Expected:**
+- Error recorded: "DOB is required"
+- Other records still processed
+- Stats accurate
+
+### TC-23.12: Execute Import - Stats Accuracy
+**Steps:**
+1. Create preview with mixed actions (2 INSERT, 1 UPDATE, 3 SKIP, 1 BOTH)
+2. Call executeImport
+
+**Expected:**
+- stats.inserted = 2
+- stats.updated = 1
+- stats.skipped = 3
+- stats.bothKept = 1
+- stats.deleted = 0
+
+---
+
 ## Test Data Files Needed
 
 | File | Description | Use For Tests |
@@ -1730,4 +1852,4 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 
 ## Last Updated
 
-January 28, 2026 - Added Cypress E2E tests section (23) for cascading dropdowns
+January 28, 2026 - Added Import Executor test cases (Section 23)

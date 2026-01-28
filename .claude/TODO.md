@@ -64,7 +64,10 @@ This document tracks planned features and enhancements for future development.
 - [x] Implementation: Phase 5e-5f - Diff Calculator + Preview Cache
   - `diffCalculator.ts` - Compare import vs DB with merge logic (22 tests)
   - `previewCache.ts` - In-memory TTL cache for previews (17 tests)
-- [ ] Implementation: Phase 5g-5i - Import Executor + APIs
+- [x] Implementation: Phase 5g - Preview API endpoints
+- [x] Implementation: Phase 5h - Import Executor (Replace All + Merge)
+  - `importExecutor.ts` - Execute database operations based on diff (16 tests)
+- [ ] Implementation: Phase 5i - Execute API endpoint
 - [ ] Implementation: Phase 5j-5l - Full Import UI
 
 ### UI Testing
