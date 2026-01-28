@@ -1,304 +1,269 @@
 # Testing Guide
 
-This document defines the testing strategy and patterns for the Patient Quality Measure Tracking System.
+This document describes all testing infrastructure, implemented tests, and requirements for adding tests when implementing new features.
 
 ---
 
-## Testing Approaches Overview
+## IMPORTANT: Testing Requirements for New Features
 
-We use **two complementary testing approaches** for the import transformation pipeline:
+**When implementing ANY new feature, you MUST:**
 
-| Approach | Purpose | When to Use |
-|----------|---------|-------------|
-| **Option 1: Jest Unit Tests** | Fast, isolated unit tests | During development, CI pipeline |
-| **Option 3: CLI Test Script** | End-to-end validation with real files | Manual testing, regression checks, baseline updates |
+1. **Add test cases to `.claude/REGRESSION_TEST_PLAN.md`** before or during implementation
+2. **Implement automated tests** for the feature (unit, component, or E2E as appropriate)
+3. **Run all existing tests** to ensure no regressions
+4. **Document test coverage** in the commit message
 
-Both approaches use the same test data files in `test-data/` folder.
+### Test-First Workflow
+
+```
+1. Define test cases in REGRESSION_TEST_PLAN.md
+2. Implement the feature
+3. Write automated tests
+4. Run tests to verify
+5. Update REGRESSION_TEST_PLAN.md to mark tests as automated
+6. Commit with test summary in message
+```
+
+### Pre-Commit Test Checklist
+
+Before committing any feature implementation:
+
+```bash
+# Backend tests
+cd backend && npm test
+
+# Frontend component tests
+cd frontend && npm run test:run
+
+# Frontend E2E tests (start dev server first: npm run dev)
+cd frontend && npm run e2e
+
+# Frontend AG Grid tests (start dev server first)
+cd frontend && npm run cypress:run
+```
 
 ---
 
-## Option 1: Jest Unit Tests
+## Test Frameworks Overview
 
-### Overview
+| Framework | Purpose | Location | Command |
+|-----------|---------|----------|---------|
+| **Jest** | Backend unit tests | `backend/src/**/__tests__/*.test.ts` | `cd backend && npm test` |
+| **Vitest** | Frontend component tests | `frontend/src/**/*.test.ts(x)` | `cd frontend && npm run test` |
+| **Playwright** | Frontend E2E (general UI) | `frontend/e2e/*.spec.ts` | `cd frontend && npm run e2e` |
+| **Cypress** | Frontend E2E (AG Grid) | `frontend/cypress/e2e/*.cy.ts` | `cd frontend && npm run cypress:run` |
 
-- **Framework:** Jest + ts-jest (ESM mode)
-- **Location:** `backend/src/services/import/__tests__/`
-- **Total Tests:** 130 tests across 7 test files
-- **Run Time:** ~4 seconds
+### When to Use Each Framework
 
-### Test Files
+| Scenario | Framework | Reason |
+|----------|-----------|--------|
+| Backend service logic | Jest | Fast, isolated unit tests |
+| Backend API endpoints | Jest | Integration tests with supertest |
+| React component logic | Vitest + RTL | Tests component behavior |
+| Form validation, modals | Vitest + RTL | Unit-level UI testing |
+| Page navigation, basic UI | Playwright | Cross-browser, reliable |
+| **AG Grid dropdown selection** | **Cypress** | Better native event handling |
+| AG Grid cell editing | Cypress | Reliable AG Grid interaction |
+| Complex multi-step workflows | Playwright or Cypress | E2E coverage |
 
-| Test File | Tests | What It Covers |
-|-----------|-------|----------------|
+**Note:** Playwright has issues committing AG Grid dropdown selections. Use Cypress for any AG Grid dropdown tests.
+
+---
+
+## All Implemented Tests
+
+### Backend Tests (130 tests)
+
+**Location:** `backend/src/services/import/__tests__/`
+
+| File | Tests | Description |
+|------|-------|-------------|
 | `fileParser.test.ts` | 16 | CSV parsing, title row detection, column validation |
-| `columnMapper.test.ts` | 13 | Column mapping, Q1/Q2 grouping, skip columns, stats |
-| `dataTransformer.test.ts` | 17 | Wide-to-long transformation, "any non-compliant wins", date parsing |
-| `validator.test.ts` | 23 | Validation rules, error deduplication, duplicate detection |
+| `columnMapper.test.ts` | 13 | Column mapping, Q1/Q2 grouping, skip columns |
+| `dataTransformer.test.ts` | 17 | Wide-to-long transformation, date parsing |
+| `validator.test.ts` | 23 | Validation rules, error deduplication, duplicates |
 | `configLoader.test.ts` | 22 | System config loading, registry, validation |
-| `errorReporter.test.ts` | 25 | Error report generation, formatting, condensed reports |
-| `integration.test.ts` | 14 | Full pipeline tests, edge cases, error propagation |
+| `errorReporter.test.ts` | 25 | Error report generation, formatting |
+| `integration.test.ts` | 14 | Full pipeline tests, edge cases |
 
-### Running Jest Tests
-
-```bash
-cd backend
-
-# Run all tests
-npm test
-
-# Run in watch mode (re-runs on file changes)
-npm test -- --watch
-
-# Run with coverage report
-npm test -- --coverage
-
-# Run specific test file
-npm test -- fileParser
-npm test -- validator
-
-# Run specific test by name
-npm test -- -t "should parse CSV"
-```
-
-### Expected Output
-
-```
-PASS src/services/import/__tests__/columnMapper.test.ts (13 tests)
-PASS src/services/import/__tests__/fileParser.test.ts (16 tests)
-PASS src/services/import/__tests__/dataTransformer.test.ts (17 tests)
-PASS src/services/import/__tests__/validator.test.ts (23 tests)
-PASS src/services/import/__tests__/configLoader.test.ts (22 tests)
-PASS src/services/import/__tests__/errorReporter.test.ts (25 tests)
-PASS src/services/import/__tests__/integration.test.ts (14 tests)
-
-Test Suites: 7 passed, 7 total
-Tests:       130 passed, 130 total
-Time:        ~4s
-```
-
----
-
-## Option 3: CLI Test Script
-
-### Overview
-
-- **Script:** `backend/scripts/test-transform.ts`
-- **Purpose:** Run full transformation pipeline on test files without server
-- **Baselines:** `test-data/expected/*.json`
-- **Use Cases:** Manual testing, regression checks, updating baselines
-
-### Running CLI Tests
+**Running Backend Tests:**
 
 ```bash
 cd backend
 
-# Run all 7 test files, display results
-npm run test:cli
-
-# Run specific test file
-npm run test:cli -- test-valid.csv
-npm run test:cli -- test-duplicates.csv
-
-# Compare results against saved baselines (for CI)
-npm run test:cli -- --compare
-
-# Save current results as new baselines
-npm run test:cli -- --save
-
-# Include detailed row-by-row data
-npm run test:cli -- --details
+npm test                    # Run all tests
+npm test -- --watch         # Watch mode
+npm test -- --coverage      # With coverage
+npm test -- fileParser      # Specific file
+npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Expected Output (Run Mode)
+### Frontend Component Tests (45 tests)
 
-```
-🧪 Import Transform Test Script
-Mode: RUN
-Files: 7
+**Location:** `frontend/src/components/**/*.test.tsx`
 
-============================================================
-File: test-valid.csv
-============================================================
+| File | Tests | Description |
+|------|-------|-------------|
+| `StatusFilterBar.test.tsx` | 4 | Filter chip rendering, click behavior, counts |
+| `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
+| `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
+| `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
 
-📄 Parse:
-   Total rows: 10
-   Data starts at row: 2
-   Headers: 14 columns
+**Running Component Tests:**
 
-🗺️  Mapping:
-   Mapped: 14
-   Skipped: 0
-   Unmapped: 0
-   Measure types: 5
+```bash
+cd frontend
 
-🔄 Transform:
-   Input rows: 10
-   Output rows: 42
-   Patients with no measures: 0
-   Transform errors: 0
-
-✅ Validation:
-   Valid: ✅ YES
-   Errors: 0
-   Warnings: 0
-   Duplicate groups: 0
-
-... (repeats for all 7 files)
-
-============================================================
-SUMMARY
-============================================================
-Files processed: 7
+npm run test              # Watch mode
+npm run test:run          # Single run (CI)
+npm run test:coverage     # With coverage report
 ```
 
-### Expected Output (Compare Mode)
+### Playwright E2E Tests (25 passing, 5 skipped)
 
-```
-🧪 Import Transform Test Script
-Mode: COMPARE
-Files: 7
+**Location:** `frontend/e2e/*.spec.ts`
 
-✅ test-valid.csv: PASSED
-✅ test-dates.csv: PASSED
-✅ test-multi-column.csv: PASSED
-✅ test-validation-errors.csv: PASSED
-✅ test-duplicates.csv: PASSED
-✅ test-no-measures.csv: PASSED
-✅ test-warnings.csv: PASSED
+| File | Tests | Description |
+|------|-------|-------------|
+| `smoke.spec.ts` | 4 | Page load, grid display, toolbar, status bar |
+| `add-row.spec.ts` | 9 | Add Row modal, validation, form submission |
+| `duplicate-member.spec.ts` | 8 (3 skip) | Duplicate Mbr button, row creation |
+| `delete-row.spec.ts` | 10 (4 skip) | Delete confirmation, cancel, backdrop |
 
-============================================================
-SUMMARY
-============================================================
-Files processed: 7
-Result: ✅ ALL PASSED
-```
+**Page Object Model:** `frontend/e2e/pages/main-page.ts`
 
-### Baseline Files
+**Skipped Tests (require test isolation):**
+- Confirming delete removes the row
+- Delete multiple rows
+- Duplicate copies phone/address
+- Button disable after deselection
 
-Located in `test-data/expected/`:
+**Running Playwright Tests:**
 
-| Baseline File | Source Test File |
-|---------------|------------------|
-| `test-valid.csv.json` | test-valid.csv |
-| `test-dates.csv.json` | test-dates.csv |
-| `test-multi-column.csv.json` | test-multi-column.csv |
-| `test-validation-errors.csv.json` | test-validation-errors.csv |
-| `test-duplicates.csv.json` | test-duplicates.csv |
-| `test-no-measures.csv.json` | test-no-measures.csv |
-| `test-warnings.csv.json` | test-warnings.csv |
+```bash
+cd frontend
 
-### When to Update Baselines
-
-Run `npm run test:cli -- --save` when:
-- You intentionally change transformation behavior
-- You add new test data files
-- You fix a bug and the correct output is different
-
-**DO NOT** update baselines if tests fail unexpectedly - investigate the failure first!
-
----
-
-## Test Data Files
-
-All test data is in `test-data/` folder:
-
-| File | Rows | Purpose | Expected Behavior |
-|------|------|---------|-------------------|
-| `test-valid.csv` | 10 | Happy path, all valid | 42 output rows, 0 errors |
-| `test-dates.csv` | 8 | Date format variations | 1 transform error, 2 validation errors |
-| `test-multi-column.csv` | 8 | Multiple columns → same measure | Tests "any non-compliant wins" |
-| `test-validation-errors.csv` | 10 | Missing/invalid fields | 2 validation errors, 1 no-measure patient |
-| `test-duplicates.csv` | 8 | Duplicate detection | 6 duplicate groups, 9 warnings |
-| `test-no-measures.csv` | 10 | Empty measure columns | 5 patients with no measures |
-| `test-warnings.csv` | 10 | Warnings only (missing phone) | Valid=true, 5 warnings |
-
----
-
-## Directory Structure
-
-```
-patient-tracker/
-├── backend/
-│   ├── jest.config.js                    # Jest configuration
-│   ├── package.json                      # Test scripts
-│   ├── scripts/
-│   │   └── test-transform.ts             # CLI test script (Option 3)
-│   └── src/services/import/
-│       └── __tests__/                    # Jest tests (Option 1)
-│           ├── fileParser.test.ts
-│           ├── columnMapper.test.ts
-│           ├── dataTransformer.test.ts
-│           ├── validator.test.ts
-│           ├── configLoader.test.ts
-│           ├── errorReporter.test.ts
-│           └── integration.test.ts
-└── test-data/
-    ├── test-valid.csv                    # Test input files
-    ├── test-dates.csv
-    ├── test-multi-column.csv
-    ├── test-validation-errors.csv
-    ├── test-duplicates.csv
-    ├── test-no-measures.csv
-    ├── test-warnings.csv
-    ├── README.md
-    └── expected/                         # Baseline files (Option 3)
-        ├── test-valid.csv.json
-        ├── test-dates.csv.json
-        └── ... (7 files)
+npm run e2e               # Headless (CI)
+npm run e2e:headed        # With browser visible
+npm run e2e:ui            # Interactive UI mode
+npm run e2e:report        # View HTML report
 ```
 
----
+### Cypress E2E Tests (19 passing)
 
-## Workflow Recommendations
+**Location:** `frontend/cypress/e2e/*.cy.ts`
 
-### During Development
+| File | Tests | Description |
+|------|-------|-------------|
+| `cascading-dropdowns.cy.ts` | 19 | Dropdown cascading, auto-fill, row colors |
 
-1. Make code changes
-2. Run `npm test` to verify unit tests pass
-3. If behavior changed intentionally, run `npm run test:cli -- --save`
+**Test Categories:**
 
-### Before Commit
+**Request Type Selection (4 tests):**
+- Request Type dropdown has 4 options (AWV, Chronic DX, Quality, Screening)
+- AWV auto-fills Quality Measure with "Annual Wellness Visit"
+- Chronic DX auto-fills Quality Measure with "Chronic Diagnosis Code"
+- Quality shows 8 Quality Measure options
+- Screening shows 3 Quality Measure options
+
+**AWV Measure Status (5 tests):**
+- AWV has 7 status options
+- Can select AWV completed status
+- AWV completed shows green row color
+- AWV scheduled shows blue row color
+- Patient declined AWV shows purple row color
+
+**Breast Cancer Screening (5 tests):**
+- Breast Cancer Screening has 8 status options
+- Screening test ordered shows Tracking #1 options (Mammogram, Breast Ultrasound, Breast MRI)
+- Can select Mammogram tracking
+- Screening test completed shows green row
+
+**Chronic Diagnosis Code (3 tests):**
+- Chronic Diagnosis Code has 5 status options
+- Chronic diagnosis resolved shows attestation options
+- Chronic diagnosis resolved shows orange row
+
+**Cascading Field Clearing (2 tests):**
+- Changing Request Type clears Quality Measure and downstream
+- Changing Quality Measure clears Measure Status
+
+**Custom AG Grid Commands:** `frontend/cypress/support/commands.ts`
+
+```typescript
+cy.waitForAgGrid()                              // Wait for grid to load
+cy.getAgGridCell(rowIndex, colId)               // Get cell by row index and column
+cy.openAgGridDropdown(rowIndex, colId)          // Open dropdown for editing
+cy.selectAgGridDropdown(rowIndex, colId, value) // Select dropdown value
+cy.getAgGridDropdownOptions()                   // Get all options from open dropdown
+cy.findRowByMemberName(name)                    // Find row index by patient name
+cy.addTestRow(name)                             // Add row via modal
+```
+
+**Running Cypress Tests:**
+
+```bash
+cd frontend
+
+npm run cypress           # Open Cypress Test Runner (interactive)
+npm run cypress:run       # Headless (CI)
+npm run cypress:headed    # With browser visible
+```
+
+### CLI Test Script (7 test files)
+
+**Location:** `backend/scripts/test-transform.ts`
+
+Tests the full import transformation pipeline with real CSV files.
+
+**Test Data:** `test-data/*.csv`
+
+| File | Rows | Purpose |
+|------|------|---------|
+| `test-valid.csv` | 10 | Happy path, all valid data |
+| `test-dates.csv` | 8 | Date format variations |
+| `test-multi-column.csv` | 8 | Multiple columns → same measure |
+| `test-validation-errors.csv` | 10 | Missing/invalid fields |
+| `test-duplicates.csv` | 8 | Duplicate detection |
+| `test-no-measures.csv` | 10 | Empty measure columns |
+| `test-warnings.csv` | 10 | Warnings only (missing phone) |
+
+**Running CLI Tests:**
 
 ```bash
 cd backend
-npm test                          # All 130 unit tests pass
-npm run test:cli -- --compare     # All 7 files match baselines
+
+npm run test:cli              # Run all test files
+npm run test:cli -- --compare # Compare against baselines
+npm run test:cli -- --save    # Save new baselines
 ```
 
-### For CI Pipeline
+---
 
-```yaml
-- name: Run unit tests
-  run: cd backend && npm test
+## Test Coverage Summary
 
-- name: Run regression tests
-  run: cd backend && npm run test:cli -- --compare
-```
+| Area | Framework | Tests | Status |
+|------|-----------|-------|--------|
+| Backend import services | Jest | 130 | Complete |
+| Frontend components | Vitest | 45 | 4 components |
+| CRUD operations | Playwright | 25 (5 skip) | Complete |
+| Cascading dropdowns | Cypress | 19 | Complete |
+| Row colors | Cypress | 5 | In cascading tests |
+| Grid editing | - | 0 | Planned |
+| Time intervals | - | 0 | Planned |
+| Import UI flow | - | 0 | Planned |
 
-### When Adding New Functionality
-
-1. Add unit tests to appropriate `__tests__/*.test.ts` file
-2. If needed, create new test data CSV in `test-data/`
-3. Run `npm run test:cli -- --save` to create baseline
-4. Commit both test file and baseline
+**Total Automated Tests: ~220**
 
 ---
 
 ## Writing New Tests
 
-### Jest Unit Test Template
+### Backend Test Pattern (Jest)
 
 ```typescript
 import { describe, it, expect } from '@jest/globals';
 import { myFunction } from '../myModule.js';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-// ESM-compatible __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const testDataDir = path.join(__dirname, '../../../../../test-data');
 
 describe('myModule', () => {
   describe('myFunction', () => {
@@ -311,53 +276,147 @@ describe('myModule', () => {
       const result = myFunction(null);
       expect(result.errors).toHaveLength(1);
     });
-
-    it('should work with test data files', () => {
-      const csvPath = path.join(testDataDir, 'test-valid.csv');
-      const buffer = fs.readFileSync(csvPath);
-      // ... test with real file
-    });
   });
 });
 ```
 
-### Key Patterns
+### Component Test Pattern (Vitest)
 
-1. **Use ESM imports** - Import with `.js` extension
-2. **Use `fileURLToPath`** - For ESM-compatible `__dirname`
-3. **Group related tests** - Use nested `describe` blocks
-4. **Test with real files** - Use `test-data/*.csv` for integration tests
-5. **Test error cases** - Always test invalid/edge case inputs
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('renders correctly', () => {
+    render(<MyComponent />);
+    expect(screen.getByText('Expected Text')).toBeInTheDocument();
+  });
+
+  it('handles click', () => {
+    const onClick = vi.fn();
+    render(<MyComponent onClick={onClick} />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toHaveBeenCalled();
+  });
+});
+```
+
+### Playwright E2E Pattern
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { MainPage } from './pages/main-page';
+
+test.describe('Feature Name', () => {
+  let mainPage: MainPage;
+
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.goto();
+    await mainPage.waitForGridLoad();
+  });
+
+  test('should do something', async () => {
+    await mainPage.clickButton('Action');
+    await expect(mainPage.someElement).toBeVisible();
+  });
+});
+```
+
+### Cypress E2E Pattern (AG Grid)
+
+```typescript
+describe('Feature Name', () => {
+  const testRowIndex = 0;
+
+  beforeEach(() => {
+    cy.visit('/');
+    cy.waitForAgGrid();
+  });
+
+  it('should select dropdown value', () => {
+    cy.selectAgGridDropdown(testRowIndex, 'columnId', 'Value');
+    cy.wait(300);
+
+    cy.getAgGridCell(testRowIndex, 'columnId')
+      .should('contain.text', 'Value');
+  });
+
+  it('should verify row color', () => {
+    cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Completed');
+    cy.wait(500);
+
+    cy.get(`[row-index="${testRowIndex}"]`).first()
+      .should('have.class', 'row-status-green');
+  });
+});
+```
+
+---
+
+## Test Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `backend/jest.config.js` | Jest configuration |
+| `frontend/vitest.config.ts` | Vitest configuration |
+| `frontend/vitest.setup.ts` | Test setup, mocks, matchers |
+| `frontend/playwright.config.ts` | Playwright configuration |
+| `frontend/cypress.config.ts` | Cypress configuration |
+| `frontend/cypress/support/e2e.ts` | Cypress support/setup |
+| `frontend/cypress/support/commands.ts` | Custom Cypress commands |
+
+---
+
+## CI/CD Integration
+
+### GitHub Actions Workflows
+
+| Workflow | File | Tests |
+|----------|------|-------|
+| test.yml | `.github/workflows/test.yml` | Component tests |
+| e2e-tests.yml | `.github/workflows/e2e-tests.yml` | Playwright E2E |
+
+### CI Commands
+
+```yaml
+# Backend
+- run: cd backend && npm test
+
+# Frontend component tests
+- run: cd frontend && npm run test:run
+
+# Playwright E2E
+- run: cd frontend && npx playwright install --with-deps
+- run: cd frontend && npm run e2e
+
+# Cypress E2E
+- run: cd frontend && npm run cypress:run
+```
 
 ---
 
 ## Troubleshooting
 
-### "ReferenceError: __dirname is not defined"
+### Playwright: Dropdown selection not working
+- Use Cypress instead for AG Grid dropdowns
+- Playwright's click events don't always trigger AG Grid's change handlers
 
-Add ESM-compatible dirname:
-```typescript
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-```
+### Cypress: AG Grid popup not opening
+- Ensure extra click on dropdown wrapper after double-click
+- See `openAgGridDropdown` command in `commands.ts`
 
-### Tests timeout
+### Cypress: Virtual scrolling issues
+- Use row index 0 (always visible) for tests
+- Or scroll cell into view before interaction
 
-Increase timeout in jest.config.js:
-```javascript
-testTimeout: 10000,
-```
-
-### CLI script fails to find test files
-
-Run from `backend/` directory:
-```bash
-cd backend && npm run test:cli
-```
+### Jest: Module not found
+- Ensure imports use `.js` extension for ESM
+- Check jest.config.js moduleNameMapper
 
 ---
 
 ## Last Updated
 
-January 26, 2026 - Expanded to 130 tests across 7 test files (added configLoader, errorReporter, integration tests)
+January 28, 2026 - Consolidated all test documentation (backend + frontend)
