@@ -70,10 +70,13 @@ This document tracks planned features and enhancements for future development.
 - [x] Phase 2: Playwright E2E setup
 - [x] Phase 3: GitHub Actions CI workflows
 - [x] Phase 4: Component tests (45 tests)
-- [x] Phase 5: CRUD E2E tests (25 passing, 5 skipped)
-- [ ] Phase 6: Import Excel E2E tests
-- [ ] Phase 7: Grid editing, cascading dropdowns, time interval tests
-- [ ] Phase 8: Test data management and isolation
+- [x] Phase 5: CRUD E2E tests (Playwright: 25 passing, 5 skipped)
+- [x] Phase 6: Cascading dropdowns E2E tests (Cypress: 19 passing)
+  - Cypress framework added for better AG Grid dropdown handling
+  - Request Type, Quality Measure, Measure Status, Tracking #1 tests
+  - Row color tests, cascading field clearing tests
+- [ ] Phase 7: Test data management and isolation
+- [ ] Phase 8: Import Excel E2E tests
 
 ---
 
@@ -162,4 +165,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 27, 2026
+January 28, 2026

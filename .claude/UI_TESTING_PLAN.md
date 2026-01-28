@@ -889,11 +889,11 @@ test.describe('Delete Row', () => {
 
 ---
 
-## Phase 6: Write E2E Tests - Import Excel
+## Phase 8: Write E2E Tests - Import Excel
 
 **Goal:** Test Excel/CSV import functionality
 
-### 6.1 Test Files Setup
+### 8.1 Test Files Setup
 
 Create test files in `frontend/e2e/fixtures/test-files/`:
 
@@ -905,7 +905,7 @@ Create test files in `frontend/e2e/fixtures/test-files/`:
 | `empty-measures.xlsx` | Patients with no measure data |
 | `mixed-errors.xlsx` | Combination of errors and warnings |
 
-### 6.2 Import Excel Tests
+### 8.2 Import Excel Tests
 
 **`frontend/e2e/import-excel.spec.ts`**
 ```typescript
@@ -1048,11 +1048,11 @@ test.describe('Import Excel', () => {
 
 ---
 
-## Phase 7: Write E2E Tests - Grid Editing & Business Logic
+## Phase 6: Write E2E Tests - Grid Editing & Business Logic
 
 **Goal:** Test cell editing, cascading dropdowns, time interval rules, row colors
 
-### 7.1 Test Files to Create
+### 6.1 Test Files to Create
 
 | File | Test Cases |
 |------|------------|
@@ -1063,7 +1063,7 @@ test.describe('Import Excel', () => {
 | **duplicate-detection.spec.ts** | Orange stripe on duplicate, filter chip, stripe removed when no longer duplicate |
 | **filtering.spec.ts** | Filter chip click, row count updates, clear filter |
 
-### 7.2 Time Interval Tests (Example)
+### 6.2 Time Interval Tests (Example)
 
 **`frontend/e2e/time-interval.spec.ts`**
 ```typescript
@@ -1153,11 +1153,11 @@ test.describe('Time Interval Editability', () => {
 
 ---
 
-## Phase 8: Test Data Management
+## Phase 7: Test Data Management
 
 **Goal:** Consistent test data for reliable tests
 
-### 8.1 E2E Seed Script
+### 7.1 E2E Seed Script
 
 **`backend/prisma/e2e-seed.ts`**
 ```typescript
@@ -1168,7 +1168,7 @@ test.describe('Time Interval Editability', () => {
 // - Rows with all tracking combinations
 ```
 
-### 8.2 API Mocking for Component Tests
+### 7.2 API Mocking for Component Tests
 
 **`frontend/src/test/mocks/api.ts`**
 ```typescript
@@ -1197,9 +1197,9 @@ vi.mock('../../api/axios', () => ({
 | **Phase 3** | CI workflow files | 1 hour |
 | **Phase 4** | Component tests (4 components) | 2-3 hours |
 | **Phase 5** | E2E tests - CRUD (Add/Duplicate/Delete) | 3-4 hours |
-| **Phase 6** | E2E tests - Import Excel | 2-3 hours |
-| **Phase 7** | E2E tests - Grid editing & business logic | 4-6 hours |
-| **Phase 8** | Test data management | 1-2 hours |
+| **Phase 6** | E2E tests - Grid editing & business logic | 4-6 hours |
+| **Phase 7** | Test data management | 1-2 hours |
+| **Phase 8** | E2E tests - Import Excel | 2-3 hours |
 
 **Total: 15-23 hours**
 

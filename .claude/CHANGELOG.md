@@ -9,6 +9,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0-snapshot] - Unreleased
 
 ### Added
+- **Cypress E2E Testing** (Phase 6 of UI Testing Plan)
+  - Cypress framework setup as alternative to Playwright for AG Grid dropdown tests
+  - Custom AG Grid commands (openAgGridDropdown, selectAgGridDropdown, getAgGridDropdownOptions)
+  - Cascading dropdown tests (19 passing):
+    - Request Type dropdown with 4 options
+    - AWV/Chronic DX auto-fill behavior
+    - Quality Measure filtering by Request Type (8 Quality, 3 Screening options)
+    - Measure Status options by Quality Measure
+    - Tracking #1 options (Breast Cancer, Chronic DX)
+    - Row color changes on status selection
+    - Cascading field clearing on parent changes
+  - npm scripts: `cypress`, `cypress:run`, `cypress:headed`
 - **E2E Testing with Playwright** (Phase 5 of UI Testing Plan)
   - Add Row tests: modal, validation, form submission, new row positioning
   - Duplicate Member tests: button state, row creation, empty measure fields

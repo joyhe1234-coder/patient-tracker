@@ -258,9 +258,17 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - add-row.spec.ts (9 tests)
   - duplicate-member.spec.ts (8 tests, 3 skipped)
   - delete-row.spec.ts (10 tests, 4 skipped)
-- [ ] Phase 6: Import Excel E2E tests
-- [ ] Phase 7: Grid editing, cascading dropdowns, time interval tests
-- [ ] Phase 8: Test data management and isolation
+- [ ] Phase 6: Grid editing, cascading dropdowns, time interval tests
+- [ ] Phase 7: Test data management and isolation
+- [ ] Phase 8: Import Excel E2E tests
+
+### E2E Testing (Cypress)
+- [x] Phase 6: Cascading dropdowns tests (19 passing)
+  - cypress.config.ts - Cypress configuration
+  - cypress/support/commands.ts - AG Grid helper commands
+  - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
+  - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
+- [ ] Phase 7: Additional Cypress tests for grid editing, time intervals
 
 ---
 
@@ -419,4 +427,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 27, 2026 - Added UI Testing Infrastructure section (Phases 1-5 complete)
+January 28, 2026 - Added Cypress E2E testing for cascading dropdowns (19 tests)

@@ -1519,6 +1519,68 @@ npm run e2e:report    # View test report
 
 ---
 
+## 23. Automated E2E Tests (Cypress)
+
+Cypress tests for AG Grid cascading dropdown functionality. Cypress handles AG Grid dropdown selection better than Playwright due to native browser event simulation.
+
+### Test File
+
+| File | Description | Tests |
+|------|-------------|-------|
+| `cypress/e2e/cascading-dropdowns.cy.ts` | Cascading dropdown behavior | 19 |
+
+### Test Categories
+
+**Request Type Selection (4 tests):**
+- Request Type dropdown has 4 options (AWV, Chronic DX, Quality, Screening)
+- AWV auto-fills Quality Measure with "Annual Wellness Visit"
+- Chronic DX auto-fills Quality Measure with "Chronic Diagnosis Code"
+- Quality shows 8 Quality Measure options
+- Screening shows 3 Quality Measure options
+
+**AWV Measure Status (5 tests):**
+- AWV has 7 status options
+- Can select AWV completed status
+- AWV completed shows green row color
+- AWV scheduled shows blue row color
+- Patient declined AWV shows purple row color
+
+**Breast Cancer Screening (5 tests):**
+- Breast Cancer Screening has 8 status options
+- Screening test ordered shows Tracking #1 options (Mammogram, Breast Ultrasound, Breast MRI)
+- Can select Mammogram tracking
+- Screening test completed shows green row
+
+**Chronic Diagnosis Code (3 tests):**
+- Chronic Diagnosis Code has 5 status options
+- Chronic diagnosis resolved shows attestation options
+- Chronic diagnosis resolved shows orange row
+
+**Cascading Field Clearing (2 tests):**
+- Changing Request Type clears Quality Measure and downstream
+- Changing Quality Measure clears Measure Status
+
+### Running Cypress Tests
+
+```bash
+cd frontend
+npm run cypress         # Open Cypress Test Runner
+npm run cypress:run     # Run headless
+npm run cypress:headed  # Run with browser visible
+```
+
+### Custom AG Grid Commands
+
+```typescript
+cy.waitForAgGrid()                           // Wait for grid to load
+cy.getAgGridCell(rowIndex, colId)            // Get cell by row index and column
+cy.openAgGridDropdown(rowIndex, colId)       // Open dropdown for editing
+cy.selectAgGridDropdown(rowIndex, colId, value) // Select dropdown value
+cy.getAgGridDropdownOptions()                // Get all options from open dropdown
+```
+
+---
+
 ## Last Updated
 
-January 27, 2026 - Added automated E2E test section (22)
+January 28, 2026 - Added Cypress E2E tests section (23) for cascading dropdowns

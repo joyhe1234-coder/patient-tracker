@@ -36,3 +36,5 @@ docker-compose.override.yml
 frontend/playwright-report/
 frontend/test-results/
 frontend/coverage/
+frontend/cypress/videos/
+frontend/cypress/screenshots/
