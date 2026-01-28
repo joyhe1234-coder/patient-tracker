@@ -115,19 +115,50 @@ git checkout develop              # Return to develop
 ### Step 3: Monitor Render Deployment
 After pushing to main, Render auto-deploys. **You MUST monitor the deployment:**
 
-1. **Check deployment status** using Render MCP:
-   - List recent deploys for the backend service
-   - Verify deploy status is "live" or "succeeded"
+#### 3a. Decrypt the Render API Key
+```bash
+RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.claude/render-api-key.gpg 2>/dev/null)
+```
 
-2. **If deployment fails:**
-   - Fetch deploy logs via Render MCP
-   - Report the error to the user
-   - Do NOT consider the release complete until deployment succeeds
+#### 3b. Check Deployment Status
+Wait 30 seconds for deploy to start, then check both services:
 
-3. **Confirm to user:**
-   - Report deployment status (success/failure)
-   - Include deploy ID and timestamp
-   - If failed, include relevant error logs
+```bash
+# Check backend (patient-tracker-api)
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+  "https://api.render.com/v1/services/srv-d5hh4ui4d50c73932ta0/deploys?limit=1"
+
+# Check frontend (patient-tracker-frontend)
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+  "https://api.render.com/v1/services/srv-d5hh7a24d50c739344hg/deploys?limit=1"
+```
+
+**Service IDs:**
+- Backend API: `srv-d5hh4ui4d50c73932ta0`
+- Frontend: `srv-d5hh7a24d50c739344hg`
+
+#### 3c. Interpret Status
+- `"status":"live"` = Deployment successful
+- `"status":"build_in_progress"` or `"status":"update_in_progress"` = Still deploying, wait and check again
+- `"status":"build_failed"` = Build failed, investigate
+
+#### 3d. If Deployment Fails
+1. **Try to build locally** to reproduce the error:
+   ```bash
+   cd frontend && npm run build  # or cd backend && npm run build
+   ```
+2. **Check service events** for error details:
+   ```bash
+   curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+     "https://api.render.com/v1/services/{SERVICE_ID}/events?limit=5"
+   ```
+3. **Fix the issue**, commit, and re-release
+
+#### 3e. Confirm to User
+Report deployment status for BOTH services:
+- Service name and status (live/failed)
+- Deploy ID and timestamp
+- If failed, include error details and fix applied
 
 ---
 
@@ -167,25 +198,37 @@ Read the following files before starting work:
 
 ---
 
-## Available MCP Servers
+## Render API Access
 
-### Render MCP (Deployment & Infrastructure)
-The Render MCP server is configured and available for managing deployments.
+### API Key Location
+The Render API key is stored encrypted at `~/.claude/render-api-key.gpg`
 
-**Use Render MCP to:**
-- Check deployment status and history
-- View service logs for debugging
-- Query metrics (CPU, memory, response times)
-- List services and their configurations
-- Run read-only database queries
+**Decrypt the key:**
+```bash
+RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.claude/render-api-key.gpg 2>/dev/null)
+```
 
-**Common commands:**
-- After a release, check deployment status via Render MCP
-- If deployment fails, use Render MCP to fetch logs and diagnose issues
-- Monitor service health and performance metrics
+### Service IDs
+| Service | ID | URL |
+|---------|-----|-----|
+| Backend API | `srv-d5hh4ui4d50c73932ta0` | https://patient-tracker-api-feu8.onrender.com |
+| Frontend | `srv-d5hh7a24d50c739344hg` | https://patient-tracker-frontend.onrender.com |
 
-**Limitations:**
-- Cannot trigger deploys (must push to git)
-- Cannot delete resources
-- Cannot modify scaling settings
-- Can only modify environment variables
+### Common API Calls
+```bash
+# List services
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services?limit=10"
+
+# Check recent deploys for a service
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/{SERVICE_ID}/deploys?limit=3"
+
+# Get service events (for debugging)
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/{SERVICE_ID}/events?limit=10"
+```
+
+### Deploy Status Values
+- `live` - Deployment successful and running
+- `build_in_progress` - Building
+- `update_in_progress` - Deploying after successful build
+- `build_failed` - Build failed (check events for details)
+- `deactivated` - Previous deploy, replaced by newer one
