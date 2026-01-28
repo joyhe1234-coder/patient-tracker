@@ -43,6 +43,25 @@ Wait for user confirmation before writing any code. Ask:
 ### Step 4: Implement
 Only after approval, proceed with implementation.
 
+### Step 5: Add Tests (REQUIRED)
+After implementing, you MUST add automated tests:
+
+1. **Add test cases to REGRESSION_TEST_PLAN.md** - Document what needs testing
+2. **Write automated tests** using the appropriate framework:
+   - Backend logic → Jest (`backend/src/**/__tests__/*.test.ts`)
+   - React components → Vitest (`frontend/src/**/*.test.tsx`)
+   - General UI flows → Playwright (`frontend/e2e/*.spec.ts`)
+   - AG Grid dropdowns → Cypress (`frontend/cypress/e2e/*.cy.ts`)
+3. **Run all tests** before committing:
+   ```bash
+   cd backend && npm test
+   cd frontend && npm run test:run
+   cd frontend && npm run e2e
+   cd frontend && npm run cypress:run
+   ```
+
+See `.claude/TESTING.md` for detailed testing patterns and examples.
+
 ---
 
 ## IMPORTANT: Pre-Commit Workflow
@@ -81,6 +100,7 @@ Read the following files before starting work:
 - `.claude/TODO.md` - Task list and priorities
 - `.claude/CHANGELOG.md` - Version history and changes
 - `.claude/REGRESSION_TEST_PLAN.md` - Testing requirements
+- `.claude/TESTING.md` - **Testing guide: framework setup, patterns, and examples**
 
 ## Claude-Specific Context
 - `.claude/context.md` - Project structure and tech stack
@@ -88,9 +108,23 @@ Read the following files before starting work:
 - `.claude/notes.md` - Session notes and current focus
 
 ## Quick Commands
+
+### Development
 - Dev server: `docker-compose up`
 - Build: `cd frontend && npm run build`
-- Test: [add command]
+
+### Testing (Run all before commit)
+- Backend unit tests: `cd backend && npm test` (130 tests)
+- Frontend component tests: `cd frontend && npm run test:run` (45 tests)
+- Playwright E2E: `cd frontend && npm run e2e` (25 tests)
+- Cypress E2E: `cd frontend && npm run cypress:run` (19 tests)
+- Cypress interactive: `cd frontend && npm run cypress`
+
+### Test Locations
+- Backend: `backend/src/services/import/__tests__/*.test.ts`
+- Components: `frontend/src/components/**/*.test.tsx`
+- Playwright: `frontend/e2e/*.spec.ts`
+- Cypress: `frontend/cypress/e2e/*.cy.ts`
 
 ---
 

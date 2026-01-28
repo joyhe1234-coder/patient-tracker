@@ -57,9 +57,32 @@ This document tracks planned features and enhancements for future development.
 - [ ] Q6: Duplicate Measures handling (age-range sub-categories)
 - [ ] Q7: Column Mapping UI decision
 - [ ] Q8: Date Fields decision
-- [ ] Implementation: Phase 5a - Basic Import (file upload, patient data)
-- [ ] Implementation: Phase 5b - Measure Import (quality measures, validation)
-- [ ] Implementation: Phase 5c - Polish (preview, progress indicator)
+- [x] Implementation: Phase 5a - Config Loader (systems registry, Hill config)
+- [x] Implementation: Phase 5b - File Parser (CSV/Excel) + Import Test Page
+- [x] Implementation: Phase 5c - Column Mapper + Transformer
+- [x] Implementation: Phase 5d - Validator + Error Reporter
+- [x] Implementation: Phase 5e-5f - Diff Calculator + Preview Cache
+  - `diffCalculator.ts` - Compare import vs DB with merge logic (22 tests)
+  - `previewCache.ts` - In-memory TTL cache for previews (17 tests)
+- [ ] Implementation: Phase 5g-5i - Import Executor + APIs
+- [ ] Implementation: Phase 5j-5l - Full Import UI
+
+### UI Testing
+- [x] Phase 1: React Testing Library + Vitest setup
+- [x] Phase 2: Playwright E2E setup
+- [x] Phase 3: GitHub Actions CI workflows
+- [x] Phase 4: Component tests (45 tests)
+- [x] Phase 5: CRUD E2E tests (Playwright: 25 passing, 5 skipped)
+- [x] Phase 6: Cascading dropdowns E2E tests (Cypress: 19 passing)
+  - Cypress framework added for better AG Grid dropdown handling
+  - Request Type, Quality Measure, Measure Status, Tracking #1 tests
+  - Row color tests, cascading field clearing tests
+- [x] Phase 7: Test data management and isolation
+  - Added serial mode for data-modifying test suites
+  - Added waitForGridLoad(), toggleMemberInfo(), deselectAllRows() helpers
+  - Fixed phone/address test with Member Info toggle
+  - Playwright: 26 passing, 4 skipped (AG Grid limitations)
+- [ ] Phase 8: Import Excel E2E tests
 
 ---
 
@@ -148,4 +171,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 22, 2026
+January 28, 2026

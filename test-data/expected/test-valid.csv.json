@@ -1,0 +1,300 @@
+{
+  "file": "test-valid.csv",
+  "parse": {
+    "totalRows": 10,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Annual Wellness Visit Q1",
+      "Annual Wellness Visit Q2",
+      "Breast Cancer Screening E Q1",
+      "Breast Cancer Screening E Q2",
+      "Colorectal Cancer Screening E Q1",
+      "Colorectal Cancer Screening E Q2",
+      "Eye Exam Q1",
+      "Eye Exam Q2",
+      "BP Control Q1",
+      "BP Control Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 14,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 5,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 10,
+    "outputRows": 42,
+    "patientsWithNoMeasures": 0,
+    "errors": 0
+  },
+  "validation": {
+    "valid": true,
+    "errors": 0,
+    "warnings": 0,
+    "duplicateGroups": 0
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Williams, Robert",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Miller, Linda",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Miller, Linda",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Miller, Linda",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Miller, Linda",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Wilson, James",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Wilson, James",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Wilson, James",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Wilson, James",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Moore, Elizabeth",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Moore, Elizabeth",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Moore, Elizabeth",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Moore, Elizabeth",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Taylor, David",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Taylor, David",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Taylor, David",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Taylor, David",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Taylor, David",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Anderson, Susan",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Anderson, Susan",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Anderson, Susan",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Anderson, Susan",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Anderson, Susan",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 9
+      }
+    ],
+    "validationErrors": [],
+    "patientsWithNoMeasures": []
+  }
+}

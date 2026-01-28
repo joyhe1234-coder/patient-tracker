@@ -1,0 +1,163 @@
+{
+  "file": "test-no-measures.csv",
+  "parse": {
+    "totalRows": 10,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Annual Wellness Visit Q1",
+      "Annual Wellness Visit Q2",
+      "Eye Exam Q1",
+      "Eye Exam Q2",
+      "BP Control Q1",
+      "BP Control Q2",
+      "Breast Cancer Screening E Q1",
+      "Breast Cancer Screening E Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 12,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 4,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 10,
+    "outputRows": 16,
+    "patientsWithNoMeasures": 5,
+    "errors": 0
+  },
+  "validation": {
+    "valid": true,
+    "errors": 0,
+    "warnings": 0,
+    "duplicateGroups": 0
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "HasData, Patient1",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "HasData, Patient1",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "HasData, Patient1",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "HasData, Patient1",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "HasData, Patient3",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "HasData, Patient3",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "HasData, Patient6",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "HasData, Patient6",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "HasData, Patient8",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "HasData, Patient8",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "HasData, Patient8",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "HasData, Patient8",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "HasData, Patient10",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "HasData, Patient10",
+        "qualityMeasure": "Diabetic Eye Exam",
+        "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "HasData, Patient10",
+        "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "HasData, Patient10",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 9
+      }
+    ],
+    "validationErrors": [],
+    "patientsWithNoMeasures": [
+      {
+        "rowIndex": 1,
+        "memberName": "NoMeasures, Patient2"
+      },
+      {
+        "rowIndex": 3,
+        "memberName": "NoMeasures, Patient4"
+      },
+      {
+        "rowIndex": 4,
+        "memberName": "NoMeasures, Patient5"
+      },
+      {
+        "rowIndex": 6,
+        "memberName": "NoMeasures, Patient7"
+      },
+      {
+        "rowIndex": 8,
+        "memberName": "NoMeasures, Patient9"
+      }
+    ]
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "name": "Hill Healthcare",
+  "version": "1.0",
+
+  "patientColumns": {
+    "Patient": "memberName",
+    "DOB": "memberDob",
+    "Phone": "memberTelephone",
+    "Address": "memberAddress"
+  },
+
+  "measureColumns": {
+    "Annual Wellness Visit": {
+      "requestType": "AWV",
+      "qualityMeasure": "Annual Wellness Visit"
+    },
+    "Breast Cancer Screening E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Breast Cancer Screening"
+    },
+    "Breast Cancer Screening 42-51 Years E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Breast Cancer Screening"
+    },
+    "Breast Cancer Screening 52-74 Years E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Breast Cancer Screening"
+    },
+    "Colorectal Cancer Screening E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Colon Cancer Screening"
+    },
+    "Colorectal Cancer Screening 45-50 Years E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Colon Cancer Screening"
+    },
+    "Colorectal Cancer Screening 51-75 Years E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Colon Cancer Screening"
+    },
+    "Cervical Cancer Screening E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Cervical Cancer Screening"
+    },
+    "Eye Exam": {
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetic Eye Exam"
+    },
+    "Glycemic Status Assessment for Patients With Diabetes (Glycemic Status <8.0%)": {
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetes Control"
+    },
+    "Glycemic Status Assessment for Patients With Diabetes (Glycemic Status <=9.0%)": {
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetes Control"
+    },
+    "Kidney Health Evaluation for Patients With Diabetes (Overall)": {
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetic Nephropathy"
+    },
+    "Kidney Health Evaluation for Patients With Diabetes (18-64)": {
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetic Nephropathy"
+    },
+    "Kidney Health Evaluation for Patients With Diabetes (65-75)": {
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetic Nephropathy"
+    },
+    "Chlamydia 16-20": {
+      "requestType": "Quality",
+      "qualityMeasure": "GC/Chlamydia Screening"
+    },
+    "Chlamydia 21-24": {
+      "requestType": "Quality",
+      "qualityMeasure": "GC/Chlamydia Screening"
+    },
+    "Chlamydia Screening (Total)": {
+      "requestType": "Quality",
+      "qualityMeasure": "GC/Chlamydia Screening"
+    },
+    "BP Control": {
+      "requestType": "Quality",
+      "qualityMeasure": "Hypertension Management"
+    },
+    "Immunizations for Adolescents: Meningococcal E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Immunizations for Adolescents: Tdap/Td E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Immunizations for Adolescents: HPV E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Immunizations for Adolescents: Combo-2 E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Prenatal Immunization Status: Combination": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Prenatal Immunization Status: Influenza": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Prenatal Immunization Status: Tdap": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: DTaP E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: IPV E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: MMR E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: HiB E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: Hep-B E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: VZV E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: PCV E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: Hep-A E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: Rota E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: Influenza E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    },
+    "Childhood Immunization Status: Combo-10 E": {
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination"
+    }
+  },
+
+  "statusMapping": {
+    "Annual Wellness Visit": {
+      "compliant": "AWV completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "Breast Cancer Screening": {
+      "compliant": "Screening test completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "Colon Cancer Screening": {
+      "compliant": "Colon cancer screening completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "Cervical Cancer Screening": {
+      "compliant": "Screening completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "Diabetic Eye Exam": {
+      "compliant": "Diabetic eye exam completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "Diabetes Control": {
+      "compliant": "HgbA1c at goal",
+      "nonCompliant": "Not Addressed"
+    },
+    "Diabetic Nephropathy": {
+      "compliant": "Urine microalbumin completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "GC/Chlamydia Screening": {
+      "compliant": "GC/Clamydia screening completed",
+      "nonCompliant": "Not Addressed"
+    },
+    "Hypertension Management": {
+      "compliant": "Blood pressure at goal",
+      "nonCompliant": "Not Addressed"
+    },
+    "Vaccination": {
+      "compliant": "Vaccination completed",
+      "nonCompliant": "Not Addressed"
+    }
+  },
+
+  "skipColumns": [
+    "Age",
+    "Sex",
+    "MembID",
+    "LOB",
+    "Has Sticket",
+    "Cholesterol (Statins)",
+    "Statin Use in Persons with Diabetes",
+    "Received Statin Therapy (SPD)",
+    "Statin Adherence 80% (SPD)",
+    "Received Statin Therapy (SPC)",
+    "Statin Adherence 80% (SPC)",
+    "Well-Child Visits in the First 15 Months",
+    "Well-Child Visits for Age 15 Months-30 Months",
+    "Child and Adolescent Well-Care Visits-3-11 Years",
+    "Child and Adolescent Well-Care Visits-Total",
+    "Child and Adolescent Well-Care Visits-12-17 Years",
+    "Child and Adolescent Well-Care Visits-18-21 Years",
+    "Medication Review",
+    "Functional Status Assessment",
+    "Asthma Medication Ratio : Total",
+    "Asthma Medication Ratio : Ages 12-18",
+    "Asthma Medication Ratio : Ages 19-50",
+    "Asthma Medication Ratio : Ages 51-64",
+    "PPC - Timeliness of Prenatal Care",
+    "PPC - Postpartum Care",
+    "Depression Screening",
+    "Follow-Up on Positive Screen",
+    "Appropriate Testing for Pharyngitis (Overall)",
+    "Appropriate Testing for Pharyngitis: Ages 3-17y",
+    "Appropriate Testing for Pharyngitis: Ages 18-64y",
+    "Appropriate Testing for Pharyngitis: Ages 65y+"
+  ]
+}

@@ -1,0 +1,16 @@
+Patient,DOB,Phone,Address,Annual Wellness Visit,Breast Cancer Screening E,Colorectal Cancer Screening E,BP Control,Chlamydia Screening (Total)
+"New Patient, Alice",05/15/1970,555-111-2222,100 New Street,Compliant,,,Compliant,
+"Smith, John",01/15/1955,5551001001,101 Oak Street,Compliant,,,,
+"Johnson, Mary",02/20/1956,5551001002,102 Maple Ave,,,,,
+"Brown, Patricia",04/10/1958,5551001004,104 Cedar Lane,Non Compliant,,,,
+"Jones, Michael",05/15/1959,5551001005,105 Birch Blvd,Non Compliant,,,,
+"Garcia, Linda",06/20/1960,5551001006,106 Elm Court,Compliant,,,,
+"New Patient, Bob",08/20/1965,555-333-4444,200 Fresh Ave,,Compliant,Compliant,,
+"Miller, Barbara",07/01/1961,5552001001,201 First St,,Compliant,,,
+"Wilson, Sarah",11/05/1965,5552001005,205 Fifth Road,,Compliant,,,
+"Anderson, Karen",12/06/1966,5552001006,206 Sixth Court,,Non Compliant,,,
+"Thomas, James",02/08/1950,5552002001,208 Main Street,,,Compliant,,
+"Sanchez, Donald",09/27/1961,5553004001,311 Commerce St,,,,Compliant,
+"Wright, Steven",10/28/1962,5553004002,312 Market Ave,,,,Non Compliant,
+"Robinson, Ashley",03/21/1990,5553002001,305 North Ave,,,,,Compliant
+"New Patient, Carol",12/01/1988,555-555-6666,300 Brand Way,Compliant,Compliant,Compliant,Compliant,Compliant

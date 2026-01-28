@@ -1,0 +1,101 @@
+{
+  "file": "test-dates.csv",
+  "parse": {
+    "totalRows": 8,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Annual Wellness Visit Q1",
+      "Annual Wellness Visit Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 6,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 1,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 8,
+    "outputRows": 8,
+    "patientsWithNoMeasures": 0,
+    "errors": 1
+  },
+  "validation": {
+    "valid": false,
+    "errors": 2,
+    "warnings": 0,
+    "duplicateGroups": 0
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "Format1, MMDDYYYY",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "Format2, MDYYYY",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Format3, MDYY",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "Format4, YYYYMMDD",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "Format5, MDYYYY Dot",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Format6, ExcelSerial",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Format7, Invalid",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Format8, Empty",
+        "qualityMeasure": "Annual Wellness Visit",
+        "measureStatus": "AWV completed",
+        "sourceRowIndex": 7
+      }
+    ],
+    "validationErrors": [
+      {
+        "rowIndex": 6,
+        "field": "memberDob",
+        "message": "Date of birth is required",
+        "memberName": "Format7, Invalid"
+      },
+      {
+        "rowIndex": 7,
+        "field": "memberDob",
+        "message": "Date of birth is required",
+        "memberName": "Format8, Empty"
+      }
+    ],
+    "patientsWithNoMeasures": []
+  }
+}

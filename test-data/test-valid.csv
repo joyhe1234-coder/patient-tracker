@@ -1,0 +1,11 @@
+Patient,DOB,Phone,Address,Annual Wellness Visit Q1,Annual Wellness Visit Q2,Breast Cancer Screening E Q1,Breast Cancer Screening E Q2,Colorectal Cancer Screening E Q1,Colorectal Cancer Screening E Q2,Eye Exam Q1,Eye Exam Q2,BP Control Q1,BP Control Q2
+"Smith, John",01/15/1965,5551234567,123 Main St,01/10/2026,Compliant,01/05/2026,Compliant,,,12/20/2025,Compliant,01/08/2026,Compliant
+"Johnson, Mary",03/22/1970,5559876543,456 Oak Ave,01/12/2026,Compliant,01/08/2026,Non Compliant,01/03/2026,Compliant,,,01/10/2026,Compliant
+"Williams, Robert",07/08/1958,5555551212,789 Pine Rd,,Non Compliant,01/06/2026,Compliant,01/04/2026,Compliant,12/15/2025,Non Compliant,,
+"Brown, Patricia",11/30/1972,5552223333,321 Elm St,01/14/2026,Compliant,,,01/07/2026,Non Compliant,01/02/2026,Compliant,01/11/2026,Compliant
+"Davis, Michael",05/17/1980,5554445555,654 Maple Dr,01/09/2026,Compliant,01/04/2026,Compliant,,,12/28/2025,Compliant,01/06/2026,Non Compliant
+"Miller, Linda",09/03/1968,5556667777,987 Cedar Ln,01/11/2026,Non Compliant,01/07/2026,Compliant,01/02/2026,Compliant,01/05/2026,Compliant,,
+"Wilson, James",02/14/1955,5558889999,147 Birch Way,,Compliant,01/09/2026,Compliant,01/05/2026,Non Compliant,,,01/09/2026,Compliant
+"Moore, Elizabeth",06/25/1975,5551112222,258 Spruce Ct,01/13/2026,Compliant,01/03/2026,Compliant,,,01/01/2026,Compliant,01/07/2026,Compliant
+"Taylor, David",12/01/1962,5553334444,369 Walnut Blvd,01/08/2026,Compliant,01/05/2026,Non Compliant,01/06/2026,Compliant,12/22/2025,Compliant,,Non Compliant
+"Anderson, Susan",08/19/1978,5557778888,471 Ash Pl,01/15/2026,Compliant,01/10/2026,Compliant,01/08/2026,Compliant,01/03/2026,Compliant,01/12/2026,Compliant

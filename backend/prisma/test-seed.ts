@@ -187,17 +187,15 @@ const HGBA1C_TRACKING2_OPTIONS = [
   '7 months', '8 months', '9 months', '10 months', '11 months', '12 months',
 ];
 
-// Statuses that use dropdown for interval (NOT editable)
-const DROPDOWN_INTERVAL_STATUSES = [
-  'Screening discussed',
-  'HgbA1c at goal',
-  'HgbA1c NOT at goal',
-  'Colon cancer screening ordered',
-  'Screening test ordered',
-  'Scheduled call back - BP not at goal',
-  'Scheduled call back - BP at goal',
-  'Chronic diagnosis resolved',
-  'Chronic diagnosis invalid',
+// Statuses where interval is controlled by TIME PERIOD dropdown (NOT manually editable)
+// These have dropdowns like "In X Months", "X months", "Call every X wks"
+// Test type dropdowns (Mammogram, Colonoscopy, etc.) are NOT included - those have editable intervals
+const TIME_PERIOD_DROPDOWN_STATUSES = [
+  'Screening discussed',           // Tracking #1: In 1-11 Months
+  'HgbA1c at goal',                // Tracking #2: 1-12 months
+  'HgbA1c NOT at goal',            // Tracking #2: 1-12 months
+  'Scheduled call back - BP not at goal',  // Tracking #1: Call every 1-8 wks
+  'Scheduled call back - BP at goal',      // Tracking #1: Call every 1-8 wks
 ];
 
 async function main() {
@@ -261,7 +259,7 @@ async function main() {
               },
             });
 
-            const isEditable = !DROPDOWN_INTERVAL_STATUSES.includes(measureStatus);
+            const isEditable = !TIME_PERIOD_DROPDOWN_STATUSES.includes(measureStatus);
             console.log(`${requestType.padEnd(12)} | ${qualityMeasure.padEnd(25)} | ${measureStatus.padEnd(35)} | ${(tracking1 || '-').padEnd(20)} | ${'-'.padEnd(10)} | ${String(timeIntervalDays ?? 'null').padEnd(8)} | ${isEditable ? 'YES' : 'NO'}`);
             createdCount++;
           }
@@ -312,7 +310,7 @@ async function main() {
             },
           });
 
-          const isEditable = timeIntervalDays !== null && !DROPDOWN_INTERVAL_STATUSES.includes(measureStatus);
+          const isEditable = timeIntervalDays !== null && !TIME_PERIOD_DROPDOWN_STATUSES.includes(measureStatus);
           console.log(`${requestType.padEnd(12)} | ${qualityMeasure.padEnd(25)} | ${measureStatus.padEnd(35)} | ${'-'.padEnd(20)} | ${'-'.padEnd(10)} | ${String(timeIntervalDays ?? 'null').padEnd(8)} | ${isEditable ? 'YES' : 'NO'}`);
           createdCount++;
         }

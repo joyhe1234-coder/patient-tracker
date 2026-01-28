@@ -1,6 +1,6 @@
 {
   "name": "patient-tracker-backend",
-  "version": "3.0.0",
+  "version": "3.1.0-snapshot",
   "description": "Patient Quality Measure Tracking System - Backend",
   "type": "module",
   "main": "dist/index.js",
@@ -14,7 +14,10 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "lint": "eslint src --ext .ts",
-    "test": "jest"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:cli": "tsx scripts/test-transform.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -23,18 +26,24 @@
     "express": "^4.21.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "papaparse": "^5.4.1",
     "socket.io": "^4.7.5",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.6",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.14.0",
     "@types/papaparse": "^5.3.14",
+    "jest": "^30.2.0",
     "prisma": "^5.22.0",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.15.0",
     "typescript": "^5.4.5"
   }

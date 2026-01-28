@@ -744,6 +744,734 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
+## 14. Import Test Page
+
+### TC-14.1: Navigate to Import Test Page
+**Steps:**
+1. Click "Import Test" link in header navigation
+
+**Expected:**
+- Page loads at `/import-test`
+- Shows file upload section with "Choose File" button
+
+### TC-14.2: Upload CSV File
+**Steps:**
+1. Navigate to Import Test page
+2. Click file input and select a CSV file
+3. Click "Parse File" button
+
+**Expected:**
+- Loading state shows "Parsing..."
+- Results display with file metadata (name, type, row count, column count)
+- Headers section shows all detected column names
+- Preview table shows first 10 rows
+
+### TC-14.3: Upload Excel File
+**Steps:**
+1. Navigate to Import Test page
+2. Click file input and select an Excel (.xlsx) file
+3. Click "Parse File" button
+
+**Expected:**
+- File is parsed successfully
+- Title/report rows are automatically skipped
+- Headers are detected from first data row
+- Preview shows actual data rows
+
+### TC-14.4: Column Validation Display
+**Steps:**
+1. Upload file with required columns
+
+**Expected:**
+- Green badge shows "All required columns found" if valid
+- Red badge shows "Missing columns" with list if invalid
+
+### TC-14.5: Error Handling
+**Steps:**
+1. Upload unsupported file type (e.g., .txt)
+
+**Expected:**
+- Error message displays
+- No crash or unhandled error
+
+---
+
+## 15. Column Mapping (Phase 5c)
+
+### TC-15.1: Patient Column Mapping
+**Steps:**
+1. Upload CSV with columns: Patient, DOB, Phone, Address
+2. Click Transform or Validate
+
+**Expected:**
+- Columns mapped to: memberName, memberDob, memberTelephone, memberAddress
+- Mapping stats show 4 mapped patient columns
+
+### TC-15.2: Measure Column Mapping (Q1/Q2)
+**Steps:**
+1. Upload file with "Annual Wellness Visit Q1" and "Annual Wellness Visit Q2" columns
+2. Click Transform
+
+**Expected:**
+- Both columns mapped to "Annual Wellness Visit" quality measure
+- Q1 = statusDate field, Q2 = complianceStatus field
+
+### TC-15.3: Skip Columns
+**Steps:**
+1. Upload file with columns: Age, Sex, MembID, LOB
+2. Click Transform
+
+**Expected:**
+- Columns appear in "Skipped" count
+- Not included in mapped columns
+- No error for these columns
+
+### TC-15.4: Unmapped Columns
+**Steps:**
+1. Upload file with unknown column "CustomField"
+2. Click Transform
+
+**Expected:**
+- Column appears in "Unmapped Columns" list
+- Warning displayed but not blocking
+
+### TC-15.5: Missing Required Columns
+**Steps:**
+1. Upload file missing "Patient" column
+2. Click Parse
+
+**Expected:**
+- Column validation shows "Missing: Patient"
+- Red indicator for missing required column
+
+### TC-15.6: Multiple Columns → Same Quality Measure
+**Steps:**
+1. Upload file with columns:
+   - "Breast Cancer Screening E Q2"
+   - "Breast Cancer Screening 42-51 Years E Q2"
+   - "Breast Cancer Screening 52-74 Years E Q2"
+2. Click Transform
+
+**Expected:**
+- All three columns grouped under "Breast Cancer Screening"
+- Single output row per patient for Breast Cancer Screening (not 3 rows)
+- Compliance determined by "any non-compliant wins" logic
+
+---
+
+## 16. Data Transformation (Phase 5c)
+
+### TC-16.1: Wide to Long Format
+**Steps:**
+1. Upload file with 50 patients, each having 10 measure columns with data
+2. Click Transform
+
+**Expected:**
+- Original Rows: 50
+- Generated Rows: ~500 (50 patients × 10 measures)
+- Each patient has multiple output rows (one per measure)
+
+### TC-16.2: Original vs Generated Rows Display
+**Steps:**
+1. Upload file with 100 input rows
+2. Click Transform
+3. Observe stats display
+
+**Expected:**
+- "Original Rows" shows 100 (gray box)
+- "Generated Rows" shows X (blue box)
+- Both values clearly labeled and separate
+
+### TC-16.3: Empty Measure Columns Skipped
+**Steps:**
+1. Upload file where Patient A has data in 5 of 10 measure columns
+2. Click Transform
+
+**Expected:**
+- Only 5 rows generated for Patient A
+- Empty measure columns do not create rows
+
+### TC-16.4: Status Date = Import Date
+**Steps:**
+1. Upload file with compliance values
+2. Click Transform
+3. Check statusDate in preview
+
+**Expected:**
+- All rows have statusDate = today's date (YYYY-MM-DD format)
+- statusDate does NOT come from Q1 column
+
+### TC-16.5: Patients With No Measures
+**Steps:**
+1. Upload file where Patient B has ALL measure columns empty
+2. Click Transform
+
+**Expected:**
+- "No Measures" stat shows count ≥ 1
+- Purple section "Patients with No Measures" appears
+- Patient B listed with Row #, Name, DOB
+- Patient B has 0 generated rows
+
+### TC-16.6: Phone Number Normalization
+**Steps:**
+1. Upload file with Phone = "5551234567"
+2. Click Transform
+3. Check memberTelephone in preview
+
+**Expected:**
+- Phone displays as "(555) 123-4567"
+- 11-digit numbers starting with 1 also normalized
+
+---
+
+## 17. Date Parsing (Phase 5c)
+
+### TC-17.1: MM/DD/YYYY Format
+**Input:** DOB = "01/15/2026"
+**Expected:** Parsed as 2026-01-15
+
+### TC-17.2: M/D/YYYY Format
+**Input:** DOB = "1/5/2026"
+**Expected:** Parsed as 2026-01-05
+
+### TC-17.3: M/D/YY Format
+**Input:** DOB = "1/5/26"
+**Expected:** Parsed as 2026-01-05
+
+### TC-17.4: YYYY-MM-DD Format
+**Input:** DOB = "2026-01-15"
+**Expected:** Parsed as 2026-01-15
+
+### TC-17.5: M.D.YYYY Format
+**Input:** DOB = "1.15.2026"
+**Expected:** Parsed as 2026-01-15
+
+### TC-17.6: Excel Serial Number
+**Input:** DOB = "44941" (Excel serial)
+**Expected:** Parsed as valid date (Excel epoch conversion)
+
+### TC-17.7: Invalid Date
+**Input:** DOB = "abc"
+**Expected:**
+- Transform error: "Invalid date format: abc"
+- Row still processed but memberDob = null
+
+---
+
+## 18. "Any Non-Compliant Wins" Logic (Phase 5c)
+
+### TC-18.1: All Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = "Compliant"
+- Breast Cancer Screening 42-51 Q2 = "Compliant"
+
+**Expected:** measureStatus = "Screening test completed" (compliant mapping)
+
+### TC-18.2: Any Non-Compliant Wins
+**Data:**
+- Breast Cancer Screening E Q2 = "Compliant"
+- Breast Cancer Screening 42-51 Q2 = "Non Compliant"
+
+**Expected:** measureStatus = "Not Addressed" (non-compliant wins)
+
+### TC-18.3: All Non-Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = "NC"
+- Breast Cancer Screening 42-51 Q2 = "Non Compliant"
+
+**Expected:** measureStatus = "Not Addressed"
+
+### TC-18.4: Mixed Empty + Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = ""
+- Breast Cancer Screening 42-51 Q2 = "Compliant"
+- Breast Cancer Screening 52-74 Q2 = ""
+
+**Expected:** measureStatus = "Screening test completed" (uses non-empty compliant)
+
+### TC-18.5: Mixed Empty + Non-Compliant
+**Data:**
+- Breast Cancer Screening E Q2 = ""
+- Breast Cancer Screening 42-51 Q2 = "NC"
+
+**Expected:** measureStatus = "Not Addressed"
+
+### TC-18.6: All Empty
+**Data:**
+- Breast Cancer Screening E Q2 = ""
+- Breast Cancer Screening 42-51 Q2 = ""
+- Breast Cancer Screening 52-74 Q2 = ""
+
+**Expected:** No row generated for Breast Cancer Screening (skipped)
+
+### TC-18.7: Case Insensitive
+**Data:**
+- Col1 = "COMPLIANT"
+- Col2 = "compliant"
+
+**Expected:** Both recognized as compliant
+
+### TC-18.8: Compliant Abbreviations
+**Data:**
+- Col1 = "C"
+- Col2 = "Yes"
+
+**Expected:** Both recognized as compliant
+
+### TC-18.9: Non-Compliant Abbreviations
+**Data:**
+- Col1 = "NC"
+- Col2 = "No"
+
+**Expected:** Both recognized as non-compliant → "Not Addressed"
+
+---
+
+## 19. Validation (Phase 5d)
+
+### TC-19.1: Missing Member Name
+**Data:** Row with memberName = "" or null
+**Expected:**
+- Error: "Member name is required"
+- Error severity: error (blocking)
+- Error includes "(Unknown)" as member name
+
+### TC-19.2: Missing DOB
+**Data:** Row with memberDob = null
+**Expected:**
+- Error: "Date of birth is required"
+- Error severity: error (blocking)
+
+### TC-19.3: Invalid DOB Format
+**Data:** Row with memberDob = "invalid-date"
+**Expected:**
+- Error: "Invalid date of birth format"
+- Error includes value: "invalid-date"
+
+### TC-19.4: Missing Request Type
+**Data:** Row with requestType = ""
+**Expected:**
+- Error: "Request type is required"
+- Error severity: error (blocking)
+
+### TC-19.5: Invalid Request Type
+**Data:** Row with requestType = "Unknown"
+**Expected:**
+- Error: "Invalid request type: Unknown"
+- Error severity: error (blocking)
+
+### TC-19.6: Missing Quality Measure
+**Data:** Row with qualityMeasure = ""
+**Expected:**
+- Error: "Quality measure is required"
+- Error severity: error (blocking)
+
+### TC-19.7: Invalid Quality Measure for Request Type
+**Data:** requestType = "AWV", qualityMeasure = "Breast Cancer Screening"
+**Expected:**
+- Warning: "Invalid quality measure for request type"
+- Warning severity: warning (non-blocking)
+
+### TC-19.8: Missing Measure Status
+**Data:** Row with measureStatus = null
+**Expected:**
+- Warning: "Measure status is empty - will be set to Not Addressed"
+- Warning severity: warning (non-blocking)
+
+### TC-19.9: Missing Phone
+**Data:** Row with memberTelephone = null
+**Expected:**
+- Warning: "Phone number is missing"
+- Warning severity: warning (non-blocking)
+
+### TC-19.10: Duplicate Within Import
+**Data:** Two rows with same:
+- memberName = "John Smith"
+- memberDob = "1980-01-15"
+- requestType = "AWV"
+- qualityMeasure = "Annual Wellness Visit"
+
+**Expected:**
+- Warning on second row: "Duplicate of row X: same patient + measure"
+- Both rows in "Duplicate Groups" section
+- Duplicate count = 1 group
+
+---
+
+## 20. Error Reporting (Phase 5d)
+
+### TC-20.1: Error Message Includes Member Name
+**Steps:**
+1. Upload file with validation errors for patient "John Smith"
+2. Click Validate
+3. Check error messages
+
+**Expected:**
+- Error format: "Row 5 (John Smith) - memberDob: Date of birth is required"
+- Member name in parentheses after row number
+
+### TC-20.2: Error Count Display
+**Steps:**
+1. Upload file with 3 validation errors
+2. Click Validate
+
+**Expected:**
+- Errors section header: "Errors (3)"
+- Red background on section
+- 3 error items listed
+
+### TC-20.3: Warning Count Display
+**Steps:**
+1. Upload file with 5 warnings (missing phone, etc.)
+2. Click Validate
+
+**Expected:**
+- Warnings section header: "Warnings (5)"
+- Yellow background on section
+- 5 warning items listed
+
+### TC-20.4: Duplicate Groups Display
+**Steps:**
+1. Upload file with 2 sets of duplicate rows
+2. Click Validate
+
+**Expected:**
+- Duplicates section header: "Duplicate Groups (2)"
+- Orange background on section
+- Each group shows patient name, measure, and row numbers
+
+### TC-20.5: Validation Summary - All Valid
+**Steps:**
+1. Upload file with all valid data, no warnings
+2. Click Validate
+
+**Expected:**
+- Green banner: "All X rows passed validation"
+- Status: "success"
+- canProceed: true
+
+### TC-20.6: Validation Summary - Warnings Only
+**Steps:**
+1. Upload file with valid data but some warnings
+2. Click Validate
+
+**Expected:**
+- Yellow banner: "X rows validated with Y warning(s). Import can proceed."
+- Status: "warning"
+- canProceed: true
+
+### TC-20.7: Validation Summary - Has Errors
+**Steps:**
+1. Upload file with validation errors
+2. Click Validate
+
+**Expected:**
+- Red banner: "Validation failed: X error(s) in Y row(s). Please fix errors before importing."
+- Status: "error"
+- canProceed: false
+
+### TC-20.8: Can Proceed - False (Errors)
+**Steps:**
+1. Upload file with errors
+2. Click Validate
+
+**Expected:**
+- "Fix Errors First" button/badge shown (red)
+- Import action should be disabled
+
+### TC-20.9: Can Proceed - True (Warnings Only)
+**Steps:**
+1. Upload file with warnings but no errors
+2. Click Validate
+
+**Expected:**
+- "Ready to Import" button/badge shown (green)
+- Import action should be enabled
+
+---
+
+## 21. Import Test Page UI (Phase 5c-5d)
+
+### TC-21.1: Transform Button
+**Steps:**
+1. Upload CSV file
+2. Click "Transform" button
+
+**Expected:**
+- Loading state shows "Transforming..."
+- Transform Results tab opens automatically
+- Stats and preview displayed
+
+### TC-21.2: Validate Button
+**Steps:**
+1. Upload CSV file
+2. Click "Validate" button
+
+**Expected:**
+- Loading state shows "Validating..."
+- Validation Results tab opens automatically
+- Stats, errors, warnings, duplicates displayed
+
+### TC-21.3: Tab Navigation
+**Steps:**
+1. Upload and process file
+2. Click between Parse/Transform/Validate tabs
+
+**Expected:**
+- Correct content shown for each tab
+- Tab state preserved (doesn't re-fetch)
+- Active tab visually highlighted
+
+### TC-21.4: Stats Grid - Transform Tab
+**Steps:**
+1. Upload file and Transform
+2. Check stats section
+
+**Expected:**
+- 6 stat boxes displayed in grid:
+  - Original Rows (gray)
+  - Generated Rows (blue)
+  - Unique Patients (purple)
+  - Measures/Patient (orange)
+  - Errors (gray)
+  - No Measures (purple if > 0)
+
+### TC-21.5: Stats Grid - Validate Tab
+**Steps:**
+1. Upload file and Validate
+2. Check stats section
+
+**Expected:**
+- 7 stat boxes displayed:
+  - Original Rows (gray)
+  - Generated Rows (blue)
+  - Valid Rows (green)
+  - Error Rows (red if > 0)
+  - Warning Rows (yellow if > 0)
+  - Duplicates (orange if > 0)
+  - No Measures (purple if > 0)
+
+### TC-21.6: Preview Table
+**Steps:**
+1. Process file (Transform or Validate)
+2. Scroll to preview section
+
+**Expected:**
+- Table shows first 20 transformed rows
+- Columns: #, Member Name, DOB, Request Type, Quality Measure, Measure Status, Status Date
+- Alternating row colors for readability
+
+### TC-21.7: Patients No Measures Section
+**Steps:**
+1. Upload file with patients having empty measures
+2. Transform or Validate
+
+**Expected:**
+- Purple section appears: "Patients with No Measures (X)"
+- Description text explains these won't be imported
+- Table shows: Row #, Member Name, DOB
+- Scrollable if many patients
+
+### TC-21.8: Scrollable Error List
+**Steps:**
+1. Upload file with many errors (20+)
+2. Validate
+
+**Expected:**
+- Error section has max-height with scroll
+- All errors accessible via scrolling
+- Section doesn't overflow page
+
+### TC-21.9: Row Numbers Match Spreadsheet (No Title Row)
+**Steps:**
+1. Upload `test-validation-errors.csv` (no title row)
+2. Click Validate
+3. Check error row numbers
+
+**Expected:**
+- Row 3 in error corresponds to line 3 in spreadsheet (header is row 1)
+- Patient "MissingDOB, Patient3" error shows "Row 4" (data starts at row 2)
+
+### TC-21.10: Row Numbers Match Spreadsheet (With Title Row)
+**Steps:**
+1. Upload Excel file with title/report row before headers
+2. Click Validate
+3. Check error row numbers
+
+**Expected:**
+- Row numbers account for title row (data starts at row 3)
+- Patient on first data row shows "Row 3" not "Row 2"
+
+### TC-21.11: Error Deduplication Per Patient
+**Steps:**
+1. Upload file with patient having validation error (e.g., missing DOB)
+2. Click Validate
+3. Count errors for that patient
+
+**Expected:**
+- Same error appears only ONCE per patient (not repeated for each generated row)
+- If patient generates 4 measure rows, DOB error shows 1 time, not 4
+
+### TC-21.12: Patients With No Measures Row Numbers
+**Steps:**
+1. Upload `test-no-measures.csv`
+2. Click Validate or Transform
+3. Check "Patients with No Measures" section row numbers
+
+**Expected:**
+- Row numbers match original spreadsheet positions
+- Row numbers account for title row if present
+
+---
+
+## 22. Import Preview (Phase 5e-5f)
+
+### TC-22.1: Preview Button and Mode Selection
+**Steps:**
+1. Navigate to Import Test page
+2. Upload a CSV file (test-data/merge-test-cases.csv)
+3. Select "Merge Mode" from dropdown
+4. Click "Preview Import" button
+
+**Expected:**
+- Preview tab appears with summary statistics
+- Mode shows "MERGE"
+- Preview ID and expiration time displayed
+
+### TC-22.2: Preview Summary Stats
+**Steps:**
+1. Upload merge-test-cases.csv
+2. Preview in Merge mode
+
+**Expected:**
+- Inserts: 9
+- Updates: 4
+- Skips: 5
+- Duplicates (BOTH): 2
+- Deletes: 0
+- Total: 20
+
+### TC-22.3: INSERT Action - New Patient
+**Steps:**
+1. In preview results, filter by INSERT action
+2. Look for "New Patient, Alice"
+
+**Expected:**
+- Action shows "INSERT"
+- Old Status is null/empty
+- New Status shows the status value
+- Reason: "New patient+measure combination"
+
+### TC-22.4: UPDATE Action - Upgrade to Compliant
+**Steps:**
+1. In preview results, filter by UPDATE action
+2. Look for "Smith, John"
+
+**Expected:**
+- Action shows "UPDATE"
+- Old Status: "Not Addressed"
+- New Status: "AWV completed"
+- Reason contains "Upgrading"
+
+### TC-22.5: SKIP Action - Both Compliant
+**Steps:**
+1. In preview results, filter by SKIP action
+2. Look for "Wilson, Sarah"
+
+**Expected:**
+- Action shows "SKIP"
+- Old Status: "Screening test completed"
+- New Status: "Screening test completed"
+- Reason: "Both compliant - keeping existing"
+
+### TC-22.6: SKIP Action - Both Non-Compliant
+**Steps:**
+1. In preview results, filter by SKIP action
+2. Look for "Jones, Michael"
+
+**Expected:**
+- Action shows "SKIP"
+- Old Status: "Patient declined AWV"
+- New Status: "Not Addressed"
+- Reason: "Both non-compliant - keeping existing"
+
+### TC-22.7: BOTH Action - Downgrade Detected
+**Steps:**
+1. In preview results, filter by BOTH action
+2. Look for "Brown, Patricia"
+
+**Expected:**
+- Action shows "BOTH"
+- Old Status: "AWV completed" (compliant)
+- New Status: "Not Addressed" (non-compliant)
+- Reason: "Downgrade detected - keeping both"
+
+### TC-22.8: Replace All Mode
+**Steps:**
+1. Upload merge-test-cases.csv
+2. Select "Replace All" mode
+3. Click "Preview Import"
+
+**Expected:**
+- Summary shows DELETE count > 0 (existing records)
+- Summary shows INSERT count > 0 (all import rows)
+- No UPDATE, SKIP, or BOTH actions
+- All deletes show reason: "Replace All mode"
+
+### TC-22.9: Patient Summary
+**Steps:**
+1. In preview results, check Patient Summary section
+
+**Expected:**
+- New Patients: 3 (Alice, Bob, Carol)
+- Existing Patients: 11
+- Total: 14
+
+### TC-22.10: Action Filter Buttons
+**Steps:**
+1. Click on each action card (INSERT, UPDATE, SKIP, etc.)
+2. Verify table filters correctly
+
+**Expected:**
+- Clicking "INSERT" shows only INSERT rows
+- Clicking "All" resets filter
+- Count in card matches filtered row count
+
+### TC-22.11: Preview Expiration
+**Steps:**
+1. Note the expiration time in preview header
+2. Verify it's approximately 30 minutes from now
+
+**Expected:**
+- Preview expires after 30 minutes
+- Attempting to load expired preview shows error
+
+### TC-22.12: Date Parsing in Preview
+**Steps:**
+1. Verify DOB dates display correctly in preview
+2. Check "Smith, John" shows DOB 1955-01-15
+
+**Expected:**
+- DOB dates are correctly parsed (MM/DD/YYYY in CSV → YYYY-MM-DD in display)
+- No dates showing 1900-xx-xx (Excel serial number bug)
+
+---
+
+## Test Data Files Needed
+
+| File | Description | Use For Tests |
+|------|-------------|---------------|
+| `test-valid.csv` | 10 patients, all valid data, various measures | TC-15.*, TC-16.1-16.4, TC-20.5 |
+| `test-dates.csv` | Rows with various date formats | TC-17.* |
+| `test-multi-column.csv` | Multiple columns per measure (age brackets) | TC-18.* |
+| `test-validation-errors.csv` | Missing/invalid fields | TC-19.* |
+| `test-duplicates.csv` | Duplicate patient+measure rows | TC-19.10, TC-20.4 |
+| `test-no-measures.csv` | Patients with all empty measure columns | TC-16.5, TC-21.7 |
+| `test-warnings.csv` | Valid data with warnings (missing phone) | TC-20.3, TC-20.6, TC-20.9 |
+| `merge-test-cases.csv` | All 6 merge logic cases (INSERT/UPDATE/SKIP/BOTH/DELETE) | TC-22.* |
+
+---
+
 ## Test Execution Checklist
 
 | Test Case | Pass | Fail | Notes |
@@ -815,9 +1543,191 @@ This document contains manual test cases for verifying system functionality. Run
 | TC-12.3 | | | Time interval override (HgbA1c) |
 | TC-13.1 | | | |
 | TC-13.2 | | | |
+| TC-14.1 | | | Import Test navigation |
+| TC-14.2 | | | CSV file upload |
+| TC-14.3 | | | Excel file upload |
+| TC-14.4 | | | Column validation |
+| TC-14.5 | | | Error handling |
+| **15. Column Mapping** | | | |
+| TC-15.1 | | | Patient column mapping |
+| TC-15.2 | | | Measure column mapping Q1/Q2 |
+| TC-15.3 | | | Skip columns |
+| TC-15.4 | | | Unmapped columns |
+| TC-15.5 | | | Missing required columns |
+| TC-15.6 | | | Multiple columns → same measure |
+| **16. Data Transformation** | | | |
+| TC-16.1 | | | Wide to long format |
+| TC-16.2 | | | Original vs generated rows |
+| TC-16.3 | | | Empty measure columns skipped |
+| TC-16.4 | | | Status date = import date |
+| TC-16.5 | | | Patients with no measures |
+| TC-16.6 | | | Phone number normalization |
+| **17. Date Parsing** | | | |
+| TC-17.1 | | | MM/DD/YYYY format |
+| TC-17.2 | | | M/D/YYYY format |
+| TC-17.3 | | | M/D/YY format |
+| TC-17.4 | | | YYYY-MM-DD format |
+| TC-17.5 | | | M.D.YYYY format |
+| TC-17.6 | | | Excel serial number |
+| TC-17.7 | | | Invalid date |
+| **18. Non-Compliant Wins Logic** | | | |
+| TC-18.1 | | | All compliant |
+| TC-18.2 | | | Any non-compliant wins |
+| TC-18.3 | | | All non-compliant |
+| TC-18.4 | | | Mixed empty + compliant |
+| TC-18.5 | | | Mixed empty + non-compliant |
+| TC-18.6 | | | All empty (skip) |
+| TC-18.7 | | | Case insensitive |
+| TC-18.8 | | | Compliant abbreviations |
+| TC-18.9 | | | Non-compliant abbreviations |
+| **19. Validation** | | | |
+| TC-19.1 | | | Missing member name |
+| TC-19.2 | | | Missing DOB |
+| TC-19.3 | | | Invalid DOB format |
+| TC-19.4 | | | Missing request type |
+| TC-19.5 | | | Invalid request type |
+| TC-19.6 | | | Missing quality measure |
+| TC-19.7 | | | Invalid quality measure |
+| TC-19.8 | | | Missing measure status |
+| TC-19.9 | | | Missing phone |
+| TC-19.10 | | | Duplicate within import |
+| **20. Error Reporting** | | | |
+| TC-20.1 | | | Error includes member name |
+| TC-20.2 | | | Error count display |
+| TC-20.3 | | | Warning count display |
+| TC-20.4 | | | Duplicate groups display |
+| TC-20.5 | | | Summary - all valid |
+| TC-20.6 | | | Summary - warnings only |
+| TC-20.7 | | | Summary - has errors |
+| TC-20.8 | | | Can proceed false (errors) |
+| TC-20.9 | | | Can proceed true (warnings) |
+| **21. Import Test Page UI** | | | |
+| TC-21.1 | | | Transform button |
+| TC-21.2 | | | Validate button |
+| TC-21.3 | | | Tab navigation |
+| TC-21.4 | | | Stats grid - Transform |
+| TC-21.5 | | | Stats grid - Validate |
+| TC-21.6 | | | Preview table |
+| TC-21.7 | | | Patients no measures section |
+| TC-21.8 | | | Scrollable error list |
+| TC-21.9 | | | Row numbers match spreadsheet (no title) |
+| TC-21.10 | | | Row numbers match spreadsheet (with title) |
+| TC-21.11 | | | Error deduplication per patient |
+| TC-21.12 | | | Patients no measures row numbers |
+| **22. Import Preview** | | | |
+| TC-22.1 | | | Preview button and mode selection |
+| TC-22.2 | | | Preview summary stats |
+| TC-22.3 | | | INSERT action - new patient |
+| TC-22.4 | | | UPDATE action - upgrade to compliant |
+| TC-22.5 | | | SKIP action - both compliant |
+| TC-22.6 | | | SKIP action - both non-compliant |
+| TC-22.7 | | | BOTH action - downgrade detected |
+| TC-22.8 | | | Replace All mode |
+| TC-22.9 | | | Patient summary |
+| TC-22.10 | | | Action filter buttons |
+| TC-22.11 | | | Preview expiration |
+| TC-22.12 | | | Date parsing in preview |
+
+---
+
+---
+
+## 24. Automated E2E Tests (Playwright)
+
+The following test cases are automated using Playwright. Run with `npm run e2e` in the frontend directory.
+
+### Test Files
+
+| File | Description | Tests |
+|------|-------------|-------|
+| `e2e/smoke.spec.ts` | Basic page load and UI verification | 4 |
+| `e2e/add-row.spec.ts` | Add Row modal and form functionality | 9 |
+| `e2e/duplicate-member.spec.ts` | Duplicate Member button behavior | 8 (3 skipped) |
+| `e2e/delete-row.spec.ts` | Delete Row confirmation flow | 10 (4 skipped) |
+
+### Skipped Tests (Require Test Isolation)
+
+| Test | Reason |
+|------|--------|
+| Confirming delete removes the row | Race condition with parallel add-row tests |
+| Delete multiple rows | Race condition with parallel add-row tests |
+| Duplicate copies phone/address | Member Info columns hidden by default |
+| Button disable after deselection | Grid doesn't deselect on header click |
+
+### Running E2E Tests
+
+```bash
+cd frontend
+npm run e2e           # Run headless
+npm run e2e:headed    # Run with browser visible
+npm run e2e:ui        # Run with Playwright UI
+npm run e2e:report    # View test report
+```
+
+---
+
+## 25. Automated E2E Tests (Cypress)
+
+Cypress tests for AG Grid cascading dropdown functionality. Cypress handles AG Grid dropdown selection better than Playwright due to native browser event simulation.
+
+### Test File
+
+| File | Description | Tests |
+|------|-------------|-------|
+| `cypress/e2e/cascading-dropdowns.cy.ts` | Cascading dropdown behavior | 19 |
+
+### Test Categories
+
+**Request Type Selection (4 tests):**
+- Request Type dropdown has 4 options (AWV, Chronic DX, Quality, Screening)
+- AWV auto-fills Quality Measure with "Annual Wellness Visit"
+- Chronic DX auto-fills Quality Measure with "Chronic Diagnosis Code"
+- Quality shows 8 Quality Measure options
+- Screening shows 3 Quality Measure options
+
+**AWV Measure Status (5 tests):**
+- AWV has 7 status options
+- Can select AWV completed status
+- AWV completed shows green row color
+- AWV scheduled shows blue row color
+- Patient declined AWV shows purple row color
+
+**Breast Cancer Screening (5 tests):**
+- Breast Cancer Screening has 8 status options
+- Screening test ordered shows Tracking #1 options (Mammogram, Breast Ultrasound, Breast MRI)
+- Can select Mammogram tracking
+- Screening test completed shows green row
+
+**Chronic Diagnosis Code (3 tests):**
+- Chronic Diagnosis Code has 5 status options
+- Chronic diagnosis resolved shows attestation options
+- Chronic diagnosis resolved shows orange row
+
+**Cascading Field Clearing (2 tests):**
+- Changing Request Type clears Quality Measure and downstream
+- Changing Quality Measure clears Measure Status
+
+### Running Cypress Tests
+
+```bash
+cd frontend
+npm run cypress         # Open Cypress Test Runner
+npm run cypress:run     # Run headless
+npm run cypress:headed  # Run with browser visible
+```
+
+### Custom AG Grid Commands
+
+```typescript
+cy.waitForAgGrid()                           // Wait for grid to load
+cy.getAgGridCell(rowIndex, colId)            // Get cell by row index and column
+cy.openAgGridDropdown(rowIndex, colId)       // Open dropdown for editing
+cy.selectAgGridDropdown(rowIndex, colId, value) // Select dropdown value
+cy.getAgGridDropdownOptions()                // Get all options from open dropdown
+```
 
 ---
 
 ## Last Updated
 
-January 14, 2026 - Added Duplicate Row button test cases (TC-9.0, TC-9.0b, TC-9.0c)
+January 28, 2026 - Added Cypress E2E tests section (23) for cascading dropdowns

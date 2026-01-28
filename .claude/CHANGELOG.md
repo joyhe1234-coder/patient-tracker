@@ -6,6 +6,127 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.0-snapshot] - Unreleased
+
+### Added
+- **Test Data Management** (Phase 7 of UI Testing Plan)
+  - Serial mode for data-modifying test suites (delete-row, duplicate-member)
+  - New Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows(), isMemberInfoVisible()
+  - Fixed phone/address duplication test by toggling Member Info visibility
+  - Playwright: 26 passing, 4 skipped (down from 25 passing, 5 skipped)
+- **Cypress E2E Testing** (Phase 6 of UI Testing Plan)
+  - Cypress framework setup as alternative to Playwright for AG Grid dropdown tests
+  - Custom AG Grid commands (openAgGridDropdown, selectAgGridDropdown, getAgGridDropdownOptions)
+  - Cascading dropdown tests (19 passing):
+    - Request Type dropdown with 4 options
+    - AWV/Chronic DX auto-fill behavior
+    - Quality Measure filtering by Request Type (8 Quality, 3 Screening options)
+    - Measure Status options by Quality Measure
+    - Tracking #1 options (Breast Cancer, Chronic DX)
+    - Row color changes on status selection
+    - Cascading field clearing on parent changes
+  - npm scripts: `cypress`, `cypress:run`, `cypress:headed`
+- **E2E Testing with Playwright** (Phase 5 of UI Testing Plan)
+  - Add Row tests: modal, validation, form submission, new row positioning
+  - Duplicate Member tests: button state, row creation, empty measure fields
+  - Delete Row tests: confirmation dialog, cancel, backdrop close
+  - Page Object Model for maintainable test structure
+  - 25 passing E2E tests, 5 skipped (require test isolation)
+- **CSV Import Implementation Plan** (Phase 5)
+  - Multi-healthcare system support (Hill, Kaiser, etc.)
+  - Config files stored on server (`backend/src/config/import/`)
+  - Preview before commit (in-memory diff calculation)
+  - 13 implementation phases defined
+  - 11 backend/frontend modules identified
+  - API contracts for `/api/import/preview` and `/api/import/execute`
+- **`/version` Command** - Semantic versioning release workflow
+  - Supports major, minor, patch increments
+  - Tags main branch with vX.X.X
+  - Bumps to next snapshot version after release
+- **Phase 5a: Import Config Loader** - Multi-system configuration support
+  - `backend/src/config/import/systems.json` - Healthcare system registry
+  - `backend/src/config/import/hill.json` - Hill Healthcare mapping config
+  - `backend/src/services/import/configLoader.ts` - Config loading service
+  - API endpoints: `GET /api/import/systems`, `GET /api/import/systems/:systemId`
+- **Phase 5b: File Parser + Import Test Page**
+  - `backend/src/services/import/fileParser.ts` - CSV/Excel parser with title row detection
+  - `backend/src/middleware/upload.ts` - Multer file upload middleware
+  - API endpoint: `POST /api/import/parse` - Parse uploaded file
+  - `frontend/src/pages/ImportTestPage.tsx` - UI for testing file parsing
+  - Navigation link "Import Test" added to header
+  - Route `/import-test` added to App.tsx
+- **Phase 5c: Column Mapper + Data Transformer**
+  - `backend/src/services/import/columnMapper.ts` - Maps CSV headers to internal fields using config
+  - `backend/src/services/import/dataTransformer.ts` - Wide-to-long format transformation
+  - `backend/src/utils/dateParser.ts` - Flexible date parsing (Excel serial, MM/DD/YYYY, etc.)
+  - API endpoint: `POST /api/import/analyze` - Analyze column mappings
+  - API endpoint: `POST /api/import/transform` - Transform data to long format
+  - Status date set to import date (today) instead of from CSV columns
+  - Tracks patients with no measures generated (empty measure columns)
+- **Phase 5d: Validator + Error Reporter**
+  - `backend/src/services/import/validator.ts` - Validates transformed data
+  - `backend/src/services/import/errorReporter.ts` - Generates validation reports
+  - API endpoint: `POST /api/import/validate` - Validate before import
+  - Validation checks: required fields, date formats, valid values, duplicates
+  - Error messages include member name for easy identification
+  - Reports errors, warnings, and duplicate groups
+- **"Any Non-Compliant Wins" Logic**
+  - Multiple CSV columns can map to same quality measure (e.g., age-specific columns)
+  - If ANY column shows non-compliant, result is non-compliant
+  - Applies to: Breast Cancer, Colon Cancer, Diabetes, Nephropathy, Chlamydia, Vaccination
+- **Import Test Data Files**
+  - `test-data/` folder with 7 CSV files for testing import
+  - Covers: valid data, date formats, multi-column, validation errors, duplicates, no measures, warnings
+  - README.md with expected results for each test file
+- **Comprehensive Import Test Plan**
+  - 56 new test cases (TC-15 to TC-21) added to REGRESSION_TEST_PLAN.md
+  - Covers column mapping, transformation, date parsing, validation, error reporting, UI
+- **Phase 5e: Diff Calculator**
+  - `backend/src/services/import/diffCalculator.ts` - Compare import data vs database
+  - Merge logic matrix: 6 cases based on compliance status (compliant/non-compliant)
+  - Actions: INSERT (new record), UPDATE (upgrade), SKIP (keep existing), BOTH (downgrade), DELETE (replace mode)
+  - Status categorization using keyword matching
+  - 22 unit tests documenting all merge scenarios
+- **Phase 5f: Preview Cache**
+  - `backend/src/services/import/previewCache.ts` - In-memory cache with TTL
+  - 30-minute default TTL for preview entries
+  - Auto-cleanup every 5 minutes (expired entries removed)
+  - Features: store, get, delete, extend TTL, cache statistics
+  - 17 unit tests for cache operations
+- **Phase 5g: Preview API + UI**
+  - Preview endpoints in `import.routes.ts` (POST /preview, GET /preview/:id, DELETE /preview/:id)
+  - Preview tab in ImportTestPage.tsx with summary stats and changes table
+  - Action filter dropdown (All, INSERT, UPDATE, SKIP, BOTH, DELETE)
+  - Patient counts (new vs existing)
+- **Merge Logic Integration Tests**
+  - `mergeLogic.test.ts` - 12 integration tests for all 6 merge cases
+  - Tests merge mode (INSERT, UPDATE, SKIP, BOTH) and replace mode (DELETE all + INSERT)
+  - Edge case tests for blank values and case-insensitive status matching
+- **Merge Test Data File**
+  - `test-data/merge-test-cases.csv` - 15 rows covering all 6 merge cases
+  - `test-data/MERGE-TEST-CASES-README.md` - Documentation with expected results
+  - Expected counts: 9 INSERT, 4 UPDATE, 5 SKIP, 2 BOTH, 0 DELETE
+
+### Changed
+
+### Fixed
+- **Date Parser Excel Serial Detection** - Fixed bug where dates like "05/15/1970" were parsed as Excel serial numbers
+  - Root cause: `parseFloat("05/15/1970")` returns `5`, which was incorrectly treated as Excel serial
+  - Fix: Added regex check `/^\d+$/` to ensure string contains ONLY digits before treating as Excel serial
+- **Prisma/Alpine OpenSSL compatibility** - Added `linux-musl-openssl-3.0.x` binary target
+- **Docker config files** - Added COPY for `src/config` to `dist/config` in Dockerfile
+- **Validation Error Row Numbers** - Now show original spreadsheet row numbers instead of transformed row indices
+  - Added `dataStartRow` tracking to handle files with title rows
+  - Errors deduplicated per patient+field (no longer repeated for each generated row)
+  - CSV parser now detects title rows and calculates correct data start position
+- **Time Interval Editability** - Corrected which statuses allow manual time interval editing
+  - Only 5 "time period dropdown" statuses (Screening discussed, HgbA1c at/not at goal, BP call back statuses) prevent manual interval editing
+  - Test type dropdown statuses (Screening test ordered, Colon cancer screening ordered, etc.) now allow interval editing
+  - Documented complete Time Interval Editability Matrix in `.claude/TIME_INTERVAL_MATRIX.md`
+  - API returns `dataStartRow` for frontend to calculate display row numbers
+
+---
+
 ## [3.0.0] - 2026-01-22
 
 ### Added

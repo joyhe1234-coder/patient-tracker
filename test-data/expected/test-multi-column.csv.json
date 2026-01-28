@@ -1,0 +1,139 @@
+{
+  "file": "test-multi-column.csv",
+  "parse": {
+    "totalRows": 8,
+    "headers": [
+      "Patient",
+      "DOB",
+      "Phone",
+      "Address",
+      "Breast Cancer Screening E Q1",
+      "Breast Cancer Screening E Q2",
+      "Breast Cancer Screening 42-51 Years E Q1",
+      "Breast Cancer Screening 42-51 Years E Q2",
+      "Breast Cancer Screening 52-74 Years E Q1",
+      "Breast Cancer Screening 52-74 Years E Q2",
+      "Colorectal Cancer Screening E Q1",
+      "Colorectal Cancer Screening E Q2",
+      "Colorectal Cancer Screening 45-50 Years E Q1",
+      "Colorectal Cancer Screening 45-50 Years E Q2",
+      "Colorectal Cancer Screening 51-75 Years E Q1",
+      "Colorectal Cancer Screening 51-75 Years E Q2"
+    ],
+    "dataStartRow": 2
+  },
+  "mapping": {
+    "mapped": 16,
+    "skipped": 0,
+    "unmapped": 0,
+    "measureTypes": 2,
+    "missingRequired": []
+  },
+  "transform": {
+    "inputRows": 8,
+    "outputRows": 14,
+    "patientsWithNoMeasures": 1,
+    "errors": 0
+  },
+  "validation": {
+    "valid": true,
+    "errors": 0,
+    "warnings": 0,
+    "duplicateGroups": 0
+  },
+  "details": {
+    "transformedRows": [
+      {
+        "memberName": "AllCompliant, Test1",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "AllCompliant, Test1",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 0
+      },
+      {
+        "memberName": "AnyNonCompliant, Test2",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "AnyNonCompliant, Test2",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "AllNonCompliant, Test3",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "AllNonCompliant, Test3",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 2
+      },
+      {
+        "memberName": "MixedEmpty, Test4",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "MixedEmpty, Test4",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 3
+      },
+      {
+        "memberName": "EmptyPlusNonCompliant, Test5",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "EmptyPlusNonCompliant, Test5",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "CaseInsensitive, Test7",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "CaseInsensitive, Test7",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Colon cancer screening completed",
+        "sourceRowIndex": 6
+      },
+      {
+        "memberName": "Abbreviations, Test8",
+        "qualityMeasure": "Breast Cancer Screening",
+        "measureStatus": "Screening test completed",
+        "sourceRowIndex": 7
+      },
+      {
+        "memberName": "Abbreviations, Test8",
+        "qualityMeasure": "Colon Cancer Screening",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 7
+      }
+    ],
+    "validationErrors": [],
+    "patientsWithNoMeasures": [
+      {
+        "rowIndex": 5,
+        "memberName": "AllEmpty, Test6"
+      }
+    ]
+  }
+}

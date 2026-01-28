@@ -67,7 +67,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - qualityMeasure → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
   - measureStatus → clears statusDate, tracking1/2/3, dueDate, timeInterval
   - Notes preserved (not cleared)
-- [x] Time interval manual override - editable for all statuses (removed dropdown restriction)
+- [x] Time interval manual override - editable for ALL statuses (allows overriding default from tracking)
 - [x] Duplicate row functionality (create copy of existing row)
   - "Duplicate" button in toolbar (enabled when row selected)
   - Copies patient data only (memberName, memberDob, phone, address)
@@ -101,18 +101,59 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
+#### Requirements (Complete)
 - [x] Requirements document created with open questions
 - [x] Spreadsheet column reference documented (62 quality measure columns)
-- [x] Column mapping completed (42 columns → existing 13 quality measures)
+- [x] Column mapping completed (36 columns → existing 10 quality measures)
 - [x] Import modes defined: Replace All vs Merge
 - [x] Merge logic matrix defined (6 scenarios)
 - [x] Duplicate row visual requirements updated (left stripe + filter chip)
 - [x] Q2 Status Value Mapping resolved (measure-specific mapping)
 - [x] Hill Measure Mapping page (`/hill-mapping`) for configuring status mappings
+- [x] Multi-healthcare system support designed (config files per system)
+- [x] Preview before commit strategy (in-memory diff)
+- [x] Implementation plan with 13 phases and 11 modules
+- [x] API contracts defined (/preview, /execute)
 - [ ] Remaining questions: Q4-Q8
-- [ ] Implementation: Phase 5a - Basic Import
-- [ ] Implementation: Phase 5b - Measure Import
-- [ ] Implementation: Phase 5c - Polish
+
+#### Implementation Phases
+- [x] 5a: Config files + Config Loader
+- [x] 5b: File Parser (CSV/Excel) + Import Test Page
+- [x] 5c: Column Mapper + Transformer
+- [x] 5d: Validator + Error Reporter
+  - Error row numbers now reference original spreadsheet rows (not transformed indices)
+  - Title row detection for files with report headers
+  - Error deduplication per patient+field
+- [x] 5e: Diff Calculator
+  - `diffCalculator.ts` - Compare import data vs existing database records
+  - Implements merge logic matrix (6 cases based on compliance status)
+  - Actions: INSERT, UPDATE, SKIP, BOTH (downgrade), DELETE (replace mode)
+  - Unit tests: 22 tests covering all merge cases
+- [x] 5f: Preview Cache
+  - `previewCache.ts` - In-memory cache with TTL (30 min default)
+  - Stores diff results before commit for preview
+  - Auto-cleanup of expired entries (5 min interval)
+  - Unit tests: 17 tests for cache operations
+- [x] 5g: Preview API endpoint
+  - POST /api/import/preview - Parse, transform, validate, calculate diff
+  - GET /api/import/preview/:previewId - Retrieve cached preview
+  - DELETE /api/import/preview/:previewId - Delete cached preview
+  - GET /api/import/preview-cache/stats - Cache statistics
+- [x] 5g-ui: Preview UI (Import Test Page)
+  - Preview tab with summary stats (INSERT, UPDATE, SKIP, BOTH, DELETE counts)
+  - Patient counts (new vs existing)
+  - Action filter dropdown for changes table
+  - Changes table with member, measure, action, old/new status, reason
+- [x] Merge Logic Integration Tests
+  - `mergeLogic.test.ts` - 12 integration tests for merge-test-cases.csv
+  - Tests all 6 merge cases (INSERT, UPDATE, SKIP, BOTH for merge mode; DELETE for replace mode)
+  - Test data file: `test-data/merge-test-cases.csv`
+- [ ] 5h: Import Executor (Replace All + Merge)
+- [ ] 5i: Execute API endpoint
+- [ ] 5j: Import UI - Upload page
+- [ ] 5k: Import UI - Preview page
+- [ ] 5l: Import UI - Results display
+- [ ] 5m: Mapping UI (/import-mapping)
 
 ---
 
@@ -165,10 +206,15 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - MeasureStatus.baseDueDays fallback
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
 - [x] Time Interval editability
-  - Editable for ALL statuses (manual override allowed)
-  - ~~Previously NOT editable for dropdown-based intervals~~ (removed restriction)
+  - Editable for statuses with **fixed default** or **test type dropdown** (Mammogram, Colonoscopy, etc.)
+  - **NOT editable** for 5 time period dropdown statuses (interval controlled by dropdown):
+    - Screening discussed (In 1-11 Months)
+    - HgbA1c at goal / NOT at goal (1-12 months)
+    - Scheduled call back - BP at/not at goal (Call every 1-8 wks)
+  - Default value comes from tracking selection (DueDayRule) or baseDueDays
   - When edited, Due Date = Status Date + Time Interval
   - Row colors update accordingly (overdue detection)
+  - See `.claude/TIME_INTERVAL_MATRIX.md` for complete editability matrix
 - [x] Status Date prompt when Measure Status changes
   - Shows contextual prompt text (e.g., "Date Completed", "Date Ordered")
   - Light gray cell background with italic text when status date is missing
@@ -210,6 +256,47 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Chronic Diagnosis: 14 days (attestation not sent)
 - [x] Added DueDayRule records for Tracking #1 dependent countdown periods
 - [x] Extended Cervical Cancer "Screening discussed" options to 11 months
+
+---
+
+## UI Testing Infrastructure
+
+**Status: In Progress**
+
+### Component Testing (React Testing Library + Vitest)
+- [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
+- [x] Phase 4: Component tests (45 tests total)
+  - StatusFilterBar.test.tsx (4 tests)
+  - Toolbar.test.tsx (15 tests)
+  - AddRowModal.test.tsx (15 tests)
+  - ConfirmModal.test.tsx (11 tests)
+
+### E2E Testing (Playwright)
+- [x] Phase 2: Setup (playwright.config.ts, Page Object Model)
+- [x] Phase 3: CI/CD workflows (.github/workflows/test.yml, e2e-tests.yml)
+- [x] Phase 5: CRUD operation tests (26 passing, 4 skipped)
+  - smoke.spec.ts (4 tests)
+  - add-row.spec.ts (9 tests)
+  - duplicate-member.spec.ts (8 tests, 3 skipped)
+  - delete-row.spec.ts (10 tests, 4 skipped)
+- [ ] Phase 6: Grid editing, cascading dropdowns, time interval tests
+- [ ] Phase 7: Test data management and isolation
+- [ ] Phase 8: Import Excel E2E tests
+
+### E2E Testing (Cypress)
+- [x] Phase 6: Cascading dropdowns tests (19 passing)
+  - cypress.config.ts - Cypress configuration
+  - cypress/support/commands.ts - AG Grid helper commands
+  - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
+  - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
+
+### Test Data Management
+- [x] Phase 7: Test isolation and data management
+  - Serial mode for data-modifying test suites (delete-row, duplicate-member)
+  - Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows()
+  - Fixed phone/address test with Member Info toggle
+  - Playwright: 26 passing, 4 skipped (AG Grid limitations)
+- [ ] Phase 8: Import Excel E2E tests
 
 ---
 
@@ -293,7 +380,18 @@ patient-tracker/
 │   │   ├── services/        # Business logic services
 │   │   │   ├── dueDateCalculator.ts
 │   │   │   ├── duplicateDetector.ts
-│   │   │   └── statusDatePromptResolver.ts
+│   │   │   ├── statusDatePromptResolver.ts
+│   │   │   └── import/       # CSV Import services
+│   │   │       ├── configLoader.ts
+│   │   │       ├── fileParser.ts
+│   │   │       ├── columnMapper.ts
+│   │   │       ├── dataTransformer.ts
+│   │   │       ├── validator.ts
+│   │   │       ├── errorReporter.ts
+│   │   │       ├── diffCalculator.ts
+│   │   │       └── previewCache.ts
+│   │   ├── utils/           # Utility functions
+│   │   │   └── dateParser.ts
 │   │   └── index.ts         # Server entry point
 │   └── prisma/
 │       ├── schema.prisma    # Database schema
@@ -359,4 +457,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 22, 2026 - Added Hill Measure Mapping page, resolved Q2 status mapping
+January 28, 2026 - Completed Phase 5g (Preview API + UI) with integration tests for merge logic

@@ -297,25 +297,295 @@ Our system tracks:
 
 ---
 
-## Implementation Phases (Suggested)
+## Multi-Healthcare System Support
 
-Once Q2 (Status Mapping) is resolved, we can begin implementation:
+Different healthcare systems (Hill, Kaiser, etc.) have different CSV formats. The import feature supports multiple systems via config files.
 
-1. **Phase 5a: Basic Import**
-   - File upload (CSV/Excel)
-   - Fixed column mapping
-   - Patient data only (no measures)
-   - Replace all behavior
+### Config File Structure
 
-2. **Phase 5b: Measure Import**
-   - Quality measure columns (42 mapped columns)
-   - Status mapping (Compliant/Non Compliant)
-   - Validation and error reporting
+```
+backend/src/config/import/
+├── systems.json        # Registry of healthcare systems
+├── hill.json           # Hill Healthcare mapping
+└── [other].json        # Other system mappings
+```
 
-3. **Phase 5c: Polish**
-   - Column mapping UI (if needed)
-   - Import preview
-   - Progress indicator
+### systems.json - Master Registry
+
+```json
+{
+  "systems": {
+    "hill": { "name": "Hill Healthcare", "configFile": "hill.json" },
+    "kaiser": { "name": "Kaiser Permanente", "configFile": "kaiser.json" }
+  },
+  "default": "hill"
+}
+```
+
+### System Config File (e.g., hill.json)
+
+Each system config includes:
+- **patientColumns**: Map CSV headers → patient fields
+- **measureColumns**: Map CSV headers → requestType + qualityMeasure
+- **statusMapping**: Map Compliant/Non Compliant → measureStatus
+- **skipColumns**: Columns to ignore
+
+```json
+{
+  "name": "Hill Healthcare",
+  "version": "1.0",
+
+  "patientColumns": {
+    "Patient": "memberName",
+    "DOB": "memberDob",
+    "Phone": "memberTelephone",
+    "Address": "memberAddress"
+  },
+
+  "measureColumns": {
+    "Eye Exam": { "requestType": "Quality", "qualityMeasure": "Diabetic Eye Exam" },
+    "BP Control": { "requestType": "Quality", "qualityMeasure": "Hypertension Management" },
+    "Annual Wellness Visit": { "requestType": "AWV", "qualityMeasure": "Annual Wellness Visit" }
+  },
+
+  "statusMapping": {
+    "Diabetic Eye Exam": { "compliant": "Diabetic eye exam completed", "nonCompliant": "Not Addressed" },
+    "Hypertension Management": { "compliant": "Blood pressure at goal", "nonCompliant": "Not Addressed" }
+  },
+
+  "skipColumns": ["Age", "Sex", "MembID", "LOB", "Has Sticket"]
+}
+```
+
+### Config Storage Decision
+
+**Decision:** Option D - Config files on server (Decided 2026-01-22)
+
+Config files stored in `backend/src/config/import/`. Once defined, mappings rarely change.
+
+---
+
+## Preview Before Commit
+
+Both Replace All and Merge modes show a preview before applying changes. User must approve the preview to execute the import.
+
+### Preview Strategy
+
+**Decision:** Option D - In-Memory Diff (Decided 2026-01-22)
+
+1. Process import file entirely in memory
+2. Load current data from DB into memory
+3. Calculate diff (inserts, updates, skips, deletes, duplicates)
+4. Return diff as preview (no DB changes yet)
+5. User approves → Apply diff to DB
+6. User rejects → Discard (nothing to clean up)
+
+### Import Flow
+
+```
+1. User selects healthcare system from dropdown
+2. User selects mode (Replace All / Merge) - Replace All is first option
+3. User uploads CSV/Excel file
+4. System generates preview (no DB changes)
+   - Validation errors → Show errors, block preview
+   - Valid → Show preview page
+5. Preview page shows:
+   - Summary counts (insert, update, skip, delete, duplicate)
+   - Table of changes with action, patient, measure, old/new status
+6. User approves → Execute import (atomic transaction)
+   User rejects → Cancel, no changes made
+7. Show results
+```
+
+### Preview UI
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Import Preview - Hill Healthcare (Merge Mode)              │
+├──────────────────────────────────────────────────────────────┤
+│  Summary:                                                    │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │  🟢 Insert:  142 new rows                          │     │
+│  │  🔵 Update:   38 rows (Non Compliant → Compliant)  │     │
+│  │  ⚪ Skip:     87 rows (no change)                  │     │
+│  │  🟠 Both:     12 rows (keep old + insert new)      │     │
+│  └────────────────────────────────────────────────────┘     │
+│                                                              │
+│  Preview Changes:              Filter: [All Actions ▼]       │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ Action │ Patient      │ Measure          │ New Status│   │
+│  ├────────┼──────────────┼──────────────────┼───────────┤   │
+│  │ INSERT │ John Smith   │ Diabetic Eye Exam│ Completed │   │
+│  │ UPDATE │ Bob Wilson   │ BP Control       │ At Goal   │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                              │
+│  [Cancel - No Changes]              [Approve & Import]       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  /import-mapping        │  /import                              │
+│  - Configure mappings   │  - Select system                      │
+│  - Column headers       │  - Select mode (Replace/Merge)        │
+│  - Status mappings      │  - Upload file                        │
+│  - Export/Import JSON   │  - Preview page (approve/reject)      │
+│                         │  - Results display                    │
+└────────────┬────────────┴──────────────────┬────────────────────┘
+             │                               │
+             ▼                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         BACKEND API                              │
+├─────────────────────────────────────────────────────────────────┤
+│  GET  /api/import/systems         - List available systems      │
+│  GET  /api/import/systems/:id     - Get system config           │
+│  POST /api/import/preview         - Generate preview (no save)  │
+│  POST /api/import/execute         - Apply approved changes      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Module Breakdown
+
+| # | Module | Location | Purpose |
+|---|--------|----------|---------|
+| 1 | Config Loader | Backend | Load system config files |
+| 2 | File Parser | Backend | Parse CSV/Excel to raw rows |
+| 3 | Column Mapper | Backend | Map headers using config |
+| 4 | Data Transformer | Backend | Wide→Long, apply status mapping |
+| 5 | Validator | Backend | Validate all rows, collect errors |
+| 6 | Diff Calculator | Backend | Compare import vs DB, generate diff |
+| 7 | Preview Cache | Backend | Store diff with 30-min TTL |
+| 8 | Import Executor | Backend | Apply diff to DB (atomic) |
+| 9 | Error Reporter | Backend | Generate error CSV |
+| 10 | Import UI | Frontend | Upload, mode select, preview, results |
+| 11 | Mapping UI | Frontend | Configure system mappings |
+
+---
+
+## Files to Create
+
+| Location | File | Purpose |
+|----------|------|---------|
+| Backend | `src/config/import/systems.json` | System registry |
+| Backend | `src/config/import/hill.json` | Hill mapping config |
+| Backend | `src/services/import/configLoader.ts` | Load config files |
+| Backend | `src/services/import/fileParser.ts` | Parse CSV/Excel |
+| Backend | `src/services/import/columnMapper.ts` | Map columns |
+| Backend | `src/services/import/dataTransformer.ts` | Wide→Long |
+| Backend | `src/services/import/validator.ts` | Validate rows |
+| Backend | `src/services/import/diffCalculator.ts` | Generate diff |
+| Backend | `src/services/import/previewCache.ts` | Cache management |
+| Backend | `src/services/import/importExecutor.ts` | DB operations |
+| Backend | `src/services/import/errorReporter.ts` | Error CSV |
+| Backend | `src/routes/import.ts` | API routes |
+| Frontend | `src/pages/ImportPage.tsx` | Upload + mode select |
+| Frontend | `src/pages/ImportPreviewPage.tsx` | Preview + approve |
+| Frontend | `src/pages/ImportMappingPage.tsx` | Mapping config UI |
+| Frontend | `src/components/import/DiffTable.tsx` | Preview diff table |
+| Frontend | `src/components/import/ImportSummary.tsx` | Summary cards |
+
+---
+
+## Implementation Phases
+
+| Phase | Scope | Deliverable |
+|-------|-------|-------------|
+| **5a** | Config files + Config Loader | Create hill.json, systems.json, loader service |
+| **5b** | File Parser | Parse CSV/Excel, extract headers and rows |
+| **5c** | Column Mapper + Transformer | Map columns, wide→long, status mapping |
+| **5d** | Validator + Error Reporter | Validate all, generate error CSV |
+| **5e** | Diff Calculator | Compare import vs DB, generate diff |
+| **5f** | Preview Cache | Store/retrieve diff with TTL |
+| **5g** | Import Executor | Apply diff to DB (Replace All + Merge) |
+| **5h** | Preview API | POST /preview endpoint |
+| **5i** | Execute API | POST /execute endpoint |
+| **5j** | Import UI - Upload | File upload, system/mode selection |
+| **5k** | Import UI - Preview | Preview page with diff table |
+| **5l** | Import UI - Results | Success/error display |
+| **5m** | Mapping UI | Update /import-mapping page |
+
+---
+
+## API Contracts
+
+### POST /api/import/preview
+
+**Request:**
+```typescript
+{
+  systemId: string;           // "hill"
+  mode: "replace" | "merge";
+  file: File;                 // multipart/form-data
+}
+```
+
+**Response (Success):**
+```typescript
+{
+  success: true;
+  previewId: string;          // "abc-123-def"
+  summary: {
+    inserts: number;
+    updates: number;
+    skips: number;
+    duplicates: number;
+    deletes: number;
+  };
+  changes: Array<{
+    action: "INSERT" | "UPDATE" | "SKIP" | "BOTH" | "DELETE";
+    patient: string;
+    measure: string;
+    oldStatus: string | null;
+    newStatus: string;
+  }>;
+  totalChanges: number;
+  expiresAt: string;          // ISO date
+}
+```
+
+**Response (Validation Error):**
+```typescript
+{
+  success: false;
+  error: "VALIDATION_FAILED";
+  errors: Array<{
+    row: number;
+    field: string;
+    message: string;
+    value: string;
+  }>;
+  errorReportUrl: string;     // Download link
+}
+```
+
+### POST /api/import/execute
+
+**Request:**
+```typescript
+{
+  previewId: string;          // From preview response
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true;
+  created: number;
+  updated: number;
+  skipped: number;
+  duplicates: number;
+  deleted: number;
+}
+```
 
 ---
 
@@ -339,9 +609,13 @@ Once Q2 (Status Mapping) is resolved, we can begin implementation:
 | 2026-01-21 | Merge Logic | Matrix defined - see Merge Mode Details section |
 | 2026-01-21 | Duplicate Visual | Left stripe (not background color) + filter chip |
 | 2026-01-22 | Q2: Status Value Mapping | Measure-specific mapping - see Q2 section |
+| 2026-01-22 | Config Storage | Option D - Config files on server |
+| 2026-01-22 | Preview Strategy | Option D - In-Memory Diff before commit |
+| 2026-01-22 | Multi-System Support | Healthcare system selector with per-system config |
+| 2026-01-22 | Implementation Plan | 13 phases defined with module breakdown |
 
 ---
 
 ## Last Updated
 
-January 21, 2026
+January 22, 2026

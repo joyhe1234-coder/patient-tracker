@@ -12,8 +12,18 @@ import {
   getAutoFillQualityMeasure,
 } from '../../config/dropdownConfig';
 
+// Statuses where interval is controlled by TIME PERIOD dropdown (NOT manually editable)
+// These have dropdowns like "In X Months", "X months", "Call every X wks"
+const TIME_PERIOD_DROPDOWN_STATUSES = [
+  'Screening discussed',           // Tracking #1: In 1-11 Months
+  'HgbA1c at goal',                // Tracking #2: 1-12 months
+  'HgbA1c NOT at goal',            // Tracking #2: 1-12 months
+  'Scheduled call back - BP not at goal',  // Tracking #1: Call every 1-8 wks
+  'Scheduled call back - BP at goal',      // Tracking #1: Call every 1-8 wks
+];
+
 // Helper function to determine if time interval is editable
-// Editable when: has status date + has time interval value
+// Editable when: has status date + has time interval + NOT a time-period dropdown status
 const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   if (!data) return false;
 
@@ -23,7 +33,12 @@ const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   // No time interval calculated = status has no baseDueDays
   if (data.timeIntervalDays === null || data.timeIntervalDays === undefined) return false;
 
-  // Allow manual override for all statuses (including dropdown-based ones)
+  // Time period dropdown statuses: interval controlled by dropdown, not manually editable
+  if (data.measureStatus && TIME_PERIOD_DROPDOWN_STATUSES.includes(data.measureStatus)) {
+    return false;
+  }
+
+  // All other statuses: allow manual override of default interval
   return true;
 };
 
