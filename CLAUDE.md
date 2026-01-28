@@ -44,23 +44,128 @@ Wait for user confirmation before writing any code. Ask:
 Only after approval, proceed with implementation.
 
 ### Step 5: Add Tests (REQUIRED)
-After implementing, you MUST add automated tests:
+After implementing, you MUST add comprehensive automated tests covering ALL use cases.
 
-1. **Add test cases to REGRESSION_TEST_PLAN.md** - Document what needs testing
-2. **Write automated tests** using the appropriate framework:
-   - Backend logic → Jest (`backend/src/**/__tests__/*.test.ts`)
-   - React components → Vitest (`frontend/src/**/*.test.tsx`)
-   - General UI flows → Playwright (`frontend/e2e/*.spec.ts`)
-   - AG Grid dropdowns → Cypress (`frontend/cypress/e2e/*.cy.ts`)
-3. **Run all tests** before committing:
-   ```bash
-   cd backend && npm test
-   cd frontend && npm run test:run
-   cd frontend && npm run e2e
-   cd frontend && npm run cypress:run
-   ```
+#### 5a. Document Test Cases
+Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
+- List all scenarios the feature should handle
+- Include happy path, edge cases, and error cases
+- Assign test case IDs (e.g., TC-XX.1, TC-XX.2)
 
-See `.claude/TESTING.md` for detailed testing patterns and examples.
+#### 5b. Create Test Files for ALL Applicable Frameworks
+
+**You MUST create tests in EVERY applicable framework:**
+
+| Layer | Framework | File Pattern | When to Use |
+|-------|-----------|--------------|-------------|
+| Backend Logic | **Jest** | `backend/src/services/**/__tests__/*.test.ts` | ANY backend service, utility, or business logic |
+| Backend API | **Jest** | `backend/src/routes/__tests__/*.test.ts` | ANY new or modified API endpoint |
+| React Components | **Vitest** | `frontend/src/components/**/*.test.tsx` | ANY new or modified component |
+| UI Pages | **Vitest** | `frontend/src/pages/*.test.tsx` | ANY new or modified page |
+| UI Flows | **Playwright** | `frontend/e2e/*.spec.ts` | User journeys, navigation, modals, buttons |
+| AG Grid Editing | **Cypress** | `frontend/cypress/e2e/*.cy.ts` | Dropdowns, cell editing, row selection, colors |
+
+#### 5c. Test Coverage Requirements
+
+**Each feature MUST have tests covering:**
+
+1. **Happy Path** - Normal expected usage
+2. **Edge Cases** - Boundary conditions, empty states, max values
+3. **Error Cases** - Invalid input, missing data, API failures
+4. **UI Interactions** - Clicks, typing, selections work correctly
+5. **Visual State** - Correct colors, visibility, disabled states
+
+#### 5d. Test File Templates
+
+**Backend Service (Jest):**
+```typescript
+// backend/src/services/__tests__/myService.test.ts
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { myFunction } from '../myService.js';
+
+describe('myService', () => {
+  describe('myFunction', () => {
+    it('should handle valid input', () => { /* ... */ });
+    it('should handle empty input', () => { /* ... */ });
+    it('should throw on invalid input', () => { /* ... */ });
+  });
+});
+```
+
+**React Component (Vitest):**
+```typescript
+// frontend/src/components/MyComponent.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('renders correctly', () => { /* ... */ });
+  it('handles click events', () => { /* ... */ });
+  it('shows error state', () => { /* ... */ });
+  it('disables when loading', () => { /* ... */ });
+});
+```
+
+**UI Flow (Playwright):**
+```typescript
+// frontend/e2e/my-feature.spec.ts
+import { test, expect } from '@playwright/test';
+import { MainPage } from './pages/main-page';
+
+test.describe('My Feature', () => {
+  let mainPage: MainPage;
+
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.goto();
+    await mainPage.waitForGridLoad();
+  });
+
+  test('should complete user flow', async () => { /* ... */ });
+  test('should handle cancellation', async () => { /* ... */ });
+  test('should show validation errors', async () => { /* ... */ });
+});
+```
+
+**AG Grid (Cypress):**
+```typescript
+// frontend/cypress/e2e/my-grid-feature.cy.ts
+describe('My Grid Feature', () => {
+  beforeEach(() => {
+    cy.visit('/');
+    cy.waitForAgGrid();
+  });
+
+  it('should select dropdown value', () => {
+    cy.selectAgGridDropdown(0, 'columnId', 'Value');
+    cy.getAgGridCell(0, 'columnId').should('contain.text', 'Value');
+  });
+
+  it('should update row color', () => {
+    cy.get('[row-index="0"]').first().should('have.class', 'row-status-green');
+  });
+});
+```
+
+#### 5e. Run ALL Tests Before Commit
+
+```bash
+# Run ALL test suites - ALL must pass
+cd backend && npm test                    # Jest (130+ tests)
+cd frontend && npm run test:run           # Vitest (45+ tests)
+cd frontend && npm run e2e                # Playwright (26+ tests)
+cd frontend && npm run cypress:run        # Cypress (19+ tests)
+```
+
+#### 5f. Update Test Documentation
+
+After tests pass:
+1. Update `.claude/REGRESSION_TEST_PLAN.md` - Mark test cases as "Automated"
+2. Update `.claude/TESTING.md` - Add new test file to the inventory
+3. Include test count in commit message
+
+See `.claude/TESTING.md` for detailed patterns and troubleshooting.
 
 ---
 
