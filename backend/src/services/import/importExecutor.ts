@@ -71,12 +71,16 @@ export async function executeImport(previewId: string): Promise<ExecutionResult>
 
   try {
     // Execute in a transaction for atomicity
+    // Increase timeout for large imports (default is 5s, we use 5 minutes)
     await prisma.$transaction(async (tx) => {
       if (preview.mode === 'replace') {
         await executeReplaceMode(preview.diff.changes, tx, stats, errors);
       } else {
         await executeMergeMode(preview.diff.changes, tx, stats, errors);
       }
+    }, {
+      timeout: 300000, // 5 minutes for large imports
+      maxWait: 10000,  // 10 seconds max wait to acquire connection
     });
 
     // Post-execution: sync duplicate flags
