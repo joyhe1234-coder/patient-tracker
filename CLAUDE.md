@@ -281,6 +281,7 @@ Read the following files before starting work:
 - `.claude/context.md` - Project structure and tech stack
 - `.claude/patterns.md` - Code conventions and patterns
 - `.claude/notes.md` - Session notes and current focus
+- `.claude/WORKFLOW.md` - **Feature development workflow (Plan → Implement → Test → Document → Commit)**
 
 ## Quick Commands
 
