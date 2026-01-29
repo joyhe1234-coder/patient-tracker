@@ -117,6 +117,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - POST /api/import/execute/:previewId - Execute import from cached preview
   - Returns execution stats and any errors
   - Validates preview exists before executing
+- **Execute Button in Import Test Page**
+  - Red "Execute Import" button in preview header
+  - Execution results display with stats (inserted, updated, deleted, skipped, bothKept)
+  - Error display for failed operations
+  - Link to main grid after successful import
 
 ### Changed
 

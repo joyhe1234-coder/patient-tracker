@@ -155,9 +155,11 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Prisma transactions for atomicity
   - Post-execution: sync duplicate flags, delete preview cache
   - Unit tests: 16 tests covering all scenarios
-- [x] 5i: Execute API endpoint
+- [x] 5i: Execute API endpoint + UI
   - POST /api/import/execute/:previewId - Execute import from cached preview
   - Returns stats (inserted, updated, deleted, skipped, bothKept)
+  - Execute button in Import Test Page preview tab
+  - Execution results display with stats and errors
 - [ ] 5j: Import UI - Upload page
 - [ ] 5k: Import UI - Preview page
 - [ ] 5l: Import UI - Results display
