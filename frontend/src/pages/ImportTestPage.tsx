@@ -873,17 +873,32 @@ export default function ImportTestPage() {
                 <div className="text-2xl font-bold text-orange-600">{previewResult.summary.modifying}</div>
                 <div className="text-sm text-gray-600">Changes to Apply</div>
               </div>
-              <button
-                onClick={handleExecute}
-                disabled={executing || previewResult.summary.modifying === 0}
-                className={`ml-4 px-6 py-3 rounded-lg font-bold text-lg ${
-                  executing || previewResult.summary.modifying === 0
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-red-600 text-white hover:bg-red-700'
-                }`}
-              >
-                {executing ? 'Executing...' : 'Execute Import'}
-              </button>
+              <div className="ml-4 flex flex-col items-center">
+                <button
+                  onClick={handleExecute}
+                  disabled={executing || previewResult.summary.modifying === 0}
+                  className={`px-6 py-3 rounded-lg font-bold text-lg ${
+                    executing || previewResult.summary.modifying === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  {executing ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Importing {previewResult.summary.modifying} records...
+                    </span>
+                  ) : (
+                    `Execute Import (${previewResult.summary.modifying} records)`
+                  )}
+                </button>
+                {!executing && previewResult.summary.modifying > 100 && (
+                  <span className="text-xs text-gray-500 mt-1">Large import - may take a minute</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1066,7 +1081,8 @@ export default function ImportTestPage() {
                   Import {!executeResult.errors || executeResult.errors.length === 0 ? 'Completed Successfully!' : 'Completed with Errors'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Mode: {executeResult.mode.toUpperCase()} • Duration: {executeResult.duration}ms
+                  Mode: {executeResult.mode.toUpperCase()} • Duration: {(executeResult.duration / 1000).toFixed(1)}s •
+                  Total: {executeResult.stats.inserted + executeResult.stats.updated + executeResult.stats.deleted + executeResult.stats.bothKept} records processed
                 </p>
               </div>
             </div>
