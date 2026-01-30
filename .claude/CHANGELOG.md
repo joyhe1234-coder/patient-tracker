@@ -122,6 +122,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Execution results display with stats (inserted, updated, deleted, skipped, bothKept)
   - Error display for failed operations
   - Link to main grid after successful import
+- **Test Coverage Improvements**
+  - Fixed 3 failing mergeLogic integration tests by properly detecting seeded database data
+  - Backend coverage: 89% statements, 80% branches (241 tests)
+  - Frontend coverage: 99% statements, 96% branches (70 tests)
+  - fileParser.ts: 59% → 95% (added Excel parsing, title row detection tests)
+  - diffCalculator.ts: 63% → 97% (exported and tested categorizeStatus, applyMergeLogic)
+  - StatusFilterBar.tsx: 33% → 100% (added getRowStatusColor tests for all status categories)
 
 ### Changed
 

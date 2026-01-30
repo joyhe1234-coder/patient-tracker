@@ -4,7 +4,8 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { parseCSV, parseFile, validateRequiredColumns } from '../fileParser.js';
+import { parseCSV, parseExcel, parseFile, validateRequiredColumns } from '../fileParser.js';
+import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -98,9 +99,150 @@ describe('fileParser', () => {
 
       expect(() => parseCSV(buffer, 'empty.csv')).toThrow(); // Throws parsing error
     });
+
+    it('should detect title row with "--" pattern', () => {
+      const csv = '-- Report Data --\nName,DOB,Phone\nJohn,01/15/1990,5551234567';
+      const buffer = Buffer.from(csv);
+
+      const result = parseCSV(buffer, 'test.csv');
+
+      expect(result.headers).toEqual(['Name', 'DOB', 'Phone']);
+      expect(result.dataStartRow).toBe(3); // Title row 1, headers row 2, data row 3
+    });
+
+    it('should detect sparse title row (few values in many columns)', () => {
+      // Title row with only first cell filled, rest empty (more than 10 columns)
+      const csv = 'Report Title,,,,,,,,,,,,,\nA,B,C,D,E,F,G,H,I,J,K,L,M,N\nV1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12,V13,V14';
+      const buffer = Buffer.from(csv);
+
+      const result = parseCSV(buffer, 'test.csv');
+
+      expect(result.headers).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']);
+      expect(result.dataStartRow).toBe(3);
+    });
+  });
+
+  describe('parseExcel', () => {
+    /**
+     * Helper to create an Excel buffer from data
+     */
+    function createExcelBuffer(data: unknown[][]): Buffer {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    }
+
+    it('should parse Excel with headers on first row', () => {
+      const data = [
+        ['Name', 'DOB', 'Phone'],
+        ['John Smith', '01/15/1990', '5551234567']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.headers).toEqual(['Name', 'DOB', 'Phone']);
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0]['Name']).toBe('John Smith');
+      expect(result.fileType).toBe('xlsx');
+      expect(result.dataStartRow).toBe(2); // Headers on row 1, data starts row 2
+    });
+
+    it('should parse Excel with multiple rows', () => {
+      const data = [
+        ['Name', 'DOB'],
+        ['John', '01/01/1990'],
+        ['Jane', '02/02/1985'],
+        ['Bob', '03/03/1970']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.rows).toHaveLength(3);
+      expect(result.totalRows).toBe(3);
+    });
+
+    it('should handle empty values in Excel', () => {
+      const data = [
+        ['Name', 'DOB', 'Phone'],
+        ['John', '', '5551234567'],
+        ['', '01/01/1990', '']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.rows[0]['DOB']).toBeUndefined();
+      expect(result.rows[1]['Name']).toBeUndefined();
+      expect(result.rows[1]['Phone']).toBeUndefined();
+    });
+
+    it('should detect and skip title row in Excel', () => {
+      const data = [
+        ['Report Generated 2026-01-01'],
+        ['Name', 'DOB', 'Phone'],
+        ['John', '01/15/1990', '5551234567']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.headers).toEqual(['Name', 'DOB', 'Phone']);
+      expect(result.rows).toHaveLength(1);
+      expect(result.dataStartRow).toBe(3); // Title row 1, headers row 2, data row 3
+    });
+
+    it('should throw error for empty Excel', () => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      expect(() => parseExcel(buffer, 'empty.xlsx')).toThrow('Excel file is empty');
+    });
+
+    // Note: "Excel file has no sheets" and "Could not read worksheet" errors (lines 124, 129)
+    // are defensive checks that can't easily be triggered in tests since the XLSX library
+    // validates workbooks before we can pass them to our parser.
+
+    it('should throw error for Excel with only title row', () => {
+      // Create a sparse title row (only first cell has content)
+      const data = [
+        ['Report Title', '', '', '', '', '', '', '', '', '', '', '', '', '']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      expect(() => parseExcel(buffer, 'titleonly.xlsx')).toThrow('Excel file has no data rows');
+    });
+
+    it('should trim whitespace from headers and values in Excel', () => {
+      const data = [
+        ['  Name  ', '  DOB  '],
+        ['  John Smith  ', '  01/15/1990  ']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.headers).toEqual(['Name', 'DOB']);
+      expect(result.rows[0]['Name']).toBe('John Smith');
+      expect(result.rows[0]['DOB']).toBe('01/15/1990');
+    });
   });
 
   describe('parseFile', () => {
+    /**
+     * Helper to create an Excel buffer from data
+     */
+    function createExcelBuffer(data: unknown[][]): Buffer {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    }
+
     it('should parse CSV file by extension', () => {
       const csv = 'Name,DOB\nJohn,01/01/1990';
       const buffer = Buffer.from(csv);
@@ -111,10 +253,45 @@ describe('fileParser', () => {
       expect(result.fileName).toBe('test.csv');
     });
 
+    it('should parse xlsx file by extension', () => {
+      const data = [
+        ['Name', 'DOB'],
+        ['John', '01/01/1990']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseFile(buffer, 'test.xlsx');
+
+      expect(result.fileType).toBe('xlsx');
+      expect(result.fileName).toBe('test.xlsx');
+    });
+
+    it('should parse xls file by extension', () => {
+      const data = [
+        ['Name', 'DOB'],
+        ['John', '01/01/1990']
+      ];
+      const buffer = createExcelBuffer(data);
+
+      const result = parseFile(buffer, 'test.xls');
+
+      expect(result.fileType).toBe('xlsx');
+      expect(result.fileName).toBe('test.xls');
+    });
+
     it('should throw error for unsupported file type', () => {
       const buffer = Buffer.from('some data');
 
       expect(() => parseFile(buffer, 'test.txt')).toThrow('Unsupported file type');
+    });
+
+    it('should handle uppercase file extensions', () => {
+      const csv = 'Name,DOB\nJohn,01/01/1990';
+      const buffer = Buffer.from(csv);
+
+      const result = parseFile(buffer, 'test.CSV');
+
+      expect(result.fileType).toBe('csv');
     });
   });
 

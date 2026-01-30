@@ -275,8 +275,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (45 tests total)
-  - StatusFilterBar.test.tsx (4 tests)
+- [x] Phase 4: Component tests (70 tests total, 99% coverage)
+  - StatusFilterBar.test.tsx (29 tests, 100% coverage - includes getRowStatusColor tests)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
@@ -307,6 +307,16 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Fixed phone/address test with Member Info toggle
   - Playwright: 26 passing, 4 skipped (AG Grid limitations)
 - [ ] Phase 8: Import Excel E2E tests
+
+### Backend Unit Testing (Jest)
+- [x] 241 tests passing (89% statement coverage, 80% branch coverage)
+- [x] Import services tests:
+  - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
+  - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
+  - mergeLogic.test.ts - 12 integration tests (seeded DB required for UPDATE/SKIP scenarios)
+  - previewCache.test.ts - 17 tests (cache TTL, cleanup)
+  - validator.test.ts - validation error handling
+  - importExecutor.test.ts - 16 tests (replace/merge mode execution)
 
 ---
 

@@ -71,8 +71,9 @@ export interface DiffResult {
 
 /**
  * Existing database record for comparison
+ * Exported for testing
  */
-interface ExistingRecord {
+export interface ExistingRecord {
   patientId: number;
   measureId: number;
   memberName: string;
@@ -87,7 +88,7 @@ interface ExistingRecord {
 /**
  * Status categories for merge logic
  */
-type ComplianceCategory = 'compliant' | 'non-compliant' | 'unknown';
+export type ComplianceCategory = 'compliant' | 'non-compliant' | 'unknown';
 
 /**
  * Compliant status keywords (case-insensitive matching)
@@ -115,8 +116,9 @@ const NON_COMPLIANT_STATUSES = [
 
 /**
  * Categorize a measure status as compliant, non-compliant, or unknown
+ * Exported for testing
  */
-function categorizeStatus(status: string | null): ComplianceCategory {
+export function categorizeStatus(status: string | null): ComplianceCategory {
   if (!status) return 'unknown';
 
   const lowerStatus = status.toLowerCase();
@@ -232,8 +234,9 @@ async function loadExistingRecords(): Promise<ExistingRecord[]> {
 /**
  * Calculate diff for Replace All mode
  * Delete all existing, insert all new
+ * Exported for testing
  */
-function calculateReplaceAllDiff(
+export function calculateReplaceAllDiff(
   rows: TransformedRow[],
   existingRecords: ExistingRecord[],
   summary: DiffSummary
@@ -283,8 +286,9 @@ function calculateReplaceAllDiff(
 /**
  * Calculate diff for Merge mode
  * Apply merge logic based on compliance states
+ * Exported for testing
  */
-function calculateMergeDiff(
+export function calculateMergeDiff(
   rows: TransformedRow[],
   existingByKey: Map<string, ExistingRecord>,
   summary: DiffSummary
@@ -335,6 +339,7 @@ function calculateMergeDiff(
 
 /**
  * Apply merge logic for a single row against existing record
+ * Exported for testing
  *
  * Merge Logic Matrix:
  * | Old Status      | New Status      | Action |
@@ -344,7 +349,7 @@ function calculateMergeDiff(
  * | Non Compliant   | Non Compliant   | SKIP   |
  * | Compliant       | Non Compliant   | BOTH   |
  */
-function applyMergeLogic(
+export function applyMergeLogic(
   row: TransformedRow,
   existing: ExistingRecord
 ): DiffChange {
