@@ -455,4 +455,64 @@ describe('Cascading Dropdowns', () => {
         .should('satisfy', (text: string) => text.trim() === '');
     });
   });
+
+  describe('Tracking #1 Prompt Text', () => {
+    it('Colon cancer screening shows "Select screening type" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Colon Cancer Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Colon cancer screening ordered');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select screening type');
+    });
+
+    it('Breast Cancer Screening test ordered shows "Select test type" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening test ordered');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select test type');
+    });
+
+    it('Chronic diagnosis resolved shows "Select status" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Chronic DX');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis resolved');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select status');
+    });
+
+    it('Screening discussed shows "Select time period" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening discussed');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select time period');
+    });
+
+    it('HgbA1c ordered shows "HgbA1c value" prompt in tracking1', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetes Control');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'HgbA1c value');
+    });
+  });
 });

@@ -611,12 +611,23 @@ export default function PatientGrid({
         }
 
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        const hasOptions = getTracking1OptionsForStatus(params.data.measureStatus || '');
-        const isHgba1c = hgba1cStatuses.includes(params.data.measureStatus || '');
+        const status = params.data.measureStatus || '';
+        const hasOptions = getTracking1OptionsForStatus(status);
+        const isHgba1c = hgba1cStatuses.includes(status);
 
-        // If cell has dropdown options, show prompt when empty
+        // If cell has dropdown options, show appropriate prompt when empty
         if (hasOptions) {
           if (!params.value) {
+            // Different prompts based on measure status
+            if (status.includes('Colon cancer')) {
+              return 'Select screening type';
+            }
+            if (status === 'Screening test ordered' || status === 'Screening test completed') {
+              return 'Select test type';
+            }
+            if (status === 'Chronic diagnosis resolved' || status === 'Chronic diagnosis invalid') {
+              return 'Select status';
+            }
             return 'Select time period';
           }
           return params.value;
