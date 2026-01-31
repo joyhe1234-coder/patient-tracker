@@ -147,6 +147,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Test type dropdown statuses (Screening test ordered, Colon cancer screening ordered, etc.) now allow interval editing
   - Documented complete Time Interval Editability Matrix in `.claude/TIME_INTERVAL_MATRIX.md`
   - API returns `dataStartRow` for frontend to calculate display row numbers
+- **Cascading Field Clear Race Condition** - Fixed bug where dueDate/timeIntervalDays were not cleared when changing measureStatus
+  - Root cause: `setDataValue()` calls for cascading fields triggered separate `onCellValueChanged` events, causing parallel API calls
+  - The secondary API calls used OLD measureStatus/statusDate values to recalculate dueDate, overwriting the correct null values
+  - Symptom: Row stayed red (overdue) after changing from "Scheduled call back - BP not at goal" to "Blood pressure at goal"
+  - Fix: Added `isCascadingUpdateRef` flag to skip API calls for programmatic `setDataValue` changes
 
 ---
 

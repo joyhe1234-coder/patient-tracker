@@ -214,6 +214,9 @@ export default function PatientGrid({
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);
 
+  // Ref to track when we're doing a cascading update (to prevent setDataValue from triggering additional API calls)
+  const isCascadingUpdateRef = useRef(false);
+
   // Handle new row focus - clear sort and focus Request Type cell
   useEffect(() => {
     if (newRowId && gridRef.current?.api) {
@@ -279,6 +282,9 @@ export default function PatientGrid({
     if (newValue === oldValue) return;
     if (!data || !colDef.field) return;
 
+    // Skip API calls for cascading updates (triggered by setDataValue)
+    // The main field update already includes all cascading field changes
+    if (isCascadingUpdateRef.current) return;
 
     // Clear sort indicator on the edited column (if it was sorted)
     // Capture current row order first, then clear sort - postSortRows will maintain order
@@ -314,6 +320,9 @@ export default function PatientGrid({
       // Handle cascading logic - clear all downstream fields when parent changes
       // Hierarchy: requestType → qualityMeasure → measureStatus → statusDate → tracking1/2/3 → dueDate/timeInterval
       // Keep: notes (not cleared on cascade)
+
+      // Set flag to prevent setDataValue from triggering additional API calls
+      isCascadingUpdateRef.current = true;
 
       if (colDef.field === 'requestType') {
         // Auto-fill Quality Measure for AWV and Chronic DX
@@ -432,6 +441,9 @@ export default function PatientGrid({
       setTimeout(() => {
         onSaveStatusChange?.('idle');
       }, 3000);
+    } finally {
+      // Always reset the cascading update flag
+      isCascadingUpdateRef.current = false;
     }
   }, [onRowUpdated, onSaveStatusChange]);
 
