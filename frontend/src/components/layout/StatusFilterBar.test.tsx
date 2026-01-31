@@ -27,7 +27,7 @@ describe('StatusFilterBar', () => {
 
     expect(screen.getByText('All')).toBeInTheDocument();
     expect(screen.getByText('Duplicates')).toBeInTheDocument();
-    expect(screen.getByText('Not Started')).toBeInTheDocument();
+    expect(screen.getByText('Not Addressed')).toBeInTheDocument();
     expect(screen.getByText('Overdue')).toBeInTheDocument();
     expect(screen.getByText('In Progress')).toBeInTheDocument();
     expect(screen.getByText('Contacted')).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe('StatusFilterBar', () => {
     expect(screen.getByText('(100)')).toBeInTheDocument();
     // In Progress count (unique value 25)
     expect(screen.getByText('(25)')).toBeInTheDocument();
-    // Not Started (white) count (unique value 20)
+    // Not Addressed (white) count (unique value 20)
     expect(screen.getByText('(20)')).toBeInTheDocument();
     // Contacted count (unique value 15)
     expect(screen.getByText('(15)')).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe('getRowStatusColor', () => {
     });
   });
 
-  describe('white status (Not Started/Default)', () => {
+  describe('white status (Not Addressed/Default)', () => {
     it('returns white for empty status', () => {
       const result = getRowStatusColor({
         measureStatus: '',

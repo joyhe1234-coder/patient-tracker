@@ -358,11 +358,12 @@ async function main() {
   ]);
 
   // Diabetes Control (HgbA1c) statuses
+  // Note: HgbA1c statuses use Tracking #2 dropdown for due date - no baseDueDays fallback
   await createStatuses(diabetesControlMeasure.id, [
     { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
-    { code: 'HgbA1c ordered', label: 'HgbA1c ordered', datePrompt: 'Date Ordered', baseDueDays: 14, sortOrder: 2 },
-    { code: 'HgbA1c at goal', label: 'HgbA1c at goal', datePrompt: 'Test Date', baseDueDays: 90, sortOrder: 3 },
-    { code: 'HgbA1c NOT at goal', label: 'HgbA1c NOT at goal', datePrompt: 'Test Date', baseDueDays: 90, sortOrder: 4 },
+    { code: 'HgbA1c ordered', label: 'HgbA1c ordered', datePrompt: 'Date Ordered', baseDueDays: null, sortOrder: 2 },
+    { code: 'HgbA1c at goal', label: 'HgbA1c at goal', datePrompt: 'Test Date', baseDueDays: null, sortOrder: 3 },
+    { code: 'HgbA1c NOT at goal', label: 'HgbA1c NOT at goal', datePrompt: 'Test Date', baseDueDays: null, sortOrder: 4 },
     { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 5 },
     { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 6 },
   ]);

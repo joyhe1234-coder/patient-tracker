@@ -131,6 +131,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - StatusFilterBar.tsx: 33% → 100% (added getRowStatusColor tests for all status categories)
 
 ### Changed
+- **HgbA1c Due Date Calculation** - Tracking #2 dropdown now required (no base fallback)
+  - Removed baseDueDays for HgbA1c ordered (was 14), HgbA1c at goal (was 90), HgbA1c NOT at goal (was 90)
+  - Due date only calculated when user selects from Tracking #2 dropdown (1-12 months)
+  - Time interval is read-only for all HgbA1c statuses (controlled by dropdown)
+  - Added "HgbA1c ordered" to TIME_PERIOD_DROPDOWN_STATUSES in frontend and backend
+- **Status Filter Label** - Changed "Not Started" to "Not Addressed" in filter bar
+- **Tracking Dropdown Prompts** - Added "Select time period" prompt for empty tracking dropdowns
+  - Shows gray italic text when dropdown selection is expected but not yet made
+  - Applies to: Screening discussed (Tracking #1), BP call back statuses (Tracking #1)
 
 ### Fixed
 - **Date Parser Excel Serial Detection** - Fixed bug where dates like "05/15/1970" were parsed as Excel serial numbers

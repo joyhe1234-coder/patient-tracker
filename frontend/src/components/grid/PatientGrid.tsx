@@ -16,6 +16,7 @@ import {
 // These have dropdowns like "In X Months", "X months", "Call every X wks"
 const TIME_PERIOD_DROPDOWN_STATUSES = [
   'Screening discussed',           // Tracking #1: In 1-11 Months
+  'HgbA1c ordered',                // Tracking #2: 1-12 months
   'HgbA1c at goal',                // Tracking #2: 1-12 months
   'HgbA1c NOT at goal',            // Tracking #2: 1-12 months
   'Scheduled call back - BP not at goal',  // Tracking #1: Call every 1-8 wks
@@ -613,9 +614,12 @@ export default function PatientGrid({
         const hasOptions = getTracking1OptionsForStatus(params.data.measureStatus || '');
         const isHgba1c = hgba1cStatuses.includes(params.data.measureStatus || '');
 
-        // If cell has dropdown options, return the value as-is (don't format)
+        // If cell has dropdown options, show prompt when empty
         if (hasOptions) {
-          return params.value || '';
+          if (!params.value) {
+            return 'Select time period';
+          }
+          return params.value;
         }
 
         // Disabled - show N/A (no dropdown options and not HgbA1c)
@@ -634,6 +638,10 @@ export default function PatientGrid({
         const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
         const isHgba1c = hgba1cStatuses.includes(params.data?.measureStatus || '');
 
+        // Dropdown options need prompt when empty
+        if (hasOptions && !params.value) {
+          return 'cell-prompt';
+        }
         // HgbA1c needs prompt when empty
         if (isHgba1c && !params.value) {
           return 'cell-prompt';

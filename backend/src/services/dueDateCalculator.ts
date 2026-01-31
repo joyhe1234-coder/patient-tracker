@@ -38,8 +38,13 @@ export async function calculateDueDate(
     }
   }
 
-  // Priority 2: HgbA1c statuses with tracking2 month pattern
-  if ((measureStatus === 'HgbA1c NOT at goal' || measureStatus === 'HgbA1c at goal') && tracking2) {
+  // Priority 2: HgbA1c statuses with tracking2 month pattern (required - no fallback)
+  const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+  if (hgba1cStatuses.includes(measureStatus)) {
+    // HgbA1c statuses require tracking2 dropdown - no due date without it
+    if (!tracking2) {
+      return { dueDate: null, timeIntervalDays: null };
+    }
     const monthMatch = tracking2.match(/(\d+)\s*[Mm]onth/);
     if (monthMatch) {
       const months = parseInt(monthMatch[1], 10);
@@ -47,6 +52,8 @@ export async function calculateDueDate(
       const timeIntervalDays = differenceInDays(dueDate, statusDate);
       return { dueDate, timeIntervalDays };
     }
+    // Invalid tracking2 format - no due date
+    return { dueDate: null, timeIntervalDays: null };
   }
 
   // Priority 3: Check DueDayRule for measureStatus + tracking1 combination

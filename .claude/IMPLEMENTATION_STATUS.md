@@ -210,16 +210,16 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 **Status: Complete**
 
 - [x] Due Date auto-calculation based on Status Date + rules
-  - Special handling for "Screening discussed" + tracking month patterns
-  - Special handling for HgbA1c statuses + tracking2 month patterns
+  - Special handling for "Screening discussed" + tracking1 month patterns
+  - Special handling for HgbA1c statuses + tracking2 month patterns (no base fallback - requires dropdown)
   - DueDayRule lookup for measureStatus + tracking1 combinations
-  - MeasureStatus.baseDueDays fallback
+  - MeasureStatus.baseDueDays fallback (not used for HgbA1c statuses)
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
 - [x] Time Interval editability
   - Editable for statuses with **fixed default** or **test type dropdown** (Mammogram, Colonoscopy, etc.)
-  - **NOT editable** for 5 time period dropdown statuses (interval controlled by dropdown):
+  - **NOT editable** for 6 time period dropdown statuses (interval controlled by dropdown):
     - Screening discussed (In 1-11 Months)
-    - HgbA1c at goal / NOT at goal (1-12 months)
+    - HgbA1c ordered / at goal / NOT at goal (1-12 months) - requires Tracking #2 selection
     - Scheduled call back - BP at/not at goal (Call every 1-8 wks)
   - Default value comes from tracking selection (DueDayRule) or baseDueDays
   - When edited, Due Date = Status Date + Time Interval

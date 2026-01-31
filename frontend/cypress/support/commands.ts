@@ -156,6 +156,31 @@ Cypress.Commands.add('selectAgGridDropdownByMemberName', (memberName: string, co
 });
 
 /**
+ * Scroll to a column in AG Grid to ensure it's visible
+ */
+Cypress.Commands.add('scrollToAgGridColumn', (colId: string) => {
+  // Scroll the grid body to the right to reveal more columns
+  cy.get('.ag-body-horizontal-scroll-viewport').then(($viewport) => {
+    // Scroll to the right to ensure column is visible
+    $viewport[0].scrollLeft = $viewport[0].scrollWidth;
+  });
+  cy.wait(300);
+});
+
+/**
+ * Get an AG Grid cell by row index and column ID, ensuring the column is visible
+ */
+Cypress.Commands.add('getAgGridCellWithScroll', (rowIndex: number, colId: string) => {
+  // First scroll the grid to the right to reveal dueDate and timeIntervalDays columns
+  cy.get('.ag-body-horizontal-scroll-viewport').then(($viewport) => {
+    $viewport[0].scrollLeft = $viewport[0].scrollWidth;
+  });
+  cy.wait(400);
+  // Then get the cell
+  return cy.get(`[row-index="${rowIndex}"] [col-id="${colId}"]`, { timeout: 10000 }).first();
+});
+
+/**
  * Add a test row via the Add Row modal
  */
 Cypress.Commands.add('addTestRow', (name: string) => {

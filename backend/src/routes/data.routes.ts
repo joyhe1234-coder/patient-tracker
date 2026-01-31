@@ -282,6 +282,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     // These have dropdowns like "In X Months", "X months", "Call every X wks"
     const TIME_PERIOD_DROPDOWN_STATUSES = [
       'Screening discussed',           // Tracking #1: In 1-11 Months
+      'HgbA1c ordered',                // Tracking #2: 1-12 months
       'HgbA1c at goal',                // Tracking #2: 1-12 months
       'HgbA1c NOT at goal',            // Tracking #2: 1-12 months
       'Scheduled call back - BP not at goal',  // Tracking #1: Call every 1-8 wks

@@ -38,3 +38,4 @@ frontend/test-results/
 frontend/coverage/
 frontend/cypress/videos/
 frontend/cypress/screenshots/
+backend/coverage/
