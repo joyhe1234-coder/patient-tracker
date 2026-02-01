@@ -326,13 +326,20 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
     // Step 4: Calculate diff against database
     const diffResult = await calculateDiff(transformResult.rows, mode);
 
-    // Step 5: Store in preview cache
+    // Step 5: Store in preview cache (include warnings)
+    const warnings = condensedReport.topWarnings.map(w => ({
+      rowIndex: w.rowIndex,
+      field: w.field,
+      message: w.message,
+      memberName: w.memberName
+    }));
     const previewId = storePreview(
       systemId,
       mode,
       diffResult,
       transformResult.rows,
-      validationResult
+      validationResult,
+      warnings
     );
 
     // Get the stored entry for summary
@@ -419,6 +426,7 @@ router.get('/preview/:previewId', async (req: Request, res: Response, next: Next
           existing: entry.diff.existingPatients,
           total: entry.diff.newPatients + entry.diff.existingPatients
         },
+        warnings: entry.warnings,
         changes: {
           total: changes.length,
           page,

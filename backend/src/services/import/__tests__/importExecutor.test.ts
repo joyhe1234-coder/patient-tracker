@@ -120,6 +120,7 @@ function createMockPreview(overrides: Partial<PreviewEntry> = {}): PreviewEntry 
     diff: createMockDiffResult(),
     rows: [],
     validation: createMockValidation(),
+    warnings: [],
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     ...overrides,

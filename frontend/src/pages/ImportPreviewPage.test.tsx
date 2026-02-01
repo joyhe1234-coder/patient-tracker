@@ -443,4 +443,83 @@ describe('ImportPreviewPage', () => {
       });
     });
   });
+
+  describe('Warnings Display', () => {
+    it('shows warnings section when warnings exist', async () => {
+      const previewWithWarnings = {
+        ...mockPreviewData,
+        warnings: [
+          {
+            rowIndex: 2,
+            field: 'measureStatus',
+            message: 'Unknown status will be set to default',
+            memberName: 'John Smith',
+          },
+          {
+            rowIndex: 5,
+            field: 'statusDate',
+            message: 'Invalid date format, using current date',
+            memberName: 'Jane Doe',
+          },
+        ],
+      };
+
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: previewWithWarnings },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('2 Warnings Found')).toBeInTheDocument();
+        expect(screen.getByText('Unknown status will be set to default')).toBeInTheDocument();
+        expect(screen.getByText('Invalid date format, using current date')).toBeInTheDocument();
+        expect(screen.getByText('Row 3')).toBeInTheDocument(); // rowIndex 2 + 1
+        expect(screen.getByText('Row 6')).toBeInTheDocument(); // rowIndex 5 + 1
+      });
+    });
+
+    it('does not show warnings section when no warnings', async () => {
+      const previewWithNoWarnings = {
+        ...mockPreviewData,
+        warnings: [],
+      };
+
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: previewWithNoWarnings },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('Warnings Found')).not.toBeInTheDocument();
+    });
+
+    it('shows singular "Warning" when only one warning', async () => {
+      const previewWithOneWarning = {
+        ...mockPreviewData,
+        warnings: [
+          {
+            rowIndex: 2,
+            field: 'measureStatus',
+            message: 'Unknown status will be set to default',
+            memberName: 'John Smith',
+          },
+        ],
+      };
+
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: previewWithOneWarning },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('1 Warning Found')).toBeInTheDocument();
+      });
+    });
+  });
 });

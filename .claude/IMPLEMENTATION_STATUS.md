@@ -165,11 +165,13 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Import mode selection with Merge as default (recommended)
   - Replace All warning modal confirms before deleting data
   - Drag-and-drop file upload with validation
+  - Detailed validation error display (row numbers, member names, error messages)
   - Routes to preview page on success
 - [x] 5k: Import UI - Preview page (`/import/preview/:previewId`)
-  - Summary cards with action counts (INSERT, UPDATE, SKIP, BOTH, DELETE)
+  - Summary cards with action counts (INSERT, UPDATE, SKIP, BOTH, DELETE, Warnings)
   - Clickable filter cards for changes table
   - Patient counts (new vs existing)
+  - Warnings section with detailed warning messages (row number, member name)
   - Changes table with action badges and status changes
   - Cancel/Execute buttons with loading states
   - Success screen with statistics
@@ -492,4 +494,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 31, 2026 - Completed Phase 5j-5l (Import UI - Upload, Preview, Results)
+January 31, 2026 - Added validation errors and warnings display to Import UI

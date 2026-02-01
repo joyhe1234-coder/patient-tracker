@@ -9,6 +9,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0-snapshot] - Unreleased
 
 ### Added
+- **Validation Error Details on Import Page**
+  - Import page now shows detailed validation errors with row numbers and member names
+  - Each error displays the specific field and error message
+  - Scrollable error list for multiple errors
+- **Warnings Display on Preview Page**
+  - Added "Warnings" card in summary row showing warning count
+  - Added yellow warnings section below summary displaying all warnings
+  - Warnings include row number, member name, and message
+  - Orange highlighting when warnings exist, gray when none
+- **Test Data for BOTH Action**
+  - Added `test-data/test-both-kept.csv` for testing duplicate/both-kept scenarios
+
+### Changed
 - **Phase 5j: Import UI - Upload Page** (`/import`)
   - Healthcare system selection dropdown (Hill Healthcare)
   - Import mode selection with Merge as default (recommended)
@@ -29,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Error handling for expired/missing previews
 - **Import Page Tests**
   - Vitest component tests: ImportPage.test.tsx (26 tests)
-  - Vitest component tests: ImportPreviewPage.test.tsx (20 tests)
+  - Vitest component tests: ImportPreviewPage.test.tsx (23 tests, including warnings display)
   - Cypress E2E tests: import-flow.cy.ts (22 tests)
   - Test fixture: cypress/fixtures/test-import.csv
 - **Quality Measure Addition Checklist** (`.claude/ADDING_QUALITY_MEASURES.md`)

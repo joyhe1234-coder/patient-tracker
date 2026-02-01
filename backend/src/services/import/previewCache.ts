@@ -19,6 +19,16 @@ const DEFAULT_TTL_MS = 30 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 /**
+ * Warning item for display
+ */
+export interface ValidationWarning {
+  rowIndex: number;
+  field: string;
+  message: string;
+  memberName?: string;
+}
+
+/**
  * Cached preview entry
  */
 export interface PreviewEntry {
@@ -28,6 +38,7 @@ export interface PreviewEntry {
   diff: DiffResult;
   rows: TransformedRow[];
   validation: ValidationResult;
+  warnings: ValidationWarning[];
   createdAt: Date;
   expiresAt: Date;
 }
@@ -59,6 +70,7 @@ export function storePreview(
   diff: DiffResult,
   rows: TransformedRow[],
   validation: ValidationResult,
+  warnings: ValidationWarning[] = [],
   ttlMs: number = DEFAULT_TTL_MS
 ): string {
   const id = generatePreviewId();
@@ -71,6 +83,7 @@ export function storePreview(
     diff,
     rows,
     validation,
+    warnings,
     createdAt: now,
     expiresAt: new Date(now.getTime() + ttlMs),
   };

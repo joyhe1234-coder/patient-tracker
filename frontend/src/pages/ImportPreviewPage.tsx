@@ -13,6 +13,13 @@ interface PreviewChange {
   reason: string;
 }
 
+interface ValidationWarning {
+  rowIndex: number;
+  field: string;
+  message: string;
+  memberName?: string;
+}
+
 interface PreviewResult {
   previewId: string;
   systemId: string;
@@ -32,6 +39,7 @@ interface PreviewResult {
     existing: number;
     total: number;
   };
+  warnings?: ValidationWarning[];
   changes: {
     total: number;
     page: number;
@@ -314,7 +322,7 @@ export default function ImportPreviewPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
         <button
           onClick={() => setActionFilter('INSERT')}
           className={`p-4 rounded-lg text-center transition-all ${
@@ -360,6 +368,18 @@ export default function ImportPreviewPage() {
           <div className="text-2xl font-bold text-red-700">{preview?.summary.deletes}</div>
           <div className="text-sm text-red-600">Delete</div>
         </button>
+        <div
+          className={`p-4 rounded-lg text-center ${
+            (preview?.warnings?.length || 0) > 0 ? 'bg-orange-50' : 'bg-gray-50'
+          }`}
+        >
+          <div className={`text-2xl font-bold ${
+            (preview?.warnings?.length || 0) > 0 ? 'text-orange-700' : 'text-gray-700'
+          }`}>{preview?.warnings?.length || 0}</div>
+          <div className={`text-sm ${
+            (preview?.warnings?.length || 0) > 0 ? 'text-orange-600' : 'text-gray-600'
+          }`}>Warnings</div>
+        </div>
         <button
           onClick={() => setActionFilter('all')}
           className={`p-4 rounded-lg text-center transition-all ${
@@ -395,6 +415,37 @@ export default function ImportPreviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Warnings Section */}
+      {preview?.warnings && preview.warnings.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <div className="font-medium text-yellow-800">
+                {preview.warnings.length} Warning{preview.warnings.length > 1 ? 's' : ''} Found
+              </div>
+              <div className="text-sm text-yellow-700 mt-1 mb-2">
+                The following issues were found but will not block the import:
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {preview.warnings.map((warning, idx) => (
+                  <div key={idx} className="text-sm bg-white border border-yellow-200 rounded p-2">
+                    <span className="font-medium">Row {warning.rowIndex + 1}</span>
+                    {warning.memberName && (
+                      <span className="text-gray-600"> ({warning.memberName})</span>
+                    )}
+                    <span className="text-gray-600">: </span>
+                    <span className="text-yellow-700">{warning.message}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Changes Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">

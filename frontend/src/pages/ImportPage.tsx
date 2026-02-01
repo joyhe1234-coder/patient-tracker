@@ -21,6 +21,12 @@ export default function ImportPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Array<{
+    rowIndex: number;
+    field: string;
+    message: string;
+    memberName?: string;
+  }>>([]);
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -96,6 +102,7 @@ export default function ImportPage() {
     setShowReplaceWarning(false);
     setLoading(true);
     setError(null);
+    setValidationErrors([]);
 
     try {
       const formData = new FormData();
@@ -111,11 +118,24 @@ export default function ImportPage() {
         const previewId = response.data.data.previewId;
         navigate(`/import/preview/${previewId}`);
       } else {
-        setError(response.data.error?.message || 'Failed to process import file');
+        // Check for validation errors
+        const errors = response.data.data?.validation?.errors;
+        if (errors && errors.length > 0) {
+          setValidationErrors(errors);
+          setError(`Validation failed: ${errors.length} error(s) found. Please fix before importing.`);
+        } else {
+          setError(response.data.error?.message || 'Failed to process import file');
+        }
       }
     } catch (err: any) {
       const message = err.response?.data?.error?.message || err.message || 'Failed to process import file';
       setError(message);
+
+      // Check for validation errors in error response
+      const errors = err.response?.data?.data?.validation?.errors;
+      if (errors && errors.length > 0) {
+        setValidationErrors(errors);
+      }
     } finally {
       setLoading(false);
     }
@@ -124,6 +144,7 @@ export default function ImportPage() {
   const removeFile = () => {
     setFile(null);
     setError(null);
+    setValidationErrors([]);
   };
 
   return (
@@ -285,9 +306,28 @@ export default function ImportPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
             <span className="text-red-500 text-xl">!</span>
-            <div>
+            <div className="flex-1">
               <div className="font-medium text-red-800">Error</div>
               <div className="text-sm text-red-700">{error}</div>
+
+              {/* Validation Errors Details */}
+              {validationErrors.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-sm font-medium text-red-800">Errors found:</div>
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {validationErrors.map((err, idx) => (
+                      <div key={idx} className="text-sm bg-white border border-red-200 rounded p-2">
+                        <span className="font-medium">Row {err.rowIndex + 1}</span>
+                        {err.memberName && (
+                          <span className="text-gray-600"> ({err.memberName})</span>
+                        )}
+                        <span className="text-gray-600">: </span>
+                        <span className="text-red-700">{err.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
