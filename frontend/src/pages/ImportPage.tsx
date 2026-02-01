@@ -16,11 +16,12 @@ const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
 export default function ImportPage() {
   const navigate = useNavigate();
   const [systemId, setSystemId] = useState<string>('hill');
-  const [mode, setMode] = useState<ImportMode>('replace');
+  const [mode, setMode] = useState<ImportMode>('merge');
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showReplaceWarning, setShowReplaceWarning] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -71,12 +72,28 @@ export default function ImportPage() {
     return hasValidType || hasValidExtension;
   };
 
+  const handleSubmitClick = () => {
+    if (!file) {
+      setError('Please select a file to import');
+      return;
+    }
+
+    // Show warning for Replace mode
+    if (mode === 'replace') {
+      setShowReplaceWarning(true);
+      return;
+    }
+
+    handleSubmit();
+  };
+
   const handleSubmit = async () => {
     if (!file) {
       setError('Please select a file to import');
       return;
     }
 
+    setShowReplaceWarning(false);
     setLoading(true);
     setError(null);
 
@@ -153,28 +170,6 @@ export default function ImportPage() {
         <div className="space-y-3">
           <label
             className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-              mode === 'replace'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <input
-              type="radio"
-              name="mode"
-              value="replace"
-              checked={mode === 'replace'}
-              onChange={() => setMode('replace')}
-              className="mt-1"
-            />
-            <div>
-              <div className="font-medium text-gray-900">Replace All</div>
-              <div className="text-sm text-gray-600">
-                Delete all existing data and import fresh. Use this for a clean start or when you have a complete updated dataset.
-              </div>
-            </div>
-          </label>
-          <label
-            className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
               mode === 'merge'
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300'
@@ -189,9 +184,31 @@ export default function ImportPage() {
               className="mt-1"
             />
             <div>
-              <div className="font-medium text-gray-900">Merge</div>
+              <div className="font-medium text-gray-900">Merge (Recommended)</div>
               <div className="text-sm text-gray-600">
                 Keep existing data. Add new records and update matching records when status improves (Non Compliant to Compliant).
+              </div>
+            </div>
+          </label>
+          <label
+            className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+              mode === 'replace'
+                ? 'border-red-500 bg-red-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="mode"
+              value="replace"
+              checked={mode === 'replace'}
+              onChange={() => setMode('replace')}
+              className="mt-1"
+            />
+            <div>
+              <div className="font-medium text-gray-900">Replace All</div>
+              <div className="text-sm text-red-600">
+                Warning: This will delete ALL existing patient data before importing. Use only when you need a complete fresh start.
               </div>
             </div>
           </label>
@@ -285,7 +302,7 @@ export default function ImportPage() {
           Cancel
         </a>
         <button
-          onClick={handleSubmit}
+          onClick={handleSubmitClick}
           disabled={!file || loading}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
             !file || loading
@@ -316,6 +333,46 @@ export default function ImportPage() {
           <li>3. Review and approve the changes to complete the import</li>
         </ul>
       </div>
+
+      {/* Replace All Warning Modal */}
+      {showReplaceWarning && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Delete All Existing Data?
+                </h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  You have selected <strong>Replace All</strong> mode. This will permanently delete ALL existing patient records before importing the new data.
+                </p>
+                <p className="mt-2 text-sm text-red-600 font-medium">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowReplaceWarning(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Yes, Delete All & Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

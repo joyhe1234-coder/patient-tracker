@@ -162,11 +162,21 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Execution results display with stats and errors
 - [x] 5j: Import UI - Upload page (`/import`)
   - Healthcare system selection dropdown
-  - Import mode selection (Replace All / Merge) with descriptions
+  - Import mode selection with Merge as default (recommended)
+  - Replace All warning modal confirms before deleting data
   - Drag-and-drop file upload with validation
   - Routes to preview page on success
-- [ ] 5k: Import UI - Preview page
-- [ ] 5l: Import UI - Results display
+- [x] 5k: Import UI - Preview page (`/import/preview/:previewId`)
+  - Summary cards with action counts (INSERT, UPDATE, SKIP, BOTH, DELETE)
+  - Clickable filter cards for changes table
+  - Patient counts (new vs existing)
+  - Changes table with action badges and status changes
+  - Cancel/Execute buttons with loading states
+  - Success screen with statistics
+- [x] 5l: Import UI - Results display (integrated into Preview page)
+  - Success banner with import statistics
+  - Error display with details
+  - Navigation to Patient Grid or Import More
 - [ ] 5m: Mapping UI (/import-mapping)
 
 ---
@@ -482,4 +492,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 31, 2026 - Completed Phase 5j (Import UI - Upload page)
+January 31, 2026 - Completed Phase 5j-5l (Import UI - Upload, Preview, Results)

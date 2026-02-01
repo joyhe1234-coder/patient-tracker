@@ -11,12 +11,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - **Phase 5j: Import UI - Upload Page** (`/import`)
   - Healthcare system selection dropdown (Hill Healthcare)
-  - Import mode selection with descriptions (Replace All / Merge)
+  - Import mode selection with Merge as default (recommended)
+  - Replace All warning modal - confirms before deleting all data
   - Drag-and-drop file upload with type validation (CSV, Excel)
   - Step-by-step wizard UI with numbered sections
   - Loading state and error handling
   - Routes to `/import/preview/:previewId` on successful preview generation
   - Header navigation updated: "Import Test" → "Import"
+- **Phase 5k: Import UI - Preview Page** (`/import/preview/:previewId`)
+  - Summary cards showing INSERT, UPDATE, SKIP, BOTH, DELETE counts
+  - Clickable cards to filter changes table by action type
+  - Patient counts (new vs existing)
+  - Changes table with action badges, patient info, status changes
+  - Cancel button cleans up preview and returns to upload page
+  - Execute button applies changes with loading state
+  - Success screen with import statistics and navigation
+  - Error handling for expired/missing previews
+- **Import Page Tests**
+  - Vitest component tests: ImportPage.test.tsx (26 tests)
+  - Vitest component tests: ImportPreviewPage.test.tsx (20 tests)
+  - Cypress E2E tests: import-flow.cy.ts (22 tests)
+  - Test fixture: cypress/fixtures/test-import.csv
 - **Quality Measure Addition Checklist** (`.claude/ADDING_QUALITY_MEASURES.md`)
   - Complete 12-file checklist for adding new quality measures
   - Covers: seed.ts, dropdownConfig.ts, validator.ts, hill.json, row colors, tests
