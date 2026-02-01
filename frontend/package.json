@@ -1,6 +1,6 @@
 {
   "name": "patient-tracker-frontend",
-  "version": "3.1.0-snapshot",
+  "version": "4.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
