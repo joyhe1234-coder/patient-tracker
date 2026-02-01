@@ -16,6 +16,7 @@ import {
 // These have dropdowns like "In X Months", "X months", "Call every X wks"
 const TIME_PERIOD_DROPDOWN_STATUSES = [
   'Screening discussed',           // Tracking #1: In 1-11 Months
+  'HgbA1c ordered',                // Tracking #2: 1-12 months
   'HgbA1c at goal',                // Tracking #2: 1-12 months
   'HgbA1c NOT at goal',            // Tracking #2: 1-12 months
   'Scheduled call back - BP not at goal',  // Tracking #1: Call every 1-8 wks
@@ -214,6 +215,9 @@ export default function PatientGrid({
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);
 
+  // Ref to track when we're doing a cascading update (to prevent setDataValue from triggering additional API calls)
+  const isCascadingUpdateRef = useRef(false);
+
   // Handle new row focus - clear sort and focus Request Type cell
   useEffect(() => {
     if (newRowId && gridRef.current?.api) {
@@ -279,6 +283,9 @@ export default function PatientGrid({
     if (newValue === oldValue) return;
     if (!data || !colDef.field) return;
 
+    // Skip API calls for cascading updates (triggered by setDataValue)
+    // The main field update already includes all cascading field changes
+    if (isCascadingUpdateRef.current) return;
 
     // Clear sort indicator on the edited column (if it was sorted)
     // Capture current row order first, then clear sort - postSortRows will maintain order
@@ -314,6 +321,9 @@ export default function PatientGrid({
       // Handle cascading logic - clear all downstream fields when parent changes
       // Hierarchy: requestType → qualityMeasure → measureStatus → statusDate → tracking1/2/3 → dueDate/timeInterval
       // Keep: notes (not cleared on cascade)
+
+      // Set flag to prevent setDataValue from triggering additional API calls
+      isCascadingUpdateRef.current = true;
 
       if (colDef.field === 'requestType') {
         // Auto-fill Quality Measure for AWV and Chronic DX
@@ -432,6 +442,9 @@ export default function PatientGrid({
       setTimeout(() => {
         onSaveStatusChange?.('idle');
       }, 3000);
+    } finally {
+      // Always reset the cascading update flag
+      isCascadingUpdateRef.current = false;
     }
   }, [onRowUpdated, onSaveStatusChange]);
 
@@ -598,12 +611,26 @@ export default function PatientGrid({
         }
 
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        const hasOptions = getTracking1OptionsForStatus(params.data.measureStatus || '');
-        const isHgba1c = hgba1cStatuses.includes(params.data.measureStatus || '');
+        const status = params.data.measureStatus || '';
+        const hasOptions = getTracking1OptionsForStatus(status);
+        const isHgba1c = hgba1cStatuses.includes(status);
 
-        // If cell has dropdown options, return the value as-is (don't format)
+        // If cell has dropdown options, show appropriate prompt when empty
         if (hasOptions) {
-          return params.value || '';
+          if (!params.value) {
+            // Different prompts based on measure status
+            if (status.includes('Colon cancer')) {
+              return 'Select screening type';
+            }
+            if (status === 'Screening test ordered' || status === 'Screening test completed') {
+              return 'Select test type';
+            }
+            if (status === 'Chronic diagnosis resolved' || status === 'Chronic diagnosis invalid') {
+              return 'Select status';
+            }
+            return 'Select time period';
+          }
+          return params.value;
         }
 
         // Disabled - show N/A (no dropdown options and not HgbA1c)
@@ -622,6 +649,10 @@ export default function PatientGrid({
         const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
         const isHgba1c = hgba1cStatuses.includes(params.data?.measureStatus || '');
 
+        // Dropdown options need prompt when empty
+        if (hasOptions && !params.value) {
+          return 'cell-prompt';
+        }
         // HgbA1c needs prompt when empty
         if (isHgba1c && !params.value) {
           return 'cell-prompt';

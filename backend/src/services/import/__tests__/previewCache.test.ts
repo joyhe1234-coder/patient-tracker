@@ -132,6 +132,7 @@ describe('previewCache', () => {
         createMockDiff(),
         createMockRows(),
         createMockValidation(),
+        [], // no warnings
         1 // 1ms TTL
       );
 
@@ -186,8 +187,8 @@ describe('previewCache', () => {
     });
 
     it('should exclude expired previews', () => {
-      storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation(), 1);
-      storePreview('kaiser', 'replace', createMockDiff(), createMockRows(), createMockValidation(), 60000);
+      storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation(), [], 1);
+      storePreview('kaiser', 'replace', createMockDiff(), createMockRows(), createMockValidation(), [], 60000);
 
       return new Promise<void>((resolve) => {
         setTimeout(() => {
@@ -217,8 +218,8 @@ describe('previewCache', () => {
 
   describe('cleanupExpired', () => {
     it('should remove expired entries', () => {
-      storePreview('expired', 'merge', createMockDiff(), createMockRows(), createMockValidation(), 1);
-      storePreview('active', 'replace', createMockDiff(), createMockRows(), createMockValidation(), 60000);
+      storePreview('expired', 'merge', createMockDiff(), createMockRows(), createMockValidation(), [], 1);
+      storePreview('active', 'replace', createMockDiff(), createMockRows(), createMockValidation(), [], 60000);
 
       return new Promise<void>((resolve) => {
         setTimeout(() => {
@@ -247,7 +248,7 @@ describe('previewCache', () => {
 
   describe('extendPreviewTTL', () => {
     it('should extend TTL for valid preview', () => {
-      const id = storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation(), 1000);
+      const id = storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation(), [], 1000);
 
       const originalEntry = getPreview(id);
       const originalExpires = originalEntry?.expiresAt;

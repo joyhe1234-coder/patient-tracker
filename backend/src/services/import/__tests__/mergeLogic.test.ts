@@ -12,9 +12,12 @@ import { parseFile } from '../fileParser.js';
 import { transformData } from '../dataTransformer.js';
 import { validateRows } from '../validator.js';
 import { calculateDiff, filterChangesByAction, getModifyingChanges, DiffChange } from '../diffCalculator.js';
+import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+
+const prisma = new PrismaClient();
 
 // ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +26,40 @@ const __dirname = path.dirname(__filename);
 // Path to test data files
 const testDataDir = path.join(__dirname, '../../../../../test-data');
 const systemId = 'hill';
+
+/**
+ * Check if database has required test patients WITH MEASURES for merge testing
+ * Returns the count of expected patients found that have at least one measure
+ */
+async function checkTestDataExists(): Promise<number> {
+  const expectedPatients = [
+    'Smith, John',
+    'Johnson, Mary',
+    'Brown, Patricia',
+    'Jones, Michael',
+    'Garcia, Linda',
+    'Miller, Barbara',
+    'Wilson, Sarah',
+    'Anderson, Karen',
+    'Thomas, James',
+    'Sanchez, Donald',
+    'Wright, Steven',
+    'Robinson, Ashley',
+  ];
+
+  // Count patients that exist AND have at least one measure
+  const patientsWithMeasures = await prisma.patient.findMany({
+    where: {
+      memberName: { in: expectedPatients },
+      measures: {
+        some: {} // Has at least one measure
+      }
+    },
+    select: { id: true }
+  });
+
+  return patientsWithMeasures.length;
+}
 
 /**
  * Run the full import pipeline including diff calculation
@@ -58,6 +95,19 @@ describe('Merge Logic Integration Tests', () => {
 
   // Skip all tests if file doesn't exist
   const fileExists = fs.existsSync(csvPath);
+
+  // Track if database has test data (set in beforeAll)
+  let dbHasTestData = false;
+  let testPatientCount = 0;
+
+  beforeAll(async () => {
+    testPatientCount = await checkTestDataExists();
+    dbHasTestData = testPatientCount >= 10; // Need at least 10 of the expected patients
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
 
   describe('merge mode with merge-test-cases.csv', () => {
     it('should process merge test file successfully', async () => {
@@ -109,6 +159,10 @@ describe('Merge Logic Integration Tests', () => {
         console.log('Skipping: merge-test-cases.csv not found');
         return;
       }
+      if (!dbHasTestData) {
+        console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
+        return;
+      }
 
       const buffer = fs.readFileSync(csvPath);
       const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
@@ -132,6 +186,10 @@ describe('Merge Logic Integration Tests', () => {
         console.log('Skipping: merge-test-cases.csv not found');
         return;
       }
+      if (!dbHasTestData) {
+        console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
+        return;
+      }
 
       const buffer = fs.readFileSync(csvPath);
       const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
@@ -153,6 +211,10 @@ describe('Merge Logic Integration Tests', () => {
     it('should correctly identify BOTH actions for downgrades (compliant → non-compliant)', async () => {
       if (!fileExists) {
         console.log('Skipping: merge-test-cases.csv not found');
+        return;
+      }
+      if (!dbHasTestData) {
+        console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
       }
 
@@ -199,6 +261,10 @@ describe('Merge Logic Integration Tests', () => {
         console.log('Skipping: merge-test-cases.csv not found');
         return;
       }
+      if (!dbHasTestData) {
+        console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
+        return;
+      }
 
       const buffer = fs.readFileSync(csvPath);
       const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
@@ -237,6 +303,10 @@ describe('Merge Logic Integration Tests', () => {
     it('should delete all existing and insert all new in replace mode', async () => {
       if (!fileExists) {
         console.log('Skipping: merge-test-cases.csv not found');
+        return;
+      }
+      if (!dbHasTestData) {
+        console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
       }
 
@@ -316,6 +386,10 @@ describe('Diff Change Structure', () => {
   const csvPath = path.join(testDataDir, 'merge-test-cases.csv');
   const fileExists = fs.existsSync(csvPath);
 
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
   it('should include all required fields in DiffChange', async () => {
     if (!fileExists) {
       console.log('Skipping: merge-test-cases.csv not found');
@@ -344,7 +418,8 @@ describe('Diff Change Structure', () => {
         expect(change.newStatus).toBeNull();
       }
 
-      // existingPatientId should be set for non-INSERT actions
+      // existingPatientId should be set for non-INSERT actions (only if we have existing data)
+      // When DB is empty, all actions will be INSERT
       if (change.action !== 'INSERT') {
         expect(change.existingPatientId).toBeDefined();
         expect(change.existingMeasureId).toBeDefined();

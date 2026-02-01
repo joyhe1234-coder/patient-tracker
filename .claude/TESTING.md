@@ -149,13 +149,14 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (19 passing)
+### Cypress E2E Tests (59 passing)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
 | File | Tests | Description |
 |------|-------|-------------|
-| `cascading-dropdowns.cy.ts` | 19 | Dropdown cascading, auto-fill, row colors |
+| `cascading-dropdowns.cy.ts` | 30 | Dropdown cascading, auto-fill, row colors |
+| `import-flow.cy.ts` | 29 | Import workflow, preview, execution |
 
 **Test Categories:**
 
@@ -187,6 +188,39 @@ npm run e2e:report        # View HTML report
 **Cascading Field Clearing (2 tests):**
 - Changing Request Type clears Quality Measure and downstream
 - Changing Quality Measure clears Measure Status
+
+**Import Flow Tests (29 tests):**
+
+**Import Page (13 tests):**
+- Displays three steps (system, mode, upload)
+- Hill Healthcare selected by default
+- Merge mode selected by default with recommended badge
+- Replace All warning modal when selecting replace mode
+- File upload (CSV acceptance, invalid type rejection, file removal)
+- Preview button disabled without file
+- Cancel link navigation
+
+**Import Preview Page (7 tests):**
+- Navigation from upload to preview
+- Summary cards display (INSERT, UPDATE, SKIP, BOTH, DELETE, Warnings, Total)
+- Patient counts (new, existing, total)
+- Changes table display
+- Filter by action type
+- Cancel returns to import page
+- Apply Changes button shows record count
+
+**Import Execution (6 tests):**
+- Loading state during import
+- Success message after import
+- Import statistics (inserted, updated, deleted, skipped, bothKept)
+- Navigation buttons (Import More, Go to Patient Grid)
+
+**Error Handling (3 tests):**
+- Error display for invalid file format
+- Preview not found for expired/invalid preview ID
+- Start New Import from error page
+
+**Test Data:** `frontend/cypress/fixtures/test-import.csv`
 
 **Custom AG Grid Commands:** `frontend/cypress/support/commands.ts`
 
@@ -247,13 +281,13 @@ npm run test:cli -- --save    # Save new baselines
 | Backend import services | Jest | 130 | Complete |
 | Frontend components | Vitest | 45 | 4 components |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
-| Cascading dropdowns | Cypress | 19 | Complete |
+| Cascading dropdowns | Cypress | 30 | Complete |
 | Row colors | Cypress | 5 | In cascading tests |
+| Import UI flow | Cypress | 29 | Complete |
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
-| Import UI flow | - | 0 | Planned |
 
-**Total Automated Tests: ~220**
+**Total Automated Tests: ~260**
 
 ---
 
@@ -397,6 +431,30 @@ describe('Feature Name', () => {
 
 ---
 
+## Test Isolation Notes
+
+### Cypress Test Order
+
+**IMPORTANT:** The import-flow tests modify the database when executing imports (Replace mode deletes all data). This can affect subsequent test runs.
+
+**Recommended approach:**
+1. Reseed database before running cascading-dropdowns tests:
+   ```bash
+   cd backend && npx tsx prisma/seed.ts
+   ```
+2. Run tests individually or reseed between runs:
+   ```bash
+   npm run cypress:run -- --spec "cypress/e2e/cascading-dropdowns.cy.ts"
+   npm run cypress:run -- --spec "cypress/e2e/import-flow.cy.ts"
+   ```
+
+**Current test counts:**
+- cascading-dropdowns.cy.ts: 30 tests
+- import-flow.cy.ts: 29 tests
+- **Total: 59 tests** (when run with fresh seed data)
+
+---
+
 ## Troubleshooting
 
 ### Playwright: Dropdown selection not working
@@ -419,4 +477,4 @@ describe('Feature Name', () => {
 
 ## Last Updated
 
-January 28, 2026 - Consolidated all test documentation (backend + frontend)
+February 1, 2026 - Added Import Flow E2E tests (29 tests), updated total to ~260 tests

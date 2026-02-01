@@ -115,6 +115,24 @@ interface PreviewResult {
   changes: PreviewChange[];
 }
 
+interface ExecuteResult {
+  mode: 'replace' | 'merge';
+  stats: {
+    inserted: number;
+    updated: number;
+    deleted: number;
+    skipped: number;
+    bothKept: number;
+  };
+  duration: number;
+  errors?: Array<{
+    action: string;
+    memberName: string;
+    qualityMeasure: string;
+    error: string;
+  }>;
+}
+
 interface ValidateResult {
   fileName: string;
   fileType: string;
@@ -164,6 +182,8 @@ export default function ImportTestPage() {
   const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
   const [importMode, setImportMode] = useState<ImportMode>('merge');
   const [actionFilter, setActionFilter] = useState<string>('all');
+  const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null);
+  const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,6 +194,7 @@ export default function ImportTestPage() {
       setTransformResult(null);
       setValidateResult(null);
       setPreviewResult(null);
+      setExecuteResult(null);
       setError(null);
     }
   };
@@ -273,6 +294,29 @@ export default function ImportTestPage() {
       setError(err.response?.data?.error?.message || err.message || 'Preview failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!previewResult) return;
+    setExecuting(true);
+    setError(null);
+    try {
+      const response = await api.post(`/import/execute/${previewResult.previewId}`);
+      if (response.data.success) {
+        setExecuteResult(response.data.data);
+        setPreviewResult(null); // Clear preview after successful execution
+      } else {
+        // Execution completed but with errors
+        setExecuteResult(response.data.data);
+        if (response.data.data?.errors?.length > 0) {
+          setError(`Import completed with ${response.data.data.errors.length} error(s)`);
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || err.message || 'Execute failed');
+    } finally {
+      setExecuting(false);
     }
   };
 
@@ -829,6 +873,32 @@ export default function ImportTestPage() {
                 <div className="text-2xl font-bold text-orange-600">{previewResult.summary.modifying}</div>
                 <div className="text-sm text-gray-600">Changes to Apply</div>
               </div>
+              <div className="ml-4 flex flex-col items-center">
+                <button
+                  onClick={handleExecute}
+                  disabled={executing || previewResult.summary.modifying === 0}
+                  className={`px-6 py-3 rounded-lg font-bold text-lg ${
+                    executing || previewResult.summary.modifying === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  {executing ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Importing {previewResult.summary.modifying} records...
+                    </span>
+                  ) : (
+                    `Execute Import (${previewResult.summary.modifying} records)`
+                  )}
+                </button>
+                {!executing && previewResult.summary.modifying > 100 && (
+                  <span className="text-xs text-gray-500 mt-1">Large import - may take a minute</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -985,6 +1055,95 @@ export default function ImportTestPage() {
                 Showing first 50 changes. Full list available after import.
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Execution Results */}
+      {executeResult && (
+        <div className="space-y-6">
+          {/* Success/Error Banner */}
+          <div className={`rounded-lg shadow p-6 ${
+            !executeResult.errors || executeResult.errors.length === 0
+              ? 'bg-green-50 border-2 border-green-200'
+              : 'bg-yellow-50 border-2 border-yellow-200'
+          }`}>
+            <div className="flex items-center gap-4">
+              <div className={`text-4xl ${
+                !executeResult.errors || executeResult.errors.length === 0
+                  ? 'text-green-500'
+                  : 'text-yellow-500'
+              }`}>
+                {!executeResult.errors || executeResult.errors.length === 0 ? '✓' : '⚠'}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">
+                  Import {!executeResult.errors || executeResult.errors.length === 0 ? 'Completed Successfully!' : 'Completed with Errors'}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Mode: {executeResult.mode.toUpperCase()} • Duration: {(executeResult.duration / 1000).toFixed(1)}s •
+                  Total: {executeResult.stats.inserted + executeResult.stats.updated + executeResult.stats.deleted + executeResult.stats.bothKept} records processed
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Execution Stats */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Execution Results</h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="bg-green-50 p-4 rounded text-center">
+                <div className="text-sm text-green-600">Inserted</div>
+                <div className="text-3xl font-bold text-green-700">{executeResult.stats.inserted}</div>
+              </div>
+              <div className="bg-blue-50 p-4 rounded text-center">
+                <div className="text-sm text-blue-600">Updated</div>
+                <div className="text-3xl font-bold text-blue-700">{executeResult.stats.updated}</div>
+              </div>
+              <div className="bg-red-50 p-4 rounded text-center">
+                <div className="text-sm text-red-600">Deleted</div>
+                <div className="text-3xl font-bold text-red-700">{executeResult.stats.deleted}</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded text-center">
+                <div className="text-sm text-gray-600">Skipped</div>
+                <div className="text-3xl font-bold text-gray-700">{executeResult.stats.skipped}</div>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded text-center">
+                <div className="text-sm text-yellow-600">Both Kept</div>
+                <div className="text-3xl font-bold text-yellow-700">{executeResult.stats.bothKept}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Execution Errors */}
+          {executeResult.errors && executeResult.errors.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold mb-4 text-red-600">
+                Execution Errors ({executeResult.errors.length})
+              </h2>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {executeResult.errors.map((err, idx) => (
+                  <div key={idx} className="bg-red-50 p-3 rounded text-sm">
+                    <span className="font-medium">{err.memberName}</span>
+                    <span className="text-gray-500"> - {err.qualityMeasure}: </span>
+                    <span className="text-red-600">{err.error}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-600 mb-4">
+              Import complete. You can now view the data in the main grid.
+            </p>
+            <a
+              href="/"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+            >
+              Go to Patient Grid
+            </a>
           </div>
         </div>
       )}

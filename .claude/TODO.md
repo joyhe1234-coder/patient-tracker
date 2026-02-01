@@ -64,8 +64,12 @@ This document tracks planned features and enhancements for future development.
 - [x] Implementation: Phase 5e-5f - Diff Calculator + Preview Cache
   - `diffCalculator.ts` - Compare import vs DB with merge logic (22 tests)
   - `previewCache.ts` - In-memory TTL cache for previews (17 tests)
-- [ ] Implementation: Phase 5g-5i - Import Executor + APIs
-- [ ] Implementation: Phase 5j-5l - Full Import UI
+- [x] Implementation: Phase 5g - Preview API endpoints
+- [x] Implementation: Phase 5h - Import Executor (Replace All + Merge)
+  - `importExecutor.ts` - Execute database operations based on diff (16 tests)
+- [x] Implementation: Phase 5i - Execute API endpoint
+  - POST /api/import/execute/:previewId
+- [x] Implementation: Phase 5j-5l - Full Import UI (29 E2E tests)
 
 ### UI Testing
 - [x] Phase 1: React Testing Library + Vitest setup
@@ -73,7 +77,7 @@ This document tracks planned features and enhancements for future development.
 - [x] Phase 3: GitHub Actions CI workflows
 - [x] Phase 4: Component tests (45 tests)
 - [x] Phase 5: CRUD E2E tests (Playwright: 25 passing, 5 skipped)
-- [x] Phase 6: Cascading dropdowns E2E tests (Cypress: 19 passing)
+- [x] Phase 6: Cascading dropdowns E2E tests (Cypress: 30 passing)
   - Cypress framework added for better AG Grid dropdown handling
   - Request Type, Quality Measure, Measure Status, Tracking #1 tests
   - Row color tests, cascading field clearing tests
@@ -82,11 +86,26 @@ This document tracks planned features and enhancements for future development.
   - Added waitForGridLoad(), toggleMemberInfo(), deselectAllRows() helpers
   - Fixed phone/address test with Member Info toggle
   - Playwright: 26 passing, 4 skipped (AG Grid limitations)
-- [ ] Phase 8: Import Excel E2E tests
+- [x] Phase 8: Import E2E tests (Cypress: 29 passing)
+  - Import page: system selection, mode selection, file upload
+  - Preview page: summary cards, action filters, changes table
+  - Execution: success message, statistics, navigation
+  - Error handling: invalid format, expired preview
 
 ---
 
 ## High Priority
+
+### Add New Quality Measure: Depression Screening
+**Reference:** `.claude/ADDING_QUALITY_MEASURES.md` (implementation checklist)
+
+- [ ] Add to `backend/prisma/seed.ts` (statuses, tracking options, due days)
+- [ ] Add to `frontend/src/config/dropdownConfig.ts` (dropdown mappings)
+- [ ] Add to `backend/src/services/import/validator.ts` (VALID_QUALITY_MEASURES)
+- [ ] Add to `backend/src/config/import/hill.json` (column + status mapping)
+- [ ] Update row colors in `PatientGrid.tsx` if new status categories
+- [ ] Add Cypress E2E tests for new measure
+- [ ] Run full test suite to verify no regressions
 
 ### External Data Import
 See **Phase 5: CSV Import** in "In Progress" section above.
@@ -171,4 +190,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 28, 2026
+February 1, 2026

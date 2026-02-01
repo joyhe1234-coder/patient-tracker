@@ -33,24 +33,14 @@ export default function Header() {
               Patient Grid
             </Link>
             <Link
-              to="/hill-mapping"
+              to="/import"
               className={`text-sm font-medium ${
-                location.pathname === '/hill-mapping'
+                location.pathname.startsWith('/import')
                   ? 'text-blue-600'
                   : 'text-gray-600 hover:text-blue-600'
               }`}
             >
-              Import Mapping
-            </Link>
-            <Link
-              to="/import-test"
-              className={`text-sm font-medium ${
-                location.pathname === '/import-test'
-                  ? 'text-blue-600'
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              Import Test
+              Import
             </Link>
           </nav>
         </div>

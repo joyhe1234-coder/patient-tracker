@@ -241,6 +241,167 @@ describe('Cascading Dropdowns', () => {
     });
   });
 
+  describe('Hypertension Management - BP Status Change', () => {
+    beforeEach(() => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Hypertension Management');
+      cy.wait(300);
+    });
+
+    it('changing from BP call back status to BP at goal clears dueDate and interval', () => {
+      // Set up: Select "Scheduled call back - BP not at goal" (has baseDueDays: 7)
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Scheduled call back - BP not at goal');
+      cy.wait(300);
+
+      // Set status date to trigger due date calculation (uses baseDueDays: 7)
+      // Format: MM/DD/YYYY as expected by the cell
+      const today = new Date();
+      const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
+      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
+      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.wait(1000);
+
+      // Verify due date is set (timeIntervalDays column should have value 7)
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          const days = parseInt(text.trim(), 10);
+          expect(days).to.equal(7);
+        });
+
+      // Now change to "Blood pressure at goal"
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Blood pressure at goal');
+      cy.wait(1000);
+
+      // Due date and time interval should be cleared
+      cy.getAgGridCellWithScroll(testRowIndex, 'dueDate')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+
+      // Row should be green (not red/overdue)
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-green');
+    });
+
+    it('BP at goal shows green row color', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Blood pressure at goal');
+      cy.wait(500);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-green');
+    });
+  });
+
+  describe('HgbA1c Due Date Calculation', () => {
+    beforeEach(() => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetes Control');
+      cy.wait(300);
+    });
+
+    it('HgbA1c ordered has no due date without Tracking #2 selection', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
+      cy.wait(500);
+
+      // Due date should be empty (no base fallback)
+      cy.getAgGridCellWithScroll(testRowIndex, 'dueDate')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+
+      // Time interval should be empty
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+    });
+
+    it('HgbA1c ordered Tracking #2 has 12 month options', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
+      cy.wait(300);
+
+      cy.openAgGridDropdown(testRowIndex, 'tracking2');
+      cy.getAgGridDropdownOptions().then((options) => {
+        expect(options).to.include('1 month');
+        expect(options).to.include('3 months');
+        expect(options).to.include('6 months');
+        expect(options).to.include('12 months');
+
+        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        expect(nonEmpty.length).to.equal(12);
+      });
+    });
+
+    it('selecting Tracking #2 calculates due date for HgbA1c ordered', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
+      cy.wait(300);
+
+      // Set status date first (required for due date calculation)
+      // Format: MM/DD/YYYY as expected by the cell
+      const today = new Date();
+      const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
+      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
+      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.wait(1000);
+
+      // Select 1 month interval
+      cy.selectAgGridDropdown(testRowIndex, 'tracking2', '1 month');
+      cy.wait(1500);
+
+      // Time interval should now show ~30 days
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          const days = parseInt(text.trim(), 10);
+          // Allow for month variation (28-31 days)
+          expect(days).to.be.within(28, 31);
+        });
+
+      // Due date should be set
+      cy.getAgGridCellWithScroll(testRowIndex, 'dueDate')
+        .invoke('text')
+        .should('not.be.empty');
+    });
+
+    it('HgbA1c at goal requires Tracking #2 for due date', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c at goal');
+      cy.wait(300);
+
+      // Set status date first (required for due date calculation)
+      // Format: MM/DD/YYYY as expected by the cell
+      const today = new Date();
+      const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
+      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
+      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.wait(1000);
+
+      // Due date should be empty without tracking2 (even with status date)
+      cy.getAgGridCellWithScroll(testRowIndex, 'dueDate')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+
+      // Select 3 months
+      cy.selectAgGridDropdown(testRowIndex, 'tracking2', '3 months');
+      cy.wait(1500);
+
+      // Time interval should now show ~90 days
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          const days = parseInt(text.trim(), 10);
+          // Allow for month variation
+          expect(days).to.be.within(84, 93);
+        });
+    });
+  });
+
   describe('Cascading Field Clearing', () => {
     it('changing Request Type clears Quality Measure and downstream', () => {
       // Set up a complete row
@@ -292,6 +453,66 @@ describe('Cascading Dropdowns', () => {
       cy.getAgGridCell(testRowIndex, 'measureStatus')
         .invoke('text')
         .should('satisfy', (text: string) => text.trim() === '');
+    });
+  });
+
+  describe('Tracking #1 Prompt Text', () => {
+    it('Colon cancer screening shows "Select screening type" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Colon Cancer Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Colon cancer screening ordered');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select screening type');
+    });
+
+    it('Breast Cancer Screening test ordered shows "Select test type" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening test ordered');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select test type');
+    });
+
+    it('Chronic diagnosis resolved shows "Select status" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Chronic DX');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis resolved');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select status');
+    });
+
+    it('Screening discussed shows "Select time period" prompt', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening discussed');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'Select time period');
+    });
+
+    it('HgbA1c ordered shows "HgbA1c value" prompt in tracking1', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetes Control');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
+      cy.wait(300);
+
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .should('contain.text', 'HgbA1c value');
     });
   });
 });

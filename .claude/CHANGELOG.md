@@ -6,9 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.1.0-snapshot] - Unreleased
+## [4.0.0] - 2026-02-01
 
 ### Added
+- **Validation Error Details on Import Page**
+  - Import page now shows detailed validation errors with row numbers and member names
+  - Each error displays the specific field and error message
+  - Scrollable error list for multiple errors
+- **Warnings Display on Preview Page**
+  - Added "Warnings" card in summary row showing warning count
+  - Added yellow warnings section below summary displaying all warnings
+  - Warnings include row number, member name, and message
+  - Orange highlighting when warnings exist, gray when none
+- **Test Data for BOTH Action**
+  - Added `test-data/test-both-kept.csv` for testing duplicate/both-kept scenarios
+
+### Changed
+- **Phase 5j: Import UI - Upload Page** (`/import`)
+  - Healthcare system selection dropdown (Hill Healthcare)
+  - Import mode selection with Merge as default (recommended)
+  - Replace All warning modal - confirms before deleting all data
+  - Drag-and-drop file upload with type validation (CSV, Excel)
+  - Step-by-step wizard UI with numbered sections
+  - Loading state and error handling
+  - Routes to `/import/preview/:previewId` on successful preview generation
+  - Header navigation updated: "Import Test" → "Import"
+- **Phase 5k: Import UI - Preview Page** (`/import/preview/:previewId`)
+  - Summary cards showing INSERT, UPDATE, SKIP, BOTH, DELETE counts
+  - Clickable cards to filter changes table by action type
+  - Patient counts (new vs existing)
+  - Changes table with action badges, patient info, status changes
+  - Cancel button cleans up preview and returns to upload page
+  - Execute button applies changes with loading state
+  - Success screen with import statistics and navigation
+  - Error handling for expired/missing previews
+- **Import Page Tests**
+  - Vitest component tests: ImportPage.test.tsx (26 tests)
+  - Vitest component tests: ImportPreviewPage.test.tsx (23 tests, including warnings display)
+  - Cypress E2E tests: import-flow.cy.ts (29 tests)
+  - Test fixture: cypress/fixtures/test-import.csv
+
+### Fixed
+- **Cypress Import E2E test stability**
+  - Added `force: true` to file upload commands for reliable execution
+  - Fixed filter card assertion (ring-2 class is on button, not parent)
+  - Fixed test-import.csv fixture with correct column names (Annual Wellness Visit, etc.)
+  - Removed flaky "Processing..." loading state check
+- **Quality Measure Addition Checklist** (`.claude/ADDING_QUALITY_MEASURES.md`)
+  - Complete 12-file checklist for adding new quality measures
+  - Covers: seed.ts, dropdownConfig.ts, validator.ts, hill.json, row colors, tests
+  - Example implementation for Depression Screening
+- **Depression Screening** added to TODO.md as High Priority task
 - **Test Data Management** (Phase 7 of UI Testing Plan)
   - Serial mode for data-modifying test suites (delete-row, duplicate-member)
   - New Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows(), isMemberInfoVisible()
@@ -106,8 +154,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `test-data/merge-test-cases.csv` - 15 rows covering all 6 merge cases
   - `test-data/MERGE-TEST-CASES-README.md` - Documentation with expected results
   - Expected counts: 9 INSERT, 4 UPDATE, 5 SKIP, 2 BOTH, 0 DELETE
+- **Phase 5h: Import Executor**
+  - `backend/src/services/import/importExecutor.ts` - Execute database operations
+  - Replace mode: Bulk delete existing + insert all new records
+  - Merge mode: Process INSERT (create), UPDATE (upgrade status), SKIP, BOTH (downgrade - keep existing + add new)
+  - Prisma transactions ensure atomicity (all-or-nothing)
+  - Post-execution: syncAllDuplicateFlags(), deletePreview()
+  - 16 unit tests covering all scenarios
+- **Phase 5i: Execute API Endpoint**
+  - POST /api/import/execute/:previewId - Execute import from cached preview
+  - Returns execution stats and any errors
+  - Validates preview exists before executing
+- **Execute Button in Import Test Page**
+  - Red "Execute Import" button in preview header
+  - Execution results display with stats (inserted, updated, deleted, skipped, bothKept)
+  - Error display for failed operations
+  - Link to main grid after successful import
+- **Test Coverage Improvements**
+  - Fixed 3 failing mergeLogic integration tests by properly detecting seeded database data
+  - Backend coverage: 89% statements, 80% branches (241 tests)
+  - Frontend coverage: 99% statements, 96% branches (70 tests)
+  - fileParser.ts: 59% → 95% (added Excel parsing, title row detection tests)
+  - diffCalculator.ts: 63% → 97% (exported and tested categorizeStatus, applyMergeLogic)
+  - StatusFilterBar.tsx: 33% → 100% (added getRowStatusColor tests for all status categories)
 
 ### Changed
+- **HgbA1c Due Date Calculation** - Tracking #2 dropdown now required (no base fallback)
+  - Removed baseDueDays for HgbA1c ordered (was 14), HgbA1c at goal (was 90), HgbA1c NOT at goal (was 90)
+  - Due date only calculated when user selects from Tracking #2 dropdown (1-12 months)
+  - Time interval is read-only for all HgbA1c statuses (controlled by dropdown)
+  - Added "HgbA1c ordered" to TIME_PERIOD_DROPDOWN_STATUSES in frontend and backend
+- **Status Filter Label** - Changed "Not Started" to "Not Addressed" in filter bar
+- **Tracking Dropdown Prompts** - Added "Select time period" prompt for empty tracking dropdowns
+  - Shows gray italic text when dropdown selection is expected but not yet made
+  - Applies to: Screening discussed (Tracking #1), BP call back statuses (Tracking #1)
 
 ### Fixed
 - **Date Parser Excel Serial Detection** - Fixed bug where dates like "05/15/1970" were parsed as Excel serial numbers
@@ -124,6 +204,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Test type dropdown statuses (Screening test ordered, Colon cancer screening ordered, etc.) now allow interval editing
   - Documented complete Time Interval Editability Matrix in `.claude/TIME_INTERVAL_MATRIX.md`
   - API returns `dataStartRow` for frontend to calculate display row numbers
+- **Cascading Field Clear Race Condition** - Fixed bug where dueDate/timeIntervalDays were not cleared when changing measureStatus
+  - Root cause: `setDataValue()` calls for cascading fields triggered separate `onCellValueChanged` events, causing parallel API calls
+  - The secondary API calls used OLD measureStatus/statusDate values to recalculate dueDate, overwriting the correct null values
+  - Symptom: Row stayed red (overdue) after changing from "Scheduled call back - BP not at goal" to "Blood pressure at goal"
+  - Fix: Added `isCascadingUpdateRef` flag to skip API calls for programmatic `setDataValue` changes
 
 ---
 

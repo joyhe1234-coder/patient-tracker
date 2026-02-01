@@ -44,23 +44,128 @@ Wait for user confirmation before writing any code. Ask:
 Only after approval, proceed with implementation.
 
 ### Step 5: Add Tests (REQUIRED)
-After implementing, you MUST add automated tests:
+After implementing, you MUST add comprehensive automated tests covering ALL use cases.
 
-1. **Add test cases to REGRESSION_TEST_PLAN.md** - Document what needs testing
-2. **Write automated tests** using the appropriate framework:
-   - Backend logic → Jest (`backend/src/**/__tests__/*.test.ts`)
-   - React components → Vitest (`frontend/src/**/*.test.tsx`)
-   - General UI flows → Playwright (`frontend/e2e/*.spec.ts`)
-   - AG Grid dropdowns → Cypress (`frontend/cypress/e2e/*.cy.ts`)
-3. **Run all tests** before committing:
-   ```bash
-   cd backend && npm test
-   cd frontend && npm run test:run
-   cd frontend && npm run e2e
-   cd frontend && npm run cypress:run
-   ```
+#### 5a. Document Test Cases
+Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
+- List all scenarios the feature should handle
+- Include happy path, edge cases, and error cases
+- Assign test case IDs (e.g., TC-XX.1, TC-XX.2)
 
-See `.claude/TESTING.md` for detailed testing patterns and examples.
+#### 5b. Create Test Files for ALL Applicable Frameworks
+
+**You MUST create tests in EVERY applicable framework:**
+
+| Layer | Framework | File Pattern | When to Use |
+|-------|-----------|--------------|-------------|
+| Backend Logic | **Jest** | `backend/src/services/**/__tests__/*.test.ts` | ANY backend service, utility, or business logic |
+| Backend API | **Jest** | `backend/src/routes/__tests__/*.test.ts` | ANY new or modified API endpoint |
+| React Components | **Vitest** | `frontend/src/components/**/*.test.tsx` | ANY new or modified component |
+| UI Pages | **Vitest** | `frontend/src/pages/*.test.tsx` | ANY new or modified page |
+| UI Flows | **Playwright** | `frontend/e2e/*.spec.ts` | User journeys, navigation, modals, buttons |
+| AG Grid Editing | **Cypress** | `frontend/cypress/e2e/*.cy.ts` | Dropdowns, cell editing, row selection, colors |
+
+#### 5c. Test Coverage Requirements
+
+**Each feature MUST have tests covering:**
+
+1. **Happy Path** - Normal expected usage
+2. **Edge Cases** - Boundary conditions, empty states, max values
+3. **Error Cases** - Invalid input, missing data, API failures
+4. **UI Interactions** - Clicks, typing, selections work correctly
+5. **Visual State** - Correct colors, visibility, disabled states
+
+#### 5d. Test File Templates
+
+**Backend Service (Jest):**
+```typescript
+// backend/src/services/__tests__/myService.test.ts
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { myFunction } from '../myService.js';
+
+describe('myService', () => {
+  describe('myFunction', () => {
+    it('should handle valid input', () => { /* ... */ });
+    it('should handle empty input', () => { /* ... */ });
+    it('should throw on invalid input', () => { /* ... */ });
+  });
+});
+```
+
+**React Component (Vitest):**
+```typescript
+// frontend/src/components/MyComponent.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('renders correctly', () => { /* ... */ });
+  it('handles click events', () => { /* ... */ });
+  it('shows error state', () => { /* ... */ });
+  it('disables when loading', () => { /* ... */ });
+});
+```
+
+**UI Flow (Playwright):**
+```typescript
+// frontend/e2e/my-feature.spec.ts
+import { test, expect } from '@playwright/test';
+import { MainPage } from './pages/main-page';
+
+test.describe('My Feature', () => {
+  let mainPage: MainPage;
+
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.goto();
+    await mainPage.waitForGridLoad();
+  });
+
+  test('should complete user flow', async () => { /* ... */ });
+  test('should handle cancellation', async () => { /* ... */ });
+  test('should show validation errors', async () => { /* ... */ });
+});
+```
+
+**AG Grid (Cypress):**
+```typescript
+// frontend/cypress/e2e/my-grid-feature.cy.ts
+describe('My Grid Feature', () => {
+  beforeEach(() => {
+    cy.visit('/');
+    cy.waitForAgGrid();
+  });
+
+  it('should select dropdown value', () => {
+    cy.selectAgGridDropdown(0, 'columnId', 'Value');
+    cy.getAgGridCell(0, 'columnId').should('contain.text', 'Value');
+  });
+
+  it('should update row color', () => {
+    cy.get('[row-index="0"]').first().should('have.class', 'row-status-green');
+  });
+});
+```
+
+#### 5e. Run ALL Tests Before Commit
+
+```bash
+# Run ALL test suites - ALL must pass
+cd backend && npm test                    # Jest (130+ tests)
+cd frontend && npm run test:run           # Vitest (45+ tests)
+cd frontend && npm run e2e                # Playwright (26+ tests)
+cd frontend && npm run cypress:run        # Cypress (19+ tests)
+```
+
+#### 5f. Update Test Documentation
+
+After tests pass:
+1. Update `.claude/REGRESSION_TEST_PLAN.md` - Mark test cases as "Automated"
+2. Update `.claude/TESTING.md` - Add new test file to the inventory
+3. Include test count in commit message
+
+See `.claude/TESTING.md` for detailed patterns and troubleshooting.
 
 ---
 
@@ -115,19 +220,50 @@ git checkout develop              # Return to develop
 ### Step 3: Monitor Render Deployment
 After pushing to main, Render auto-deploys. **You MUST monitor the deployment:**
 
-1. **Check deployment status** using Render MCP:
-   - List recent deploys for the backend service
-   - Verify deploy status is "live" or "succeeded"
+#### 3a. Decrypt the Render API Key
+```bash
+RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.claude/render-api-key.gpg 2>/dev/null)
+```
 
-2. **If deployment fails:**
-   - Fetch deploy logs via Render MCP
-   - Report the error to the user
-   - Do NOT consider the release complete until deployment succeeds
+#### 3b. Check Deployment Status
+Wait 30 seconds for deploy to start, then check both services:
 
-3. **Confirm to user:**
-   - Report deployment status (success/failure)
-   - Include deploy ID and timestamp
-   - If failed, include relevant error logs
+```bash
+# Check backend (patient-tracker-api)
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+  "https://api.render.com/v1/services/srv-d5hh4ui4d50c73932ta0/deploys?limit=1"
+
+# Check frontend (patient-tracker-frontend)
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+  "https://api.render.com/v1/services/srv-d5hh7a24d50c739344hg/deploys?limit=1"
+```
+
+**Service IDs:**
+- Backend API: `srv-d5hh4ui4d50c73932ta0`
+- Frontend: `srv-d5hh7a24d50c739344hg`
+
+#### 3c. Interpret Status
+- `"status":"live"` = Deployment successful
+- `"status":"build_in_progress"` or `"status":"update_in_progress"` = Still deploying, wait and check again
+- `"status":"build_failed"` = Build failed, investigate
+
+#### 3d. If Deployment Fails
+1. **Try to build locally** to reproduce the error:
+   ```bash
+   cd frontend && npm run build  # or cd backend && npm run build
+   ```
+2. **Check service events** for error details:
+   ```bash
+   curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
+     "https://api.render.com/v1/services/{SERVICE_ID}/events?limit=5"
+   ```
+3. **Fix the issue**, commit, and re-release
+
+#### 3e. Confirm to User
+Report deployment status for BOTH services:
+- Service name and status (live/failed)
+- Deploy ID and timestamp
+- If failed, include error details and fix applied
 
 ---
 
@@ -145,6 +281,7 @@ Read the following files before starting work:
 - `.claude/context.md` - Project structure and tech stack
 - `.claude/patterns.md` - Code conventions and patterns
 - `.claude/notes.md` - Session notes and current focus
+- `.claude/WORKFLOW.md` - **Feature development workflow (Plan → Implement → Test → Document → Commit)**
 
 ## Quick Commands
 
@@ -167,25 +304,37 @@ Read the following files before starting work:
 
 ---
 
-## Available MCP Servers
+## Render API Access
 
-### Render MCP (Deployment & Infrastructure)
-The Render MCP server is configured and available for managing deployments.
+### API Key Location
+The Render API key is stored encrypted at `~/.claude/render-api-key.gpg`
 
-**Use Render MCP to:**
-- Check deployment status and history
-- View service logs for debugging
-- Query metrics (CPU, memory, response times)
-- List services and their configurations
-- Run read-only database queries
+**Decrypt the key:**
+```bash
+RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.claude/render-api-key.gpg 2>/dev/null)
+```
 
-**Common commands:**
-- After a release, check deployment status via Render MCP
-- If deployment fails, use Render MCP to fetch logs and diagnose issues
-- Monitor service health and performance metrics
+### Service IDs
+| Service | ID | URL |
+|---------|-----|-----|
+| Backend API | `srv-d5hh4ui4d50c73932ta0` | https://patient-tracker-api-feu8.onrender.com |
+| Frontend | `srv-d5hh7a24d50c739344hg` | https://patient-tracker-frontend.onrender.com |
 
-**Limitations:**
-- Cannot trigger deploys (must push to git)
-- Cannot delete resources
-- Cannot modify scaling settings
-- Can only modify environment variables
+### Common API Calls
+```bash
+# List services
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services?limit=10"
+
+# Check recent deploys for a service
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/{SERVICE_ID}/deploys?limit=3"
+
+# Get service events (for debugging)
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/{SERVICE_ID}/events?limit=10"
+```
+
+### Deploy Status Values
+- `live` - Deployment successful and running
+- `build_in_progress` - Building
+- `update_in_progress` - Deploying after successful build
+- `build_failed` - Build failed (check events for details)
+- `deactivated` - Previous deploy, replaced by newer one

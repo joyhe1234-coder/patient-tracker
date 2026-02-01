@@ -10,6 +10,7 @@ declare global {
     interface Chainable {
       // AG Grid helpers
       getAgGridCell(rowIndex: number, colId: string): Chainable<JQuery<HTMLElement>>;
+      getAgGridCellWithScroll(rowIndex: number, colId: string): Chainable<JQuery<HTMLElement>>;
       getAgGridCellByMemberName(memberName: string, colId: string): Chainable<JQuery<HTMLElement>>;
       selectAgGridDropdown(rowIndex: number, colId: string, value: string): Chainable<void>;
       selectAgGridDropdownByMemberName(memberName: string, colId: string, value: string): Chainable<void>;
@@ -18,6 +19,7 @@ declare global {
       waitForAgGrid(): Chainable<void>;
       addTestRow(name: string): Chainable<void>;
       findRowByMemberName(memberName: string): Chainable<number>;
+      scrollToAgGridColumn(colId: string): Chainable<void>;
     }
   }
 }

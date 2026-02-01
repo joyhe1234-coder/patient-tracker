@@ -228,9 +228,9 @@ This document lists all valid combinations for seeding data, showing how fields 
 | Measure Status | Row Color | Tracking #1 | Tracking #2 | Due Days | Time Interval |
 |----------------|-----------|-------------|-------------|----------|---------------|
 | Not Addressed | WHITE | N/A | N/A | null | - |
-| HgbA1c ordered | BLUE | **Free text:** Prompt "HgbA1c value" | **Dropdown:** 1-12 months | 14 (base) or Tracking2* | Read-only if tracking2 |
-| HgbA1c at goal | GREEN→RED | **Free text:** Prompt "HgbA1c value" | **Dropdown:** 1-12 months | 90 (base) or Tracking2* | Read-only |
-| HgbA1c NOT at goal | BLUE | **Free text:** Prompt "HgbA1c value" | **Dropdown:** 1-12 months | 90 (base) or Tracking2* | Read-only |
+| HgbA1c ordered | BLUE | **Free text:** Prompt "HgbA1c value" | **Dropdown:** 1-12 months | Tracking2* (required) | Read-only |
+| HgbA1c at goal | GREEN→RED | **Free text:** Prompt "HgbA1c value" | **Dropdown:** 1-12 months | Tracking2* (required) | Read-only |
+| HgbA1c NOT at goal | BLUE | **Free text:** Prompt "HgbA1c value" | **Dropdown:** 1-12 months | Tracking2* (required) | Read-only |
 | Patient declined | PURPLE | N/A | N/A | null | - |
 | No longer applicable | GRAY | N/A | N/A | null | - |
 

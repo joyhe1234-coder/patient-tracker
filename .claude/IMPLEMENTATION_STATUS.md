@@ -148,11 +148,37 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - `mergeLogic.test.ts` - 12 integration tests for merge-test-cases.csv
   - Tests all 6 merge cases (INSERT, UPDATE, SKIP, BOTH for merge mode; DELETE for replace mode)
   - Test data file: `test-data/merge-test-cases.csv`
-- [ ] 5h: Import Executor (Replace All + Merge)
-- [ ] 5i: Execute API endpoint
-- [ ] 5j: Import UI - Upload page
-- [ ] 5k: Import UI - Preview page
-- [ ] 5l: Import UI - Results display
+- [x] 5h: Import Executor (Replace All + Merge)
+  - `importExecutor.ts` - Execute import operations based on previewed diff
+  - Replace mode: Delete all existing records, insert all new
+  - Merge mode: Process INSERT, UPDATE, SKIP, BOTH actions
+  - Prisma transactions for atomicity
+  - Post-execution: sync duplicate flags, delete preview cache
+  - Unit tests: 16 tests covering all scenarios
+- [x] 5i: Execute API endpoint + UI
+  - POST /api/import/execute/:previewId - Execute import from cached preview
+  - Returns stats (inserted, updated, deleted, skipped, bothKept)
+  - Execute button in Import Test Page preview tab
+  - Execution results display with stats and errors
+- [x] 5j: Import UI - Upload page (`/import`)
+  - Healthcare system selection dropdown
+  - Import mode selection with Merge as default (recommended)
+  - Replace All warning modal confirms before deleting data
+  - Drag-and-drop file upload with validation
+  - Detailed validation error display (row numbers, member names, error messages)
+  - Routes to preview page on success
+- [x] 5k: Import UI - Preview page (`/import/preview/:previewId`)
+  - Summary cards with action counts (INSERT, UPDATE, SKIP, BOTH, DELETE, Warnings)
+  - Clickable filter cards for changes table
+  - Patient counts (new vs existing)
+  - Warnings section with detailed warning messages (row number, member name)
+  - Changes table with action badges and status changes
+  - Cancel/Execute buttons with loading states
+  - Success screen with statistics
+- [x] 5l: Import UI - Results display (integrated into Preview page)
+  - Success banner with import statistics
+  - Error display with details
+  - Navigation to Patient Grid or Import More
 - [ ] 5m: Mapping UI (/import-mapping)
 
 ---
@@ -200,16 +226,16 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 **Status: Complete**
 
 - [x] Due Date auto-calculation based on Status Date + rules
-  - Special handling for "Screening discussed" + tracking month patterns
-  - Special handling for HgbA1c statuses + tracking2 month patterns
+  - Special handling for "Screening discussed" + tracking1 month patterns
+  - Special handling for HgbA1c statuses + tracking2 month patterns (no base fallback - requires dropdown)
   - DueDayRule lookup for measureStatus + tracking1 combinations
-  - MeasureStatus.baseDueDays fallback
+  - MeasureStatus.baseDueDays fallback (not used for HgbA1c statuses)
 - [x] Time Interval (Days) calculation (dueDate - statusDate)
 - [x] Time Interval editability
   - Editable for statuses with **fixed default** or **test type dropdown** (Mammogram, Colonoscopy, etc.)
-  - **NOT editable** for 5 time period dropdown statuses (interval controlled by dropdown):
+  - **NOT editable** for 6 time period dropdown statuses (interval controlled by dropdown):
     - Screening discussed (In 1-11 Months)
-    - HgbA1c at goal / NOT at goal (1-12 months)
+    - HgbA1c ordered / at goal / NOT at goal (1-12 months) - requires Tracking #2 selection
     - Scheduled call back - BP at/not at goal (Call every 1-8 wks)
   - Default value comes from tracking selection (DueDayRule) or baseDueDays
   - When edited, Due Date = Status Date + Time Interval
@@ -265,8 +291,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (45 tests total)
-  - StatusFilterBar.test.tsx (4 tests)
+- [x] Phase 4: Component tests (70 tests total, 99% coverage)
+  - StatusFilterBar.test.tsx (29 tests, 100% coverage - includes getRowStatusColor tests)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
@@ -284,11 +310,17 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [ ] Phase 8: Import Excel E2E tests
 
 ### E2E Testing (Cypress)
-- [x] Phase 6: Cascading dropdowns tests (19 passing)
+- [x] Phase 6: Cascading dropdowns tests (30 passing)
   - cypress.config.ts - Cypress configuration
   - cypress/support/commands.ts - AG Grid helper commands
   - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
   - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
+- [x] Phase 8: Import E2E tests (29 passing)
+  - cypress/e2e/import-flow.cy.ts - Complete import workflow tests
+  - Import page: system/mode selection, file upload validation
+  - Preview page: summary cards, filters, changes table
+  - Execution: success/error states, navigation
+  - Test data: cypress/fixtures/test-import.csv
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -296,7 +328,19 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows()
   - Fixed phone/address test with Member Info toggle
   - Playwright: 26 passing, 4 skipped (AG Grid limitations)
-- [ ] Phase 8: Import Excel E2E tests
+- [x] Phase 8: Import E2E tests (Cypress: 29 passing)
+  - Note: Import execution tests modify database - reseed before cascading tests
+
+### Backend Unit Testing (Jest)
+- [x] 241 tests passing (89% statement coverage, 80% branch coverage)
+- Total test count: ~260 automated tests across all frameworks
+- [x] Import services tests:
+  - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
+  - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
+  - mergeLogic.test.ts - 12 integration tests (seeded DB required for UPDATE/SKIP scenarios)
+  - previewCache.test.ts - 17 tests (cache TTL, cleanup)
+  - validator.test.ts - validation error handling
+  - importExecutor.test.ts - 16 tests (replace/merge mode execution)
 
 ---
 
@@ -389,7 +433,8 @@ patient-tracker/
 │   │   │       ├── validator.ts
 │   │   │       ├── errorReporter.ts
 │   │   │       ├── diffCalculator.ts
-│   │   │       └── previewCache.ts
+│   │   │       ├── previewCache.ts
+│   │   │       └── importExecutor.ts
 │   │   ├── utils/           # Utility functions
 │   │   │   └── dateParser.ts
 │   │   └── index.ts         # Server entry point
@@ -457,4 +502,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 28, 2026 - Completed Phase 5g (Preview API + UI) with integration tests for merge logic
+February 1, 2026 - Added Import E2E tests (29 Cypress tests), total ~260 automated tests
