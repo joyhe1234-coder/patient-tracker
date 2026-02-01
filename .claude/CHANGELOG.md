@@ -43,8 +43,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Import Page Tests**
   - Vitest component tests: ImportPage.test.tsx (26 tests)
   - Vitest component tests: ImportPreviewPage.test.tsx (23 tests, including warnings display)
-  - Cypress E2E tests: import-flow.cy.ts (22 tests)
+  - Cypress E2E tests: import-flow.cy.ts (29 tests)
   - Test fixture: cypress/fixtures/test-import.csv
+
+### Fixed
+- **Cypress Import E2E test stability**
+  - Added `force: true` to file upload commands for reliable execution
+  - Fixed filter card assertion (ring-2 class is on button, not parent)
+  - Fixed test-import.csv fixture with correct column names (Annual Wellness Visit, etc.)
+  - Removed flaky "Processing..." loading state check
 - **Quality Measure Addition Checklist** (`.claude/ADDING_QUALITY_MEASURES.md`)
   - Complete 12-file checklist for adding new quality measures
   - Covers: seed.ts, dropdownConfig.ts, validator.ts, hill.json, row colors, tests

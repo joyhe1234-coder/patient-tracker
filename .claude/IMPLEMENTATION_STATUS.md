@@ -310,11 +310,17 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [ ] Phase 8: Import Excel E2E tests
 
 ### E2E Testing (Cypress)
-- [x] Phase 6: Cascading dropdowns tests (19 passing)
+- [x] Phase 6: Cascading dropdowns tests (30 passing)
   - cypress.config.ts - Cypress configuration
   - cypress/support/commands.ts - AG Grid helper commands
   - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
   - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
+- [x] Phase 8: Import E2E tests (29 passing)
+  - cypress/e2e/import-flow.cy.ts - Complete import workflow tests
+  - Import page: system/mode selection, file upload validation
+  - Preview page: summary cards, filters, changes table
+  - Execution: success/error states, navigation
+  - Test data: cypress/fixtures/test-import.csv
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -322,10 +328,12 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows()
   - Fixed phone/address test with Member Info toggle
   - Playwright: 26 passing, 4 skipped (AG Grid limitations)
-- [ ] Phase 8: Import Excel E2E tests
+- [x] Phase 8: Import E2E tests (Cypress: 29 passing)
+  - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
 - [x] 241 tests passing (89% statement coverage, 80% branch coverage)
+- Total test count: ~260 automated tests across all frameworks
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -494,4 +502,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 31, 2026 - Added validation errors and warnings display to Import UI
+February 1, 2026 - Added Import E2E tests (29 Cypress tests), total ~260 automated tests
