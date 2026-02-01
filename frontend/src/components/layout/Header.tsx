@@ -43,14 +43,14 @@ export default function Header() {
               Import Mapping
             </Link>
             <Link
-              to="/import-test"
+              to="/import"
               className={`text-sm font-medium ${
-                location.pathname === '/import-test'
+                location.pathname.startsWith('/import')
                   ? 'text-blue-600'
                   : 'text-gray-600 hover:text-blue-600'
               }`}
             >
-              Import Test
+              Import
             </Link>
           </nav>
         </div>

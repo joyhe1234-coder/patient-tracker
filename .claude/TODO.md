@@ -92,6 +92,17 @@ This document tracks planned features and enhancements for future development.
 
 ## High Priority
 
+### Add New Quality Measure: Depression Screening
+**Reference:** `.claude/ADDING_QUALITY_MEASURES.md` (implementation checklist)
+
+- [ ] Add to `backend/prisma/seed.ts` (statuses, tracking options, due days)
+- [ ] Add to `frontend/src/config/dropdownConfig.ts` (dropdown mappings)
+- [ ] Add to `backend/src/services/import/validator.ts` (VALID_QUALITY_MEASURES)
+- [ ] Add to `backend/src/config/import/hill.json` (column + status mapping)
+- [ ] Update row colors in `PatientGrid.tsx` if new status categories
+- [ ] Add Cypress E2E tests for new measure
+- [ ] Run full test suite to verify no regressions
+
 ### External Data Import
 See **Phase 5: CSV Import** in "In Progress" section above.
 
@@ -175,4 +186,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-January 28, 2026
+January 31, 2026

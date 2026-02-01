@@ -9,6 +9,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [3.1.0-snapshot] - Unreleased
 
 ### Added
+- **Phase 5j: Import UI - Upload Page** (`/import`)
+  - Healthcare system selection dropdown (Hill Healthcare)
+  - Import mode selection with descriptions (Replace All / Merge)
+  - Drag-and-drop file upload with type validation (CSV, Excel)
+  - Step-by-step wizard UI with numbered sections
+  - Loading state and error handling
+  - Routes to `/import/preview/:previewId` on successful preview generation
+  - Header navigation updated: "Import Test" → "Import"
+- **Quality Measure Addition Checklist** (`.claude/ADDING_QUALITY_MEASURES.md`)
+  - Complete 12-file checklist for adding new quality measures
+  - Covers: seed.ts, dropdownConfig.ts, validator.ts, hill.json, row colors, tests
+  - Example implementation for Depression Screening
+- **Depression Screening** added to TODO.md as High Priority task
 - **Test Data Management** (Phase 7 of UI Testing Plan)
   - Serial mode for data-modifying test suites (delete-row, duplicate-member)
   - New Page Object helpers: waitForGridLoad(), toggleMemberInfo(), deselectAllRows(), isMemberInfoVisible()

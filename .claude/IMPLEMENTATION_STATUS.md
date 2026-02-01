@@ -160,7 +160,11 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Returns stats (inserted, updated, deleted, skipped, bothKept)
   - Execute button in Import Test Page preview tab
   - Execution results display with stats and errors
-- [ ] 5j: Import UI - Upload page
+- [x] 5j: Import UI - Upload page (`/import`)
+  - Healthcare system selection dropdown
+  - Import mode selection (Replace All / Merge) with descriptions
+  - Drag-and-drop file upload with validation
+  - Routes to preview page on success
 - [ ] 5k: Import UI - Preview page
 - [ ] 5l: Import UI - Results display
 - [ ] 5m: Mapping UI (/import-mapping)
@@ -478,4 +482,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-January 28, 2026 - Completed Phase 5h (Import Executor) with 16 unit tests
+January 31, 2026 - Completed Phase 5j (Import UI - Upload page)
