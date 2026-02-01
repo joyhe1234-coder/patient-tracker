@@ -306,6 +306,8 @@ Read the following files before starting work:
 
 ## Render API Access
 
+**IMPORTANT:** Use the Render REST API with curl commands. Do NOT use the Render MCP server (not configured).
+
 ### API Key Location
 The Render API key is stored encrypted at `~/.claude/render-api-key.gpg`
 
