@@ -28,22 +28,19 @@ docker compose version
 
 ---
 
-## Step 1: Download 3 Files
+## Step 1: Download and Extract
 
-Create a directory and download these files from the repository:
+Get the deployment package from your administrator and extract it:
 
 ```bash
+# Create directory
 mkdir -p /opt/patient-tracker && cd /opt/patient-tracker
 
-# Download the 3 required files (replace YOUR_ORG with actual org)
-curl -O https://raw.githubusercontent.com/YOUR_ORG/patient-tracker/main/docker-compose.prod.yml
-curl -O https://raw.githubusercontent.com/YOUR_ORG/patient-tracker/main/nginx/nginx.prod.conf
-curl -O https://raw.githubusercontent.com/YOUR_ORG/patient-tracker/main/.env.example
+# Extract the deployment package
+tar -xzf /path/to/patient-tracker-deploy.tar.gz
 ```
 
-Or download manually from GitHub and transfer to server via USB/SCP.
-
-**Files needed:**
+**What's in the package:**
 | File | Purpose |
 |------|---------|
 | `docker-compose.prod.yml` | Docker configuration |

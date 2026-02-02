@@ -831,9 +831,11 @@ npm run build
 
 ---
 
-## For Maintainers: Publishing Docker Images
+## For Maintainers: Publishing Releases
 
-When releasing a new version, push Docker images to Docker Hub so admins can pull them.
+When releasing a new version, you need to:
+1. Push Docker images to Docker Hub
+2. Create a deployment tar file for admins
 
 ### One-Time Setup
 
@@ -842,7 +844,7 @@ When releasing a new version, push Docker images to Docker Hub so admins can pul
 docker login
 ```
 
-### Publishing a Release
+### Step 1: Push Docker Images
 
 ```bash
 # Set your Docker Hub username and version
@@ -860,9 +862,31 @@ docker push $REGISTRY/patient-tracker-frontend:$VERSION
 docker push $REGISTRY/patient-tracker-frontend:latest
 ```
 
-### Updating .env.example
+### Step 2: Create Deployment Package
 
-After setting up Docker Hub, update `.env.example` with your actual Docker Hub username:
+Create a tar file containing everything admins need:
+
+```bash
+# Create deployment directory
+mkdir -p dist/patient-tracker-deploy
+cp docker-compose.prod.yml dist/patient-tracker-deploy/
+cp nginx/nginx.prod.conf dist/patient-tracker-deploy/
+cp .env.example dist/patient-tracker-deploy/
+cp docs/QUICK_INSTALL.md dist/patient-tracker-deploy/README.md
+
+# Create tar file
+cd dist
+tar -czvf patient-tracker-deploy-${VERSION}.tar.gz patient-tracker-deploy/
+
+# Clean up
+rm -rf patient-tracker-deploy
+```
+
+The resulting `patient-tracker-deploy-vX.X.X.tar.gz` can be distributed to admins.
+
+### Before Release: Update .env.example
+
+Make sure `.env.example` has your actual Docker Hub username:
 
 ```env
 DOCKER_REGISTRY=your-actual-dockerhub-username
