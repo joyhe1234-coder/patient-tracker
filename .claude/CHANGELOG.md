@@ -28,6 +28,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - STAFF sees assigned physicians' patients
   - ADMIN can view any physician's patients (with selector)
   - Existing patients remain unassigned (backward compatible)
+- **Authentication Test Coverage** (Feb 2, 2026)
+  - Backend authService.test.ts (19 tests): password hashing, JWT tokens, toAuthUser
+  - Backend auth.test.ts middleware (13 tests): requireAuth, requireRole, optionalAuth
+  - Backend auth.routes.test.ts (8 tests): login validation, auth requirements
+  - Backend admin.routes.test.ts (10 tests): admin endpoint auth requirements
+  - Frontend LoginPage.test.tsx (17 tests): form rendering, validation, auth flow
+  - Frontend authStore.test.ts (25 tests): login/logout, session persistence
+  - E2E auth.spec.ts (9 tests): login form, credentials, session, protected routes
+  - Enhanced CLAUDE.md testing requirements with emphasis and checklists
 
 ### Changed
 - All data/config/import routes now require authentication

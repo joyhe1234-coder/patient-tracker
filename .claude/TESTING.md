@@ -72,12 +72,13 @@ cd frontend && npm run cypress:run
 
 ## All Implemented Tests
 
-### Backend Tests (130 tests)
+### Backend Tests (317 tests)
 
-**Location:** `backend/src/services/import/__tests__/`
+**Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
 | File | Tests | Description |
 |------|-------|-------------|
+| **Import Service Tests** | | `backend/src/services/import/__tests__/` |
 | `fileParser.test.ts` | 16 | CSV parsing, title row detection, column validation |
 | `columnMapper.test.ts` | 13 | Column mapping, Q1/Q2 grouping, skip columns |
 | `dataTransformer.test.ts` | 17 | Wide-to-long transformation, date parsing |
@@ -85,6 +86,15 @@ cd frontend && npm run cypress:run
 | `configLoader.test.ts` | 22 | System config loading, registry, validation |
 | `errorReporter.test.ts` | 25 | Error report generation, formatting |
 | `integration.test.ts` | 14 | Full pipeline tests, edge cases |
+| **Auth Service Tests** | | `backend/src/services/__tests__/` |
+| `authService.test.ts` | 19 | Password hashing, JWT tokens, toAuthUser |
+| **Auth Middleware Tests** | | `backend/src/middleware/__tests__/` |
+| `auth.test.ts` | 13 | requireAuth, requireRole, optionalAuth, requirePatientDataAccess |
+| **Route Tests** | | `backend/src/routes/__tests__/` |
+| `auth.routes.test.ts` | 8 | Login validation, auth requirement checks |
+| `admin.routes.test.ts` | 10 | Admin endpoint auth requirements |
+| **API Tests** | | Various |
+| Patient, Measure routes | ~137 | Patient CRUD, measure operations |
 
 **Running Backend Tests:**
 
@@ -98,16 +108,23 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (45 tests)
+### Frontend Component Tests (160 tests)
 
-**Location:** `frontend/src/components/**/*.test.tsx`
+**Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
 | File | Tests | Description |
 |------|-------|-------------|
-| `StatusFilterBar.test.tsx` | 4 | Filter chip rendering, click behavior, counts |
+| **Component Tests** | | `frontend/src/components/` |
+| `StatusFilterBar.test.tsx` | 29 | Filter chip rendering, click behavior, row colors |
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
 | `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
+| **Page Tests** | | `frontend/src/pages/` |
+| `LoginPage.test.tsx` | 17 | Login form, validation, password toggle, auth flow |
+| `ImportPage.test.tsx` | 26 | Import workflow UI, mode selection, file upload |
+| `ImportPreviewPage.test.tsx` | 23 | Preview display, summary cards, changes table |
+| **Store Tests** | | `frontend/src/stores/` |
+| `authStore.test.ts` | 25 | Login/logout, token storage, session persistence |
 
 **Running Component Tests:**
 
@@ -119,7 +136,7 @@ npm run test:run          # Single run (CI)
 npm run test:coverage     # With coverage report
 ```
 
-### Playwright E2E Tests (26 passing, 4 skipped)
+### Playwright E2E Tests (35 passing, 4 skipped)
 
 **Location:** `frontend/e2e/*.spec.ts`
 
@@ -129,8 +146,9 @@ npm run test:coverage     # With coverage report
 | `add-row.spec.ts` | 9 | Add Row modal, validation, form submission |
 | `duplicate-member.spec.ts` | 8 (3 skip) | Duplicate Mbr button, row creation |
 | `delete-row.spec.ts` | 10 (4 skip) | Delete confirmation, cancel, backdrop |
+| `auth.spec.ts` | 9 | Login form, credentials, session, logout, protected routes |
 
-**Page Object Model:** `frontend/e2e/pages/main-page.ts`
+**Page Object Model:** `frontend/e2e/pages/main-page.ts`, `frontend/e2e/pages/login-page.ts`
 
 **Skipped Tests (AG Grid limitations):**
 - Confirming delete removes the row (modal timing issues)
@@ -279,7 +297,12 @@ npm run test:cli -- --save    # Save new baselines
 | Area | Framework | Tests | Status |
 |------|-----------|-------|--------|
 | Backend import services | Jest | 130 | Complete |
-| Frontend components | Vitest | 45 | 4 components |
+| Backend auth services | Jest | 50 | Complete |
+| Backend API routes | Jest | ~137 | Complete |
+| Frontend components | Vitest | 70 | Complete |
+| Frontend pages | Vitest | 66 | Complete |
+| Frontend stores | Vitest | 25 | Complete |
+| Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
 | Cascading dropdowns | Cypress | 30 | Complete |
 | Row colors | Cypress | 5 | In cascading tests |
@@ -287,7 +310,7 @@ npm run test:cli -- --save    # Save new baselines
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
 
-**Total Automated Tests: ~260**
+**Total Automated Tests: ~570+**
 
 ---
 
@@ -477,4 +500,8 @@ describe('Feature Name', () => {
 
 ## Last Updated
 
-February 1, 2026 - Added Import Flow E2E tests (29 tests), updated total to ~260 tests
+February 2, 2026 - Added Authentication tests:
+- Backend: authService.test.ts (19), auth.test.ts middleware (13), auth.routes.test.ts (8), admin.routes.test.ts (10)
+- Frontend: LoginPage.test.tsx (17), authStore.test.ts (25)
+- E2E: auth.spec.ts (9 Playwright tests)
+- Updated total to ~570+ tests

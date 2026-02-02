@@ -89,6 +89,10 @@ This document tracks planned features and enhancements for future development.
 - [x] Phase 8: Import E2E tests (Cypress: 29 passing)
   - Import page: system selection, mode selection, file upload
   - Preview page: summary cards, action filters, changes table
+- [x] Phase 9: Authentication tests (Feb 2, 2026)
+  - LoginPage.test.tsx (17 Vitest tests)
+  - authStore.test.ts (25 Vitest tests)
+  - auth.spec.ts (9 Playwright E2E tests)
   - Execution: success message, statistics, navigation
   - Error handling: invalid format, expired preview
 
@@ -161,6 +165,10 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [x] Staff-to-physician assignment
 - [x] Role-based access control
 - [x] Audit logging
+- [x] Authentication test coverage (101 tests - Feb 2, 2026)
+  - Backend: authService, middleware, routes tests (50 tests)
+  - Frontend: LoginPage, authStore tests (42 tests)
+  - E2E: auth.spec.ts Playwright tests (9 tests)
 - [ ] Session timeout handling (advanced feature)
 - [ ] Unassigned patients page (advanced feature)
 - [ ] Import page physician selector for STAFF (advanced feature)

@@ -43,8 +43,11 @@ Wait for user confirmation before writing any code. Ask:
 ### Step 4: Implement
 Only after approval, proceed with implementation.
 
-### Step 5: Add Tests (REQUIRED)
-After implementing, you MUST add comprehensive automated tests covering ALL use cases.
+> ⚠️ **CRITICAL: Implementation is NOT complete until tests are written and passing.**
+> Do NOT commit code without corresponding tests. Proceed directly to Step 5.
+
+### Step 5: Add Tests (MANDATORY - Implementation Incomplete Without This)
+After implementing, you MUST add comprehensive automated tests covering ALL use cases. **A feature without tests is an incomplete feature.**
 
 #### 5a. Document Test Cases
 Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
@@ -67,6 +70,14 @@ Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
 
 #### 5c. Test Coverage Requirements
 
+**Minimum Coverage Targets:**
+| Layer | Target | Notes |
+|-------|--------|-------|
+| Backend Services | **80%+ line coverage** | Business logic must be well-tested |
+| API Routes | **All endpoints tested** | Happy path + at least 2 error cases per endpoint |
+| Frontend Components | **Render + interactions** | Each component renders and handles user input |
+| E2E Flows | **Critical user journeys** | Login, main workflows, error states |
+
 **Each feature MUST have tests covering:**
 
 1. **Happy Path** - Normal expected usage
@@ -75,7 +86,22 @@ Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
 4. **UI Interactions** - Clicks, typing, selections work correctly
 5. **Visual State** - Correct colors, visibility, disabled states
 
-#### 5d. Test File Templates
+#### 5d. Pre-Commit Test Checklist
+
+**Before committing ANY implementation, verify ALL applicable boxes:**
+
+```
+[ ] Backend unit tests written and passing (Jest)
+[ ] API endpoint tests written and passing (Jest + supertest)
+[ ] Frontend component tests written and passing (Vitest)
+[ ] E2E tests written for user flows (Playwright or Cypress)
+[ ] All existing tests still pass
+[ ] Test count included in commit message (e.g., "Adds 25 tests")
+```
+
+**If ANY test is missing, the implementation is INCOMPLETE. Do NOT commit.**
+
+#### 5f. Test File Templates
 
 **Backend Service (Jest):**
 ```typescript
@@ -148,7 +174,7 @@ describe('My Grid Feature', () => {
 });
 ```
 
-#### 5e. Run ALL Tests Before Commit
+#### 5g. Run ALL Tests Before Commit
 
 ```bash
 # Run ALL test suites - ALL must pass
@@ -158,7 +184,7 @@ cd frontend && npm run e2e                # Playwright (26+ tests)
 cd frontend && npm run cypress:run        # Cypress (19+ tests)
 ```
 
-#### 5f. Update Test Documentation
+#### 5h. Update Test Documentation
 
 After tests pass:
 1. Update `.claude/REGRESSION_TEST_PLAN.md` - Mark test cases as "Automated"
