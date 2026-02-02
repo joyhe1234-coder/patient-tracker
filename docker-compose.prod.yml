@@ -1,5 +1,14 @@
-# Production Docker Compose - uses pre-built images
+# Production Docker Compose - uses pre-built images from Docker Hub
 # For network admins: Just configure .env and run `docker compose -f docker-compose.prod.yml up -d`
+#
+# SETUP:
+#   1. Download this file and .env.example
+#   2. Copy .env.example to .env and configure
+#   3. Run: docker compose -f docker-compose.prod.yml up -d
+#
+# UPDATE:
+#   1. Run: docker compose -f docker-compose.prod.yml pull
+#   2. Run: docker compose -f docker-compose.prod.yml up -d
 
 version: '3.8'
 
@@ -10,7 +19,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - app
       - web
@@ -20,22 +29,22 @@ services:
 
   # Frontend - static files served by nginx
   web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    # Or use pre-built image:
-    # image: your-registry/patient-tracker-frontend:latest
+    image: ${DOCKER_REGISTRY:-your-dockerhub-username}/patient-tracker-frontend:${VERSION:-latest}
+    # To build locally instead, comment above and uncomment below:
+    # build:
+    #   context: ./frontend
+    #   dockerfile: Dockerfile
     restart: unless-stopped
     networks:
       - patient-tracker
 
   # Backend API
   app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    # Or use pre-built image:
-    # image: your-registry/patient-tracker-backend:latest
+    image: ${DOCKER_REGISTRY:-your-dockerhub-username}/patient-tracker-backend:${VERSION:-latest}
+    # To build locally instead, comment above and uncomment below:
+    # build:
+    #   context: ./backend
+    #   dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgresql://appuser:${DB_PASSWORD}@db:5432/patienttracker
       - JWT_SECRET=${JWT_SECRET}

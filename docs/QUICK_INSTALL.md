@@ -2,6 +2,8 @@
 
 This is the fastest way to deploy Patient Tracker. Total time: ~10 minutes.
 
+**No git required. No building required. Just download, configure, and run.**
+
 ---
 
 ## Prerequisites
@@ -26,22 +28,27 @@ docker compose version
 
 ---
 
-## Step 1: Get the Files
+## Step 1: Download 3 Files
 
-**Option A - With Git:**
+Create a directory and download these files from the repository:
+
 ```bash
-cd /opt
-sudo git clone https://github.com/YOUR_ORG/patient-tracker.git
-cd patient-tracker
+mkdir -p /opt/patient-tracker && cd /opt/patient-tracker
+
+# Download the 3 required files (replace YOUR_ORG with actual org)
+curl -O https://raw.githubusercontent.com/YOUR_ORG/patient-tracker/main/docker-compose.prod.yml
+curl -O https://raw.githubusercontent.com/YOUR_ORG/patient-tracker/main/nginx/nginx.prod.conf
+curl -O https://raw.githubusercontent.com/YOUR_ORG/patient-tracker/main/.env.example
 ```
 
-**Option B - Without Git (download release):**
-```bash
-# Transfer the release file to server, then:
-cd /opt
-sudo mkdir patient-tracker && cd patient-tracker
-sudo tar -xzf /path/to/patient-tracker-vX.X.X.tar.gz --strip-components=1
-```
+Or download manually from GitHub and transfer to server via USB/SCP.
+
+**Files needed:**
+| File | Purpose |
+|------|---------|
+| `docker-compose.prod.yml` | Docker configuration |
+| `nginx.prod.conf` | Web server configuration |
+| `.env.example` | Configuration template |
 
 ---
 
@@ -93,7 +100,10 @@ SMTP_FROM=Patient Tracker <noreply@yourcompany.com>
 ## Step 3: Start
 
 ```bash
-# Build and start all services
+# Pull the Docker images from Docker Hub
+docker compose -f docker-compose.prod.yml pull
+
+# Start all services
 docker compose -f docker-compose.prod.yml up -d
 
 # Check status (all should show "running")
@@ -153,48 +163,37 @@ Login with the admin credentials you created.
 
 ## How to Update
 
-### Step 1: Get New Version
+Updating is simple - just pull the new images and restart:
 
-**With Git:**
-```bash
-cd /opt/patient-tracker
-git pull origin main
-```
-
-**Without Git:**
 ```bash
 cd /opt/patient-tracker
 
-# Backup current version
-sudo cp -r . ../patient-tracker-backup
+# Pull latest images from Docker Hub
+docker compose -f docker-compose.prod.yml pull
 
-# Extract new version (preserves .env)
-sudo tar -xzf /path/to/patient-tracker-vX.X.X.tar.gz --strip-components=1
-```
-
-### Step 2: Rebuild and Restart
-
-```bash
-# Rebuild containers with new code
-docker compose -f docker-compose.prod.yml build
-
-# Restart services (database data is preserved)
+# Restart with new images (database data is preserved)
 docker compose -f docker-compose.prod.yml up -d
 
 # Run any new database migrations
 docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
+
+# Verify all services are running
+docker compose -f docker-compose.prod.yml ps
 ```
 
 > **Note:** Your database data is safe during updates. Data is stored in a Docker volume separate from containers. Only `docker compose down -v` (with `-v` flag) would delete data.
 
-### Step 3: Verify
+### Update to Specific Version
+
+To update to a specific version instead of latest:
 
 ```bash
-# Check all services are running
-docker compose -f docker-compose.prod.yml ps
+# Set version in .env file
+echo "VERSION=v4.1.0" >> .env
 
-# Check logs for errors
-docker compose -f docker-compose.prod.yml logs --tail=50
+# Or specify on command line
+VERSION=v4.1.0 docker compose -f docker-compose.prod.yml pull
+VERSION=v4.1.0 docker compose -f docker-compose.prod.yml up -d
 ```
 
 ---
@@ -203,6 +202,7 @@ docker compose -f docker-compose.prod.yml logs --tail=50
 
 | Task | Command |
 |------|---------|
+| **Pull latest images** | `docker compose -f docker-compose.prod.yml pull` |
 | Start services | `docker compose -f docker-compose.prod.yml up -d` |
 | Stop services | `docker compose -f docker-compose.prod.yml down` |
 | View logs | `docker compose -f docker-compose.prod.yml logs -f` |

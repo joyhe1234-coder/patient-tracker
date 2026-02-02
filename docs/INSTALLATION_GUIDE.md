@@ -831,6 +831,45 @@ npm run build
 
 ---
 
+## For Maintainers: Publishing Docker Images
+
+When releasing a new version, push Docker images to Docker Hub so admins can pull them.
+
+### One-Time Setup
+
+```bash
+# Login to Docker Hub
+docker login
+```
+
+### Publishing a Release
+
+```bash
+# Set your Docker Hub username and version
+export REGISTRY=your-dockerhub-username
+export VERSION=v4.1.0
+
+# Build images
+docker build -t $REGISTRY/patient-tracker-backend:$VERSION -t $REGISTRY/patient-tracker-backend:latest ./backend
+docker build -t $REGISTRY/patient-tracker-frontend:$VERSION -t $REGISTRY/patient-tracker-frontend:latest ./frontend
+
+# Push to Docker Hub
+docker push $REGISTRY/patient-tracker-backend:$VERSION
+docker push $REGISTRY/patient-tracker-backend:latest
+docker push $REGISTRY/patient-tracker-frontend:$VERSION
+docker push $REGISTRY/patient-tracker-frontend:latest
+```
+
+### Updating .env.example
+
+After setting up Docker Hub, update `.env.example` with your actual Docker Hub username:
+
+```env
+DOCKER_REGISTRY=your-actual-dockerhub-username
+```
+
+---
+
 ## Support
 
 For issues and feature requests, contact your system administrator or submit an issue on the project repository.
