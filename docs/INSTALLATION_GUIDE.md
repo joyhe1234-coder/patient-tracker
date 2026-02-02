@@ -116,13 +116,63 @@ sudo systemctl start docker
 sudo systemctl enable docker
 ```
 
-### Step 2: Clone Repository
+### Step 2: Get Application Files
 
+Choose ONE of the following methods based on your environment:
+
+#### Method A: Git Clone (if git access available)
 ```bash
 cd /opt
 sudo git clone https://github.com/YOUR_ORG/patient-tracker.git
 cd patient-tracker
 ```
+
+#### Method B: Download Release Archive (no git required)
+
+On a machine with internet access:
+1. Go to `https://github.com/YOUR_ORG/patient-tracker/releases`
+2. Download the latest release `.zip` or `.tar.gz`
+3. Transfer to server via SCP, SFTP, or USB
+
+On the target server:
+```bash
+cd /opt
+sudo mkdir patient-tracker
+cd patient-tracker
+
+# For .tar.gz
+sudo tar -xzf /path/to/patient-tracker-vX.X.X.tar.gz --strip-components=1
+
+# For .zip
+sudo unzip /path/to/patient-tracker-vX.X.X.zip
+sudo mv patient-tracker-*/* . && sudo rmdir patient-tracker-*
+```
+
+#### Method C: Manual File Transfer (air-gapped environments)
+
+On a build machine with internet access:
+```bash
+# Clone and prepare the package
+git clone https://github.com/YOUR_ORG/patient-tracker.git
+cd patient-tracker
+
+# Install dependencies and build
+cd backend && npm ci && npm run build && cd ..
+cd frontend && npm ci && npm run build && cd ..
+
+# Create transfer package
+cd ..
+tar -czvf patient-tracker-bundle.tar.gz patient-tracker/
+```
+
+Transfer `patient-tracker-bundle.tar.gz` to the target server, then:
+```bash
+cd /opt
+sudo tar -xzf /path/to/patient-tracker-bundle.tar.gz
+cd patient-tracker
+```
+
+> **Note:** For Method C, node_modules are included. Skip `npm ci` in later steps.
 
 ### Step 3: Configure Environment Variables
 
@@ -246,15 +296,38 @@ sudo apt-get install -y nginx
 sudo systemctl enable nginx
 ```
 
-### Step 4: Clone and Build Application
+### Step 4: Get and Build Application
 
+#### Get Application Files
+
+Choose ONE method based on your environment:
+
+**Method A: Git Clone**
 ```bash
-# Clone repository
 cd /opt
 sudo git clone https://github.com/YOUR_ORG/patient-tracker.git
 cd patient-tracker
+```
 
-# Install backend dependencies
+**Method B: Release Archive** (no git required)
+
+Download from `https://github.com/YOUR_ORG/patient-tracker/releases` and transfer to server:
+```bash
+cd /opt
+sudo mkdir patient-tracker && cd patient-tracker
+sudo tar -xzf /path/to/patient-tracker-vX.X.X.tar.gz --strip-components=1
+```
+
+**Method C: Pre-built Bundle** (air-gapped environments)
+
+If using a pre-built bundle with node_modules included, skip the `npm ci` commands below.
+
+#### Build Application
+
+```bash
+cd /opt/patient-tracker
+
+# Install backend dependencies (skip if using pre-built bundle)
 cd backend
 npm ci
 
@@ -264,7 +337,7 @@ npx prisma generate
 # Build backend
 npm run build
 
-# Install frontend dependencies
+# Install frontend dependencies (skip if using pre-built bundle)
 cd ../frontend
 npm ci
 
@@ -644,13 +717,34 @@ npx prisma migrate reset
 
 ## Updating the Application
 
-### Docker Compose
+### Step 1: Get Updated Files
+
+Choose the method matching your initial installation:
+
+**With Git:**
+```bash
+cd /opt/patient-tracker
+git pull origin main
+```
+
+**Without Git (release archive):**
+1. Download new release from GitHub
+2. Backup current installation: `sudo cp -r /opt/patient-tracker /opt/patient-tracker.backup`
+3. Extract new release over existing (preserves .env files):
+```bash
+cd /opt/patient-tracker
+sudo tar -xzf /path/to/patient-tracker-vX.X.X.tar.gz --strip-components=1
+```
+
+**Without Git (pre-built bundle):**
+Transfer the new bundle and extract as above. Skip `npm ci` commands below.
+
+### Step 2: Apply Updates
+
+#### Docker Compose
 
 ```bash
 cd /opt/patient-tracker
-
-# Pull latest code
-git pull origin main
 
 # Rebuild and restart
 docker compose build
@@ -660,15 +754,12 @@ docker compose up -d
 docker compose exec app npx prisma migrate deploy
 ```
 
-### Manual Installation
+#### Manual Installation
 
 ```bash
 cd /opt/patient-tracker
 
-# Pull latest code
-git pull origin main
-
-# Update backend
+# Update backend (skip npm ci if using pre-built bundle)
 cd backend
 npm ci
 npx prisma generate
@@ -676,7 +767,7 @@ npm run build
 npx prisma migrate deploy
 sudo systemctl restart patient-tracker
 
-# Update frontend
+# Update frontend (skip npm ci if using pre-built bundle)
 cd ../frontend
 npm ci
 npm run build
