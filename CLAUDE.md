@@ -225,24 +225,30 @@ See `.claude/TESTING.md` for detailed patterns and troubleshooting.
 
 ## IMPORTANT: Installation Documentation
 
-**The file `docs/INSTALLATION_GUIDE.md` documents how to deploy this application on a self-hosted server.**
+**Three installation guides exist for different deployment targets:**
 
-**When making ANY decision that affects installation or deployment, you MUST update the installation guide:**
+| Guide | Purpose |
+|-------|---------|
+| `docs/QUICK_INSTALL.md` | Fast Docker install (for network admins) |
+| `docs/INSTALLATION_GUIDE.md` | Full self-hosted guide (Docker + manual options) |
+| `docs/RENDER_INSTALL.md` | Render.com cloud deployment |
 
-- New environment variables
-- New dependencies or version requirements
-- Configuration file changes
-- Database schema changes requiring migration
-- New services or components
-- Changes to build or deployment process
-- SMTP/email configuration
-- SSL/security requirements
+**When making ANY decision that affects installation or deployment, you MUST update ALL applicable guides:**
+
+- New environment variables → Update all 3 guides
+- New dependencies or version requirements → Update INSTALLATION_GUIDE.md
+- Configuration file changes → Update QUICK_INSTALL.md and INSTALLATION_GUIDE.md
+- Database schema changes requiring migration → Update all 3 guides
+- New services or components → Update all 3 guides
+- Changes to build or deployment process → Update applicable guides
+- SMTP/email configuration → Update all 3 guides
+- SSL/security requirements → Update INSTALLATION_GUIDE.md
 
 **Examples of changes requiring doc updates:**
-- Adding SMTP support for password reset → Update environment variables section
-- Adding Redis for caching → Add to system requirements and architecture
-- Changing Node.js version → Update prerequisites
-- Adding new API endpoints that need proxy config → Update Nginx section
+- Adding SMTP support for password reset → Update environment variables in all 3 guides
+- Adding Redis for caching → Add to system requirements in INSTALLATION_GUIDE.md and RENDER_INSTALL.md
+- Changing Node.js version → Update prerequisites in INSTALLATION_GUIDE.md
+- Adding new API endpoints that need proxy config → Update Nginx section in INSTALLATION_GUIDE.md
 
 ---
 
@@ -320,12 +326,16 @@ Read the following files before starting work:
 
 ## Project Documentation
 - `README.md` - Project overview (in root)
-- `docs/INSTALLATION_GUIDE.md` - **Self-hosted deployment guide (Docker Compose & manual)**
 - `.claude/IMPLEMENTATION_STATUS.md` - Current implementation status
 - `.claude/TODO.md` - Task list and priorities
 - `.claude/CHANGELOG.md` - Version history and changes
 - `.claude/REGRESSION_TEST_PLAN.md` - Testing requirements
 - `.claude/TESTING.md` - **Testing guide: framework setup, patterns, and examples**
+
+## Installation Guides
+- `docs/QUICK_INSTALL.md` - **Fast Docker install for network admins**
+- `docs/INSTALLATION_GUIDE.md` - **Full self-hosted guide (Docker + manual)**
+- `docs/RENDER_INSTALL.md` - **Render.com cloud deployment**
 
 ## Claude-Specific Context
 - `.claude/context.md` - Project structure and tech stack
