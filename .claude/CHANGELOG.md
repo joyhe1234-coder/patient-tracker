@@ -47,6 +47,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Backup and restore procedures
   - Troubleshooting section
   - Updated CLAUDE.md to require installation guide updates for deployment-affecting changes
+- **Simplified Installation for Network Admins** (Feb 2, 2026)
+  - Added Quick Start section with 5-step Docker path and 3-step script path
+  - Created `docker-compose.prod.yml` for production deployment
+  - Created `frontend/Dockerfile` for containerized frontend
+  - Created `scripts/install.sh` automated installer (Ubuntu/Debian/RHEL/CentOS)
+  - Created `nginx/nginx.prod.conf` for production reverse proxy
+  - Updated `.env.example` with all configuration options and comments
+  - Added non-git installation options (release archive, pre-built bundle)
 
 ### Changed
 - All data/config/import routes now require authentication

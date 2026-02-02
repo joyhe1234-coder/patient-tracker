@@ -4,6 +4,50 @@ This guide covers deploying the Patient Quality Measure Tracker on a self-hosted
 
 ---
 
+## Quick Start (For Network Admins)
+
+Choose the fastest path for your environment:
+
+### Path 1: Docker (Easiest - 5 steps)
+
+```bash
+# 1. Get the files (choose one method)
+#    - Git: git clone https://github.com/YOUR_ORG/patient-tracker.git
+#    - Or: Download and extract release archive
+
+# 2. Go to project directory
+cd patient-tracker
+
+# 3. Create config file
+cp .env.example .env
+
+# 4. Edit .env - set these two values:
+#    DB_PASSWORD=your_secure_password_here
+#    JWT_SECRET=run_this_to_generate: openssl rand -hex 32
+
+# 5. Start everything
+docker compose -f docker-compose.prod.yml up -d
+
+# Done! Access at http://your-server-ip
+# Default admin: admin@localhost / check docker logs for password
+```
+
+### Path 2: Install Script (No Docker - 3 steps)
+
+```bash
+# 1. Get the files and go to directory
+cd /opt/patient-tracker
+
+# 2. Run the installer (handles everything automatically)
+sudo ./scripts/install.sh
+
+# 3. Done! Credentials are displayed at the end
+```
+
+**For detailed instructions, SSL setup, or troubleshooting, see the full guide below.**
+
+---
+
 ## Table of Contents
 
 1. [System Requirements](#system-requirements)

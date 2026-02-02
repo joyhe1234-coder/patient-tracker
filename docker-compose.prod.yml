@@ -1,0 +1,87 @@
+# Production Docker Compose - uses pre-built images
+# For network admins: Just configure .env and run `docker compose -f docker-compose.prod.yml up -d`
+
+version: '3.8'
+
+services:
+  # Reverse proxy - routes traffic to frontend/backend
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+      - web
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+  # Frontend - static files served by nginx
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    # Or use pre-built image:
+    # image: your-registry/patient-tracker-frontend:latest
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+  # Backend API
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # Or use pre-built image:
+    # image: your-registry/patient-tracker-backend:latest
+    environment:
+      - DATABASE_URL=postgresql://appuser:${DB_PASSWORD}@db:5432/patienttracker
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-8h}
+      - NODE_ENV=production
+      - PORT=3000
+      - APP_URL=${APP_URL:-http://localhost}
+      # Optional SMTP for password reset emails
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-}
+      - SMTP_SECURE=${SMTP_SECURE:-}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+    volumes:
+      - ./config:/app/config
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+  # PostgreSQL database
+  db:
+    image: postgres:16-alpine
+    # Note: Port not exposed externally for security
+    environment:
+      - POSTGRES_DB=patienttracker
+      - POSTGRES_USER=appuser
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d patienttracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - patient-tracker
+
+networks:
+  patient-tracker:
+    driver: bridge
+
+volumes:
+  postgres_data:
