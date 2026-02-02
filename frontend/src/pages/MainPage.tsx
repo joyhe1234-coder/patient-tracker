@@ -7,8 +7,11 @@ import StatusFilterBar, { StatusColor, getRowStatusColor } from '../components/l
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import { api } from '../api/axios';
+import { useAuthStore } from '../stores/authStore';
 
 export default function MainPage() {
+  const { user, selectedPhysicianId } = useAuthStore();
+
   const [rowData, setRowData] = useState<GridRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,14 @@ export default function MainPage() {
 
   // Status color filters
   const [activeFilters, setActiveFilters] = useState<StatusColor[]>(['all']);
+
+  // Build query params for API calls (STAFF users need physicianId)
+  const getQueryParams = useCallback(() => {
+    if (user?.role === 'STAFF' && selectedPhysicianId) {
+      return `?physicianId=${selectedPhysicianId}`;
+    }
+    return '';
+  }, [user?.role, selectedPhysicianId]);
 
   // Calculate row counts by status color
   const rowCounts = useMemo(() => {
@@ -71,15 +82,17 @@ export default function MainPage() {
     });
   }, [rowData, activeFilters]);
 
+  // Load data when component mounts or when selectedPhysicianId changes (for STAFF)
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedPhysicianId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/data');
+      const queryParams = getQueryParams();
+      const response = await api.get(`/data${queryParams}`);
       console.log('Loaded data:', response.data);
       setRowData(response.data.data || []);
     } catch (err) {
@@ -102,7 +115,8 @@ export default function MainPage() {
     try {
       setSaveStatus('saving');
       // No defaults - requestType, qualityMeasure, measureStatus will be null
-      const response = await api.post('/data', data);
+      const queryParams = getQueryParams();
+      const response = await api.post(`/data${queryParams}`, data);
 
       if (response.data.success) {
         // Insert new row at beginning (it has rowOrder: 0)
@@ -141,7 +155,8 @@ export default function MainPage() {
 
     try {
       setSaveStatus('saving');
-      const response = await api.post('/data/duplicate', { sourceRowId: selectedRowId });
+      const queryParams = getQueryParams();
+      const response = await api.post(`/data/duplicate${queryParams}`, { sourceRowId: selectedRowId });
 
       if (response.data.success) {
         const newRow = response.data.data;

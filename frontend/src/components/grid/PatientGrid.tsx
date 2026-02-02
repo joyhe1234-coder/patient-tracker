@@ -4,6 +4,7 @@ import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, I
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
+import { useAuthStore } from '../../stores/authStore';
 import {
   REQUEST_TYPES,
   getQualityMeasuresForRequestType,
@@ -211,6 +212,15 @@ export default function PatientGrid({
   onNewRowFocused,
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
+  const { user, selectedPhysicianId } = useAuthStore();
+
+  // Build query params for API calls (STAFF users need physicianId)
+  const getQueryParams = useCallback(() => {
+    if (user?.role === 'STAFF' && selectedPhysicianId) {
+      return `?physicianId=${selectedPhysicianId}`;
+    }
+    return '';
+  }, [user?.role, selectedPhysicianId]);
 
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);
@@ -387,7 +397,8 @@ export default function PatientGrid({
         node.setDataValue('timeIntervalDays', null);
       }
 
-      const response = await api.put(`/data/${data.id}`, updatePayload);
+      const queryParams = getQueryParams();
+      const response = await api.put(`/data/${data.id}${queryParams}`, updatePayload);
 
       if (response.data.success) {
         // Update row data directly on the node instead of using applyTransaction

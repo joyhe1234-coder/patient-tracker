@@ -10,8 +10,13 @@ import { storePreview, getPreview, deletePreview, getPreviewSummary, getCacheSta
 import { executeImport } from '../services/import/importExecutor.js';
 import { createError } from '../middleware/errorHandler.js';
 import { handleUpload } from '../middleware/upload.js';
+import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
 
 const router = Router();
+
+// Import routes require authentication and patient data access (PHYSICIAN or STAFF)
+router.use(requireAuth);
+router.use(requirePatientDataAccess);
 
 /**
  * GET /api/import/systems

@@ -354,23 +354,45 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [ ] "Patient Declined" checkbox
 - [ ] Special color logic (GREEN/ORANGE/RED/GRAY) based on goal vs actual
 
-### Phase 11: View-Only Mode & Edit Locking
+### Phase 11: Authentication & Multi-Physician Support
 
-**Planned Features:**
-- [ ] View-only mode for non-editors
-- [ ] Single-editor locking system
-- [ ] Lock status indicator
-- [ ] Force-release lock (admin only)
+**Status: Complete**
 
-### Phase 12: Authentication & Multi-Physician Support
-
-**Planned Features:**
-- [ ] Login page for editors
-- [ ] JWT-based authentication
-- [ ] Admin panel for user management
-- [ ] Session timeout handling
-- [ ] Multi-physician data isolation (each physician sees only their patients)
-- [ ] Physician table and Patient.physicianId schema changes
+- [x] JWT-based authentication
+  - Login/logout endpoints
+  - Password hashing with bcrypt
+  - Token verification middleware
+  - Password change endpoint
+- [x] User management
+  - User model with roles (PHYSICIAN, STAFF, ADMIN)
+  - Staff-to-Physician assignment model
+  - Admin CRUD endpoints for users
+  - Password reset by admin
+  - CLI password reset script
+- [x] Role-based access control
+  - PHYSICIAN: sees only own patients
+  - STAFF: sees assigned physicians' patients (with physician selector)
+  - ADMIN: user management only, no patient data access
+- [x] Frontend authentication
+  - Login page with email/password form
+  - Zustand auth store with persistence
+  - Protected routes with role checks
+  - Header with user menu and physician selector
+  - Password change modal
+- [x] Admin dashboard
+  - User list with role badges
+  - Create/edit/deactivate users
+  - Staff-physician assignments
+  - Password reset
+  - Audit log viewer
+- [x] Data isolation by owner
+  - Patient.ownerId links patients to physicians
+  - API filtering by owner
+  - Existing patients remain unassigned (migration-safe)
+- [x] Audit logging
+  - LOGIN, LOGOUT, PASSWORD_CHANGE actions
+  - User CRUD actions
+  - Audit log cleanup script (6-month retention)
 
 ### Phase 13: Excel-like Behaviors
 

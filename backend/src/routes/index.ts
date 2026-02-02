@@ -1,21 +1,29 @@
 import { Router } from 'express';
 import healthRoutes from './health.routes.js';
+import authRoutes from './auth.routes.js';
+import adminRoutes from './admin.routes.js';
 import dataRoutes from './data.routes.js';
 import configRoutes from './config.routes.js';
 import importRoutes from './import.routes.js';
 
 const router = Router();
 
-// Health check
+// Health check (public)
 router.use('/health', healthRoutes);
 
-// Patient data (grid data)
+// Authentication (public)
+router.use('/auth', authRoutes);
+
+// Admin routes (ADMIN role only)
+router.use('/admin', adminRoutes);
+
+// Patient data (grid data) - protected
 router.use('/data', dataRoutes);
 
-// Configuration data
+// Configuration data - protected
 router.use('/config', configRoutes);
 
-// Import data
+// Import data - protected
 router.use('/import', importRoutes);
 
 export default router;

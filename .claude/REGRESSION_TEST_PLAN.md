@@ -1850,6 +1850,253 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 
 ---
 
+---
+
+## 26. Authentication & Multi-Physician Support (Phase 11)
+
+### TC-26.1: Login Page - Valid Credentials
+**Steps:**
+1. Navigate to application
+2. Enter valid email and password
+3. Click "Sign In"
+
+**Expected:**
+- Redirected to main patient grid
+- User menu shows user's display name in header
+- Protected routes accessible
+
+### TC-26.2: Login Page - Invalid Credentials
+**Steps:**
+1. Navigate to application
+2. Enter invalid email or password
+3. Click "Sign In"
+
+**Expected:**
+- Error message: "Invalid email or password"
+- Remains on login page
+- No token stored
+
+### TC-26.3: Login Page - Form Validation
+**Steps:**
+1. Leave email field empty, click "Sign In"
+2. Enter invalid email format, click "Sign In"
+
+**Expected:**
+- Required field validation shown
+- Cannot submit with invalid email format
+
+### TC-26.4: Logout
+**Steps:**
+1. Login as any user
+2. Click user menu in header
+3. Click "Logout"
+
+**Expected:**
+- Redirected to login page
+- Token cleared from localStorage
+- Cannot access protected routes
+
+### TC-26.5: Password Change
+**Steps:**
+1. Login as any user
+2. Click user menu → "Change Password"
+3. Enter current password, new password, confirm new password
+4. Click "Change Password"
+
+**Expected:**
+- Success message displayed
+- Modal closes
+- Can login with new password
+
+### TC-26.6: Password Change - Wrong Current Password
+**Steps:**
+1. Login as any user
+2. Click user menu → "Change Password"
+3. Enter wrong current password
+4. Click "Change Password"
+
+**Expected:**
+- Error message: "Current password is incorrect"
+- Password not changed
+
+### TC-26.7: PHYSICIAN Role - Data Isolation
+**Steps:**
+1. Login as PHYSICIAN user (e.g., dr.smith@clinic)
+2. View patient grid
+
+**Expected:**
+- Only sees patients where Patient.ownerId = current user's ID
+- Cannot see patients owned by other physicians
+- Cannot see unassigned patients (ownerId = null)
+
+### TC-26.8: STAFF Role - Physician Selector
+**Steps:**
+1. Login as STAFF user
+2. Observe header
+
+**Expected:**
+- Physician selector dropdown visible in header
+- Shows list of assigned physicians (from StaffAssignment)
+- First assigned physician selected by default
+
+### TC-26.9: STAFF Role - Switch Physician
+**Steps:**
+1. Login as STAFF user with multiple assigned physicians
+2. Select different physician from dropdown
+3. Observe patient grid
+
+**Expected:**
+- Grid refreshes with selected physician's patients
+- Only shows patients where ownerId = selected physician
+
+### TC-26.10: STAFF Role - No Assignments
+**Steps:**
+1. Login as STAFF user with no physician assignments
+
+**Expected:**
+- Message: "No physicians assigned"
+- Empty patient grid or message indicating no data access
+
+### TC-26.11: ADMIN Role - Cannot See Patients
+**Steps:**
+1. Login as ADMIN user
+2. Attempt to navigate to patient grid (/)
+
+**Expected:**
+- Redirected to admin dashboard
+- Cannot access patient data routes
+- Error if trying to access /api/data/patients directly
+
+### TC-26.12: ADMIN Role - User Management
+**Steps:**
+1. Login as ADMIN user
+2. Navigate to Admin dashboard
+
+**Expected:**
+- User list visible with all users
+- Can see user email, display name, role, status
+- Create/Edit/Deactivate buttons available
+
+### TC-26.13: Admin - Create User
+**Steps:**
+1. As ADMIN, click "Create User"
+2. Fill in email, username, display name, password, role
+3. Click "Create"
+
+**Expected:**
+- User created successfully
+- Appears in user list
+- Can login with new credentials
+
+### TC-26.14: Admin - Edit User
+**Steps:**
+1. As ADMIN, click "Edit" on a user
+2. Change display name and role
+3. Click "Save"
+
+**Expected:**
+- Changes saved
+- User list shows updated info
+- User's next login reflects new role
+
+### TC-26.15: Admin - Deactivate User
+**Steps:**
+1. As ADMIN, click "Deactivate" on a user
+2. Confirm action
+
+**Expected:**
+- User's isActive set to false
+- User cannot login
+- User appears dimmed/marked as inactive in list
+
+### TC-26.16: Admin - Reset Password
+**Steps:**
+1. As ADMIN, click "Reset Password" on a user
+2. Enter new password
+3. Click "Reset"
+
+**Expected:**
+- Password reset successful
+- User can login with new password
+
+### TC-26.17: Admin - Staff Assignments
+**Steps:**
+1. As ADMIN, edit a STAFF user
+2. Add/remove physician assignments
+3. Save changes
+
+**Expected:**
+- Assignments updated in database
+- STAFF user sees updated physician list on next login
+
+### TC-26.18: Admin - Audit Log Viewer
+**Steps:**
+1. As ADMIN, navigate to Audit Log section
+2. View recent entries
+
+**Expected:**
+- Shows recent audit entries (LOGIN, LOGOUT, PASSWORD_CHANGE, user CRUD)
+- Entries include timestamp, user, action, details
+
+### TC-26.19: Protected Routes - No Token
+**Steps:**
+1. Clear localStorage (remove token)
+2. Navigate directly to /
+
+**Expected:**
+- Redirected to /login
+- Cannot access protected content
+
+### TC-26.20: Protected Routes - Expired Token
+**Steps:**
+1. Login and get token
+2. Wait for token to expire (8 hours by default)
+3. Try to access protected route
+
+**Expected:**
+- Redirected to /login
+- Error message about session expired
+
+### TC-26.21: Import Page - PHYSICIAN Ownership
+**Steps:**
+1. Login as PHYSICIAN
+2. Import patients via /import
+3. Check imported patients
+
+**Expected:**
+- Imported patients have ownerId = current physician's ID
+- Only visible to current physician
+
+### TC-26.22: Import Page - STAFF Physician Selection
+**Steps:**
+1. Login as STAFF with multiple physician assignments
+2. Navigate to Import page
+3. Check if can select target physician
+
+**Expected:**
+- Can select which physician's data to import to
+- OR imports to currently selected physician from header
+
+### TC-26.23: CLI Password Reset
+**Steps:**
+1. Run: `npm run reset-password -- --email user@clinic --password newpass`
+
+**Expected:**
+- Password reset successfully
+- User can login with new password
+- Works for any user including ADMIN
+
+### TC-26.24: Audit Log Cleanup
+**Steps:**
+1. Run: `npm run cleanup-audit-log -- --days 30`
+
+**Expected:**
+- Deletes audit entries older than 30 days
+- Shows count of deleted entries
+- Remaining entries preserved
+
+---
+
 ## Last Updated
 
-January 28, 2026 - Added Import Executor test cases (Section 23)
+February 1, 2026 - Added Phase 11 Authentication test cases (Section 26)

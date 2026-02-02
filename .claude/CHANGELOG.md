@@ -9,8 +9,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.1.0-snapshot] - Unreleased
 
 ### Added
+- **Phase 11: Authentication & Multi-Physician Support**
+  - JWT-based authentication with login/logout endpoints
+  - User model with roles: PHYSICIAN, STAFF, ADMIN
+  - Staff-to-Physician assignment for multi-physician coverage
+  - Frontend login page with email/password form
+  - Zustand auth store with localStorage persistence
+  - Protected routes with role-based access control
+  - Header user menu with password change and logout
+  - Physician selector dropdown for STAFF users
+  - Admin dashboard with user management (CRUD)
+  - Audit log viewer in admin panel
+  - Password reset by admin and CLI script
+  - Audit log cleanup script (6-month retention)
+- **Data Isolation by Owner**
+  - Patient.ownerId field links patients to physicians
+  - PHYSICIAN sees only own patients
+  - STAFF sees assigned physicians' patients
+  - ADMIN cannot access patient data (user management only)
+  - Existing patients remain unassigned (backward compatible)
 
 ### Changed
+- All data/config/import routes now require authentication
+- PatientGrid and MainPage pass physicianId for STAFF users
+- AuditLog model updated with userId relation and changes field
 
 ### Fixed
 

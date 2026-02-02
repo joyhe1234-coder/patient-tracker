@@ -152,13 +152,18 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] Lock status indicator
 - [ ] Force-release lock (admin only)
 
-### Phase 11: Authentication & Multi-Physician Support
-- [ ] Login page for editors
-- [ ] JWT-based authentication
-- [ ] Admin panel for user management
-- [ ] Session timeout handling
-- [ ] Multi-physician data isolation
-- [ ] Physician table and Patient.physicianId schema changes
+### Phase 11: Authentication & Multi-Physician Support (**COMPLETED**)
+- [x] Login page for editors
+- [x] JWT-based authentication
+- [x] Admin panel for user management
+- [x] Multi-physician data isolation (Patient.ownerId)
+- [x] User model with roles (PHYSICIAN, STAFF, ADMIN)
+- [x] Staff-to-physician assignment
+- [x] Role-based access control
+- [x] Audit logging
+- [ ] Session timeout handling (advanced feature)
+- [ ] Unassigned patients page (advanced feature)
+- [ ] Import page physician selector for STAFF (advanced feature)
 
 ### Phase 12: Excel-like Behaviors
 - [ ] Keyboard navigation (Arrow keys, Tab, Enter)

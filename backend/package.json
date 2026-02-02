@@ -12,12 +12,15 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "lint": "eslint src --ext .ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-    "test:cli": "tsx scripts/test-transform.ts"
+    "test:cli": "tsx scripts/test-transform.ts",
+    "reset-password": "tsx scripts/resetPassword.ts",
+    "cleanup-audit-log": "tsx scripts/cleanupAuditLog.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

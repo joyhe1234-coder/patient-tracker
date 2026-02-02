@@ -1,7 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database.js';
+import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
 
 const router = Router();
+
+// Config routes require authentication and patient data access (PHYSICIAN or STAFF)
+// Config data is needed for dropdowns in the patient grid
+router.use(requireAuth);
+router.use(requirePatientDataAccess);
 
 // GET /api/config/all - Get all configuration data
 router.get('/all', async (_req: Request, res: Response, next: NextFunction) => {

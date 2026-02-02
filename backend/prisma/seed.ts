@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+// Default bcrypt salt rounds
+const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
 
 async function main() {
   console.log('Starting database seed...');
@@ -580,6 +584,34 @@ async function main() {
   });
 
   console.log('Initialized edit lock');
+
+  // ============================================
+  // INITIAL ADMIN USER
+  // ============================================
+
+  // Read admin credentials from environment (with defaults for development)
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@localhost';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'changeme123';
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+
+  // Hash the password
+  const adminPasswordHash = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
+
+  // Create admin user (upsert to avoid duplicates)
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    create: {
+      email: adminEmail,
+      username: adminUsername,
+      passwordHash: adminPasswordHash,
+      displayName: 'System Admin',
+      role: 'ADMIN',
+      isActive: true,
+    },
+    update: {}, // Don't overwrite existing admin
+  });
+
+  console.log(`Initialized admin user: ${adminEmail}`);
 
   // ============================================
   // COMPREHENSIVE SAMPLE DATA (all combinations)
