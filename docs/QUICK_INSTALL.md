@@ -178,12 +178,14 @@ sudo tar -xzf /path/to/patient-tracker-vX.X.X.tar.gz --strip-components=1
 # Rebuild containers with new code
 docker compose -f docker-compose.prod.yml build
 
-# Restart services
+# Restart services (database data is preserved)
 docker compose -f docker-compose.prod.yml up -d
 
 # Run any new database migrations
 docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
 ```
+
+> **Note:** Your database data is safe during updates. Data is stored in a Docker volume separate from containers. Only `docker compose down -v` (with `-v` flag) would delete data.
 
 ### Step 3: Verify
 
@@ -241,11 +243,15 @@ docker compose -f docker-compose.prod.yml logs nginx
 
 ### Need to reset everything
 ```bash
-# WARNING: This deletes all data!
+# ⚠️ WARNING: The -v flag deletes ALL data including patients, users, and settings!
+# Only use this if you want to start completely fresh
 docker compose -f docker-compose.prod.yml down -v
 docker compose -f docker-compose.prod.yml up -d
 # Then re-run Step 4 and Step 5
 ```
+
+> **Safe commands (keep data):** `down`, `stop`, `restart`, `build`, `up -d`
+> **Dangerous command (deletes data):** `down -v` (the `-v` removes volumes)
 
 ---
 
