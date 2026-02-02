@@ -24,7 +24,6 @@ enum UserRole {
 model User {
   id              Int       @id @default(autoincrement())
   email           String    @unique
-  username        String    @unique
   passwordHash    String    @map("password_hash")
   displayName     String    @map("display_name")
   role            UserRole  @default(PHYSICIAN)
@@ -233,7 +232,7 @@ model HCCCode {
 
 model EditLock {
   id                  Int       @id @default(1)
-  lockedByUsername    String?   @map("locked_by_username")
+  lockedByEmail       String?   @map("locked_by_email")
   lockedByDisplayName String?   @map("locked_by_display_name")
   lockedAt            DateTime? @map("locked_at")
   lastActivity        DateTime? @map("last_activity")
@@ -245,7 +244,7 @@ model AuditLog {
   id        Int      @id @default(autoincrement())
   userId    Int?     @map("user_id")
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  username  String?  // Kept for backwards compatibility and when user is deleted
+  userEmail String?  @map("user_email") // Kept for when user is deleted
   action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI'
   entity    String?  // 'patient_measure', 'patient', 'user', etc.
   entityId  Int?     @map("entity_id")
@@ -256,7 +255,7 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([userId])
-  @@index([username])
+  @@index([userEmail])
   @@index([entity, entityId])
   @@map("audit_log")
 }

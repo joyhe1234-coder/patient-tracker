@@ -53,7 +53,7 @@ export default function Header() {
           </div>
 
           {/* Navigation */}
-          {isAuthenticated && user?.role !== 'ADMIN' && (
+          {isAuthenticated && (
             <nav className="flex items-center gap-4 ml-8">
               <Link
                 to="/"
@@ -75,6 +75,18 @@ export default function Header() {
               >
                 Import
               </Link>
+              {user?.role === 'ADMIN' && (
+                <Link
+                  to="/admin"
+                  className={`text-sm font-medium ${
+                    location.pathname === '/admin'
+                      ? 'text-blue-600'
+                      : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Admin
+                </Link>
+              )}
             </nav>
           )}
         </div>
@@ -82,10 +94,12 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {isAuthenticated && user ? (
             <>
-              {/* Physician Selector for STAFF users */}
-              {user.role === 'STAFF' && assignments.length > 0 && (
+              {/* Physician Selector for STAFF and ADMIN users */}
+              {(user.role === 'STAFF' || user.role === 'ADMIN') && assignments.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Viewing as:</span>
+                  <span className="text-sm text-gray-500">
+                    {user.role === 'ADMIN' ? 'Viewing provider:' : 'Viewing as:'}
+                  </span>
                   <select
                     value={selectedPhysicianId || ''}
                     onChange={(e) => setSelectedPhysicianId(parseInt(e.target.value, 10))}

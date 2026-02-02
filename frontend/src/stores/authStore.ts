@@ -9,7 +9,6 @@ export type UserRole = 'PHYSICIAN' | 'STAFF' | 'ADMIN';
 export interface AuthUser {
   id: number;
   email: string;
-  username: string;
   displayName: string;
   role: UserRole;
   isActive: boolean;
@@ -65,9 +64,9 @@ export const useAuthStore = create<AuthState>()(
           // Store token in localStorage for axios interceptor
           localStorage.setItem('auth_token', token);
 
-          // Set default selected physician for STAFF
+          // Set default selected physician for STAFF and ADMIN
           let selectedPhysicianId: number | null = null;
-          if (user.role === 'STAFF' && assignments && assignments.length > 0) {
+          if ((user.role === 'STAFF' || user.role === 'ADMIN') && assignments && assignments.length > 0) {
             // Try to restore previous selection, or default to first
             const storedPhysicianId = localStorage.getItem('selectedPhysicianId');
             if (storedPhysicianId) {
@@ -149,7 +148,7 @@ export const useAuthStore = create<AuthState>()(
 
           // Preserve or update selected physician
           let selectedPhysicianId = get().selectedPhysicianId;
-          if (user.role === 'STAFF' && assignments && assignments.length > 0) {
+          if ((user.role === 'STAFF' || user.role === 'ADMIN') && assignments && assignments.length > 0) {
             // Verify current selection is still valid
             if (!assignments.some((a: StaffAssignment) => a.physicianId === selectedPhysicianId)) {
               selectedPhysicianId = assignments[0].physicianId;
@@ -217,7 +216,7 @@ export const useAuthStore = create<AuthState>()(
 
           // Restore or set default selected physician
           let selectedPhysicianId: number | null = null;
-          if (user.role === 'STAFF' && assignments && assignments.length > 0) {
+          if ((user.role === 'STAFF' || user.role === 'ADMIN') && assignments && assignments.length > 0) {
             const storedPhysicianId = localStorage.getItem('selectedPhysicianId');
             if (storedPhysicianId) {
               const id = parseInt(storedPhysicianId, 10);

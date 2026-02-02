@@ -359,7 +359,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 **Status: Complete**
 
 - [x] JWT-based authentication
-  - Login/logout endpoints
+  - Login/logout endpoints (email-only, no username)
   - Password hashing with bcrypt
   - Token verification middleware
   - Password change endpoint
@@ -372,13 +372,14 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [x] Role-based access control
   - PHYSICIAN: sees only own patients
   - STAFF: sees assigned physicians' patients (with physician selector)
-  - ADMIN: user management only, no patient data access
+  - ADMIN: user management + can view any physician's patients
 - [x] Frontend authentication
   - Login page with email/password form
   - Zustand auth store with persistence
   - Protected routes with role checks
-  - Header with user menu and physician selector
+  - Header with user menu and physician selector (STAFF and ADMIN)
   - Password change modal
+  - Consistent navigation across all pages including Admin
 - [x] Admin dashboard
   - User list with role badges
   - Create/edit/deactivate users
@@ -393,6 +394,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - LOGIN, LOGOUT, PASSWORD_CHANGE actions
   - User CRUD actions
   - Audit log cleanup script (6-month retention)
+  - Uses email for user identification (not username)
 
 ### Phase 13: Excel-like Behaviors
 

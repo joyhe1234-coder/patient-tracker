@@ -7,6 +7,7 @@ import {
   toAuthUser,
   findUserById,
   getStaffAssignments,
+  getAllPhysicians,
 } from '../services/authService.js';
 import { requireAuth } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
@@ -49,7 +50,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     await prisma.auditLog.create({
       data: {
         userId: result.user.id,
-        username: result.user.username,
+        userEmail: result.user.email,
         action: 'LOGIN',
         entity: 'user',
         entityId: result.user.id,
@@ -82,10 +83,10 @@ router.post('/logout', requireAuth, async (req: Request, res: Response, next: Ne
     await prisma.editLock.updateMany({
       where: {
         id: 1,
-        lockedByUsername: user.username,
+        lockedByEmail: user.email,
       },
       data: {
-        lockedByUsername: null,
+        lockedByEmail: null,
         lockedByDisplayName: null,
         lockedAt: null,
         lastActivity: null,
@@ -96,7 +97,7 @@ router.post('/logout', requireAuth, async (req: Request, res: Response, next: Ne
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        username: user.username,
+        userEmail: user.email,
         action: 'LOGOUT',
         entity: 'user',
         entityId: user.id,
@@ -127,10 +128,12 @@ router.get('/me', requireAuth, async (req: Request, res: Response, next: NextFun
       throw createError('User not found', 404, 'USER_NOT_FOUND');
     }
 
-    // Get staff assignments if user is STAFF
+    // Get staff assignments if user is STAFF, or all physicians if ADMIN
     let assignments;
     if (fullUser.role === 'STAFF') {
       assignments = await getStaffAssignments(fullUser.id);
+    } else if (fullUser.role === 'ADMIN') {
+      assignments = await getAllPhysicians();
     }
 
     res.json({
@@ -186,7 +189,7 @@ router.put('/password', requireAuth, async (req: Request, res: Response, next: N
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        username: user.username,
+        userEmail: user.email,
         action: 'PASSWORD_CHANGE',
         entity: 'user',
         entityId: user.id,

@@ -7,7 +7,6 @@ declare global {
       user?: {
         id: number;
         email: string;
-        username: string;
         displayName: string;
         role: UserRole;
         isActive: boolean;

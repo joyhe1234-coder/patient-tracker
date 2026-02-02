@@ -42,7 +42,6 @@ export async function requireAuth(
     req.user = {
       id: authUser.id,
       email: authUser.email,
-      username: authUser.username,
       displayName: authUser.displayName,
       role: authUser.role,
       isActive: authUser.isActive,
@@ -109,7 +108,6 @@ export async function optionalAuth(
       req.user = {
         id: authUser.id,
         email: authUser.email,
-        username: authUser.username,
         displayName: authUser.displayName,
         role: authUser.role,
         isActive: authUser.isActive,
@@ -124,8 +122,9 @@ export async function optionalAuth(
 }
 
 /**
- * Middleware that requires patient data access (PHYSICIAN or STAFF only).
- * ADMIN cannot access patient data.
+ * Middleware that requires patient data access.
+ * PHYSICIAN, STAFF, and ADMIN can all access patient data.
+ * ADMIN can view any physician's patients (must specify physicianId).
  */
 export function requirePatientDataAccess(
   req: Request,
@@ -137,15 +136,8 @@ export function requirePatientDataAccess(
       throw createError('Authentication required', 401, 'UNAUTHORIZED');
     }
 
-    if (req.user.role === 'ADMIN') {
-      throw createError(
-        'Administrators cannot access patient data',
-        403,
-        'ADMIN_NO_PATIENT_ACCESS'
-      );
-    }
-
-    // PHYSICIAN and STAFF can access patient data
+    // All roles can access patient data
+    // Access control is handled by the data routes based on role
     next();
   } catch (error) {
     next(error);

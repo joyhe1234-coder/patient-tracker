@@ -47,8 +47,23 @@ async function getPatientOwnerId(req: Request): Promise<number | null> {
     return physicianId;
   }
 
-  // ADMIN should not reach here due to requirePatientDataAccess middleware
-  throw createError('Admin users cannot access patient data', 403, 'FORBIDDEN');
+  if (user.role === 'ADMIN') {
+    // ADMIN must specify physicianId to view any physician's patients
+    const physicianIdParam = req.query.physicianId as string | undefined;
+    if (!physicianIdParam) {
+      throw createError('physicianId query parameter is required for ADMIN users', 400, 'MISSING_PHYSICIAN_ID');
+    }
+
+    const physicianId = parseInt(physicianIdParam, 10);
+    if (isNaN(physicianId)) {
+      throw createError('Invalid physicianId', 400, 'INVALID_PHYSICIAN_ID');
+    }
+
+    // ADMIN can view any physician's patients (no assignment check needed)
+    return physicianId;
+  }
+
+  throw createError('Unknown user role', 403, 'FORBIDDEN');
 }
 
 // GET /api/data - Get all patient measures (grid data)

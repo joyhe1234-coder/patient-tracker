@@ -4,7 +4,6 @@
  *
  * Usage:
  *   npm run reset-password -- --email user@example.com --password newpassword123
- *   npm run reset-password -- --username admin --password newpassword123
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -17,15 +16,11 @@ async function main() {
 
   // Parse arguments
   let email: string | undefined;
-  let username: string | undefined;
   let password: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--email' && args[i + 1]) {
       email = args[i + 1];
-      i++;
-    } else if (args[i] === '--username' && args[i + 1]) {
-      username = args[i + 1];
       i++;
     } else if (args[i] === '--password' && args[i + 1]) {
       password = args[i + 1];
@@ -34,10 +29,9 @@ async function main() {
   }
 
   // Validate arguments
-  if (!email && !username) {
-    console.error('Error: Either --email or --username is required');
+  if (!email) {
+    console.error('Error: --email is required');
     console.error('Usage: npm run reset-password -- --email user@example.com --password newpassword');
-    console.error('       npm run reset-password -- --username admin --password newpassword');
     process.exit(1);
   }
 
@@ -54,13 +48,8 @@ async function main() {
   const prisma = new PrismaClient();
 
   try {
-    // Find user
-    let user;
-    if (email) {
-      user = await prisma.user.findUnique({ where: { email } });
-    } else if (username) {
-      user = await prisma.user.findUnique({ where: { username } });
-    }
+    // Find user by email
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       console.error(`Error: User not found`);
@@ -80,7 +69,7 @@ async function main() {
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        username: user.username,
+        userEmail: user.email,
         action: 'PASSWORD_RESET_CLI',
         entity: 'user',
         entityId: user.id,

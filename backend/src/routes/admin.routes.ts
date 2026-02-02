@@ -15,7 +15,6 @@ router.use(requireRole(['ADMIN']));
 // Validation schemas
 const createUserSchema = z.object({
   email: z.string().email('Invalid email format'),
-  username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().min(1, 'Display name is required'),
   role: z.enum(['PHYSICIAN', 'STAFF', 'ADMIN']),
@@ -23,7 +22,6 @@ const createUserSchema = z.object({
 
 const updateUserSchema = z.object({
   email: z.string().email('Invalid email format').optional(),
-  username: z.string().min(3, 'Username must be at least 3 characters').optional(),
   displayName: z.string().min(1, 'Display name is required').optional(),
   role: z.enum(['PHYSICIAN', 'STAFF', 'ADMIN']).optional(),
   isActive: z.boolean().optional(),
@@ -48,7 +46,6 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
       select: {
         id: true,
         email: true,
-        username: true,
         displayName: true,
         role: true,
         isActive: true,
@@ -91,7 +88,6 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
     const transformedUsers = users.map((user) => ({
       id: user.id,
       email: user.email,
-      username: user.username,
       displayName: user.displayName,
       role: user.role,
       isActive: user.isActive,
@@ -133,7 +129,6 @@ router.get('/users/:id', async (req: Request, res: Response, next: NextFunction)
       select: {
         id: true,
         email: true,
-        username: true,
         displayName: true,
         role: true,
         isActive: true,
@@ -195,18 +190,12 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
       throw createError(parseResult.error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
-    const { email, username, password, displayName, role } = parseResult.data;
+    const { email, password, displayName, role } = parseResult.data;
 
     // Check for existing email
     const existingEmail = await prisma.user.findUnique({ where: { email } });
     if (existingEmail) {
       throw createError('Email already in use', 409, 'EMAIL_EXISTS');
-    }
-
-    // Check for existing username
-    const existingUsername = await prisma.user.findUnique({ where: { username } });
-    if (existingUsername) {
-      throw createError('Username already in use', 409, 'USERNAME_EXISTS');
     }
 
     // Hash password
@@ -216,7 +205,6 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
     const user = await prisma.user.create({
       data: {
         email,
-        username,
         passwordHash,
         displayName,
         role: role as UserRole,
@@ -228,11 +216,11 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
     await prisma.auditLog.create({
       data: {
         userId: req.user!.id,
-        username: req.user!.username,
+        userEmail: req.user!.email,
         action: 'CREATE',
         entity: 'user',
         entityId: user.id,
-        details: { email, username, role },
+        details: { email, role },
         ipAddress: req.ip || req.socket.remoteAddress,
       },
     });
@@ -281,14 +269,6 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
       }
     }
 
-    // Check for username conflicts
-    if (updates.username && updates.username !== existing.username) {
-      const usernameConflict = await prisma.user.findUnique({ where: { username: updates.username } });
-      if (usernameConflict) {
-        throw createError('Username already in use', 409, 'USERNAME_EXISTS');
-      }
-    }
-
     // Update user
     const user = await prisma.user.update({
       where: { id: userId },
@@ -304,7 +284,7 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
     await prisma.auditLog.create({
       data: {
         userId: req.user!.id,
-        username: req.user!.username,
+        userEmail: req.user!.email,
         action: 'UPDATE',
         entity: 'user',
         entityId: user.id,
@@ -373,7 +353,7 @@ router.delete('/users/:id', async (req: Request, res: Response, next: NextFuncti
     await prisma.auditLog.create({
       data: {
         userId: req.user!.id,
-        username: req.user!.username,
+        userEmail: req.user!.email,
         action: 'DELETE',
         entity: 'user',
         entityId: userId,
@@ -424,7 +404,7 @@ router.post('/users/:id/reset-password', async (req: Request, res: Response, nex
     await prisma.auditLog.create({
       data: {
         userId: req.user!.id,
-        username: req.user!.username,
+        userEmail: req.user!.email,
         action: 'PASSWORD_RESET',
         entity: 'user',
         entityId: userId,
@@ -592,7 +572,7 @@ router.get('/audit-log', async (req: Request, res: Response, next: NextFunction)
       data: {
         entries: entries.map((e) => ({
           ...e,
-          userDisplayName: e.user?.displayName || e.username || 'Unknown',
+          userDisplayName: e.user?.displayName || e.userEmail || 'Unknown',
         })),
         pagination: {
           page: pageNum,

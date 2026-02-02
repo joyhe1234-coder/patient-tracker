@@ -8,7 +8,6 @@ import type { User, UserRole } from '@prisma/client';
 export interface JwtPayload {
   userId: number;
   email: string;
-  username: string;
   role: UserRole;
 }
 
@@ -16,7 +15,6 @@ export interface JwtPayload {
 export interface AuthUser {
   id: number;
   email: string;
-  username: string;
   displayName: string;
   role: UserRole;
   isActive: boolean;
@@ -46,11 +44,10 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 /**
  * Generate a JWT token for a user
  */
-export function generateToken(user: Pick<User, 'id' | 'email' | 'username' | 'role'>): string {
+export function generateToken(user: Pick<User, 'id' | 'email' | 'role'>): string {
   const payload: JwtPayload = {
     userId: user.id,
     email: user.email,
-    username: user.username,
     role: user.role,
   };
 
@@ -90,15 +87,6 @@ export async function findUserById(id: number): Promise<User | null> {
 }
 
 /**
- * Find a user by username
- */
-export async function findUserByUsername(username: string): Promise<User | null> {
-  return prisma.user.findUnique({
-    where: { username },
-  });
-}
-
-/**
  * Update user's last login timestamp
  */
 export async function updateLastLogin(userId: number): Promise<void> {
@@ -126,7 +114,6 @@ export function toAuthUser(user: User): AuthUser {
   return {
     id: user.id,
     email: user.email,
-    username: user.username,
     displayName: user.displayName,
     role: user.role,
     isActive: user.isActive,
@@ -172,6 +159,30 @@ export async function isStaffAssignedToPhysician(staffId: number, physicianId: n
 }
 
 /**
+ * Get all physicians (for ADMIN to select which physician's patients to view)
+ */
+export async function getAllPhysicians(): Promise<StaffAssignment[]> {
+  const physicians = await prisma.user.findMany({
+    where: {
+      role: 'PHYSICIAN',
+      isActive: true,
+    },
+    select: {
+      id: true,
+      displayName: true,
+    },
+    orderBy: {
+      displayName: 'asc',
+    },
+  });
+
+  return physicians.map((p) => ({
+    physicianId: p.id,
+    physicianName: p.displayName,
+  }));
+}
+
+/**
  * Authenticate a user with email and password
  * Returns the user and token if successful, null otherwise
  */
@@ -202,10 +213,12 @@ export async function authenticateUser(
   // Generate token
   const token = generateToken(user);
 
-  // Get staff assignments if user is STAFF
+  // Get staff assignments if user is STAFF, or all physicians if ADMIN
   let assignments: StaffAssignment[] | undefined;
   if (user.role === 'STAFF') {
     assignments = await getStaffAssignments(user.id);
+  } else if (user.role === 'ADMIN') {
+    assignments = await getAllPhysicians();
   }
 
   return {

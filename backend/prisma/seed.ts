@@ -590,9 +590,8 @@ async function main() {
   // ============================================
 
   // Read admin credentials from environment (with defaults for development)
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@localhost';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@clinic.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'changeme123';
-  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 
   // Hash the password
   const adminPasswordHash = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
@@ -602,13 +601,14 @@ async function main() {
     where: { email: adminEmail },
     create: {
       email: adminEmail,
-      username: adminUsername,
       passwordHash: adminPasswordHash,
       displayName: 'System Admin',
       role: 'ADMIN',
       isActive: true,
     },
-    update: {}, // Don't overwrite existing admin
+    update: {
+      passwordHash: adminPasswordHash,
+    },
   });
 
   console.log(`Initialized admin user: ${adminEmail}`);

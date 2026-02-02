@@ -21,16 +21,21 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
-              <AdminPage />
+              <div className="min-h-screen bg-gray-50 flex flex-col">
+                <Header />
+                <main className="flex-1 flex flex-col">
+                  <AdminPage />
+                </main>
+              </div>
             </ProtectedRoute>
           }
         />
 
-        {/* Protected routes (PHYSICIAN and STAFF) */}
+        {/* Protected routes (all authenticated users) */}
         <Route
           path="/*"
           element={
-            <ProtectedRoute allowedRoles={['PHYSICIAN', 'STAFF']}>
+            <ProtectedRoute allowedRoles={['PHYSICIAN', 'STAFF', 'ADMIN']}>
               <div className="min-h-screen bg-gray-50 flex flex-col">
                 <Header />
                 <main className="flex-1 flex flex-col">

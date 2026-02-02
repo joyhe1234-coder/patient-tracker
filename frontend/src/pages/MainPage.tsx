@@ -29,9 +29,9 @@ export default function MainPage() {
   // Status color filters
   const [activeFilters, setActiveFilters] = useState<StatusColor[]>(['all']);
 
-  // Build query params for API calls (STAFF users need physicianId)
+  // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
-    if (user?.role === 'STAFF' && selectedPhysicianId) {
+    if ((user?.role === 'STAFF' || user?.role === 'ADMIN') && selectedPhysicianId) {
       return `?physicianId=${selectedPhysicianId}`;
     }
     return '';

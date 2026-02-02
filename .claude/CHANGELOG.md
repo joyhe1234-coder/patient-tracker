@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Zustand auth store with localStorage persistence
   - Protected routes with role-based access control
   - Header user menu with password change and logout
-  - Physician selector dropdown for STAFF users
+  - Physician selector dropdown for STAFF and ADMIN users
   - Admin dashboard with user management (CRUD)
   - Audit log viewer in admin panel
   - Password reset by admin and CLI script
@@ -26,13 +26,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Patient.ownerId field links patients to physicians
   - PHYSICIAN sees only own patients
   - STAFF sees assigned physicians' patients
-  - ADMIN cannot access patient data (user management only)
+  - ADMIN can view any physician's patients (with selector)
   - Existing patients remain unassigned (backward compatible)
 
 ### Changed
 - All data/config/import routes now require authentication
-- PatientGrid and MainPage pass physicianId for STAFF users
+- PatientGrid and MainPage pass physicianId for STAFF and ADMIN users
 - AuditLog model updated with userId relation and changes field
+- Removed username field - authentication uses email only
+- Admin page now includes Header with full navigation
+- Edit lock uses email instead of username
 
 ### Fixed
 
