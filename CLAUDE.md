@@ -223,6 +223,29 @@ See `.claude/TESTING.md` for detailed patterns and troubleshooting.
 
 ---
 
+## IMPORTANT: Installation Documentation
+
+**The file `docs/INSTALLATION_GUIDE.md` documents how to deploy this application on a self-hosted server.**
+
+**When making ANY decision that affects installation or deployment, you MUST update the installation guide:**
+
+- New environment variables
+- New dependencies or version requirements
+- Configuration file changes
+- Database schema changes requiring migration
+- New services or components
+- Changes to build or deployment process
+- SMTP/email configuration
+- SSL/security requirements
+
+**Examples of changes requiring doc updates:**
+- Adding SMTP support for password reset → Update environment variables section
+- Adding Redis for caching → Add to system requirements and architecture
+- Changing Node.js version → Update prerequisites
+- Adding new API endpoints that need proxy config → Update Nginx section
+
+---
+
 ## IMPORTANT: Release Workflow
 
 **When the user runs `/release` or asks to release, follow these steps:**
@@ -297,6 +320,7 @@ Read the following files before starting work:
 
 ## Project Documentation
 - `README.md` - Project overview (in root)
+- `docs/INSTALLATION_GUIDE.md` - **Self-hosted deployment guide (Docker Compose & manual)**
 - `.claude/IMPLEMENTATION_STATUS.md` - Current implementation status
 - `.claude/TODO.md` - Task list and priorities
 - `.claude/CHANGELOG.md` - Version history and changes

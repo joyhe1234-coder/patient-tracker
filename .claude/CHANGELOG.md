@@ -37,6 +37,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Frontend authStore.test.ts (25 tests): login/logout, session persistence
   - E2E auth.spec.ts (9 tests): login form, credentials, session, protected routes
   - Enhanced CLAUDE.md testing requirements with emphasis and checklists
+- **Installation Guide** (Feb 2, 2026)
+  - Created `docs/INSTALLATION_GUIDE.md` for self-hosted server deployment
+  - Docker Compose deployment option (recommended)
+  - Manual installation option for custom environments
+  - Environment variables reference (required + optional SMTP)
+  - Architecture diagram with Nginx reverse proxy
+  - SSL/TLS configuration options (Let's Encrypt, self-signed, corporate)
+  - Backup and restore procedures
+  - Troubleshooting section
+  - Updated CLAUDE.md to require installation guide updates for deployment-affecting changes
 
 ### Changed
 - All data/config/import routes now require authentication
