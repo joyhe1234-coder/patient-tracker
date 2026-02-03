@@ -55,6 +55,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Created `nginx/nginx.prod.conf` for production reverse proxy
   - Updated `.env.example` with all configuration options and comments
   - Added non-git installation options (release archive, pre-built bundle)
+- **Forgot Password Feature** (Feb 3, 2026)
+  - `/forgot-password` page with email form (checks SMTP status)
+  - `/reset-password` page with token validation and new password form
+  - `POST /api/auth/forgot-password` - creates token, sends reset email
+  - `POST /api/auth/reset-password` - validates token, updates password
+  - `GET /api/auth/smtp-status` - frontend checks if email is available
+  - `PasswordResetToken` database model with 1-hour expiration
+  - Email service using nodemailer (configurable SMTP)
+  - Graceful fallback when SMTP not configured ("Contact administrator")
+  - "Forgot password?" link added to login page
 
 ### Changed
 - All data/config/import routes now require authentication

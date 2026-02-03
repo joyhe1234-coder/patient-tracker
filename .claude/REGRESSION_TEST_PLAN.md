@@ -2095,8 +2095,100 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Shows count of deleted entries
 - Remaining entries preserved
 
+### TC-26.25: Forgot Password - Link on Login Page
+**Steps:**
+1. Navigate to /login
+2. Look for "Forgot Password?" link
+
+**Expected:**
+- Link visible below sign in button
+- Clicking link navigates to /forgot-password
+
+### TC-26.26: Forgot Password - Request Reset (SMTP Configured)
+**Steps:**
+1. Ensure SMTP is configured in environment
+2. Navigate to /forgot-password
+3. Enter valid email address
+4. Click "Send Reset Link"
+
+**Expected:**
+- Success message: "If an account exists with this email, a reset link has been sent"
+- Email received with reset link
+- Link contains valid token
+- Token expires after 1 hour
+
+### TC-26.27: Forgot Password - Request Reset (SMTP Not Configured)
+**Steps:**
+1. Ensure SMTP is NOT configured
+2. Navigate to /forgot-password
+
+**Expected:**
+- Message displayed: "Password reset is not available. Please contact your administrator."
+- No email form shown
+
+### TC-26.28: Forgot Password - Invalid Email
+**Steps:**
+1. Navigate to /forgot-password
+2. Enter email that doesn't exist in system
+3. Click "Send Reset Link"
+
+**Expected:**
+- Same success message shown (security: don't reveal if email exists)
+- No email sent
+
+### TC-26.29: Reset Password - Valid Token
+**Steps:**
+1. Request password reset email
+2. Click link in email (navigates to /reset-password?token=xxx)
+3. Enter new password and confirm
+4. Click "Reset Password"
+
+**Expected:**
+- Success message: "Password has been reset"
+- Redirected to login page
+- Can login with new password
+
+### TC-26.30: Reset Password - Expired Token
+**Steps:**
+1. Request password reset email
+2. Wait >1 hour (or manually expire token in DB)
+3. Click link in email
+
+**Expected:**
+- Error message: "Reset link has expired"
+- Link to request new reset
+
+### TC-26.31: Reset Password - Invalid Token
+**Steps:**
+1. Navigate to /reset-password?token=invalidtoken
+
+**Expected:**
+- Error message: "Invalid reset link"
+- Link to request new reset
+
+### TC-26.32: Reset Password - Token Already Used
+**Steps:**
+1. Request password reset email
+2. Use the link to reset password
+3. Try to use the same link again
+
+**Expected:**
+- Error message: "Reset link has already been used"
+- Link to request new reset
+
+### TC-26.33: Reset Password - Password Validation
+**Steps:**
+1. Navigate to /reset-password with valid token
+2. Enter mismatched passwords
+3. Enter password too short (<8 chars)
+
+**Expected:**
+- Validation error for mismatched passwords
+- Validation error for short password
+- Cannot submit until valid
+
 ---
 
 ## Last Updated
 
-February 1, 2026 - Added Phase 11 Authentication test cases (Section 26)
+February 3, 2026 - Added Forgot Password test cases (TC-26.25 to TC-26.33)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Activity, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 
@@ -172,9 +172,15 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <div className="mt-6">
-            <p className="text-center text-xs text-gray-500">
-              Contact your administrator if you need access or forgot your password.
+          <div className="mt-6 text-center">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-500"
+            >
+              Forgot your password?
+            </Link>
+            <p className="mt-2 text-xs text-gray-500">
+              Contact your administrator if you need access.
             </p>
           </div>
         </div>

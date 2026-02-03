@@ -169,6 +169,16 @@ See **Phase 5: CSV Import** in "In Progress" section above.
   - Backend: authService, middleware, routes tests (50 tests)
   - Frontend: LoginPage, authStore tests (42 tests)
   - E2E: auth.spec.ts Playwright tests (9 tests)
+- [x] **Forgot Password Feature** (Feb 3, 2026)
+  - [x] PasswordResetToken database model
+  - [x] POST /api/auth/forgot-password endpoint
+  - [x] POST /api/auth/reset-password endpoint
+  - [x] Email service (configurable SMTP via nodemailer)
+  - [x] ForgotPasswordPage frontend
+  - [x] ResetPasswordPage frontend
+  - [x] "Forgot Password?" link on LoginPage
+  - [x] Fallback message when SMTP not configured
+  - [x] GET /api/auth/smtp-status endpoint for frontend check
 - [ ] Session timeout handling (advanced feature)
 - [ ] Unassigned patients page (advanced feature)
 - [ ] Import page physician selector for STAFF (advanced feature)
