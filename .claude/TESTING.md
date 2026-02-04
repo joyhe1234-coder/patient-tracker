@@ -72,7 +72,7 @@ cd frontend && npm run cypress:run
 
 ## All Implemented Tests
 
-### Backend Tests (317 tests)
+### Backend Tests (339 tests)
 
 **Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
@@ -88,10 +88,11 @@ cd frontend && npm run cypress:run
 | `integration.test.ts` | 14 | Full pipeline tests, edge cases |
 | **Auth Service Tests** | | `backend/src/services/__tests__/` |
 | `authService.test.ts` | 19 | Password hashing, JWT tokens, toAuthUser |
+| `emailService.test.ts` | 14 | SMTP configuration, reset URL, email content |
 | **Auth Middleware Tests** | | `backend/src/middleware/__tests__/` |
 | `auth.test.ts` | 13 | requireAuth, requireRole, optionalAuth, requirePatientDataAccess |
 | **Route Tests** | | `backend/src/routes/__tests__/` |
-| `auth.routes.test.ts` | 8 | Login validation, auth requirement checks |
+| `auth.routes.test.ts` | 16 | Login validation, SMTP status, forgot/reset password |
 | `admin.routes.test.ts` | 10 | Admin endpoint auth requirements |
 | **API Tests** | | Various |
 | Patient, Measure routes | ~137 | Patient CRUD, measure operations |
@@ -108,7 +109,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (160 tests)
+### Frontend Component Tests (191 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
@@ -117,10 +118,12 @@ npm test -- -t "should parse CSV"  # Specific test
 | **Component Tests** | | `frontend/src/components/` |
 | `StatusFilterBar.test.tsx` | 29 | Filter chip rendering, click behavior, row colors |
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
-| `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
+| `AddRowModal.test.tsx` | 14 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
 | **Page Tests** | | `frontend/src/pages/` |
 | `LoginPage.test.tsx` | 17 | Login form, validation, password toggle, auth flow |
+| `ForgotPasswordPage.test.tsx` | 14 | SMTP check, email form, success/error states |
+| `ResetPasswordPage.test.tsx` | 17 | Token validation, password form, reset flow |
 | `ImportPage.test.tsx` | 26 | Import workflow UI, mode selection, file upload |
 | `ImportPreviewPage.test.tsx` | 23 | Preview display, summary cards, changes table |
 | **Store Tests** | | `frontend/src/stores/` |

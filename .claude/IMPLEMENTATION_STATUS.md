@@ -332,8 +332,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 241 tests passing (89% statement coverage, 80% branch coverage)
-- Total test count: ~260 automated tests across all frameworks
+- [x] 339 tests passing (89% statement coverage, 80% branch coverage)
+- Total test count: ~590 automated tests across all frameworks
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -400,6 +400,17 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Frontend: LoginPage.test.tsx (17), authStore.test.ts (25)
   - E2E: auth.spec.ts (9 Playwright tests)
   - 101 new authentication tests total
+- [x] Forgot Password Feature (Feb 3, 2026)
+  - PasswordResetToken database model with 1-hour expiration
+  - POST /api/auth/forgot-password - generates token, sends reset email
+  - POST /api/auth/reset-password - validates token, updates password
+  - GET /api/auth/smtp-status - frontend checks if email is available
+  - Email service (emailService.ts) using nodemailer
+  - ForgotPasswordPage - email form when SMTP configured, fallback message when not
+  - ResetPasswordPage - token validation, password reset form
+  - "Forgot password?" link on login page
+  - Backend loads .env via dotenv for local development
+  - SMTP environment variables configured on Render production
 
 ### Phase 13: Excel-like Behaviors
 
@@ -531,4 +542,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 2, 2026 - Added comprehensive authentication tests (101 tests across backend/frontend/E2E), total ~570+ automated tests
+February 3, 2026 - Added Forgot Password feature with email service, API endpoints, and frontend pages
