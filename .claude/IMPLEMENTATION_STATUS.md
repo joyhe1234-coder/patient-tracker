@@ -414,7 +414,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Phase 12: Patient Ownership & Assignment System
 
-**Status: In Progress**
+**Status: Complete**
 
 Complete redesign of patient ownership, viewing, and import assignment.
 
@@ -451,15 +451,17 @@ Complete redesign of patient ownership, viewing, and import assignment.
 - [x] GET /api/users/physicians/:id - Get specific physician info (Phase 12b)
 - [x] POST /api/import/preview - Detect and return `reassignments` array (Phase 12c)
 - [x] POST /api/import/execute - Require `confirmReassign=true` if reassignments exist (Phase 12c)
-- [ ] PATCH /api/patients/bulk-assign - Bulk assignment (admin only)
+- [x] PATCH /api/admin/patients/bulk-assign - Bulk assignment (admin only)
+- [x] GET /api/admin/patients/unassigned - Get unassigned patients (admin only)
 
 **Frontend Changes (Phase 12d-g):**
-- [ ] Patient Grid: Physician selector dropdown (ADMIN/STAFF only)
-- [ ] Patient Grid: "Select a physician to view" message when none selected
-- [ ] Import Modal: Physician selector (ADMIN/STAFF only)
-- [ ] Import Modal: Reassignment warning dialog
-- [ ] Patient Assignment Page: New admin-only page for bulk reassignment
-- [ ] User Management: "Can Have Patients" toggle for ADMIN users
+- [x] Patient Grid: Physician selector dropdown (ADMIN/STAFF only)
+- [x] Patient Grid: "Select a physician to view" message when none selected
+- [x] Import Page: Physician selector (ADMIN/STAFF only)
+- [x] Import Preview: Reassignment warning with confirmation modal
+- [x] Patient Assignment Page: New admin-only page for bulk reassignment (`/admin/patient-assignment`)
+- [x] User Management: "Can Have Patients" toggle for ADMIN users
+- [x] Admin Page: "Assign Patients" button linking to assignment page
 
 **Import Reassignment Warning:**
 When importing patients that already belong to another physician:
@@ -601,4 +603,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 3, 2026 - Added Forgot Password feature with email service, API endpoints, and frontend pages
+February 3, 2026 - Completed Phase 12: Patient Ownership & Assignment System (all phases 12a-12g)

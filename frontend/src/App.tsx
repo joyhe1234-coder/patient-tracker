@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import AdminPage from './pages/AdminPage';
+import PatientAssignmentPage from './pages/PatientAssignmentPage';
 import HillMeasureMapping from './pages/HillMeasureMapping';
 import ImportTestPage from './pages/ImportTestPage';
 import ImportPage from './pages/ImportPage';
@@ -29,6 +30,19 @@ function App() {
                 <Header />
                 <main className="flex-1 flex flex-col">
                   <AdminPage />
+                </main>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/patient-assignment"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <div className="min-h-screen bg-gray-50 flex flex-col">
+                <Header />
+                <main className="flex-1 flex flex-col">
+                  <PatientAssignmentPage />
                 </main>
               </div>
             </ProtectedRoute>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
@@ -214,6 +214,32 @@ export default function MainPage() {
   const handleNewRowFocused = useCallback(() => {
     setNewRowId(null);
   }, []);
+
+  // Check if STAFF/ADMIN needs to select a physician first
+  const needsPhysicianSelection = (user?.role === 'STAFF' || user?.role === 'ADMIN') && !selectedPhysicianId;
+
+  if (needsPhysicianSelection) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Select a Physician
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Please select a physician from the dropdown in the header to view their patients.
+          </p>
+          <p className="text-sm text-gray-500">
+            {user?.role === 'ADMIN'
+              ? 'As an admin, you can view any physician\'s patients or select "Unassigned" to view patients not yet assigned.'
+              : 'You can only view patients for physicians you are assigned to.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -28,6 +28,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Added `targetOwnerId` to preview cache
     - Import execute requires `confirmReassign=true` if reassignments exist
     - Blocks execution if reassignments not explicitly confirmed
+  - **Phase 12d-g: Frontend UI** (Complete)
+    - Patient Grid: "Select a physician to view" message for ADMIN/STAFF
+    - Import Page: Physician selector dropdown with dynamic step numbering
+    - Import Preview: Reassignment warning section with confirmation modal
+    - Patient Assignment Page: New `/admin/patient-assignment` for bulk assignment
+    - User Management: "Can Have Patients" toggle for ADMIN users
+    - Admin Page: "Assign Patients" button linking to assignment page
+    - Backend: PATCH /api/admin/patients/bulk-assign endpoint
+    - Backend: GET /api/admin/patients/unassigned endpoint
   - **Requirements Documentation**
     - Physicians see only their own patients (auto-filtered)
     - Staff/Admin must select physician before viewing patients

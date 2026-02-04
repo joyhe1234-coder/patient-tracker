@@ -14,6 +14,7 @@ import {
   Shield,
   UserCircle,
   Stethoscope,
+  UserPlus,
 } from 'lucide-react';
 import { api } from '../api/axios';
 import { useAuthStore, UserRole } from '../stores/authStore';
@@ -25,6 +26,7 @@ interface AdminUser {
   displayName: string;
   role: UserRole;
   isActive: boolean;
+  canHavePatients: boolean;
   lastLoginAt: string | null;
   patientCount: number;
   assignedPhysicians: { physicianId: number; physicianName: string }[];
@@ -232,16 +234,25 @@ export default function AdminPage() {
               <h2 className="text-lg font-semibold text-gray-900">
                 Users ({users.length})
               </h2>
-              <button
-                onClick={() => {
-                  setEditingUser(null);
-                  setShowUserModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4" />
-                Add User
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/admin/patient-assignment')}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Assign Patients
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setShowUserModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add User
+                </button>
+              </div>
             </div>
 
             {/* Users table */}
@@ -522,6 +533,7 @@ function UserModal({
     displayName: user?.displayName || '',
     role: user?.role || 'PHYSICIAN',
     isActive: user?.isActive ?? true,
+    canHavePatients: user?.canHavePatients ?? false,
     assignedPhysicianIds: user?.assignedPhysicians.map((a) => a.physicianId) || [],
   });
   const [error, setError] = useState<string | null>(null);
@@ -542,6 +554,10 @@ function UserModal({
           role: formData.role,
           isActive: formData.isActive,
         };
+        // Include canHavePatients for ADMIN role (PHYSICIAN is always true, STAFF is always false)
+        if (formData.role === 'ADMIN') {
+          updateData.canHavePatients = formData.canHavePatients;
+        }
         await api.put(`/admin/users/${user!.id}`, updateData);
 
         // Update staff assignments if role is STAFF
@@ -572,13 +588,18 @@ function UserModal({
           setSaving(false);
           return;
         }
-        const response = await api.post('/admin/users', {
+        const createData: Record<string, unknown> = {
           email: formData.email,
           username: formData.username,
           password: formData.password,
           displayName: formData.displayName,
           role: formData.role,
-        });
+        };
+        // Include canHavePatients for ADMIN role
+        if (formData.role === 'ADMIN') {
+          createData.canHavePatients = formData.canHavePatients;
+        }
+        const response = await api.post('/admin/users', createData);
 
         // Add staff assignments if role is STAFF
         if (formData.role === 'STAFF') {
@@ -686,6 +707,36 @@ function UserModal({
               <option value="ADMIN">Admin</option>
             </select>
           </div>
+
+          {/* Can Have Patients toggle - only for ADMIN role, always true for PHYSICIAN, always false for STAFF */}
+          {formData.role === 'ADMIN' && (
+            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+              <input
+                type="checkbox"
+                id="canHavePatients"
+                checked={formData.canHavePatients}
+                onChange={(e) => setFormData({ ...formData, canHavePatients: e.target.checked })}
+                className="mt-1 rounded"
+              />
+              <div>
+                <label htmlFor="canHavePatients" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Can Have Patients
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Enable this if this admin user should also be able to have patients assigned to them like a physician.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {formData.role === 'PHYSICIAN' && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Can Have Patients:</span>
+                <span className="text-sm text-green-600 font-medium">Always enabled for physicians</span>
+              </div>
+            </div>
+          )}
 
           {formData.role === 'STAFF' && (
             <div>
