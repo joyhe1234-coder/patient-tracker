@@ -12,7 +12,7 @@ export function ForgotPasswordPage() {
 
   useEffect(() => {
     // Check if SMTP is configured
-    api.get('/api/auth/smtp-status')
+    api.get('/auth/smtp-status')
       .then((response) => {
         setSmtpConfigured(response.data.data.configured);
       })
@@ -27,7 +27,7 @@ export function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      await api.post('/api/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email });
       setSuccess(true);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };

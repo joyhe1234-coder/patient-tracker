@@ -75,6 +75,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Edit lock uses email instead of username
 
 ### Fixed
+- Fixed double `/api` prefix in forgot/reset password API calls (was `/api/api/auth/...`)
+- Added `dotenv` to backend for automatic `.env` loading in local development
+- Configured SMTP environment variables on Render production deployment
+- Added `APP_URL` environment variable on Render for correct password reset links
 
 ---
 
