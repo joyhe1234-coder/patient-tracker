@@ -109,6 +109,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Edit lock uses email instead of username
 
 ### Fixed
+- **Delete row not working for ADMIN users** (Feb 4, 2026)
+  - Bug: Delete API call missing `physicianId` query parameter
+  - Cause: Phase 12 added physician filtering requirement but delete endpoint wasn't updated
+  - Fix: Added `getQueryParams()` to delete API call in MainPage.tsx
 - Fixed double `/api` prefix in forgot/reset password API calls (was `/api/api/auth/...`)
 - Added `dotenv` to backend for automatic `.env` loading in local development
 - Configured SMTP environment variables on Render production deployment

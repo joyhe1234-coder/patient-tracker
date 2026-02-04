@@ -72,7 +72,7 @@ cd frontend && npm run cypress:run
 
 ## All Implemented Tests
 
-### Backend Tests (339 tests)
+### Backend Tests (347 tests)
 
 **Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
@@ -94,6 +94,7 @@ cd frontend && npm run cypress:run
 | **Route Tests** | | `backend/src/routes/__tests__/` |
 | `auth.routes.test.ts` | 16 | Login validation, SMTP status, forgot/reset password |
 | `admin.routes.test.ts` | 10 | Admin endpoint auth requirements |
+| `data.routes.test.ts` | 5 | Data endpoint auth requirements (GET, POST, PUT, DELETE) |
 | **API Tests** | | Various |
 | Patient, Measure routes | ~137 | Patient CRUD, measure operations |
 

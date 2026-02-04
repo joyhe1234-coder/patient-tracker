@@ -189,7 +189,7 @@ export default function MainPage() {
 
     try {
       setSaveStatus('saving');
-      const response = await api.delete(`/data/${selectedRowId}`);
+      const response = await api.delete(`/data/${selectedRowId}${getQueryParams()}`);
 
       if (response.data.success) {
         setRowData((prev) => prev.filter((row) => row.id !== selectedRowId));
