@@ -332,7 +332,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 339 tests passing (89% statement coverage, 80% branch coverage)
+- [x] 347 tests passing (89% statement coverage, 80% branch coverage)
 - Total test count: ~590 automated tests across all frameworks
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
@@ -603,4 +603,4 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 3, 2026 - Completed Phase 12: Patient Ownership & Assignment System (all phases 12a-12g)
+February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

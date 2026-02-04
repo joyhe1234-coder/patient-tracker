@@ -107,6 +107,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Removed username field - authentication uses email only
 - Admin page now includes Header with full navigation
 - Edit lock uses email instead of username
+- **Removed username from Admin user form** (Feb 4, 2026)
+  - Removed username field from create/edit user modal
+  - Removed username from AdminUser and AuditLogEntry interfaces
+  - Users are identified by email only
 
 ### Fixed
 - **Delete row not working for ADMIN users** (Feb 4, 2026)

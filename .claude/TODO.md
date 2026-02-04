@@ -273,4 +273,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 3, 2026 - Completed Phase 12d-12g: Patient Ownership UI updates, Bulk Assignment, User Management
+February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

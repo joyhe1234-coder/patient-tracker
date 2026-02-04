@@ -22,7 +22,6 @@ import { useAuthStore, UserRole } from '../stores/authStore';
 interface AdminUser {
   id: number;
   email: string;
-  username: string;
   displayName: string;
   role: UserRole;
   isActive: boolean;
@@ -41,7 +40,6 @@ interface Physician {
 interface AuditLogEntry {
   id: number;
   userId: number | null;
-  username: string | null;
   userDisplayName: string;
   action: string;
   entity: string | null;
@@ -528,7 +526,6 @@ function UserModal({
   const isEditing = !!user;
   const [formData, setFormData] = useState({
     email: user?.email || '',
-    username: user?.username || '',
     password: '',
     displayName: user?.displayName || '',
     role: user?.role || 'PHYSICIAN',
@@ -549,7 +546,6 @@ function UserModal({
         // Update user
         const updateData: Record<string, unknown> = {
           email: formData.email,
-          username: formData.username,
           displayName: formData.displayName,
           role: formData.role,
           isActive: formData.isActive,
@@ -590,7 +586,6 @@ function UserModal({
         }
         const createData: Record<string, unknown> = {
           email: formData.email,
-          username: formData.username,
           password: formData.password,
           displayName: formData.displayName,
           role: formData.role,
@@ -646,19 +641,6 @@ function UserModal({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username
-            </label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
