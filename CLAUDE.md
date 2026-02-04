@@ -197,49 +197,53 @@ See `.claude/TESTING.md` for detailed patterns and troubleshooting.
 
 ## IMPORTANT: Pre-Commit Workflow
 
-**Before ANY git commit, you MUST update these documents first:**
+**Before ANY git commit, follow these steps IN ORDER:**
 
-1. **`.claude/CHANGELOG.md`** - Add entry for:
-   - What changed (features, fixes, refactors)
-   - Date of change
-   - Brief description of impact
-   - **CHANGELOG is the source of truth for current UI/feature state**
+### Step 1: Update CHANGELOG First (Source of Truth)
 
-2. **`.claude/IMPLEMENTATION_STATUS.md`** - Update to reflect:
-   - New features/components added
-   - Changes to existing functionality
-   - Current completion status of each module
+**`.claude/CHANGELOG.md`** is the authoritative source for current UI/feature state.
 
-3. **`.claude/REGRESSION_TEST_PLAN.md`** - Update to reflect:
-   - New test cases needed for added functionality
-   - Modified test cases for changed behavior
-   - Mark completed tests
+Add entry for:
+- What changed (features, fixes, refactors)
+- Date of change
+- Brief description of impact
 
-4. **`.claude/TODO.md`** - Update to reflect:
-   - Mark completed tasks as done
-   - Add new tasks discovered during implementation
-   - Update priorities if needed
+### Step 2: Reconcile Other Documents Against CHANGELOG
 
-### Document Reconciliation (IMPORTANT)
+**CRITICAL:** Before committing, read CHANGELOG and update all other documents to match it.
 
-**Before committing, reconcile all documents against CHANGELOG:**
+| Document | Reconcile Against CHANGELOG |
+|----------|----------------------------|
+| `IMPLEMENTATION_STATUS.md` | Feature descriptions, completion status, test counts |
+| `TODO.md` | Mark completed tasks, remove obsolete items |
+| `REGRESSION_TEST_PLAN.md` | Test cases match current features |
+| Requirements docs | Specs match current implementation |
 
-CHANGELOG contains the **latest and most accurate** description of current features and UI behavior. If there are conflicts between documents:
-
-1. **CHANGELOG is authoritative** - It reflects the actual implemented state
-2. **Update other docs to match CHANGELOG** - Not the other way around
-3. **Check for stale information** in:
-   - IMPLEMENTATION_STATUS.md (feature descriptions)
-   - TODO.md (completed items)
-   - Any requirements docs (outdated specs)
+**If there are conflicts between documents:**
+1. **CHANGELOG wins** - It reflects the actual implemented state
+2. **Update other docs to match CHANGELOG** - Never the other way around
 
 **Common conflicts to check:**
-- Removed features still listed as active
-- Changed UI fields (e.g., username → email)
+- Removed features still listed as active (e.g., username field)
+- Changed UI fields or behavior
 - Modified API endpoints or parameters
-- Updated test counts
+- Outdated test counts
 
-**Workflow:** Read current docs → Update CHANGELOG first → Reconcile other docs against CHANGELOG → Stage all doc updates → Then commit together.
+### Step 3: Stage and Commit Together
+
+```bash
+git add .claude/CHANGELOG.md .claude/IMPLEMENTATION_STATUS.md .claude/TODO.md [code files]
+git commit -m "description"
+```
+
+**Complete Workflow:**
+```
+1. Make code changes
+2. Update CHANGELOG.md (describe what changed)
+3. Read CHANGELOG, then update other docs to match
+4. Stage code + ALL doc updates together
+5. Commit
+```
 
 ---
 
