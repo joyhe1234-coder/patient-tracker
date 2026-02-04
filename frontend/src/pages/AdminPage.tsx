@@ -153,12 +153,29 @@ export default function AdminPage() {
     }
   };
 
-  const getRoleBadge = (role: UserRole) => {
+  const getRoleBadge = (role: UserRole, canHavePatients?: boolean) => {
     const colors = {
       ADMIN: 'bg-purple-100 text-purple-800',
       PHYSICIAN: 'bg-blue-100 text-blue-800',
       STAFF: 'bg-green-100 text-green-800',
     };
+
+    // ADMIN with canHavePatients shows both roles
+    if (role === 'ADMIN' && canHavePatients) {
+      return (
+        <div className="flex gap-1">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors.ADMIN}`}>
+            {getRoleIcon('ADMIN')}
+            ADMIN
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors.PHYSICIAN}`}>
+            {getRoleIcon('PHYSICIAN')}
+            PHYSICIAN
+          </span>
+        </div>
+      );
+    }
+
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors[role]}`}>
         {getRoleIcon(role)}
@@ -305,7 +322,7 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">{getRoleBadge(u.role)}</td>
+                        <td className="px-6 py-4">{getRoleBadge(u.role, u.canHavePatients)}</td>
                         <td className="px-6 py-4">
                           {u.isActive ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
@@ -323,7 +340,7 @@ export default function AdminPage() {
                           {formatDate(u.lastLoginAt)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          {u.role === 'PHYSICIAN' ? u.patientCount : '-'}
+                          {u.role === 'PHYSICIAN' || u.canHavePatients ? u.patientCount : '-'}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">

@@ -111,6 +111,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Removed username field from create/edit user modal
   - Removed username from AdminUser and AuditLogEntry interfaces
   - Users are identified by email only
+- **Dual role display for ADMIN with canHavePatients** (Feb 4, 2026)
+  - Admin users with canHavePatients=true show both "ADMIN" and "PHYSICIAN" badges
+  - Header shows "(ADMIN + PHYSICIAN)" for these users
+  - Patient count column shows count for admins who can have patients
 
 ### Fixed
 - **Delete row not working for ADMIN users** (Feb 4, 2026)

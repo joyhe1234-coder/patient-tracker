@@ -122,7 +122,9 @@ export default function Header() {
                 >
                   <User className="w-4 h-4" />
                   <span>{user.displayName}</span>
-                  <span className="text-xs text-gray-500">({user.role})</span>
+                  <span className="text-xs text-gray-500">
+                    ({user.role === 'ADMIN' && user.canHavePatients ? 'ADMIN + PHYSICIAN' : user.role})
+                  </span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
