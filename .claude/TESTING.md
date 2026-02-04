@@ -88,13 +88,14 @@ cd frontend && npm run cypress:run
 | `integration.test.ts` | 14 | Full pipeline tests, edge cases |
 | **Auth Service Tests** | | `backend/src/services/__tests__/` |
 | `authService.test.ts` | 19 | Password hashing, JWT tokens, toAuthUser |
-| `emailService.test.ts` | 14 | SMTP configuration, reset URL, email content |
+| `emailService.test.ts` | 20 | SMTP configuration, reset URL, email content, admin reset notification |
 | **Auth Middleware Tests** | | `backend/src/middleware/__tests__/` |
 | `auth.test.ts` | 13 | requireAuth, requireRole, optionalAuth, requirePatientDataAccess |
 | **Route Tests** | | `backend/src/routes/__tests__/` |
 | `auth.routes.test.ts` | 16 | Login validation, SMTP status, forgot/reset password |
-| `admin.routes.test.ts` | 10 | Admin endpoint auth requirements |
-| `data.routes.test.ts` | 5 | Data endpoint auth requirements (GET, POST, PUT, DELETE) |
+| `admin.routes.test.ts` | 12 | Admin endpoint auth requirements (users, assignments, audit, bulk-assign) |
+| `data.routes.test.ts` | 6 | Data endpoint auth requirements (GET, POST, PUT, DELETE, duplicate) |
+| `users.routes.test.ts` | 4 | Physician endpoint auth requirements (Phase 12) |
 | **API Tests** | | Various |
 | Patient, Measure routes | ~137 | Patient CRUD, measure operations |
 

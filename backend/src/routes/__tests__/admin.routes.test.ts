@@ -26,6 +26,7 @@ jest.mock('../../config/database.js', () => ({
     },
     patient: {
       updateMany: jest.fn(),
+      findMany: jest.fn(),
     },
     staffAssignment: {
       findMany: jest.fn(),
@@ -48,6 +49,12 @@ jest.mock('../../services/authService.js', () => ({
   toAuthUser: jest.fn(),
   verifyToken: mockVerifyToken,
   findUserById: mockFindUserById,
+}));
+
+// Mock emailService
+jest.mock('../../services/emailService.js', () => ({
+  isSmtpConfigured: jest.fn<() => boolean>().mockReturnValue(false),
+  sendAdminPasswordResetNotification: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
 }));
 
 // Mock config
@@ -77,12 +84,11 @@ describe('admin routes', () => {
   beforeEach(() => {
     app = createTestApp();
     jest.clearAllMocks();
+    mockVerifyToken.mockReturnValue(null);
   });
 
   describe('authentication requirements', () => {
     it('should return 401 for GET /users when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .get('/api/admin/users');
 
@@ -90,8 +96,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for GET /users/:id when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .get('/api/admin/users/1');
 
@@ -99,8 +103,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for POST /users when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .post('/api/admin/users')
         .send({
@@ -114,8 +116,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for PUT /users/:id when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .put('/api/admin/users/1')
         .send({ displayName: 'Updated Name' });
@@ -124,8 +124,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for DELETE /users/:id when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .delete('/api/admin/users/1');
 
@@ -133,8 +131,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for POST /users/:id/reset-password when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .post('/api/admin/users/1/reset-password')
         .send({ newPassword: 'newpassword123' });
@@ -143,8 +139,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for GET /physicians when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .get('/api/admin/physicians');
 
@@ -152,8 +146,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for POST /staff-assignments when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .post('/api/admin/staff-assignments')
         .send({ staffId: 2, physicianId: 1 });
@@ -162,8 +154,6 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for DELETE /staff-assignments when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .delete('/api/admin/staff-assignments')
         .send({ staffId: 2, physicianId: 1 });
@@ -172,10 +162,23 @@ describe('admin routes', () => {
     });
 
     it('should return 401 for GET /audit-log when not authenticated', async () => {
-      mockVerifyToken.mockReturnValue(null);
-
       const response = await request(app)
         .get('/api/admin/audit-log');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 401 for PATCH /patients/bulk-assign when not authenticated', async () => {
+      const response = await request(app)
+        .patch('/api/admin/patients/bulk-assign')
+        .send({ patientIds: [1, 2], ownerId: 1 });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 401 for GET /patients/unassigned when not authenticated', async () => {
+      const response = await request(app)
+        .get('/api/admin/patients/unassigned');
 
       expect(response.status).toBe(401);
     });
@@ -183,4 +186,13 @@ describe('admin routes', () => {
 
   // Note: Authorization tests (403 for non-ADMIN roles) are covered by E2E Playwright tests
   // due to ESM module mocking limitations with middleware chains.
+  //
+  // The following scenarios should be tested via E2E:
+  // - PHYSICIAN/STAFF accessing admin routes -> 403
+  // - Inactive ADMIN user -> 401
+  // - Valid ADMIN can access all admin routes
+  // - Bulk patient assignment with valid/invalid data
+  // - Get unassigned patients list
+  //
+  // See: frontend/e2e/auth.spec.ts
 });

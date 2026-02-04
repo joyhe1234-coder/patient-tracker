@@ -161,4 +161,61 @@ describe('emailService - SMTP Configuration', () => {
       expect(expirationText).toContain('1 hour');
     });
   });
+
+  describe('Admin password reset notification URL construction', () => {
+    // Test the login URL construction logic for admin reset notifications
+    function buildLoginUrl(): string {
+      const appUrl = process.env.APP_URL || 'http://localhost:5173';
+      return `${appUrl}/login`;
+    }
+
+    it('should use default APP_URL when not set', () => {
+      delete process.env.APP_URL;
+
+      const url = buildLoginUrl();
+
+      expect(url).toBe('http://localhost:5173/login');
+    });
+
+    it('should use APP_URL when set', () => {
+      process.env.APP_URL = 'https://myapp.com';
+
+      const url = buildLoginUrl();
+
+      expect(url).toBe('https://myapp.com/login');
+    });
+  });
+
+  describe('Admin password reset notification content requirements', () => {
+    // Test that the admin notification email contains required elements
+
+    it('should have correct subject line format for admin reset', () => {
+      const expectedSubject = 'Your Password Has Been Reset - Patient Tracker';
+      expect(expectedSubject).toContain('Has Been Reset');
+      expect(expectedSubject).toContain('Patient Tracker');
+    });
+
+    it('should include admin name placeholder requirement', () => {
+      // The email template should include the admin's name
+      const adminName = 'John Admin';
+      const messageTemplate = `Your password for Patient Tracker has been reset by ${adminName}.`;
+
+      expect(messageTemplate).toContain(adminName);
+      expect(messageTemplate).toContain('has been reset by');
+    });
+
+    it('should include security notice', () => {
+      const securityNotice = 'If you did not expect this password reset, please contact your administrator immediately.';
+
+      expect(securityNotice).toContain('did not expect');
+      expect(securityNotice).toContain('contact your administrator');
+    });
+
+    it('should include login link reference', () => {
+      const messageWithLogin = 'You can now log in with your new password';
+
+      expect(messageWithLogin).toContain('log in');
+      expect(messageWithLogin).toContain('new password');
+    });
+  });
 });

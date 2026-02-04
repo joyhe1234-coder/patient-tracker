@@ -53,6 +53,9 @@ jest.mock('../../config/database.js', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    staffAssignment: {
+      findFirst: jest.fn(),
+    },
   },
 }));
 
@@ -60,6 +63,7 @@ jest.mock('../../config/database.js', () => ({
 jest.mock('../../services/authService.js', () => ({
   verifyToken: mockVerifyToken,
   findUserById: mockFindUserById,
+  isStaffAssignedToPhysician: jest.fn(),
 }));
 
 // Mock config
@@ -138,13 +142,32 @@ describe('data routes', () => {
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
     });
+
+    it('should return 401 for POST /api/data/check-duplicate when not authenticated', async () => {
+      const response = await request(app)
+        .post('/api/data/check-duplicate')
+        .send({ memberName: 'Test, User', memberDob: '1990-01-01', requestType: 'AWV', qualityMeasure: 'Test' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+    });
   });
 
-  // Note: physicianId validation tests for ADMIN/STAFF users require complex ESM mocking
+  // Note: The following role-based access control tests require complex ESM mocking
   // that doesn't work reliably with Jest. These scenarios are covered by:
   // - E2E Playwright tests in frontend/e2e/
   // - Manual QA verification
   //
-  // The fix for the delete endpoint (adding getQueryParams() to include physicianId)
-  // was verified manually and prevents the MISSING_PHYSICIAN_ID error for ADMIN users.
+  // Scenarios covered by E2E tests:
+  // - ADMIN without physicianId -> 400 MISSING_PHYSICIAN_ID
+  // - STAFF without physicianId -> 400 MISSING_PHYSICIAN_ID
+  // - STAFF with physicianId=unassigned -> 403 FORBIDDEN
+  // - STAFF with physicianId=null -> 403 FORBIDDEN
+  // - Invalid physicianId format -> 400 INVALID_PHYSICIAN_ID
+  // - PHYSICIAN auto-filters to own patients
+  // - ADMIN can view any physician's patients
+  // - STAFF can only view assigned physician's patients
+  // - Inactive user -> 401 USER_DEACTIVATED
+  //
+  // See: frontend/e2e/auth.spec.ts
 });

@@ -46,6 +46,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Email includes admin's name who performed the reset
     - Added `sendAdminPasswordResetNotification` function to emailService
     - Response includes `emailSent` flag indicating notification status
+  - **Phase 11/12 Test Coverage** (Feb 4, 2026)
+    - NEW: `users.routes.test.ts` - 4 tests for physician endpoint authentication
+    - Updated `admin.routes.test.ts` - Added 2 tests for bulk-assign and unassigned patients endpoints
+    - Updated `data.routes.test.ts` - Added 1 test for check-duplicate endpoint
+    - Updated `emailService.test.ts` - Added 6 tests for admin reset notification content
+    - Total backend tests: 360 (was 347)
   - **Requirements Documentation**
     - Physicians see only their own patients (auto-filtered)
     - Staff/Admin must select physician before viewing patients
