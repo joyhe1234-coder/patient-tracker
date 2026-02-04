@@ -463,6 +463,11 @@ Complete redesign of patient ownership, viewing, and import assignment.
 - [x] User Management: "Can Have Patients" toggle for ADMIN users
 - [x] Admin Page: "Assign Patients" button linking to assignment page
 
+**UI Refinements (Phase 12h):**
+- [x] Provider dropdown only visible on Patient Grid page (not Import/Admin pages)
+- [x] ADMIN users can select "Unassigned patients" option to view patients without a provider
+- [x] MainPage properly sends `physicianId=unassigned` for unassigned patient queries
+
 **Import Reassignment Warning:**
 When importing patients that already belong to another physician:
 - Show warning dialog listing affected patients

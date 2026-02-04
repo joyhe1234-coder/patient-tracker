@@ -31,8 +31,12 @@ export default function MainPage() {
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
-    if ((user?.role === 'STAFF' || user?.role === 'ADMIN') && selectedPhysicianId) {
+    if (user?.role === 'STAFF' && selectedPhysicianId) {
       return `?physicianId=${selectedPhysicianId}`;
+    }
+    if (user?.role === 'ADMIN') {
+      // ADMIN can view unassigned patients (physicianId=null) or specific physician
+      return `?physicianId=${selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}`;
     }
     return '';
   }, [user?.role, selectedPhysicianId]);

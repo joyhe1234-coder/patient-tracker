@@ -94,17 +94,23 @@ export default function Header() {
         <div className="flex items-center gap-4">
           {isAuthenticated && user ? (
             <>
-              {/* Physician Selector for STAFF and ADMIN users */}
-              {(user.role === 'STAFF' || user.role === 'ADMIN') && assignments.length > 0 && (
+              {/* Physician Selector for STAFF and ADMIN users - only on Patient Grid page */}
+              {location.pathname === '/' && (user.role === 'STAFF' || user.role === 'ADMIN') && assignments.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">
                     {user.role === 'ADMIN' ? 'Viewing provider:' : 'Viewing as:'}
                   </span>
                   <select
-                    value={selectedPhysicianId || ''}
-                    onChange={(e) => setSelectedPhysicianId(parseInt(e.target.value, 10))}
+                    value={selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedPhysicianId(value === 'unassigned' ? null : parseInt(value, 10));
+                    }}
                     className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
+                    {user.role === 'ADMIN' && (
+                      <option value="unassigned">Unassigned patients</option>
+                    )}
                     {assignments.map((assignment) => (
                       <option key={assignment.physicianId} value={assignment.physicianId}>
                         {assignment.physicianName}
