@@ -144,13 +144,17 @@ export function categorizeStatus(status: string | null): ComplianceCategory {
 
 /**
  * Calculate diff between imported data and existing database
+ * @param rows - Transformed import rows
+ * @param mode - Import mode (merge or replace)
+ * @param targetOwnerId - Owner ID to filter existing records (null = unassigned patients only)
  */
 export async function calculateDiff(
   rows: TransformedRow[],
-  mode: ImportMode
+  mode: ImportMode,
+  targetOwnerId: number | null = null
 ): Promise<DiffResult> {
-  // Load existing data from database
-  const existingRecords = await loadExistingRecords();
+  // Load existing data from database filtered by target owner
+  const existingRecords = await loadExistingRecords(targetOwnerId);
 
   // Build lookup map: "memberName|memberDob|requestType|qualityMeasure" -> record
   const existingByKey = new Map<string, ExistingRecord>();
@@ -213,8 +217,17 @@ export async function calculateDiff(
 /**
  * Load all existing patient measures from database
  */
-async function loadExistingRecords(): Promise<ExistingRecord[]> {
+/**
+ * Load existing records filtered by owner
+ * @param targetOwnerId - Owner ID to filter by (null = unassigned patients only)
+ */
+async function loadExistingRecords(targetOwnerId: number | null): Promise<ExistingRecord[]> {
   const measures = await prisma.patientMeasure.findMany({
+    where: {
+      patient: {
+        ownerId: targetOwnerId, // null matches unassigned patients
+      },
+    },
     include: {
       patient: {
         include: {
