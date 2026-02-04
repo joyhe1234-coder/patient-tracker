@@ -597,6 +597,7 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
 
   // Create admin user (upsert to avoid duplicates)
+  // ADMIN has canHavePatients=false by default (can be enabled later)
   await prisma.user.upsert({
     where: { email: adminEmail },
     create: {
@@ -604,6 +605,7 @@ async function main() {
       passwordHash: adminPasswordHash,
       displayName: 'System Admin',
       role: 'ADMIN',
+      canHavePatients: false,
       isActive: true,
     },
     update: {

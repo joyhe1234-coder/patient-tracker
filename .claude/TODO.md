@@ -100,6 +100,65 @@ This document tracks planned features and enhancements for future development.
 
 ## High Priority
 
+### Phase 12: Patient Ownership & Assignment System
+**Reference:** `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md`
+
+#### Phase 12a: Database & Backend Foundation ✅ COMPLETE
+- [x] Add `canHavePatients` field to User model (migration)
+- [x] Update seed.ts: PHYSICIAN gets `canHavePatients=true` by default
+- [x] Update user creation API to handle `canHavePatients`
+- [x] Update user update API to enforce role-based rules
+- [x] Update authService: toAuthUser includes canHavePatients
+- [x] Update getAllPhysicians to return all users with canHavePatients=true
+- [x] Update frontend AuthUser type
+- [x] Update all tests for new field
+
+#### Phase 12b: Patient Filtering by Owner ✅ COMPLETE
+- [x] Update GET /api/data to require `physicianId` for ADMIN/STAFF
+- [x] Add support for `?physicianId=unassigned` (unassigned patients, ADMIN only)
+- [x] PHYSICIAN: auto-filter to own patients
+- [x] STAFF: requires physicianId, cannot view unassigned
+- [x] Create GET /api/users/physicians endpoint (returns eligible owners)
+- [x] GET /api/users/physicians/:id for individual physician info
+
+#### Phase 12c: Import Reassignment Detection ✅ COMPLETE
+- [x] Update import preview to detect patients being reassigned
+- [x] Add `reassignments` array to preview response
+- [x] Update import execute to require `confirmReassign` flag
+- [x] Block execution if reassignments exist and not confirmed
+
+#### Phase 12d: Patient Grid UI Updates
+- [ ] Add physician selector dropdown for ADMIN/STAFF
+- [ ] Show "Select a physician to view patients" when none selected
+- [ ] Store selected physician in localStorage
+- [ ] Hide selector for PHYSICIAN role
+
+#### Phase 12e: Import Modal UI Updates
+- [ ] Add physician selector for ADMIN/STAFF import
+- [ ] Require physician selection before import
+- [ ] Show reassignment warning dialog with affected patient list
+- [ ] Require confirmation for reassignment
+
+#### Phase 12f: Bulk Assignment Feature
+- [ ] Create PATCH /api/patients/bulk-assign endpoint (admin only)
+- [ ] Create Patient Assignment page (`/admin/patient-assignment`)
+- [ ] Add bulk selection checkboxes to assignment grid
+- [ ] Add "Assign to..." action dropdown
+- [ ] Add confirmation dialog for bulk operations
+
+#### Phase 12g: User Management Updates
+- [ ] Add "Can Have Patients" toggle in user edit form
+- [ ] Show toggle only for ADMIN users
+- [ ] PHYSICIAN always shows as enabled (non-editable)
+
+#### Phase 12h: Concurrent Editing (TBD)
+- [ ] Handle multiple users editing same physician's patients simultaneously
+- [ ] Conflict detection strategy (optimistic locking, real-time sync, etc.)
+- [ ] Conflict resolution UX
+- **Status:** Placeholder - requirements to be discussed
+
+---
+
 ### Add New Quality Measure: Depression Screening
 **Reference:** `.claude/ADDING_QUALITY_MEASURES.md` (implementation checklist)
 
@@ -213,4 +272,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 3, 2026
+February 3, 2026 - Added Phase 12: Patient Ownership & Assignment System requirements

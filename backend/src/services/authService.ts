@@ -17,6 +17,7 @@ export interface AuthUser {
   email: string;
   displayName: string;
   role: UserRole;
+  canHavePatients: boolean;
   isActive: boolean;
   lastLoginAt: Date | null;
 }
@@ -116,6 +117,7 @@ export function toAuthUser(user: User): AuthUser {
     email: user.email,
     displayName: user.displayName,
     role: user.role,
+    canHavePatients: user.canHavePatients,
     isActive: user.isActive,
     lastLoginAt: user.lastLoginAt,
   };
@@ -159,12 +161,13 @@ export async function isStaffAssignedToPhysician(staffId: number, physicianId: n
 }
 
 /**
- * Get all physicians (for ADMIN to select which physician's patients to view)
+ * Get all users who can have patients assigned to them
+ * This includes PHYSICIANs and ADMINs with canHavePatients=true
  */
 export async function getAllPhysicians(): Promise<StaffAssignment[]> {
-  const physicians = await prisma.user.findMany({
+  const users = await prisma.user.findMany({
     where: {
-      role: 'PHYSICIAN',
+      canHavePatients: true,
       isActive: true,
     },
     select: {
@@ -176,9 +179,9 @@ export async function getAllPhysicians(): Promise<StaffAssignment[]> {
     },
   });
 
-  return physicians.map((p) => ({
-    physicianId: p.id,
-    physicianName: p.displayName,
+  return users.map((u) => ({
+    physicianId: u.id,
+    physicianName: u.displayName,
   }));
 }
 

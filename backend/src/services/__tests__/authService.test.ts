@@ -186,6 +186,7 @@ describe('authService', () => {
         passwordHash: 'secret_hash_value',
         displayName: 'Test User',
         role: 'PHYSICIAN',
+        canHavePatients: true,
         isActive: true,
         lastLoginAt: new Date('2026-01-15'),
         createdAt: new Date('2026-01-01'),
@@ -198,6 +199,7 @@ describe('authService', () => {
       expect(authUser.email).toBe('test@example.com');
       expect(authUser.displayName).toBe('Test User');
       expect(authUser.role).toBe('PHYSICIAN');
+      expect(authUser.canHavePatients).toBe(true);
       expect(authUser.isActive).toBe(true);
       expect(authUser.lastLoginAt).toEqual(new Date('2026-01-15'));
       // Should not include sensitive data
@@ -213,6 +215,7 @@ describe('authService', () => {
         passwordHash: 'hash',
         displayName: 'New User',
         role: 'STAFF',
+        canHavePatients: false,
         isActive: true,
         lastLoginAt: null,
         createdAt: new Date(),
@@ -234,6 +237,7 @@ describe('authService', () => {
           passwordHash: 'hash',
           displayName: 'Test',
           role,
+          canHavePatients: role === 'PHYSICIAN',
           isActive: true,
           lastLoginAt: null,
           createdAt: new Date(),
@@ -252,6 +256,7 @@ describe('authService', () => {
         passwordHash: 'hash',
         displayName: 'Inactive User',
         role: 'STAFF',
+        canHavePatients: false,
         isActive: false,
         lastLoginAt: null,
         createdAt: new Date(),

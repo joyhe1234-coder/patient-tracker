@@ -18,6 +18,7 @@ const createUserSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().min(1, 'Display name is required'),
   role: z.enum(['PHYSICIAN', 'STAFF', 'ADMIN']),
+  canHavePatients: z.boolean().optional(), // Only applicable for ADMIN role
 });
 
 const updateUserSchema = z.object({
@@ -25,6 +26,7 @@ const updateUserSchema = z.object({
   displayName: z.string().min(1, 'Display name is required').optional(),
   role: z.enum(['PHYSICIAN', 'STAFF', 'ADMIN']).optional(),
   isActive: z.boolean().optional(),
+  canHavePatients: z.boolean().optional(), // Only applicable for ADMIN role
 });
 
 const assignStaffSchema = z.object({
@@ -48,6 +50,7 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
         email: true,
         displayName: true,
         role: true,
+        canHavePatients: true,
         isActive: true,
         lastLoginAt: true,
         createdAt: true,
@@ -90,6 +93,7 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
       email: user.email,
       displayName: user.displayName,
       role: user.role,
+      canHavePatients: user.canHavePatients,
       isActive: user.isActive,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
@@ -131,6 +135,7 @@ router.get('/users/:id', async (req: Request, res: Response, next: NextFunction)
         email: true,
         displayName: true,
         role: true,
+        canHavePatients: true,
         isActive: true,
         lastLoginAt: true,
         createdAt: true,
@@ -162,7 +167,15 @@ router.get('/users/:id', async (req: Request, res: Response, next: NextFunction)
     res.json({
       success: true,
       data: {
-        ...user,
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        canHavePatients: user.canHavePatients,
+        isActive: user.isActive,
+        lastLoginAt: user.lastLoginAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
         patientCount: user._count.patients,
         assignedPhysicians: user.assignedPhysicians.map((a) => ({
           physicianId: a.physician.id,
@@ -190,7 +203,7 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
       throw createError(parseResult.error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
-    const { email, password, displayName, role } = parseResult.data;
+    const { email, password, displayName, role, canHavePatients } = parseResult.data;
 
     // Check for existing email
     const existingEmail = await prisma.user.findUnique({ where: { email } });
@@ -201,6 +214,20 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
     // Hash password
     const passwordHash = await hashPassword(password);
 
+    // Determine canHavePatients based on role:
+    // - PHYSICIAN: always true
+    // - STAFF: always false
+    // - ADMIN: use provided value or default to false
+    let resolvedCanHavePatients: boolean;
+    if (role === 'PHYSICIAN') {
+      resolvedCanHavePatients = true;
+    } else if (role === 'STAFF') {
+      resolvedCanHavePatients = false;
+    } else {
+      // ADMIN: use provided value or default to false
+      resolvedCanHavePatients = canHavePatients ?? false;
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -208,6 +235,7 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
         passwordHash,
         displayName,
         role: role as UserRole,
+        canHavePatients: resolvedCanHavePatients,
         isActive: true,
       },
     });
@@ -269,10 +297,29 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
       }
     }
 
+    // Determine the final role (updated or existing)
+    const finalRole = updates.role || existing.role;
+
+    // Build the update data with role-enforced canHavePatients
+    const updateData: Record<string, unknown> = { ...updates };
+
+    // Enforce canHavePatients based on role:
+    // - PHYSICIAN: always true (override any provided value)
+    // - STAFF: always false (override any provided value)
+    // - ADMIN: allow toggling via canHavePatients field
+    if (finalRole === 'PHYSICIAN') {
+      updateData.canHavePatients = true;
+    } else if (finalRole === 'STAFF') {
+      updateData.canHavePatients = false;
+    } else if (finalRole === 'ADMIN' && updates.canHavePatients !== undefined) {
+      updateData.canHavePatients = updates.canHavePatients;
+    }
+    // If ADMIN and canHavePatients not provided, leave it unchanged
+
     // Update user
     const user = await prisma.user.update({
       where: { id: userId },
-      data: updates,
+      data: updateData,
     });
 
     // Log the action

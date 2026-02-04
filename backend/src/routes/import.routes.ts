@@ -5,12 +5,13 @@ import { mapColumns } from '../services/import/columnMapper.js';
 import { transformData, groupByPatient } from '../services/import/dataTransformer.js';
 import { validateRows } from '../services/import/validator.js';
 import { generateErrorReport, getCondensedReport } from '../services/import/errorReporter.js';
-import { calculateDiff, ImportMode, filterChangesByAction, getModifyingChanges } from '../services/import/diffCalculator.js';
+import { calculateDiff, ImportMode, filterChangesByAction, getModifyingChanges, detectReassignments } from '../services/import/diffCalculator.js';
 import { storePreview, getPreview, deletePreview, getPreviewSummary, getCacheStats } from '../services/import/previewCache.js';
 import { executeImport } from '../services/import/importExecutor.js';
 import { createError } from '../middleware/errorHandler.js';
 import { handleUpload } from '../middleware/upload.js';
 import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
+import { isStaffAssignedToPhysician } from '../services/authService.js';
 
 const router = Router();
 
@@ -279,12 +280,16 @@ router.post('/validate', handleUpload, async (req: Request, res: Response, next:
  * POST /api/import/preview
  * Generate a diff preview comparing import data vs existing database
  * Stores the preview in cache for later commit
+ *
+ * Query params:
+ * - physicianId: (optional) For STAFF/ADMIN, the target physician for imported patients
  */
 router.post('/preview', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const file = req.file;
     const systemId = req.body.systemId || 'hill';
     const mode: ImportMode = req.body.mode === 'replace' ? 'replace' : 'merge';
+    const user = req.user!;
 
     if (!file) {
       return next(createError('No file uploaded', 400));
@@ -292,6 +297,44 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
 
     if (!systemExists(systemId)) {
       return next(createError(`System not found: ${systemId}`, 404));
+    }
+
+    // Determine target ownerId based on user role
+    let targetOwnerId: number | null = null;
+
+    if (user.role === 'PHYSICIAN') {
+      // PHYSICIAN imports to their own patients
+      targetOwnerId = user.id;
+    } else if (user.role === 'STAFF') {
+      // STAFF must specify physicianId
+      const physicianIdParam = req.query.physicianId as string | undefined;
+      if (!physicianIdParam) {
+        return next(createError('physicianId query parameter is required for STAFF users', 400, 'MISSING_PHYSICIAN_ID'));
+      }
+
+      const physicianId = parseInt(physicianIdParam, 10);
+      if (isNaN(physicianId)) {
+        return next(createError('Invalid physicianId', 400, 'INVALID_PHYSICIAN_ID'));
+      }
+
+      // Verify STAFF is assigned to this physician
+      const isAssigned = await isStaffAssignedToPhysician(user.id, physicianId);
+      if (!isAssigned) {
+        return next(createError('You are not assigned to this physician', 403, 'NOT_ASSIGNED'));
+      }
+
+      targetOwnerId = physicianId;
+    } else if (user.role === 'ADMIN') {
+      // ADMIN can optionally specify physicianId
+      const physicianIdParam = req.query.physicianId as string | undefined;
+      if (physicianIdParam) {
+        const physicianId = parseInt(physicianIdParam, 10);
+        if (isNaN(physicianId)) {
+          return next(createError('Invalid physicianId', 400, 'INVALID_PHYSICIAN_ID'));
+        }
+        targetOwnerId = physicianId;
+      }
+      // If no physicianId specified, targetOwnerId remains null (unassigned)
     }
 
     // Step 1: Parse the file
@@ -331,7 +374,10 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
     // Step 4: Calculate diff against database
     const diffResult = await calculateDiff(transformResult.rows, mode);
 
-    // Step 5: Store in preview cache (include warnings)
+    // Step 5: Detect patient reassignments (existing patients that would change owner)
+    const reassignments = await detectReassignments(transformResult.rows, targetOwnerId);
+
+    // Step 6: Store in preview cache (include warnings and reassignments)
     const warnings = condensedReport.topWarnings.map(w => ({
       rowIndex: w.rowIndex,
       field: w.field,
@@ -344,7 +390,9 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       diffResult,
       transformResult.rows,
       validationResult,
-      warnings
+      warnings,
+      reassignments,
+      targetOwnerId
     );
 
     // Get the stored entry for summary
@@ -358,6 +406,7 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
         mode,
         fileName: parseResult.fileName,
         expiresAt: previewEntry.expiresAt.toISOString(),
+        targetOwnerId,
         // Summary stats
         summary: {
           inserts: diffResult.summary.inserts,
@@ -376,6 +425,12 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
         validation: {
           warnings: condensedReport.topWarnings.length,
           duplicatesInFile: validationResult.stats.duplicateGroups
+        },
+        // Reassignment warnings
+        reassignments: {
+          count: reassignments.length,
+          requiresConfirmation: reassignments.length > 0,
+          items: reassignments.slice(0, 20) // First 20 for preview
         },
         // Preview of changes (first 50)
         changes: diffResult.changes.slice(0, 50).map(change => ({
@@ -426,12 +481,19 @@ router.get('/preview/:previewId', async (req: Request, res: Response, next: Next
       success: true,
       data: {
         ...getPreviewSummary(entry),
+        targetOwnerId: entry.targetOwnerId,
         patients: {
           new: entry.diff.newPatients,
           existing: entry.diff.existingPatients,
           total: entry.diff.newPatients + entry.diff.existingPatients
         },
         warnings: entry.warnings,
+        // Reassignment info
+        reassignments: {
+          count: entry.reassignments.length,
+          requiresConfirmation: entry.reassignments.length > 0,
+          items: entry.reassignments
+        },
         changes: {
           total: changes.length,
           page,
@@ -480,6 +542,9 @@ router.delete('/preview/:previewId', async (req: Request, res: Response, next: N
  * POST /api/import/execute/:previewId
  * Execute an import based on a cached preview
  * Commits the changes to the database
+ *
+ * Query params:
+ * - confirmReassign: (required if reassignments exist) Set to 'true' to confirm patient reassignments
  */
 router.post('/execute/:previewId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -491,8 +556,28 @@ router.post('/execute/:previewId', async (req: Request, res: Response, next: Nex
       return next(createError('Preview not found or expired', 404));
     }
 
-    // Execute the import
-    const result = await executeImport(previewId);
+    // Check for reassignments and require confirmation
+    if (preview.reassignments.length > 0) {
+      const confirmReassign = req.query.confirmReassign === 'true';
+      if (!confirmReassign) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'REASSIGNMENT_REQUIRES_CONFIRMATION',
+            message: `This import would reassign ${preview.reassignments.length} patient(s) from their current physician. Set confirmReassign=true to proceed.`,
+          },
+          data: {
+            reassignments: preview.reassignments
+          }
+        });
+      }
+    }
+
+    // Use the targetOwnerId from the preview (determined during preview creation)
+    const ownerId = preview.targetOwnerId;
+
+    // Execute the import with ownerId
+    const result = await executeImport(previewId, ownerId);
 
     res.json({
       success: result.success,
@@ -500,10 +585,11 @@ router.post('/execute/:previewId', async (req: Request, res: Response, next: Nex
         mode: result.mode,
         stats: result.stats,
         duration: result.duration,
+        reassigned: preview.reassignments.length,
         errors: result.errors.length > 0 ? result.errors : undefined
       },
       message: result.success
-        ? `Import completed: ${result.stats.inserted} inserted, ${result.stats.updated} updated, ${result.stats.deleted} deleted, ${result.stats.skipped} skipped, ${result.stats.bothKept} kept both`
+        ? `Import completed: ${result.stats.inserted} inserted, ${result.stats.updated} updated, ${result.stats.deleted} deleted, ${result.stats.skipped} skipped, ${result.stats.bothKept} kept both${preview.reassignments.length > 0 ? `, ${preview.reassignments.length} reassigned` : ''}`
         : `Import completed with ${result.errors.length} error(s)`
     });
   } catch (error) {

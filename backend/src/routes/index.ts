@@ -2,6 +2,7 @@ import { Router } from 'express';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
 import adminRoutes from './admin.routes.js';
+import usersRoutes from './users.routes.js';
 import dataRoutes from './data.routes.js';
 import configRoutes from './config.routes.js';
 import importRoutes from './import.routes.js';
@@ -16,6 +17,9 @@ router.use('/auth', authRoutes);
 
 // Admin routes (ADMIN role only)
 router.use('/admin', adminRoutes);
+
+// User routes (physicians list, etc.) - protected
+router.use('/users', usersRoutes);
 
 // Patient data (grid data) - protected
 router.use('/data', dataRoutes);

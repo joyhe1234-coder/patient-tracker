@@ -14,16 +14,24 @@ router.use(requireAuth);
 router.use(requirePatientDataAccess);
 
 /**
+ * Result of getPatientOwnerFilter - contains ownerId or special flag for unassigned
+ */
+interface OwnerFilter {
+  ownerId: number | null;
+  isUnassigned: boolean;
+}
+
+/**
  * Get patient filter based on user role
  * @param req - Express request with authenticated user
- * @returns Prisma where clause for filtering patients by owner
+ * @returns OwnerFilter with ownerId (or null for unassigned) and isUnassigned flag
  */
-async function getPatientOwnerId(req: Request): Promise<number | null> {
+async function getPatientOwnerFilter(req: Request): Promise<OwnerFilter> {
   const user = req.user!;
 
   if (user.role === 'PHYSICIAN') {
     // PHYSICIAN sees only their own patients
-    return user.id;
+    return { ownerId: user.id, isUnassigned: false };
   }
 
   if (user.role === 'STAFF') {
@@ -31,6 +39,11 @@ async function getPatientOwnerId(req: Request): Promise<number | null> {
     const physicianIdParam = req.query.physicianId as string | undefined;
     if (!physicianIdParam) {
       throw createError('physicianId query parameter is required for STAFF users', 400, 'MISSING_PHYSICIAN_ID');
+    }
+
+    // STAFF cannot view unassigned patients
+    if (physicianIdParam === 'unassigned' || physicianIdParam === 'null') {
+      throw createError('STAFF users cannot view unassigned patients', 403, 'FORBIDDEN');
     }
 
     const physicianId = parseInt(physicianIdParam, 10);
@@ -44,14 +57,19 @@ async function getPatientOwnerId(req: Request): Promise<number | null> {
       throw createError('You are not assigned to this physician', 403, 'NOT_ASSIGNED');
     }
 
-    return physicianId;
+    return { ownerId: physicianId, isUnassigned: false };
   }
 
   if (user.role === 'ADMIN') {
-    // ADMIN must specify physicianId to view any physician's patients
+    // ADMIN must specify physicianId to view patients
     const physicianIdParam = req.query.physicianId as string | undefined;
     if (!physicianIdParam) {
       throw createError('physicianId query parameter is required for ADMIN users', 400, 'MISSING_PHYSICIAN_ID');
+    }
+
+    // ADMIN can view unassigned patients with physicianId=unassigned or physicianId=null
+    if (physicianIdParam === 'unassigned' || physicianIdParam === 'null') {
+      return { ownerId: null, isUnassigned: true };
     }
 
     const physicianId = parseInt(physicianIdParam, 10);
@@ -60,25 +78,38 @@ async function getPatientOwnerId(req: Request): Promise<number | null> {
     }
 
     // ADMIN can view any physician's patients (no assignment check needed)
-    return physicianId;
+    return { ownerId: physicianId, isUnassigned: false };
   }
 
   throw createError('Unknown user role', 403, 'FORBIDDEN');
 }
 
+/**
+ * Legacy helper - returns just the ownerId (for backward compatibility)
+ * @deprecated Use getPatientOwnerFilter instead
+ */
+async function getPatientOwnerId(req: Request): Promise<number | null> {
+  const filter = await getPatientOwnerFilter(req);
+  return filter.ownerId;
+}
+
 // GET /api/data - Get all patient measures (grid data)
-// PHYSICIAN: sees own patients
+// PHYSICIAN: sees own patients (auto-filtered)
 // STAFF: sees selected physician's patients (requires physicianId query param)
+// ADMIN: sees selected physician's patients OR unassigned (physicianId=unassigned)
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get the owner ID to filter by
-    const ownerId = await getPatientOwnerId(req);
+    // Get the owner filter
+    const { ownerId, isUnassigned } = await getPatientOwnerFilter(req);
+
+    // Build the where clause - for unassigned, we need ownerId: null
+    const ownerWhere = isUnassigned
+      ? { ownerId: null }
+      : { ownerId: ownerId };
 
     const measures = await prisma.patientMeasure.findMany({
       where: {
-        patient: {
-          ownerId: ownerId,
-        },
+        patient: ownerWhere,
       },
       include: {
         patient: true,

@@ -11,6 +11,7 @@ export interface AuthUser {
   email: string;
   displayName: string;
   role: UserRole;
+  canHavePatients: boolean;
   isActive: boolean;
   lastLoginAt: string | null;
 }

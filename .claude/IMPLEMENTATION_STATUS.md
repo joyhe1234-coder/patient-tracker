@@ -412,6 +412,65 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Backend loads .env via dotenv for local development
   - SMTP environment variables configured on Render production
 
+### Phase 12: Patient Ownership & Assignment System
+
+**Status: In Progress**
+
+Complete redesign of patient ownership, viewing, and import assignment.
+
+#### Requirements (Finalized Feb 3, 2026)
+
+**Core Principles:**
+- Physicians see **only their own patients** (auto-filtered, no selector)
+- Staff/Admin see **nothing until they select a physician**
+- Import **requires explicit physician selection** (prevents accidental imports)
+- Admin can **reassign patients** between physicians
+
+**Data Model:**
+- [x] Add `canHavePatients: boolean` field to User model
+  - PHYSICIAN: always `true` (enforced)
+  - ADMIN: default `false`, can be enabled (allows admin to also be physician)
+  - STAFF: always `false`
+
+**Role-Based Behavior:**
+
+| Role | Default View | Physician Selector | Import Target | Bulk Assign |
+|------|--------------|-------------------|---------------|-------------|
+| PHYSICIAN | Own patients (auto) | Hidden | Self (auto) | ❌ |
+| STAFF | Empty until selected | Assigned physicians only | Must select | ❌ |
+| ADMIN | Empty until selected | All eligible + "Unassigned" | Must select | ✅ |
+
+**Backend Changes (Phase 12a-c):**
+- [x] Migration: Add `canHavePatients` to User model (Phase 12a)
+- [x] Seed.ts: PHYSICIAN gets `canHavePatients=true` by default (Phase 12a)
+- [x] Admin routes: Handle `canHavePatients` on user create/update (Phase 12a)
+- [x] AuthService: Include `canHavePatients` in AuthUser (Phase 12a)
+- [x] GET /api/data - Require `physicianId` param for ADMIN/STAFF (Phase 12b)
+- [x] GET /api/data?physicianId=unassigned - Return unassigned patients (Phase 12b)
+- [x] GET /api/users/physicians - Return users who can own patients (Phase 12b)
+- [x] GET /api/users/physicians/:id - Get specific physician info (Phase 12b)
+- [x] POST /api/import/preview - Detect and return `reassignments` array (Phase 12c)
+- [x] POST /api/import/execute - Require `confirmReassign=true` if reassignments exist (Phase 12c)
+- [ ] PATCH /api/patients/bulk-assign - Bulk assignment (admin only)
+
+**Frontend Changes (Phase 12d-g):**
+- [ ] Patient Grid: Physician selector dropdown (ADMIN/STAFF only)
+- [ ] Patient Grid: "Select a physician to view" message when none selected
+- [ ] Import Modal: Physician selector (ADMIN/STAFF only)
+- [ ] Import Modal: Reassignment warning dialog
+- [ ] Patient Assignment Page: New admin-only page for bulk reassignment
+- [ ] User Management: "Can Have Patients" toggle for ADMIN users
+
+**Import Reassignment Warning:**
+When importing patients that already belong to another physician:
+- Show warning dialog listing affected patients
+- Require explicit confirmation to proceed
+- Cancel option to abort import
+
+See `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md` for detailed specifications.
+
+---
+
 ### Phase 13: Excel-like Behaviors
 
 **Planned Features:**

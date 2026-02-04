@@ -63,6 +63,7 @@ describe('authStore', () => {
       email: 'doctor@clinic.com',
       displayName: 'Dr. Smith',
       role: 'PHYSICIAN',
+      canHavePatients: true,
       isActive: true,
       lastLoginAt: '2026-01-15T10:00:00Z',
     };
@@ -72,6 +73,7 @@ describe('authStore', () => {
       email: 'staff@clinic.com',
       displayName: 'Staff Member',
       role: 'STAFF',
+      canHavePatients: false,
       isActive: true,
       lastLoginAt: '2026-01-15T10:00:00Z',
     };
@@ -328,6 +330,7 @@ describe('authStore', () => {
       email: 'doctor@clinic.com',
       displayName: 'Dr. Smith',
       role: 'PHYSICIAN',
+      canHavePatients: true,
       isActive: true,
       lastLoginAt: null,
     };
@@ -395,6 +398,7 @@ describe('authStore', () => {
       email: 'doctor@clinic.com',
       displayName: 'Dr. Smith Updated',
       role: 'PHYSICIAN',
+      canHavePatients: true,
       isActive: true,
       lastLoginAt: null,
     };

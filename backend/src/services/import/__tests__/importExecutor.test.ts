@@ -32,6 +32,7 @@ jest.unstable_mockModule('../../dueDateCalculator.js', () => ({
 const mockTransaction = jest.fn() as AnyMock;
 const mockPatientFindUnique = jest.fn() as AnyMock;
 const mockPatientCreate = jest.fn() as AnyMock;
+const mockPatientUpdate = jest.fn() as AnyMock;
 const mockMeasureAggregate = jest.fn() as AnyMock;
 const mockMeasureCreate = jest.fn() as AnyMock;
 const mockMeasureUpdate = jest.fn() as AnyMock;
@@ -43,6 +44,7 @@ jest.unstable_mockModule('../../../config/database.js', () => ({
     patient: {
       findUnique: mockPatientFindUnique,
       create: mockPatientCreate,
+      update: mockPatientUpdate,
     },
     patientMeasure: {
       aggregate: mockMeasureAggregate,
@@ -121,6 +123,8 @@ function createMockPreview(overrides: Partial<PreviewEntry> = {}): PreviewEntry 
     rows: [],
     validation: createMockValidation(),
     warnings: [],
+    reassignments: [],
+    targetOwnerId: null,
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     ...overrides,
@@ -136,6 +140,7 @@ describe('importExecutor', () => {
       patient: {
         findUnique: mockPatientFindUnique,
         create: mockPatientCreate,
+        update: mockPatientUpdate,
       },
       patientMeasure: {
         aggregate: mockMeasureAggregate,
@@ -146,6 +151,7 @@ describe('importExecutor', () => {
     }));
     mockPatientFindUnique.mockResolvedValue(null);
     mockPatientCreate.mockResolvedValue({ id: 1, memberName: 'John Smith' });
+    mockPatientUpdate.mockResolvedValue({ id: 1, memberName: 'John Smith', ownerId: 10 });
     mockMeasureAggregate.mockResolvedValue({ _max: { rowOrder: 0 } });
     mockMeasureCreate.mockResolvedValue({ id: 1 });
     mockMeasureUpdate.mockResolvedValue({ id: 1 });
@@ -203,6 +209,69 @@ describe('importExecutor', () => {
       expect(result.stats.inserted).toBe(1);
       expect(mockPatientCreate).not.toHaveBeenCalled();
       expect(mockMeasureCreate).toHaveBeenCalled();
+    });
+
+    it('should update existing patient ownerId when importing with different owner', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT', existingPatientId: 5 })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      // Existing patient has ownerId: null (unassigned)
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: null });
+      mockPatientUpdate.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10 });
+
+      // Execute with ownerId = 10 (assigning to physician)
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      expect(mockPatientUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 5 },
+          data: { ownerId: 10 },
+        })
+      );
+    });
+
+    it('should not update ownerId when existing patient already has same owner', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT', existingPatientId: 5 })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      // Existing patient already has ownerId: 10
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10 });
+
+      // Execute with same ownerId = 10
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      expect(mockPatientUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should not update ownerId when importing with null owner', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT', existingPatientId: 5 })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      // Existing patient has ownerId: 10
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10 });
+
+      // Execute with null ownerId (admin import without specifying physician)
+      const result = await executeImport('test-preview-123', null);
+
+      expect(result.success).toBe(true);
+      expect(mockPatientUpdate).not.toHaveBeenCalled();
     });
   });
 

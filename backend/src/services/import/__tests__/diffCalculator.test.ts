@@ -52,6 +52,8 @@ function createMockExistingRecord(overrides: Partial<ExistingRecord> = {}): Exis
     requestType: 'AWV',
     qualityMeasure: 'Annual Wellness Visit',
     measureStatus: 'Not Addressed',
+    ownerId: null,
+    ownerName: null,
     ...overrides,
   };
 }

@@ -9,6 +9,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.1.0-snapshot] - Unreleased
 
 ### Added
+- **Phase 12: Patient Ownership & Assignment System** (Feb 3, 2026)
+  - **Phase 12a: Database & Backend Foundation** (Complete)
+    - Added `canHavePatients` boolean field to User model
+    - PHYSICIAN role always has `canHavePatients=true` (enforced)
+    - ADMIN can opt-in to `canHavePatients` to also be a physician
+    - STAFF role always has `canHavePatients=false`
+    - Updated seed.ts, authService, admin routes
+  - **Phase 12b: Patient Filtering by Owner** (Complete)
+    - GET /api/data requires `physicianId` param for ADMIN/STAFF
+    - GET /api/data?physicianId=unassigned returns unassigned patients (ADMIN only)
+    - GET /api/users/physicians returns users who can have patients
+    - GET /api/users/physicians/:id returns specific physician info
+    - PHYSICIAN auto-filtered to own patients (no selector needed)
+  - **Phase 12c: Import Reassignment Detection** (Complete)
+    - Import preview detects patients that would be reassigned
+    - Added `reassignments` array to preview response
+    - Added `targetOwnerId` to preview cache
+    - Import execute requires `confirmReassign=true` if reassignments exist
+    - Blocks execution if reassignments not explicitly confirmed
+  - **Requirements Documentation**
+    - Physicians see only their own patients (auto-filtered)
+    - Staff/Admin must select physician before viewing patients
+    - Import requires explicit physician selection (prevents accidental imports)
+    - Admin can bulk reassign patients between physicians
+    - See `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md` for full specification
 - **Phase 11: Authentication & Multi-Physician Support**
   - JWT-based authentication with login/logout endpoints
   - User model with roles: PHYSICIAN, STAFF, ADMIN
