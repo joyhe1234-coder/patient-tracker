@@ -4,6 +4,7 @@ import { prisma } from '../config/database.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
 import { hashPassword, toAuthUser } from '../services/authService.js';
+import { isSmtpConfigured, sendAdminPasswordResetNotification } from '../services/emailService.js';
 import { UserRole } from '@prisma/client';
 
 const router = Router();
@@ -459,9 +460,19 @@ router.post('/users/:id/reset-password', async (req: Request, res: Response, nex
       },
     });
 
+    // Send notification email to user (non-blocking)
+    let emailSent = false;
+    if (isSmtpConfigured()) {
+      emailSent = await sendAdminPasswordResetNotification(
+        user.email,
+        req.user!.displayName
+      );
+    }
+
     res.json({
       success: true,
       message: 'Password reset successfully',
+      emailSent,
     });
   } catch (error) {
     next(error);

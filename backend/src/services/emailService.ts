@@ -123,3 +123,62 @@ If you did not request this password reset, please ignore this email.
 
   return sendEmail({ to: email, subject, text, html });
 }
+
+// Send notification when admin resets a user's password
+export async function sendAdminPasswordResetNotification(
+  userEmail: string,
+  adminName: string
+): Promise<boolean> {
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const loginUrl = `${appUrl}/login`;
+
+  const subject = 'Your Password Has Been Reset - Patient Tracker';
+
+  const text = `
+Your password for Patient Tracker has been reset by ${adminName}.
+
+You can now log in with your new password at:
+${loginUrl}
+
+If you did not expect this password reset, please contact your administrator immediately.
+`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #1976d2;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .footer { margin-top: 30px; font-size: 12px; color: #666; }
+    .alert { background-color: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 4px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Your Password Has Been Reset</h2>
+    <p>Your password for Patient Tracker has been reset by <strong>${adminName}</strong>.</p>
+    <p>You can now log in with your new password:</p>
+    <a href="${loginUrl}" class="button">Log In</a>
+    <div class="alert">
+      <strong>Security Notice:</strong> If you did not expect this password reset, please contact your administrator immediately.
+    </div>
+    <div class="footer">
+      <p>This is an automated message from Patient Tracker.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return sendEmail({ to: userEmail, subject, text, html });
+}

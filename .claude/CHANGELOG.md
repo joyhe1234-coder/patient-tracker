@@ -41,6 +41,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Provider dropdown now only visible on Patient Grid page (not Import/Admin)
     - ADMIN users can select "Unassigned patients" to view patients without a provider
     - MainPage properly sends `physicianId=unassigned` for unassigned patient view
+  - **Admin Password Reset Email Notification** (Feb 4, 2026)
+    - When admin resets a user's password, user receives email notification
+    - Email includes admin's name who performed the reset
+    - Added `sendAdminPasswordResetNotification` function to emailService
+    - Response includes `emailSent` flag indicating notification status
   - **Requirements Documentation**
     - Physicians see only their own patients (auto-filtered)
     - Staff/Admin must select physician before viewing patients
