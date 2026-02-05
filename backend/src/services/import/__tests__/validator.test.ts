@@ -333,4 +333,206 @@ describe('validator', () => {
       expect(result.warnings.length).toBeGreaterThan(0); // Has warnings
     });
   });
+
+  describe('date validation edge cases', () => {
+    it('should accept various valid date formats after transformation', () => {
+      // The transformer should normalize to YYYY-MM-DD
+      const validDates = [
+        '1990-01-15',
+        '2000-12-31',
+        '1950-06-01',
+      ];
+
+      for (const date of validDates) {
+        const rows = [createBaseRow({ memberDob: date })];
+        const result = validateRows(rows);
+        expect(result.errors.filter(e => e.field === 'memberDob')).toHaveLength(0);
+      }
+    });
+
+    it('should reject invalid date formats', () => {
+      const invalidDates = [
+        'not-a-date',
+        '01/15/1990', // Wrong format (should be transformed earlier)
+        '1990-13-01', // Invalid month
+        '1990-01-32', // Invalid day
+        '1990-00-01', // Invalid month (zero)
+        '1990-01-00', // Invalid day (zero)
+      ];
+
+      for (const date of invalidDates) {
+        const rows = [createBaseRow({ memberDob: date })];
+        const result = validateRows(rows);
+        const dobErrors = result.errors.filter(e => e.field === 'memberDob');
+        expect(dobErrors.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should reject empty string as DOB', () => {
+      const rows = [createBaseRow({ memberDob: '' })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(false);
+      const dobError = result.errors.find(e => e.field === 'memberDob');
+      expect(dobError).toBeDefined();
+    });
+  });
+
+  describe('name validation edge cases', () => {
+    it('should accept names with special characters', () => {
+      const specialNames = [
+        "O'Brien",
+        'María García',
+        'Jean-Pierre',
+        'Dr. Smith, Jr.',
+        '김철수', // Korean
+        '田中太郎', // Japanese
+      ];
+
+      for (const name of specialNames) {
+        const rows = [createBaseRow({ memberName: name })];
+        const result = validateRows(rows);
+        expect(result.errors.filter(e => e.field === 'memberName')).toHaveLength(0);
+      }
+    });
+
+    it('should reject whitespace-only names', () => {
+      const rows = [createBaseRow({ memberName: '   ' })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(false);
+      const nameError = result.errors.find(e => e.field === 'memberName');
+      expect(nameError).toBeDefined();
+    });
+  });
+
+  describe('request type validation', () => {
+    it('should accept all valid request types', () => {
+      const validTypes = ['AWV', 'Quality', 'Screening', 'Chronic DX'];
+
+      for (const type of validTypes) {
+        const rows = [createBaseRow({ requestType: type, qualityMeasure: 'Test' })];
+        const result = validateRows(rows);
+        const typeErrors = result.errors.filter(e => e.field === 'requestType');
+        expect(typeErrors).toHaveLength(0);
+      }
+    });
+
+    it('should reject invalid request types', () => {
+      const rows = [createBaseRow({ requestType: 'InvalidType' })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(false);
+      const typeError = result.errors.find(e => e.field === 'requestType');
+      expect(typeError).toBeDefined();
+      expect(typeError?.message).toContain('Invalid request type');
+    });
+
+    it('should handle case sensitivity for request types', () => {
+      const rows = [createBaseRow({ requestType: 'awv' })]; // lowercase
+
+      const result = validateRows(rows);
+
+      // Should be rejected as the validator is case-sensitive
+      const typeErrors = result.errors.filter(e => e.field === 'requestType');
+      expect(typeErrors.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('quality measure validation', () => {
+    it('should accept valid quality measures for each request type', () => {
+      const validCombinations = [
+        { requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+        { requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam' },
+        { requestType: 'Screening', qualityMeasure: 'Breast Cancer Screening' },
+        { requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code' },
+      ];
+
+      for (const combo of validCombinations) {
+        const rows = [createBaseRow(combo)];
+        const result = validateRows(rows);
+        const measureErrors = result.errors.filter(e => e.field === 'qualityMeasure');
+        expect(measureErrors).toHaveLength(0);
+      }
+    });
+
+    it('should warn for mismatched request type and quality measure', () => {
+      // AWV type with Quality measure
+      const rows = [createBaseRow({
+        requestType: 'AWV',
+        qualityMeasure: 'Diabetic Eye Exam',
+      })];
+
+      const result = validateRows(rows);
+
+      // Should be a warning, not an error
+      const measureWarning = result.warnings.find(w => w.field === 'qualityMeasure');
+      expect(measureWarning).toBeDefined();
+      expect(measureWarning?.message).toContain('Invalid quality measure');
+    });
+  });
+
+  describe('multiple errors per row', () => {
+    it('should collect multiple errors from the same row', () => {
+      const rows = [createBaseRow({
+        memberName: '',
+        memberDob: null,
+        requestType: '',
+        qualityMeasure: '',
+        sourceRowIndex: 0,
+      })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThanOrEqual(4);
+    });
+  });
+
+  describe('large dataset handling', () => {
+    it('should handle a large number of rows efficiently', () => {
+      const rows = [];
+      for (let i = 0; i < 1000; i++) {
+        rows.push(createBaseRow({
+          memberName: `Patient ${i}`,
+          sourceRowIndex: i,
+        }));
+      }
+
+      const startTime = Date.now();
+      const result = validateRows(rows);
+      const elapsed = Date.now() - startTime;
+
+      expect(result.stats.totalRows).toBe(1000);
+      expect(elapsed).toBeLessThan(1000); // Should complete in under 1 second
+    });
+  });
+
+  describe('validation result structure', () => {
+    it('should have correct stats even with no errors', () => {
+      const rows = [
+        createBaseRow({ sourceRowIndex: 0 }),
+        createBaseRow({ sourceRowIndex: 1, memberName: 'Another Patient' }),
+      ];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(true);
+      expect(result.stats.totalRows).toBe(2);
+      expect(result.stats.validRows).toBe(2);
+      expect(result.stats.errorRows).toBe(0);
+    });
+
+    it('should have empty arrays when no issues', () => {
+      const rows = [createBaseRow()];
+
+      const result = validateRows(rows);
+
+      expect(result.errors).toEqual([]);
+      expect(result.duplicates).toEqual([]);
+    });
+  });
 });

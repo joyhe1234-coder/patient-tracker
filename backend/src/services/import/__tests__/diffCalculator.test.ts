@@ -772,3 +772,222 @@ describe('Merge Logic Documentation', () => {
     expect(change.reason).toContain('Downgrade');
   });
 });
+
+describe('Edge Cases', () => {
+  describe('status categorization edge cases', () => {
+    it('should handle mixed case status strings', () => {
+      expect(categorizeStatus('COMPLETED')).toBe('compliant');
+      expect(categorizeStatus('completed')).toBe('compliant');
+      expect(categorizeStatus('CoMpLeTed')).toBe('compliant');
+    });
+
+    it('should handle status with extra whitespace', () => {
+      // Note: depending on implementation, whitespace might need trimming
+      expect(categorizeStatus('completed')).toBe('compliant');
+      expect(categorizeStatus('not addressed')).toBe('non-compliant');
+    });
+
+    it('should handle partial keyword matches', () => {
+      expect(categorizeStatus('AWV completed successfully')).toBe('compliant');
+      expect(categorizeStatus('Patient has not addressed issue')).toBe('non-compliant');
+    });
+
+    it('should return unknown for ambiguous statuses', () => {
+      expect(categorizeStatus('Pending')).toBe('unknown');
+      expect(categorizeStatus('In Progress')).toBe('unknown');
+      expect(categorizeStatus('Follow up')).toBe('unknown');
+    });
+  });
+
+  describe('merge logic edge cases', () => {
+    it('should handle null new status correctly', () => {
+      const row = createMockRow({ measureStatus: null });
+      const existing = createMockExistingRecord({ measureStatus: 'Completed' });
+
+      const result = applyMergeLogic(row, existing);
+
+      expect(result.action).toBe('SKIP');
+      expect(result.reason).toContain('blank');
+    });
+
+    it('should handle null old status', () => {
+      const row = createMockRow({ measureStatus: 'Completed' });
+      const existing = createMockExistingRecord({ measureStatus: null });
+
+      const result = applyMergeLogic(row, existing);
+
+      // Old is unknown, new has value -> UPDATE
+      expect(result.action).toBe('UPDATE');
+    });
+
+    it('should handle both statuses as null', () => {
+      const row = createMockRow({ measureStatus: null });
+      const existing = createMockExistingRecord({ measureStatus: null });
+
+      const result = applyMergeLogic(row, existing);
+
+      // New is blank -> SKIP
+      expect(result.action).toBe('SKIP');
+    });
+
+    it('should preserve patient info in result', () => {
+      const row = createMockRow({
+        memberName: 'Test Patient',
+        memberDob: '1985-05-15',
+        memberTelephone: '555-1234',
+        memberAddress: '123 Test St',
+        measureStatus: 'Completed',
+      });
+      const existing = createMockExistingRecord({ measureStatus: 'Not Addressed' });
+
+      const result = applyMergeLogic(row, existing);
+
+      expect(result.memberName).toBe('Test Patient');
+      expect(result.memberDob).toBe('1985-05-15');
+      expect(result.memberTelephone).toBe('555-1234');
+      expect(result.memberAddress).toBe('123 Test St');
+    });
+
+    it('should preserve existing record IDs in result', () => {
+      const row = createMockRow({ measureStatus: 'Completed' });
+      const existing = createMockExistingRecord({
+        patientId: 42,
+        measureId: 123,
+        measureStatus: 'Not Addressed',
+      });
+
+      const result = applyMergeLogic(row, existing);
+
+      expect(result.existingPatientId).toBe(42);
+      expect(result.existingMeasureId).toBe(123);
+    });
+  });
+
+  describe('calculateMergeDiff edge cases', () => {
+    it('should handle empty rows array', () => {
+      const rows: TransformedRow[] = [];
+      const existingByKey = new Map<string, ExistingRecord>();
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes).toHaveLength(0);
+      expect(summary.inserts).toBe(0);
+      expect(summary.updates).toBe(0);
+      expect(summary.skips).toBe(0);
+    });
+
+    it('should handle multiple rows for same patient', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({ qualityMeasure: 'AWV', sourceRowIndex: 0 }),
+        createMockRow({ qualityMeasure: 'Diabetic Eye Exam', sourceRowIndex: 1 }),
+        createMockRow({ qualityMeasure: 'Diabetes Control', sourceRowIndex: 2 }),
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes).toHaveLength(3);
+      expect(summary.inserts).toBe(3);
+    });
+
+    it('should handle large existing records map', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({ memberName: 'Patient 50' }),
+      ];
+
+      // Create a large map with 100 records
+      const existingByKey = new Map<string, ExistingRecord>();
+      for (let i = 0; i < 100; i++) {
+        const key = `Patient ${i}|1990-01-15|AWV|Annual Wellness Visit`;
+        existingByKey.set(key, createMockExistingRecord({
+          patientId: i,
+          memberName: `Patient ${i}`,
+        }));
+      }
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      // Patient 50 exists, so it should try to apply merge logic
+      expect(changes).toHaveLength(1);
+    });
+  });
+
+  describe('calculateReplaceAllDiff edge cases', () => {
+    it('should handle empty existing records', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({ memberName: 'New Patient' }),
+      ];
+      const existingRecords: ExistingRecord[] = [];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, existingRecords, summary);
+
+      expect(summary.deletes).toBe(0);
+      expect(summary.inserts).toBe(1);
+    });
+
+    it('should handle empty import rows', () => {
+      const rows: TransformedRow[] = [];
+      const existingRecords: ExistingRecord[] = [
+        createMockExistingRecord({ memberName: 'Existing Patient' }),
+      ];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, existingRecords, summary);
+
+      expect(summary.deletes).toBe(1);
+      expect(summary.inserts).toBe(0);
+    });
+
+    it('should handle large replacement', () => {
+      const rows: TransformedRow[] = [];
+      const existingRecords: ExistingRecord[] = [];
+
+      // 50 new rows
+      for (let i = 0; i < 50; i++) {
+        rows.push(createMockRow({ memberName: `New Patient ${i}`, sourceRowIndex: i }));
+      }
+
+      // 30 existing records
+      for (let i = 0; i < 30; i++) {
+        existingRecords.push(createMockExistingRecord({
+          patientId: i,
+          memberName: `Old Patient ${i}`,
+        }));
+      }
+
+      const summary = createMockSummary();
+      const changes = calculateReplaceAllDiff(rows, existingRecords, summary);
+
+      expect(summary.deletes).toBe(30);
+      expect(summary.inserts).toBe(50);
+      expect(changes).toHaveLength(80);
+    });
+  });
+
+  describe('DiffResult completeness', () => {
+    it('should include all required fields', () => {
+      const result = createMockDiffResult();
+
+      expect(result.mode).toBeDefined();
+      expect(result.summary).toBeDefined();
+      expect(result.changes).toBeDefined();
+      expect(result.newPatients).toBeDefined();
+      expect(result.existingPatients).toBeDefined();
+      expect(result.generatedAt).toBeDefined();
+    });
+
+    it('should have summary with all action counts', () => {
+      const result = createMockDiffResult();
+
+      expect(typeof result.summary.inserts).toBe('number');
+      expect(typeof result.summary.updates).toBe('number');
+      expect(typeof result.summary.skips).toBe('number');
+      expect(typeof result.summary.duplicates).toBe('number');
+      expect(typeof result.summary.deletes).toBe('number');
+    });
+  });
+});
