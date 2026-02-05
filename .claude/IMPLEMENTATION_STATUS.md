@@ -90,9 +90,13 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Single-select filter behavior (click to select, click again to deselect)
 - [x] Filter counts displayed on each chip
 - [x] Status bar shows "Showing X of Y rows" when filtering
+- [x] Patient name search (search input in StatusFilterBar with case-insensitive partial match)
+  - Search + status color filter uses AND logic (both must match)
+  - Ctrl+F focuses search input, Escape clears and blurs
+  - Clear (X) button to reset search
+  - Status chip counts reflect full dataset (not affected by search)
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
-- [ ] Quick search/filter by patient name
 - [ ] Advanced filter builder (multiple conditions)
 
 ### Phase 5: CSV Import
@@ -291,8 +295,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (245 tests total)
-  - StatusFilterBar.test.tsx (29 tests, 100% coverage - includes getRowStatusColor tests)
+- [x] Phase 4: Component tests (265 tests total)
+  - StatusFilterBar.test.tsx (39 tests, 100% coverage - includes getRowStatusColor + search UI tests)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
@@ -303,6 +307,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - ResetPasswordPage.test.tsx (17 tests)
   - ImportPage.test.tsx (26 tests)
   - ImportPreviewPage.test.tsx (23 tests)
+  - MainPage.test.tsx (20 tests - search filtering logic)
   - authStore.test.ts (25 tests)
 
 ### E2E Testing (Playwright)
@@ -338,6 +343,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - cypress/e2e/time-interval.cy.ts - Dropdown-controlled statuses, manual override, validation
 - [x] Duplicate detection tests (15 tests)
   - cypress/e2e/duplicate-detection.cy.ts - Visual indicators, 409 errors, flag clearing
+- [x] Patient name search tests (13 tests)
+  - cypress/e2e/patient-name-search.cy.ts - Search input UI, filtering, AND logic, keyboard shortcuts
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -350,7 +357,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 527 tests passing
-- Total test count: ~1059 automated tests across all frameworks (527 Jest + 245 Vitest + 35 Playwright + 252 Cypress)
+- Total test count: ~1092 automated tests across all frameworks (527 Jest + 265 Vitest + 35 Playwright + 265 Cypress)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -625,7 +632,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 5, 2026 - Multi-role refactoring, test gap coverage (6 new test files), spec infrastructure. Total ~1059 tests.
+February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage (6 new test files), spec infrastructure. Total ~1092 tests.
 February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.
 February 4, 2026 - Added Phase 12 tests: Header.test.tsx (12), patient-assignment.cy.ts (32).
 February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

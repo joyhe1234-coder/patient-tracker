@@ -40,7 +40,7 @@ This document tracks planned features and enhancements for future development.
 - [x] Filter counts displayed on each chip
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
-- [ ] Quick search/filter by patient name
+- [x] Quick search/filter by patient name
 - [ ] Advanced filter builder (multiple conditions)
 
 ### Phase 5: CSV Import (v3.0.0)
@@ -273,5 +273,5 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 5, 2026 - Multi-role refactoring, test gap coverage, spec infrastructure
+February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage, spec infrastructure
 February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

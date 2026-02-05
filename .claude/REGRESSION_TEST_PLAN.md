@@ -1998,6 +1998,7 @@ Cypress tests for AG Grid interactions, import flow, patient assignment, role ac
 | `cypress/e2e/patient-assignment.cy.ts` | Patient/staff assignment, count verification | 32 |
 | `cypress/e2e/role-access-control.cy.ts` | STAFF/PHYSICIAN/ADMIN access restrictions | 31 |
 | `cypress/e2e/sorting-filtering.cy.ts` | Column sorting, status filter bar, row colors | 55 |
+| `cypress/e2e/patient-name-search.cy.ts` | Search input UI, filtering, AND logic, keyboard shortcuts | 13 |
 
 ### Test Categories
 
@@ -2726,6 +2727,91 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 29. Patient Name Search
+
+**Requirement Spec:** [`.claude/specs/patient-name-search/requirements.md`](specs/patient-name-search/requirements.md)
+
+### TC-29.1: Search Input UI
+**Requirement:** Req 1 (AC 1.1-1.7)
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Search Input"` (10 tests), `patient-name-search.cy.ts: "Search Input UI"` (3 tests)
+**Steps:**
+1. Navigate to patient grid
+2. Observe the StatusFilterBar
+
+**Expected:**
+- Search input visible to the right of status chips
+- Placeholder text "Search by name..."
+- Search magnifying glass icon visible
+- Clear (X) button hidden when input is empty
+- Clear (X) button visible when input has text
+- `aria-label="Search patients by name"` on input
+- `aria-label="Clear search"` on clear button
+
+### TC-29.2: Real-Time Name Filtering
+**Requirement:** Req 2 (AC 2.1-2.6)
+**Automation:** Automated - `MainPage.test.tsx` (20 tests), `patient-name-search.cy.ts: "Filtering Behavior"` (4 tests)
+**Steps:**
+1. Type "Smith" in the search input
+2. Observe grid rows
+
+**Expected:**
+- Grid filters in real-time as you type
+- Only rows where memberName contains "Smith" are shown
+- Case-insensitive (typing "smith" matches "Smith, John")
+- Partial match (typing "Smi" matches "Smith, John")
+- Matches any part of name ("john" matches "Johnson, Mary")
+- Typing non-matching text shows empty grid
+
+### TC-29.3: Search with Status Filter (AND Logic)
+**Requirement:** Req 3 (AC 3.1-3.4)
+**Automation:** Automated - `MainPage.test.tsx: "search + status filter"` (6 tests), `patient-name-search.cy.ts: "Filter Combination"` (2 tests)
+**Steps:**
+1. Click "Completed" status chip
+2. Type "Smith" in search input
+
+**Expected:**
+- Only rows matching BOTH green status AND "Smith" name shown
+- Clearing search restores all green rows (status filter maintained)
+- Status chip counts reflect full dataset (not affected by search)
+
+### TC-29.4: Clear Search Behavior
+**Requirement:** Req 1 (AC 1.5, 1.6)
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Clear search"` (2 tests), `patient-name-search.cy.ts: "Clear Behavior"` (2 tests)
+**Steps:**
+1. Type text in search input
+2. Click clear (X) button
+
+**Expected:**
+- Search input cleared to empty
+- Clear button disappears
+- All rows restored (respecting active status filter)
+
+### TC-29.5: Row Count Update
+**Requirement:** Req 4 (AC 4.1-4.2)
+**Automation:** Automated - `MainPage.test.tsx: "chip counts"` (1 test), `patient-name-search.cy.ts: "Status Bar Row Count"` (1 test)
+**Steps:**
+1. Note status bar row count
+2. Type a search term
+
+**Expected:**
+- Status bar shows "Showing X of Y rows" when search is active
+- Status chip counts do NOT change during search
+
+### TC-29.6: Keyboard Shortcuts
+**Requirement:** Req 5 (AC 5.1-5.2)
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Escape key"` (2 tests), `patient-name-search.cy.ts: "Keyboard Shortcuts"` (2 tests)
+**Steps:**
+1. Press Ctrl+F (or Cmd+F)
+2. Type a search term
+3. Press Escape
+
+**Expected:**
+- Ctrl+F focuses the search input
+- Does NOT intercept Ctrl+F when editing AG Grid cell
+- Escape clears search text and blurs the input
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -2749,6 +2835,7 @@ npm run cypress:headed  # Run with browser visible
 | 26. Authentication | 19 | 14 | 2 | 3 | 79% |
 | 27. Patient Assignment | 10 | 10 | 0 | 0 | 100% |
 | 28. RBAC | 11 | 11 | 0 | 0 | 100% |
+| 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -2768,6 +2855,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 5, 2026 - Added Patient Name Search test cases (TC-29.1 to TC-29.6)
 February 5, 2026 - Added automation status and requirement traceability to all test cases
 February 5, 2026 - Added Automation Summary section with coverage percentages and priority gaps
 February 4, 2026 - Added Role Access Control test cases (TC-28.1 to TC-28.11)

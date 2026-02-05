@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
+import { Search, X } from 'lucide-react';
 
 // Status color categories matching PatientGrid row class rules
 export type StatusColor = 'all' | 'duplicate' | 'white' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'red';
@@ -7,6 +8,9 @@ interface StatusFilterBarProps {
   activeFilters: StatusColor[];
   onFilterChange: (filters: StatusColor[]) => void;
   rowCounts: Record<StatusColor, number>;
+  searchText: string;
+  onSearchChange: (text: string) => void;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 // Status category definitions
@@ -29,7 +33,7 @@ const STATUS_CATEGORIES: Array<{
   { id: 'gray', label: 'N/A', bgColor: 'bg-gray-200', textColor: 'text-gray-600', borderColor: 'border-gray-400' },
 ];
 
-export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts }: StatusFilterBarProps) {
+export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts, searchText, onSearchChange, searchInputRef }: StatusFilterBarProps) {
   const isAllSelected = activeFilters.includes('all') || activeFilters.length === 0;
 
   const handleChipClick = (id: StatusColor) => {
@@ -75,6 +79,35 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
           </button>
         );
       })}
+
+      {/* Search input */}
+      <div className="relative ml-auto">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchText}
+          onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              onSearchChange('');
+              e.currentTarget.blur();
+            }
+          }}
+          placeholder="Search by name..."
+          aria-label="Search patients by name"
+          className="w-64 pl-8 pr-8 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+        {searchText && (
+          <button
+            onClick={() => onSearchChange('')}
+            aria-label="Clear search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

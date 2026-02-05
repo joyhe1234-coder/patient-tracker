@@ -117,14 +117,14 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (245 tests)
+### Frontend Component Tests (265 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
 | File | Tests | Description |
 |------|-------|-------------|
 | **Component Tests** | | `frontend/src/components/` |
-| `StatusFilterBar.test.tsx` | 29 | Filter chip rendering, click behavior, row colors |
+| `StatusFilterBar.test.tsx` | 39 | Filter chip rendering, click behavior, row colors, search input UI |
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
 | `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
@@ -136,6 +136,7 @@ npm test -- -t "should parse CSV"  # Specific test
 | `ResetPasswordPage.test.tsx` | 17 | Token validation, password form, reset flow |
 | `ImportPage.test.tsx` | 26 | Import workflow UI, mode selection, file upload |
 | `ImportPreviewPage.test.tsx` | 23 | Preview display, summary cards, changes table |
+| `MainPage.test.tsx` | 20 | Search filtering logic (pure function, AND logic, null handling) |
 | **Store Tests** | | `frontend/src/stores/` |
 | `authStore.test.ts` | 25 | Login/logout, token storage, session persistence |
 
@@ -180,7 +181,7 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (252 tests)
+### Cypress E2E Tests (265 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
@@ -194,6 +195,7 @@ npm run e2e:report        # View HTML report
 | `role-access-control.cy.ts` | 31 | STAFF/PHYSICIAN/ADMIN access restrictions |
 | `sorting-filtering.cy.ts` | 55 | Column sorting, status filter bar, row colors |
 | `time-interval.cy.ts` | 14 | Dropdown-controlled statuses, manual override, validation |
+| `patient-name-search.cy.ts` | 13 | Search input UI, filtering, AND logic, keyboard shortcuts |
 
 **Test Categories:**
 
@@ -369,7 +371,7 @@ npm run test:cli -- --save    # Save new baselines
 | Backend auth services | Jest | 50 | Complete |
 | Backend API routes | Jest | ~137 | Complete |
 | Frontend components | Vitest | 82 | Complete |
-| Frontend pages | Vitest | 96 | Complete |
+| Frontend pages | Vitest | 116 | Complete |
 | Frontend stores | Vitest | 25 | Complete |
 | Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
@@ -379,10 +381,11 @@ npm run test:cli -- --save    # Save new baselines
 | Patient assignment | Cypress | 32 | Complete |
 | Role access control | Cypress | 31 | Complete |
 | Sorting & filtering | Cypress | 55 | Complete |
+| Patient name search | Vitest + Cypress | 33 | Complete |
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
 
-**Total Automated Tests: ~735+**
+**Total Automated Tests: ~1092**
 
 ---
 
@@ -549,7 +552,8 @@ describe('Feature Name', () => {
 - patient-assignment.cy.ts: 32 tests
 - role-access-control.cy.ts: 31 tests
 - sorting-filtering.cy.ts: 55 tests
-- **Total: 177 tests** (when run with fresh seed data)
+- patient-name-search.cy.ts: 13 tests
+- **Total: 190 tests** (when run with fresh seed data)
 
 ---
 
@@ -574,6 +578,14 @@ describe('Feature Name', () => {
 ---
 
 ## Last Updated
+
+February 5, 2026 - Added Patient Name Search tests:
+- Vitest: MainPage.test.tsx (20 tests) - Search filtering logic, AND logic, null handling
+- Vitest: StatusFilterBar.test.tsx updated (+10 search UI tests, now 39 total)
+- Cypress: patient-name-search.cy.ts (13 tests) - Search input, filtering, keyboard shortcuts
+- Vitest tests: 265 (was 245)
+- Cypress tests: 265 (was 252)
+- Total tests: ~1092
 
 February 4, 2026 - Added Sorting & Filtering tests:
 - Cypress: sorting-filtering.cy.ts (55 tests) - Column sorting, status filter bar, row colors

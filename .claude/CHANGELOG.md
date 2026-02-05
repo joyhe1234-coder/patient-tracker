@@ -9,6 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.3.0-snapshot] - Unreleased
 
 ### Added
+- **Patient Name Search** (Feb 5, 2026)
+  - Search input in StatusFilterBar for filtering patients by name
+  - Case-insensitive partial match filtering on memberName field
+  - AND logic between name search and status color filter
+  - Ctrl+F keyboard shortcut to focus search, Escape to clear and blur
+  - Clear (X) button to reset search, hidden when input is empty
+  - Status bar shows "Showing X of Y rows" during active search
+  - Status chip counts reflect full dataset (not affected by search)
+  - NEW: `MainPage.test.tsx` - 20 Vitest tests for search filtering logic
+  - NEW: `patient-name-search.cy.ts` - 13 Cypress E2E tests for search workflow
+  - Updated `StatusFilterBar.test.tsx` - 10 new search UI tests (39 total)
+  - Total Vitest tests: 265 (was 245, +20 new)
+  - Total Cypress tests: 265 (was 252, +13 new)
+
 - **Regression Test Gap Coverage** (Feb 5, 2026)
   - NEW: `duplicateDetector.test.ts` - 38 Jest tests for duplicate detection logic
     - checkForDuplicate: null/empty/whitespace handling, Prisma where clause, excludeMeasureId
