@@ -527,9 +527,9 @@ router.post('/staff-assignments', async (req: Request, res: Response, next: Next
       throw createError('Staff user not found', 404, 'STAFF_NOT_FOUND');
     }
 
-    // Verify physician user exists and is PHYSICIAN role
+    // Verify physician user exists and can have patients
     const physician = await prisma.user.findUnique({ where: { id: physicianId } });
-    if (!physician || physician.role !== 'PHYSICIAN') {
+    if (!physician || !physician.canHavePatients) {
       throw createError('Physician user not found', 404, 'PHYSICIAN_NOT_FOUND');
     }
 
