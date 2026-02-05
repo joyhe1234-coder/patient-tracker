@@ -576,7 +576,7 @@ async function main() {
     update: {},
     create: {
       id: 1,
-      lockedByUsername: null,
+      lockedByEmail: null,
       lockedByDisplayName: null,
       lockedAt: null,
       lastActivity: null,
