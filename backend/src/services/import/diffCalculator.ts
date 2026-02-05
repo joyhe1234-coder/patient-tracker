@@ -517,6 +517,7 @@ export interface PatientReassignment {
   currentOwnerId: number | null;
   currentOwnerName: string | null;
   newOwnerId: number | null;
+  newOwnerName: string | null;
 }
 
 /**
@@ -545,6 +546,16 @@ export async function detectReassignments(
 
   if (importPatients.size === 0) {
     return [];
+  }
+
+  // Look up the target owner's name if a physician is specified
+  let newOwnerName: string | null = null;
+  if (targetOwnerId !== null) {
+    const targetOwner = await prisma.user.findUnique({
+      where: { id: targetOwnerId },
+      select: { displayName: true },
+    });
+    newOwnerName = targetOwner?.displayName ?? null;
   }
 
   // Load existing patients from database with their owners
@@ -587,6 +598,7 @@ export async function detectReassignments(
       currentOwnerId: patient.ownerId,
       currentOwnerName: patient.owner?.displayName ?? null,
       newOwnerId: targetOwnerId,
+      newOwnerName: newOwnerName,
     });
   }
 

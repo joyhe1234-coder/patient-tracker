@@ -27,6 +27,7 @@ interface PatientReassignment {
   currentOwnerId: number | null;
   currentOwnerName: string | null;
   newOwnerId: number | null;
+  newOwnerName: string | null;
 }
 
 interface PreviewResult {
@@ -519,7 +520,7 @@ export default function ImportPreviewPage() {
                       </span>
                       <span className="text-gray-400">→</span>
                       <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
-                        New physician
+                        {reassign.newOwnerName || 'Unassigned'}
                       </span>
                     </div>
                   </div>
@@ -666,7 +667,7 @@ export default function ImportPreviewPage() {
                       <div key={idx} className="flex items-center justify-between py-1 border-b border-gray-100">
                         <span className="font-medium">{r.memberName}</span>
                         <span className="text-gray-500 text-xs">
-                          {r.currentOwnerName || 'Unassigned'} → New
+                          {r.currentOwnerName || 'Unassigned'} → {r.newOwnerName || 'Unassigned'}
                         </span>
                       </div>
                     ))}
