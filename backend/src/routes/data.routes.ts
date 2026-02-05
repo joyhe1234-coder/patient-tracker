@@ -1,16 +1,116 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database.js';
 import { createError } from '../middleware/errorHandler.js';
+import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
+import { isStaffAssignedToPhysician } from '../services/authService.js';
 import { calculateDueDate } from '../services/dueDateCalculator.js';
 import { updateDuplicateFlags, checkForDuplicate } from '../services/duplicateDetector.js';
 import { resolveStatusDatePrompt, getDefaultDatePrompt } from '../services/statusDatePromptResolver.js';
 
 const router = Router();
 
+// All data routes require authentication and patient data access (PHYSICIAN or STAFF)
+router.use(requireAuth);
+router.use(requirePatientDataAccess);
+
+/**
+ * Result of getPatientOwnerFilter - contains ownerId or special flag for unassigned
+ */
+interface OwnerFilter {
+  ownerId: number | null;
+  isUnassigned: boolean;
+}
+
+/**
+ * Get patient filter based on user role
+ * @param req - Express request with authenticated user
+ * @returns OwnerFilter with ownerId (or null for unassigned) and isUnassigned flag
+ */
+async function getPatientOwnerFilter(req: Request): Promise<OwnerFilter> {
+  const user = req.user!;
+
+  if (user.role === 'PHYSICIAN') {
+    // PHYSICIAN sees only their own patients
+    return { ownerId: user.id, isUnassigned: false };
+  }
+
+  if (user.role === 'STAFF') {
+    // STAFF must specify physicianId to view that physician's patients
+    const physicianIdParam = req.query.physicianId as string | undefined;
+    if (!physicianIdParam) {
+      throw createError('physicianId query parameter is required for STAFF users', 400, 'MISSING_PHYSICIAN_ID');
+    }
+
+    // STAFF cannot view unassigned patients
+    if (physicianIdParam === 'unassigned' || physicianIdParam === 'null') {
+      throw createError('STAFF users cannot view unassigned patients', 403, 'FORBIDDEN');
+    }
+
+    const physicianId = parseInt(physicianIdParam, 10);
+    if (isNaN(physicianId)) {
+      throw createError('Invalid physicianId', 400, 'INVALID_PHYSICIAN_ID');
+    }
+
+    // Verify STAFF is assigned to this physician
+    const isAssigned = await isStaffAssignedToPhysician(user.id, physicianId);
+    if (!isAssigned) {
+      throw createError('You are not assigned to this physician', 403, 'NOT_ASSIGNED');
+    }
+
+    return { ownerId: physicianId, isUnassigned: false };
+  }
+
+  if (user.role === 'ADMIN') {
+    // ADMIN must specify physicianId to view patients
+    const physicianIdParam = req.query.physicianId as string | undefined;
+    if (!physicianIdParam) {
+      throw createError('physicianId query parameter is required for ADMIN users', 400, 'MISSING_PHYSICIAN_ID');
+    }
+
+    // ADMIN can view unassigned patients with physicianId=unassigned or physicianId=null
+    if (physicianIdParam === 'unassigned' || physicianIdParam === 'null') {
+      return { ownerId: null, isUnassigned: true };
+    }
+
+    const physicianId = parseInt(physicianIdParam, 10);
+    if (isNaN(physicianId)) {
+      throw createError('Invalid physicianId', 400, 'INVALID_PHYSICIAN_ID');
+    }
+
+    // ADMIN can view any physician's patients (no assignment check needed)
+    return { ownerId: physicianId, isUnassigned: false };
+  }
+
+  throw createError('Unknown user role', 403, 'FORBIDDEN');
+}
+
+/**
+ * Legacy helper - returns just the ownerId (for backward compatibility)
+ * @deprecated Use getPatientOwnerFilter instead
+ */
+async function getPatientOwnerId(req: Request): Promise<number | null> {
+  const filter = await getPatientOwnerFilter(req);
+  return filter.ownerId;
+}
+
 // GET /api/data - Get all patient measures (grid data)
-router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
+// PHYSICIAN: sees own patients (auto-filtered)
+// STAFF: sees selected physician's patients (requires physicianId query param)
+// ADMIN: sees selected physician's patients OR unassigned (physicianId=unassigned)
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Get the owner filter
+    const { ownerId, isUnassigned } = await getPatientOwnerFilter(req);
+
+    // Build the where clause - for unassigned, we need ownerId: null
+    const ownerWhere = isUnassigned
+      ? { ownerId: null }
+      : { ownerId: ownerId };
+
     const measures = await prisma.patientMeasure.findMany({
+      where: {
+        patient: ownerWhere,
+      },
       include: {
         patient: true,
       },
@@ -78,6 +178,9 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       throw createError('Missing required fields (memberName, memberDob)', 400, 'VALIDATION_ERROR');
     }
 
+    // Get the owner ID for the new patient
+    const ownerId = await getPatientOwnerId(req);
+
     // Find or create patient
     let patient = await prisma.patient.findUnique({
       where: {
@@ -95,12 +198,21 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
           memberDob: new Date(memberDob),
           memberTelephone: memberTelephone || null,
           memberAddress: memberAddress || null,
+          ownerId, // Assign to the current user/physician
         },
       });
+    } else if (patient.ownerId !== ownerId) {
+      // Patient exists but belongs to different physician
+      throw createError('This patient belongs to a different physician', 403, 'FORBIDDEN');
     }
 
-    // Shift all existing rows down by incrementing their rowOrder
+    // Shift all existing rows for this owner down by incrementing their rowOrder
     await prisma.patientMeasure.updateMany({
+      where: {
+        patient: {
+          ownerId,
+        },
+      },
       data: {
         rowOrder: { increment: 1 },
       },
@@ -196,6 +308,9 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Get the owner ID the user has access to
+    const ownerId = await getPatientOwnerId(req);
+
     // Get existing measure with patient
     const existing = await prisma.patientMeasure.findUnique({
       where: { id: parseInt(id, 10) },
@@ -204,6 +319,11 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     if (!existing) {
       throw createError('Record not found', 404, 'NOT_FOUND');
+    }
+
+    // Verify the patient belongs to the user's scope
+    if (existing.patient.ownerId !== ownerId) {
+      throw createError('You do not have permission to modify this record', 403, 'FORBIDDEN');
     }
 
     // Separate patient fields from measure fields
@@ -496,6 +616,9 @@ router.post('/duplicate', async (req: Request, res: Response, next: NextFunction
       throw createError('Missing required field: sourceRowId', 400, 'VALIDATION_ERROR');
     }
 
+    // Get the owner ID the user has access to
+    const ownerId = await getPatientOwnerId(req);
+
     // 1. Fetch source row with patient data
     const sourceRow = await prisma.patientMeasure.findUnique({
       where: { id: sourceRowId },
@@ -506,12 +629,20 @@ router.post('/duplicate', async (req: Request, res: Response, next: NextFunction
       throw createError('Source row not found', 404, 'NOT_FOUND');
     }
 
+    // Verify the patient belongs to the user's scope
+    if (sourceRow.patient.ownerId !== ownerId) {
+      throw createError('You do not have permission to duplicate this row', 403, 'FORBIDDEN');
+    }
+
     // 2. Get the rowOrder of source row
     const sourceRowOrder = sourceRow.rowOrder;
 
-    // 3. Shift rows below source down (increment rowOrder for rows > sourceRowOrder)
+    // 3. Shift rows below source down (only for this owner's patients)
     await prisma.patientMeasure.updateMany({
-      where: { rowOrder: { gt: sourceRowOrder } },
+      where: {
+        rowOrder: { gt: sourceRowOrder },
+        patient: { ownerId },
+      },
       data: { rowOrder: { increment: 1 } },
     });
 
@@ -572,12 +703,21 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
   try {
     const { id } = req.params;
 
+    // Get the owner ID the user has access to
+    const ownerId = await getPatientOwnerId(req);
+
     const existing = await prisma.patientMeasure.findUnique({
       where: { id: parseInt(id, 10) },
+      include: { patient: true },
     });
 
     if (!existing) {
       throw createError('Record not found', 404, 'NOT_FOUND');
+    }
+
+    // Verify the patient belongs to the user's scope
+    if (existing.patient.ownerId !== ownerId) {
+      throw createError('You do not have permission to delete this record', 403, 'FORBIDDEN');
     }
 
     // Store patient info before deletion

@@ -83,6 +83,8 @@ export interface ExistingRecord {
   requestType: string | null;
   qualityMeasure: string | null;
   measureStatus: string | null;
+  ownerId: number | null;
+  ownerName: string | null;
 }
 
 /**
@@ -142,13 +144,17 @@ export function categorizeStatus(status: string | null): ComplianceCategory {
 
 /**
  * Calculate diff between imported data and existing database
+ * @param rows - Transformed import rows
+ * @param mode - Import mode (merge or replace)
+ * @param targetOwnerId - Owner ID to filter existing records (null = unassigned patients only)
  */
 export async function calculateDiff(
   rows: TransformedRow[],
-  mode: ImportMode
+  mode: ImportMode,
+  targetOwnerId: number | null = null
 ): Promise<DiffResult> {
-  // Load existing data from database
-  const existingRecords = await loadExistingRecords();
+  // Load existing data from database filtered by target owner
+  const existingRecords = await loadExistingRecords(targetOwnerId);
 
   // Build lookup map: "memberName|memberDob|requestType|qualityMeasure" -> record
   const existingByKey = new Map<string, ExistingRecord>();
@@ -211,10 +217,28 @@ export async function calculateDiff(
 /**
  * Load all existing patient measures from database
  */
-async function loadExistingRecords(): Promise<ExistingRecord[]> {
+/**
+ * Load existing records filtered by owner
+ * @param targetOwnerId - Owner ID to filter by (null = unassigned patients only)
+ */
+async function loadExistingRecords(targetOwnerId: number | null): Promise<ExistingRecord[]> {
   const measures = await prisma.patientMeasure.findMany({
+    where: {
+      patient: {
+        ownerId: targetOwnerId, // null matches unassigned patients
+      },
+    },
     include: {
-      patient: true,
+      patient: {
+        include: {
+          owner: {
+            select: {
+              id: true,
+              displayName: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -228,6 +252,8 @@ async function loadExistingRecords(): Promise<ExistingRecord[]> {
     requestType: m.requestType,
     qualityMeasure: m.qualityMeasure,
     measureStatus: m.measureStatus,
+    ownerId: m.patient.ownerId,
+    ownerName: m.patient.owner?.displayName ?? null,
   }));
 }
 
@@ -479,4 +505,90 @@ export function filterChangesByAction(
  */
 export function getModifyingChanges(changes: DiffChange[]): DiffChange[] {
   return changes.filter((c) => c.action !== 'SKIP');
+}
+
+/**
+ * Patient reassignment info - when import would change patient's owner
+ */
+export interface PatientReassignment {
+  patientId: number;
+  memberName: string;
+  memberDob: string;
+  currentOwnerId: number | null;
+  currentOwnerName: string | null;
+  newOwnerId: number | null;
+}
+
+/**
+ * Detect patients that would be reassigned during import
+ * A reassignment occurs when a patient exists with owner A but is being imported for owner B
+ *
+ * @param rows The transformed import rows
+ * @param targetOwnerId The physician ID the import is targeting (null for unassigned)
+ * @returns Array of patients that would be reassigned
+ */
+export async function detectReassignments(
+  rows: TransformedRow[],
+  targetOwnerId: number | null
+): Promise<PatientReassignment[]> {
+  // Get unique patients from import
+  const importPatients = new Map<string, { memberName: string; memberDob: string }>();
+  for (const row of rows) {
+    if (row.memberDob) {
+      const key = `${row.memberName}|${row.memberDob}`;
+      importPatients.set(key, {
+        memberName: row.memberName,
+        memberDob: row.memberDob,
+      });
+    }
+  }
+
+  if (importPatients.size === 0) {
+    return [];
+  }
+
+  // Load existing patients from database with their owners
+  const existingPatients = await prisma.patient.findMany({
+    where: {
+      OR: Array.from(importPatients.values()).map((p) => ({
+        memberName: p.memberName,
+        memberDob: new Date(p.memberDob),
+      })),
+    },
+    include: {
+      owner: {
+        select: {
+          id: true,
+          displayName: true,
+        },
+      },
+    },
+  });
+
+  // Find reassignments - patients whose owner would change
+  const reassignments: PatientReassignment[] = [];
+
+  for (const patient of existingPatients) {
+    // Skip if owner would not change
+    if (patient.ownerId === targetOwnerId) {
+      continue;
+    }
+
+    // Skip if patient is unassigned and import would keep it unassigned
+    if (patient.ownerId === null && targetOwnerId === null) {
+      continue;
+    }
+
+    // This patient would be reassigned
+    reassignments.push({
+      patientId: patient.id,
+      memberName: patient.memberName,
+      memberDob: patient.memberDob.toISOString().split('T')[0],
+      currentOwnerId: patient.ownerId,
+      currentOwnerName: patient.owner?.displayName ?? null,
+      newOwnerId: targetOwnerId,
+    });
+  }
+
+  return reassignments;
 }

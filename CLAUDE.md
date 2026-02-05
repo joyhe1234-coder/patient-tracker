@@ -43,8 +43,11 @@ Wait for user confirmation before writing any code. Ask:
 ### Step 4: Implement
 Only after approval, proceed with implementation.
 
-### Step 5: Add Tests (REQUIRED)
-After implementing, you MUST add comprehensive automated tests covering ALL use cases.
+> ⚠️ **CRITICAL: Implementation is NOT complete until tests are written and passing.**
+> Do NOT commit code without corresponding tests. Proceed directly to Step 5.
+
+### Step 5: Add Tests (MANDATORY - Implementation Incomplete Without This)
+After implementing, you MUST add comprehensive automated tests covering ALL use cases. **A feature without tests is an incomplete feature.**
 
 #### 5a. Document Test Cases
 Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
@@ -67,6 +70,14 @@ Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
 
 #### 5c. Test Coverage Requirements
 
+**Minimum Coverage Targets:**
+| Layer | Target | Notes |
+|-------|--------|-------|
+| Backend Services | **80%+ line coverage** | Business logic must be well-tested |
+| API Routes | **All endpoints tested** | Happy path + at least 2 error cases per endpoint |
+| Frontend Components | **Render + interactions** | Each component renders and handles user input |
+| E2E Flows | **Critical user journeys** | Login, main workflows, error states |
+
 **Each feature MUST have tests covering:**
 
 1. **Happy Path** - Normal expected usage
@@ -75,7 +86,22 @@ Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
 4. **UI Interactions** - Clicks, typing, selections work correctly
 5. **Visual State** - Correct colors, visibility, disabled states
 
-#### 5d. Test File Templates
+#### 5d. Pre-Commit Test Checklist
+
+**Before committing ANY implementation, verify ALL applicable boxes:**
+
+```
+[ ] Backend unit tests written and passing (Jest)
+[ ] API endpoint tests written and passing (Jest + supertest)
+[ ] Frontend component tests written and passing (Vitest)
+[ ] E2E tests written for user flows (Playwright or Cypress)
+[ ] All existing tests still pass
+[ ] Test count included in commit message (e.g., "Adds 25 tests")
+```
+
+**If ANY test is missing, the implementation is INCOMPLETE. Do NOT commit.**
+
+#### 5f. Test File Templates
 
 **Backend Service (Jest):**
 ```typescript
@@ -148,7 +174,7 @@ describe('My Grid Feature', () => {
 });
 ```
 
-#### 5e. Run ALL Tests Before Commit
+#### 5g. Run ALL Tests Before Commit
 
 ```bash
 # Run ALL test suites - ALL must pass
@@ -158,7 +184,7 @@ cd frontend && npm run e2e                # Playwright (26+ tests)
 cd frontend && npm run cypress:run        # Cypress (19+ tests)
 ```
 
-#### 5f. Update Test Documentation
+#### 5h. Update Test Documentation
 
 After tests pass:
 1. Update `.claude/REGRESSION_TEST_PLAN.md` - Mark test cases as "Automated"
@@ -171,29 +197,82 @@ See `.claude/TESTING.md` for detailed patterns and troubleshooting.
 
 ## IMPORTANT: Pre-Commit Workflow
 
-**Before ANY git commit, you MUST update these documents first:**
+**Before ANY git commit, follow these steps IN ORDER:**
 
-1. **`.claude/IMPLEMENTATION_STATUS.md`** - Update to reflect:
-   - New features/components added
-   - Changes to existing functionality
-   - Current completion status of each module
+### Step 1: Update CHANGELOG First (Source of Truth)
 
-2. **`.claude/REGRESSION_TEST_PLAN.md`** - Update to reflect:
-   - New test cases needed for added functionality
-   - Modified test cases for changed behavior
-   - Mark completed tests
+**`.claude/CHANGELOG.md`** is the authoritative source for current UI/feature state.
 
-3. **`.claude/CHANGELOG.md`** - Add entry for:
-   - What changed (features, fixes, refactors)
-   - Date of change
-   - Brief description of impact
+Add entry for:
+- What changed (features, fixes, refactors)
+- Date of change
+- Brief description of impact
 
-4. **`.claude/TODO.md`** - Update to reflect:
-   - Mark completed tasks as done
-   - Add new tasks discovered during implementation
-   - Update priorities if needed
+### Step 2: Reconcile Other Documents Against CHANGELOG
 
-**Workflow:** Read current docs → Make updates based on staged changes → Stage doc updates → Then commit all together.
+**CRITICAL:** Before committing, read CHANGELOG and update all other documents to match it.
+
+| Document | Reconcile Against CHANGELOG |
+|----------|----------------------------|
+| `IMPLEMENTATION_STATUS.md` | Feature descriptions, completion status, test counts |
+| `TODO.md` | Mark completed tasks, remove obsolete items |
+| `REGRESSION_TEST_PLAN.md` | Test cases match current features |
+| Requirements docs | Specs match current implementation |
+
+**If there are conflicts between documents:**
+1. **CHANGELOG wins** - It reflects the actual implemented state
+2. **Update other docs to match CHANGELOG** - Never the other way around
+
+**Common conflicts to check:**
+- Removed features still listed as active (e.g., username field)
+- Changed UI fields or behavior
+- Modified API endpoints or parameters
+- Outdated test counts
+
+### Step 3: Stage and Commit Together
+
+```bash
+git add .claude/CHANGELOG.md .claude/IMPLEMENTATION_STATUS.md .claude/TODO.md [code files]
+git commit -m "description"
+```
+
+**Complete Workflow:**
+```
+1. Make code changes
+2. Update CHANGELOG.md (describe what changed)
+3. Read CHANGELOG, then update other docs to match
+4. Stage code + ALL doc updates together
+5. Commit
+```
+
+---
+
+## IMPORTANT: Installation Documentation
+
+**Three installation guides exist for different deployment targets:**
+
+| Guide | Purpose |
+|-------|---------|
+| `docs/QUICK_INSTALL.md` | Fast Docker install (for network admins) |
+| `docs/INSTALLATION_GUIDE.md` | Full self-hosted guide (Docker + manual options) |
+| `docs/RENDER_INSTALL.md` | Render.com cloud deployment |
+
+**When making ANY decision that affects installation or deployment, you MUST update ALL applicable guides:**
+
+- New environment variables → Update all 3 guides
+- New dependencies or version requirements → Update INSTALLATION_GUIDE.md
+- Configuration file changes → Update QUICK_INSTALL.md and INSTALLATION_GUIDE.md
+- Database schema changes requiring migration → Update all 3 guides
+- New services or components → Update all 3 guides
+- Changes to build or deployment process → Update applicable guides
+- SMTP/email configuration → Update all 3 guides
+- SSL/security requirements → Update INSTALLATION_GUIDE.md
+
+**Examples of changes requiring doc updates:**
+- Adding SMTP support for password reset → Update environment variables in all 3 guides
+- Adding Redis for caching → Add to system requirements in INSTALLATION_GUIDE.md and RENDER_INSTALL.md
+- Changing Node.js version → Update prerequisites in INSTALLATION_GUIDE.md
+- Adding new API endpoints that need proxy config → Update Nginx section in INSTALLATION_GUIDE.md
 
 ---
 
@@ -277,6 +356,11 @@ Read the following files before starting work:
 - `.claude/REGRESSION_TEST_PLAN.md` - Testing requirements
 - `.claude/TESTING.md` - **Testing guide: framework setup, patterns, and examples**
 
+## Installation Guides
+- `docs/QUICK_INSTALL.md` - **Fast Docker install for network admins**
+- `docs/INSTALLATION_GUIDE.md` - **Full self-hosted guide (Docker + manual)**
+- `docs/RENDER_INSTALL.md` - **Render.com cloud deployment**
+
 ## Claude-Specific Context
 - `.claude/context.md` - Project structure and tech stack
 - `.claude/patterns.md` - Code conventions and patterns
@@ -305,6 +389,8 @@ Read the following files before starting work:
 ---
 
 ## Render API Access
+
+**IMPORTANT:** Use the Render REST API with curl commands. Do NOT use the Render MCP server (not configured).
 
 ### API Key Location
 The Render API key is stored encrypted at `~/.claude/render-api-key.gpg`

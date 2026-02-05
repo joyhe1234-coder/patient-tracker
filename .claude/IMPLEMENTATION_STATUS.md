@@ -321,6 +321,18 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Preview page: summary cards, filters, changes table
   - Execution: success/error states, navigation
   - Test data: cypress/fixtures/test-import.csv
+- [x] Phase 12: Patient assignment tests (32 tests)
+  - cypress/e2e/patient-assignment.cy.ts - Patient and staff assignment workflows
+  - Assign unassigned patients to physicians
+  - Verify patient counts update correctly
+  - Staff-physician assignment management
+  - Data freshness verification (no caching)
+- [x] Phase 12: Role access control tests (31 tests)
+  - cypress/e2e/role-access-control.cy.ts - Authorization verification
+  - STAFF restrictions: no admin, no unassigned patients, only assigned physicians
+  - PHYSICIAN restrictions: no admin, only own patients
+  - ADMIN capabilities: full access to all features
+  - API 401/403 protection tests
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -332,8 +344,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 241 tests passing (89% statement coverage, 80% branch coverage)
-- Total test count: ~260 automated tests across all frameworks
+- [x] 360 tests passing (89% statement coverage, 80% branch coverage)
+- Total test count: ~680 automated tests across all frameworks
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -354,23 +366,129 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [ ] "Patient Declined" checkbox
 - [ ] Special color logic (GREEN/ORANGE/RED/GRAY) based on goal vs actual
 
-### Phase 11: View-Only Mode & Edit Locking
+### Phase 11: Authentication & Multi-Physician Support
 
-**Planned Features:**
-- [ ] View-only mode for non-editors
-- [ ] Single-editor locking system
-- [ ] Lock status indicator
-- [ ] Force-release lock (admin only)
+**Status: Complete**
 
-### Phase 12: Authentication & Multi-Physician Support
+- [x] JWT-based authentication
+  - Login/logout endpoints (email-only, no username)
+  - Password hashing with bcrypt
+  - Token verification middleware
+  - Password change endpoint
+- [x] User management
+  - User model with roles (PHYSICIAN, STAFF, ADMIN)
+  - Staff-to-Physician assignment model
+  - Admin CRUD endpoints for users
+  - Password reset by admin
+  - CLI password reset script
+- [x] Role-based access control
+  - PHYSICIAN: sees only own patients
+  - STAFF: sees assigned physicians' patients (with physician selector)
+  - ADMIN: user management + can view any physician's patients
+- [x] Frontend authentication
+  - Login page with email/password form
+  - Zustand auth store with persistence
+  - Protected routes with role checks
+  - Header with user menu and physician selector (STAFF and ADMIN)
+  - Password change modal
+  - Consistent navigation across all pages including Admin
+- [x] Admin dashboard
+  - User list with role badges
+  - Create/edit/deactivate users
+  - Staff-physician assignments
+  - Password reset
+  - Audit log viewer
+- [x] Data isolation by owner
+  - Patient.ownerId links patients to physicians
+  - API filtering by owner
+  - Existing patients remain unassigned (migration-safe)
+- [x] Audit logging
+  - LOGIN, LOGOUT, PASSWORD_CHANGE actions
+  - User CRUD actions
+  - Audit log cleanup script (6-month retention)
+  - Uses email for user identification (not username)
+- [x] Authentication Test Coverage (Feb 2, 2026)
+  - Backend: authService.test.ts (19), auth.test.ts middleware (13), route tests (18)
+  - Frontend: LoginPage.test.tsx (17), authStore.test.ts (25)
+  - E2E: auth.spec.ts (9 Playwright tests)
+  - 101 new authentication tests total
+- [x] Forgot Password Feature (Feb 3, 2026)
+  - PasswordResetToken database model with 1-hour expiration
+  - POST /api/auth/forgot-password - generates token, sends reset email
+  - POST /api/auth/reset-password - validates token, updates password
+  - GET /api/auth/smtp-status - frontend checks if email is available
+  - Email service (emailService.ts) using nodemailer
+  - ForgotPasswordPage - email form when SMTP configured, fallback message when not
+  - ResetPasswordPage - token validation, password reset form
+  - "Forgot password?" link on login page
+  - Backend loads .env via dotenv for local development
+  - SMTP environment variables configured on Render production
 
-**Planned Features:**
-- [ ] Login page for editors
-- [ ] JWT-based authentication
-- [ ] Admin panel for user management
-- [ ] Session timeout handling
-- [ ] Multi-physician data isolation (each physician sees only their patients)
-- [ ] Physician table and Patient.physicianId schema changes
+### Phase 12: Patient Ownership & Assignment System
+
+**Status: Complete**
+
+Complete redesign of patient ownership, viewing, and import assignment.
+
+#### Requirements (Finalized Feb 3, 2026)
+
+**Core Principles:**
+- Physicians see **only their own patients** (auto-filtered, no selector)
+- Staff/Admin see **nothing until they select a physician**
+- Import **requires explicit physician selection** (prevents accidental imports)
+- Admin can **reassign patients** between physicians
+
+**Data Model:**
+- [x] Add `canHavePatients: boolean` field to User model
+  - PHYSICIAN: always `true` (enforced)
+  - ADMIN: default `false`, can be enabled (allows admin to also be physician)
+  - STAFF: always `false`
+
+**Role-Based Behavior:**
+
+| Role | Default View | Physician Selector | Import Target | Bulk Assign |
+|------|--------------|-------------------|---------------|-------------|
+| PHYSICIAN | Own patients (auto) | Hidden | Self (auto) | ❌ |
+| STAFF | Empty until selected | Assigned physicians only | Must select | ❌ |
+| ADMIN | Empty until selected | All eligible + "Unassigned" | Must select | ✅ |
+
+**Backend Changes (Phase 12a-c):**
+- [x] Migration: Add `canHavePatients` to User model (Phase 12a)
+- [x] Seed.ts: PHYSICIAN gets `canHavePatients=true` by default (Phase 12a)
+- [x] Admin routes: Handle `canHavePatients` on user create/update (Phase 12a)
+- [x] AuthService: Include `canHavePatients` in AuthUser (Phase 12a)
+- [x] GET /api/data - Require `physicianId` param for ADMIN/STAFF (Phase 12b)
+- [x] GET /api/data?physicianId=unassigned - Return unassigned patients (Phase 12b)
+- [x] GET /api/users/physicians - Return users who can own patients (Phase 12b)
+- [x] GET /api/users/physicians/:id - Get specific physician info (Phase 12b)
+- [x] POST /api/import/preview - Detect and return `reassignments` array (Phase 12c)
+- [x] POST /api/import/execute - Require `confirmReassign=true` if reassignments exist (Phase 12c)
+- [x] PATCH /api/admin/patients/bulk-assign - Bulk assignment (admin only)
+- [x] GET /api/admin/patients/unassigned - Get unassigned patients (admin only)
+
+**Frontend Changes (Phase 12d-g):**
+- [x] Patient Grid: Physician selector dropdown (ADMIN/STAFF only)
+- [x] Patient Grid: "Select a physician to view" message when none selected
+- [x] Import Page: Physician selector (ADMIN/STAFF only)
+- [x] Import Preview: Reassignment warning with confirmation modal
+- [x] Patient Assignment Page: New admin-only page for bulk reassignment (`/admin/patient-assignment`)
+- [x] User Management: "Can Have Patients" toggle for ADMIN users
+- [x] Admin Page: "Assign Patients" button linking to assignment page
+
+**UI Refinements (Phase 12h):**
+- [x] Provider dropdown only visible on Patient Grid page (not Import/Admin pages)
+- [x] ADMIN users can select "Unassigned patients" option to view patients without a provider
+- [x] MainPage properly sends `physicianId=unassigned` for unassigned patient queries
+
+**Import Reassignment Warning:**
+When importing patients that already belong to another physician:
+- Show warning dialog listing affected patients
+- Require explicit confirmation to proceed
+- Cancel option to abort import
+
+See `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md` for detailed specifications.
+
+---
 
 ### Phase 13: Excel-like Behaviors
 
@@ -502,4 +620,6 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 1, 2026 - Added Import E2E tests (29 Cypress tests), total ~260 automated tests
+February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.
+February 4, 2026 - Added Phase 12 tests: Header.test.tsx (12), patient-assignment.cy.ts (32).
+February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

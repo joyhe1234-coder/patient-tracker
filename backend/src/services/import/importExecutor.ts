@@ -49,9 +49,10 @@ type PrismaTransaction = Omit<
 /**
  * Execute an import based on a cached preview
  * @param previewId The ID of the preview to execute
+ * @param ownerId The physician ID to assign imported patients to (null for unassigned)
  * @returns ExecutionResult with stats and any errors
  */
-export async function executeImport(previewId: string): Promise<ExecutionResult> {
+export async function executeImport(previewId: string, ownerId: number | null = null): Promise<ExecutionResult> {
   const startTime = Date.now();
 
   // Get preview from cache
@@ -74,9 +75,9 @@ export async function executeImport(previewId: string): Promise<ExecutionResult>
     // Increase timeout for large imports (default is 5s, we use 5 minutes)
     await prisma.$transaction(async (tx) => {
       if (preview.mode === 'replace') {
-        await executeReplaceMode(preview.diff.changes, tx, stats, errors);
+        await executeReplaceMode(preview.diff.changes, tx, stats, errors, ownerId);
       } else {
-        await executeMergeMode(preview.diff.changes, tx, stats, errors);
+        await executeMergeMode(preview.diff.changes, tx, stats, errors, ownerId);
       }
     }, {
       timeout: 300000, // 5 minutes for large imports
@@ -120,7 +121,8 @@ async function executeReplaceMode(
   changes: DiffChange[],
   tx: PrismaTransaction,
   stats: ExecutionResult['stats'],
-  errors: ExecutionError[]
+  errors: ExecutionError[],
+  ownerId: number | null
 ): Promise<void> {
   // Step 1: Delete all existing (DELETE actions)
   const deleteChanges = changes.filter(c => c.action === 'DELETE');
@@ -139,7 +141,7 @@ async function executeReplaceMode(
   const insertChanges = changes.filter(c => c.action === 'INSERT');
   for (const change of insertChanges) {
     try {
-      await insertMeasure(change, tx);
+      await insertMeasure(change, tx, ownerId);
       stats.inserted++;
     } catch (error) {
       errors.push({
@@ -160,13 +162,14 @@ async function executeMergeMode(
   changes: DiffChange[],
   tx: PrismaTransaction,
   stats: ExecutionResult['stats'],
-  errors: ExecutionError[]
+  errors: ExecutionError[],
+  ownerId: number | null
 ): Promise<void> {
   for (const change of changes) {
     try {
       switch (change.action) {
         case 'INSERT':
-          await insertMeasure(change, tx);
+          await insertMeasure(change, tx, ownerId);
           stats.inserted++;
           break;
 
@@ -177,7 +180,7 @@ async function executeMergeMode(
 
         case 'BOTH':
           // Keep existing (no action needed) + insert new record
-          await insertMeasure(change, tx);
+          await insertMeasure(change, tx, ownerId);
           stats.bothKept++;
           break;
 
@@ -207,7 +210,8 @@ async function executeMergeMode(
  */
 async function insertMeasure(
   change: DiffChange,
-  tx: PrismaTransaction
+  tx: PrismaTransaction,
+  ownerId: number | null
 ): Promise<void> {
   // Handle null DOB - use a default or skip
   if (!change.memberDob) {
@@ -233,7 +237,14 @@ async function insertMeasure(
         memberDob: memberDob,
         memberTelephone: change.memberTelephone,
         memberAddress: change.memberAddress,
+        ownerId: ownerId,
       }
+    });
+  } else if (ownerId !== null && patient.ownerId !== ownerId) {
+    // Update existing patient's ownerId to assign to the importing user
+    patient = await tx.patient.update({
+      where: { id: patient.id },
+      data: { ownerId: ownerId }
     });
   }
 

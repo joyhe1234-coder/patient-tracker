@@ -89,12 +89,76 @@ This document tracks planned features and enhancements for future development.
 - [x] Phase 8: Import E2E tests (Cypress: 29 passing)
   - Import page: system selection, mode selection, file upload
   - Preview page: summary cards, action filters, changes table
+- [x] Phase 9: Authentication tests (Feb 2, 2026)
+  - LoginPage.test.tsx (17 Vitest tests)
+  - authStore.test.ts (25 Vitest tests)
+  - auth.spec.ts (9 Playwright E2E tests)
   - Execution: success message, statistics, navigation
   - Error handling: invalid format, expired preview
 
 ---
 
-## High Priority
+## Completed This Session
+
+### Phase 12: Patient Ownership & Assignment System ✅ COMPLETE
+**Reference:** `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md`
+
+#### Phase 12a: Database & Backend Foundation ✅ COMPLETE
+- [x] Add `canHavePatients` field to User model (migration)
+- [x] Update seed.ts: PHYSICIAN gets `canHavePatients=true` by default
+- [x] Update user creation API to handle `canHavePatients`
+- [x] Update user update API to enforce role-based rules
+- [x] Update authService: toAuthUser includes canHavePatients
+- [x] Update getAllPhysicians to return all users with canHavePatients=true
+- [x] Update frontend AuthUser type
+- [x] Update all tests for new field
+
+#### Phase 12b: Patient Filtering by Owner ✅ COMPLETE
+- [x] Update GET /api/data to require `physicianId` for ADMIN/STAFF
+- [x] Add support for `?physicianId=unassigned` (unassigned patients, ADMIN only)
+- [x] PHYSICIAN: auto-filter to own patients
+- [x] STAFF: requires physicianId, cannot view unassigned
+- [x] Create GET /api/users/physicians endpoint (returns eligible owners)
+- [x] GET /api/users/physicians/:id for individual physician info
+
+#### Phase 12c: Import Reassignment Detection ✅ COMPLETE
+- [x] Update import preview to detect patients being reassigned
+- [x] Add `reassignments` array to preview response
+- [x] Update import execute to require `confirmReassign` flag
+- [x] Block execution if reassignments exist and not confirmed
+
+#### Phase 12d: Patient Grid UI Updates ✅ COMPLETE
+- [x] Add physician selector dropdown for ADMIN/STAFF
+- [x] Show "Select a physician to view patients" when none selected
+- [x] Store selected physician in localStorage (via authStore)
+- [x] Hide selector for PHYSICIAN role
+
+#### Phase 12e: Import Page UI Updates ✅ COMPLETE
+- [x] Add physician selector for ADMIN/STAFF import
+- [x] Require physician selection before import
+- [x] Show reassignment warning section with affected patient list
+- [x] Require confirmation checkbox for reassignment
+
+#### Phase 12f: Bulk Assignment Feature ✅ COMPLETE
+- [x] Create PATCH /api/admin/patients/bulk-assign endpoint (admin only)
+- [x] Create GET /api/admin/patients/unassigned endpoint (admin only)
+- [x] Create Patient Assignment page (`/admin/patient-assignment`)
+- [x] Add bulk selection checkboxes to assignment grid
+- [x] Add "Assign to..." physician dropdown
+- [x] Add "Assign Patients" button on Admin page
+
+#### Phase 12g: User Management Updates ✅ COMPLETE
+- [x] Add "Can Have Patients" toggle in user edit form
+- [x] Show toggle only for ADMIN users
+- [x] PHYSICIAN always shows as enabled (non-editable info text)
+
+#### Phase 12h: Concurrent Editing (TBD)
+- [ ] Handle multiple users editing same physician's patients simultaneously
+- [ ] Conflict detection strategy (optimistic locking, real-time sync, etc.)
+- [ ] Conflict resolution UX
+- **Status:** Placeholder - requirements to be discussed
+
+---
 
 ### Add New Quality Measure: Depression Screening
 **Reference:** `.claude/ADDING_QUALITY_MEASURES.md` (implementation checklist)
@@ -152,13 +216,32 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] Lock status indicator
 - [ ] Force-release lock (admin only)
 
-### Phase 11: Authentication & Multi-Physician Support
-- [ ] Login page for editors
-- [ ] JWT-based authentication
-- [ ] Admin panel for user management
-- [ ] Session timeout handling
-- [ ] Multi-physician data isolation
-- [ ] Physician table and Patient.physicianId schema changes
+### Phase 11: Authentication & Multi-Physician Support (**COMPLETED**)
+- [x] Login page for editors
+- [x] JWT-based authentication
+- [x] Admin panel for user management
+- [x] Multi-physician data isolation (Patient.ownerId)
+- [x] User model with roles (PHYSICIAN, STAFF, ADMIN)
+- [x] Staff-to-physician assignment
+- [x] Role-based access control
+- [x] Audit logging
+- [x] Authentication test coverage (101 tests - Feb 2, 2026)
+  - Backend: authService, middleware, routes tests (50 tests)
+  - Frontend: LoginPage, authStore tests (42 tests)
+  - E2E: auth.spec.ts Playwright tests (9 tests)
+- [x] **Forgot Password Feature** (Feb 3, 2026)
+  - [x] PasswordResetToken database model
+  - [x] POST /api/auth/forgot-password endpoint
+  - [x] POST /api/auth/reset-password endpoint
+  - [x] Email service (configurable SMTP via nodemailer)
+  - [x] ForgotPasswordPage frontend
+  - [x] ResetPasswordPage frontend
+  - [x] "Forgot Password?" link on LoginPage
+  - [x] Fallback message when SMTP not configured
+  - [x] GET /api/auth/smtp-status endpoint for frontend check
+- [ ] Session timeout handling (advanced feature)
+- [ ] Unassigned patients page (advanced feature)
+- [ ] Import page physician selector for STAFF (advanced feature)
 
 ### Phase 12: Excel-like Behaviors
 - [ ] Keyboard navigation (Arrow keys, Tab, Enter)
@@ -190,4 +273,4 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 1, 2026
+February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

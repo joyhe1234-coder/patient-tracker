@@ -20,6 +20,15 @@ interface ValidationWarning {
   memberName?: string;
 }
 
+interface PatientReassignment {
+  patientId: number;
+  memberName: string;
+  memberDob: string;
+  currentOwnerId: number | null;
+  currentOwnerName: string | null;
+  newOwnerId: number | null;
+}
+
 interface PreviewResult {
   previewId: string;
   systemId: string;
@@ -27,6 +36,7 @@ interface PreviewResult {
   fileName?: string;
   expiresAt: string;
   totalChanges: number;
+  targetOwnerId?: number | null;
   summary: {
     inserts: number;
     updates: number;
@@ -40,6 +50,11 @@ interface PreviewResult {
     total: number;
   };
   warnings?: ValidationWarning[];
+  reassignments?: {
+    count: number;
+    requiresConfirmation: boolean;
+    items: PatientReassignment[];
+  };
   changes: {
     total: number;
     page: number;
@@ -78,6 +93,7 @@ export default function ImportPreviewPage() {
   const [actionFilter, setActionFilter] = useState<ActionFilter>('all');
   const [executing, setExecuting] = useState(false);
   const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null);
+  const [showReassignWarning, setShowReassignWarning] = useState(false);
 
   useEffect(() => {
     if (previewId) {
@@ -103,24 +119,55 @@ export default function ImportPreviewPage() {
     }
   };
 
-  const handleExecute = async () => {
+  const handleExecuteClick = () => {
     if (!preview) return;
 
+    // Check if there are reassignments that need confirmation
+    if (preview.reassignments?.requiresConfirmation) {
+      setShowReassignWarning(true);
+      return;
+    }
+
+    handleExecute(false);
+  };
+
+  const handleExecute = async (confirmReassign: boolean) => {
+    if (!preview) return;
+
+    setShowReassignWarning(false);
     setExecuting(true);
     setError(null);
 
     try {
-      const response = await api.post(`/import/execute/${preview.previewId}`);
+      // Build URL with confirmReassign flag if needed
+      let url = `/import/execute/${preview.previewId}`;
+      if (confirmReassign) {
+        url += '?confirmReassign=true';
+      }
+
+      const response = await api.post(url);
       if (response.data.success) {
         setExecuteResult(response.data.data);
         setPreview(null);
       } else {
+        // Check for reassignment error
+        if (response.data.error?.code === 'REASSIGNMENT_REQUIRES_CONFIRMATION') {
+          setShowReassignWarning(true);
+          setExecuting(false);
+          return;
+        }
         setExecuteResult(response.data.data);
         if (response.data.data?.errors?.length > 0) {
           setError(`Import completed with ${response.data.data.errors.length} error(s)`);
         }
       }
     } catch (err: any) {
+      // Check for reassignment error in catch block too
+      if (err.response?.data?.error?.code === 'REASSIGNMENT_REQUIRES_CONFIRMATION') {
+        setShowReassignWarning(true);
+        setExecuting(false);
+        return;
+      }
       setError(err.response?.data?.error?.message || err.message || 'Execute failed');
     } finally {
       setExecuting(false);
@@ -447,6 +494,45 @@ export default function ImportPreviewPage() {
         </div>
       )}
 
+      {/* Reassignment Warning Section */}
+      {preview?.reassignments && preview.reassignments.count > 0 && (
+        <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-6 h-6 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <div className="font-semibold text-orange-800">
+                {preview.reassignments.count} Patient{preview.reassignments.count > 1 ? 's' : ''} Will Be Reassigned
+              </div>
+              <div className="text-sm text-orange-700 mt-1 mb-2">
+                The following patients currently belong to a different physician and will be reassigned:
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {preview.reassignments.items.map((reassign, idx) => (
+                  <div key={idx} className="text-sm bg-white border border-orange-200 rounded p-3">
+                    <div className="font-medium text-gray-900">{reassign.memberName}</div>
+                    <div className="text-gray-600 text-xs">DOB: {reassign.memberDob}</div>
+                    <div className="mt-1 flex items-center gap-2 text-xs">
+                      <span className="px-2 py-0.5 bg-gray-100 rounded">
+                        {reassign.currentOwnerName || 'Unassigned'}
+                      </span>
+                      <span className="text-gray-400">→</span>
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
+                        New physician
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 text-sm text-orange-600 font-medium">
+                You will need to confirm the reassignment when applying changes.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Changes Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="max-h-96 overflow-y-auto">
@@ -527,9 +613,14 @@ export default function ImportPreviewPage() {
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-500">
             {modifyingCount} records will be modified
+            {preview?.reassignments && preview.reassignments.count > 0 && (
+              <span className="text-orange-600 ml-2">
+                ({preview.reassignments.count} patient{preview.reassignments.count > 1 ? 's' : ''} will be reassigned)
+              </span>
+            )}
           </div>
           <button
-            onClick={handleExecute}
+            onClick={handleExecuteClick}
             disabled={executing || modifyingCount === 0}
             className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
               executing || modifyingCount === 0
@@ -551,6 +642,63 @@ export default function ImportPreviewPage() {
           </button>
         </div>
       </div>
+
+      {/* Reassignment Confirmation Modal */}
+      {showReassignWarning && preview?.reassignments && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Confirm Patient Reassignment
+                </h3>
+                <p className="mt-2 text-sm text-gray-600">
+                  This import will reassign <strong>{preview.reassignments.count} patient{preview.reassignments.count > 1 ? 's' : ''}</strong> from their current physician to a new one.
+                </p>
+                <div className="mt-3 max-h-40 overflow-y-auto">
+                  <div className="text-sm text-gray-700 space-y-1">
+                    {preview.reassignments.items.slice(0, 10).map((r, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-1 border-b border-gray-100">
+                        <span className="font-medium">{r.memberName}</span>
+                        <span className="text-gray-500 text-xs">
+                          {r.currentOwnerName || 'Unassigned'} → New
+                        </span>
+                      </div>
+                    ))}
+                    {preview.reassignments.count > 10 && (
+                      <div className="text-gray-500 text-xs pt-2">
+                        ... and {preview.reassignments.count - 10} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-orange-600">
+                  Are you sure you want to proceed with the reassignment?
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowReassignWarning(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleExecute(true)}
+                className="px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                Yes, Reassign & Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

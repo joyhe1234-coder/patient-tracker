@@ -4,6 +4,7 @@ import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, I
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
+import { useAuthStore } from '../../stores/authStore';
 import {
   REQUEST_TYPES,
   getQualityMeasuresForRequestType,
@@ -211,6 +212,15 @@ export default function PatientGrid({
   onNewRowFocused,
 }: PatientGridProps) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
+  const { user, selectedPhysicianId } = useAuthStore();
+
+  // Build query params for API calls (STAFF and ADMIN users need physicianId)
+  const getQueryParams = useCallback(() => {
+    if ((user?.role === 'STAFF' || user?.role === 'ADMIN') && selectedPhysicianId) {
+      return `?physicianId=${selectedPhysicianId}`;
+    }
+    return '';
+  }, [user?.role, selectedPhysicianId]);
 
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);
@@ -387,7 +397,8 @@ export default function PatientGrid({
         node.setDataValue('timeIntervalDays', null);
       }
 
-      const response = await api.put(`/data/${data.id}`, updatePayload);
+      const queryParams = getQueryParams();
+      const response = await api.put(`/data/${data.id}${queryParams}`, updatePayload);
 
       if (response.data.success) {
         // Update row data directly on the node instead of using applyTransaction
@@ -582,6 +593,17 @@ export default function PatientGrid({
         params.data.statusDate = isoDate;
         return true;
       },
+      // Custom comparator for proper date sorting (compares ISO date strings)
+      comparator: (_valueA, _valueB, nodeA, nodeB) => {
+        const dateA = nodeA?.data?.statusDate;
+        const dateB = nodeB?.data?.statusDate;
+        // Null/empty dates sort to the end
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        // Compare ISO date strings chronologically
+        return dateA.localeCompare(dateB);
+      },
     },
     {
       field: 'tracking1',
@@ -746,6 +768,15 @@ export default function PatientGrid({
       width: 120,
       editable: false, // Calculated field
       valueFormatter: (params) => formatDate(params.value),
+      // Custom comparator for proper date sorting
+      comparator: (valueA, valueB) => {
+        // Null/empty dates sort to the end
+        if (!valueA && !valueB) return 0;
+        if (!valueA) return 1;
+        if (!valueB) return -1;
+        // Compare ISO date strings chronologically
+        return valueA.localeCompare(valueB);
+      },
     },
     {
       field: 'timeIntervalDays',

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
@@ -7,8 +7,11 @@ import StatusFilterBar, { StatusColor, getRowStatusColor } from '../components/l
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import { api } from '../api/axios';
+import { useAuthStore } from '../stores/authStore';
 
 export default function MainPage() {
+  const { user, selectedPhysicianId } = useAuthStore();
+
   const [rowData, setRowData] = useState<GridRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,18 @@ export default function MainPage() {
 
   // Status color filters
   const [activeFilters, setActiveFilters] = useState<StatusColor[]>(['all']);
+
+  // Build query params for API calls (STAFF and ADMIN users need physicianId)
+  const getQueryParams = useCallback(() => {
+    if (user?.role === 'STAFF' && selectedPhysicianId) {
+      return `?physicianId=${selectedPhysicianId}`;
+    }
+    if (user?.role === 'ADMIN') {
+      // ADMIN can view unassigned patients (physicianId=null) or specific physician
+      return `?physicianId=${selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}`;
+    }
+    return '';
+  }, [user?.role, selectedPhysicianId]);
 
   // Calculate row counts by status color
   const rowCounts = useMemo(() => {
@@ -71,15 +86,17 @@ export default function MainPage() {
     });
   }, [rowData, activeFilters]);
 
+  // Load data when component mounts or when selectedPhysicianId changes (for STAFF)
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedPhysicianId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/data');
+      const queryParams = getQueryParams();
+      const response = await api.get(`/data${queryParams}`);
       console.log('Loaded data:', response.data);
       setRowData(response.data.data || []);
     } catch (err) {
@@ -102,7 +119,8 @@ export default function MainPage() {
     try {
       setSaveStatus('saving');
       // No defaults - requestType, qualityMeasure, measureStatus will be null
-      const response = await api.post('/data', data);
+      const queryParams = getQueryParams();
+      const response = await api.post(`/data${queryParams}`, data);
 
       if (response.data.success) {
         // Insert new row at beginning (it has rowOrder: 0)
@@ -141,7 +159,8 @@ export default function MainPage() {
 
     try {
       setSaveStatus('saving');
-      const response = await api.post('/data/duplicate', { sourceRowId: selectedRowId });
+      const queryParams = getQueryParams();
+      const response = await api.post(`/data/duplicate${queryParams}`, { sourceRowId: selectedRowId });
 
       if (response.data.success) {
         const newRow = response.data.data;
@@ -174,7 +193,7 @@ export default function MainPage() {
 
     try {
       setSaveStatus('saving');
-      const response = await api.delete(`/data/${selectedRowId}`);
+      const response = await api.delete(`/data/${selectedRowId}${getQueryParams()}`);
 
       if (response.data.success) {
         setRowData((prev) => prev.filter((row) => row.id !== selectedRowId));
@@ -199,6 +218,37 @@ export default function MainPage() {
   const handleNewRowFocused = useCallback(() => {
     setNewRowId(null);
   }, []);
+
+  // Check if STAFF/ADMIN needs to select a physician first
+  // For STAFF: must have a specific physician selected (number)
+  // For ADMIN: can have a specific physician (number) OR view unassigned patients (null)
+  // Only show prompt if selectedPhysicianId is undefined (not yet selected)
+  const needsPhysicianSelection =
+    (user?.role === 'STAFF' && !selectedPhysicianId) ||
+    (user?.role === 'ADMIN' && selectedPhysicianId === undefined);
+
+  if (needsPhysicianSelection) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Select a Physician
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Please select a physician from the dropdown in the header to view their patients.
+          </p>
+          <p className="text-sm text-gray-500">
+            {user?.role === 'ADMIN'
+              ? 'As an admin, you can view any physician\'s patients or select "Unassigned" to view patients not yet assigned.'
+              : 'You can only view patients for physicians you are assigned to.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

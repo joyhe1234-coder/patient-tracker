@@ -6,6 +6,187 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.1.0-snapshot] - Unreleased
+
+### Added
+- **Phase 12: Patient Ownership & Assignment System** (Feb 3, 2026)
+  - **Phase 12a: Database & Backend Foundation** (Complete)
+    - Added `canHavePatients` boolean field to User model
+    - PHYSICIAN role always has `canHavePatients=true` (enforced)
+    - ADMIN can opt-in to `canHavePatients` to also be a physician
+    - STAFF role always has `canHavePatients=false`
+    - Updated seed.ts, authService, admin routes
+  - **Phase 12b: Patient Filtering by Owner** (Complete)
+    - GET /api/data requires `physicianId` param for ADMIN/STAFF
+    - GET /api/data?physicianId=unassigned returns unassigned patients (ADMIN only)
+    - GET /api/users/physicians returns users who can have patients
+    - GET /api/users/physicians/:id returns specific physician info
+    - PHYSICIAN auto-filtered to own patients (no selector needed)
+  - **Phase 12c: Import Reassignment Detection** (Complete)
+    - Import preview detects patients that would be reassigned
+    - Added `reassignments` array to preview response
+    - Added `targetOwnerId` to preview cache
+    - Import execute requires `confirmReassign=true` if reassignments exist
+    - Blocks execution if reassignments not explicitly confirmed
+  - **Phase 12d-g: Frontend UI** (Complete)
+    - Patient Grid: "Select a physician to view" message for ADMIN/STAFF
+    - Import Page: Physician selector dropdown with dynamic step numbering
+    - Import Preview: Reassignment warning section with confirmation modal
+    - Patient Assignment Page: New `/admin/patient-assignment` for bulk assignment
+    - User Management: "Can Have Patients" toggle for ADMIN users
+    - Admin Page: "Assign Patients" button linking to assignment page
+    - Backend: PATCH /api/admin/patients/bulk-assign endpoint
+    - Backend: GET /api/admin/patients/unassigned endpoint
+  - **Phase 12h: UI Refinements** (Feb 4, 2026)
+    - Provider dropdown now only visible on Patient Grid page (not Import/Admin)
+    - ADMIN users can select "Unassigned patients" to view patients without a provider
+    - MainPage properly sends `physicianId=unassigned` for unassigned patient view
+  - **Header Component Tests** (Feb 4, 2026)
+    - NEW: `Header.test.tsx` - 12 tests for provider dropdown visibility and unassigned patients option
+    - Tests provider dropdown only shows on Patient Grid page (not Import/Admin)
+    - Tests "Unassigned patients" option only available for ADMIN users
+    - Tests correct state management when switching between physicians and unassigned
+    - Total frontend component tests: 203 (was 191)
+  - **Patient Assignment E2E Tests** (Feb 4, 2026)
+    - NEW: `patient-assignment.cy.ts` - 32 Cypress tests for patient and staff assignment
+    - Tests assigning unassigned patients to physicians
+    - Tests patient count updates after assignment
+    - Tests staff-physician assignment management
+    - Tests data freshness (no caching when switching physicians)
+  - **Role-Based Access Control Tests** (Feb 4, 2026)
+    - NEW: `role-access-control.cy.ts` - 31 Cypress tests for access restrictions
+    - STAFF: Cannot access admin functions, cannot see unassigned patients
+    - PHYSICIAN: Cannot access admin (unless also admin), cannot see other doctors' patients
+    - ADMIN: Full access to all functions and data
+    - API protection tests (401/403 responses)
+    - Navigation protection tests
+  - **Sorting & Filtering Tests** (Feb 4, 2026)
+    - NEW: `sorting-filtering.cy.ts` - 55 Cypress tests for column sorting and status filter bar
+    - Column sorting tests: Status Date, Due Date, Member Name, Request Type, Quality Measure, Measure Status, Time Interval
+    - Date sorting verified as chronological (not alphabetical)
+    - Sort indicator behavior (ascending/descending/clear, single indicator)
+    - Status filter bar: All 10 filter chips (All, Not Addressed, Overdue, In Progress, Contacted, Completed, Declined, Resolved, N/A, Duplicates)
+    - Filter chip counts and click behavior
+    - Filter + sort combination tests
+    - Row color verification for each status category
+    - Total Cypress tests: 177 (was 122)
+  - **Admin Password Reset Email Notification** (Feb 4, 2026)
+    - When admin resets a user's password, user receives email notification
+    - Email includes admin's name who performed the reset
+    - Added `sendAdminPasswordResetNotification` function to emailService
+    - Response includes `emailSent` flag indicating notification status
+  - **Phase 11/12 Test Coverage** (Feb 4, 2026)
+    - NEW: `users.routes.test.ts` - 4 tests for physician endpoint authentication
+    - Updated `admin.routes.test.ts` - Added 2 tests for bulk-assign and unassigned patients endpoints
+    - Updated `data.routes.test.ts` - Added 1 test for check-duplicate endpoint
+    - Updated `emailService.test.ts` - Added 6 tests for admin reset notification content
+    - Total backend tests: 360 (was 347)
+  - **Requirements Documentation**
+    - Physicians see only their own patients (auto-filtered)
+    - Staff/Admin must select physician before viewing patients
+    - Import requires explicit physician selection (prevents accidental imports)
+    - Admin can bulk reassign patients between physicians
+    - See `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md` for full specification
+- **Phase 11: Authentication & Multi-Physician Support**
+  - JWT-based authentication with login/logout endpoints
+  - User model with roles: PHYSICIAN, STAFF, ADMIN
+  - Staff-to-Physician assignment for multi-physician coverage
+  - Frontend login page with email/password form
+  - Zustand auth store with localStorage persistence
+  - Protected routes with role-based access control
+  - Header user menu with password change and logout
+  - Physician selector dropdown for STAFF and ADMIN users
+  - Admin dashboard with user management (CRUD)
+  - Audit log viewer in admin panel
+  - Password reset by admin and CLI script
+  - Audit log cleanup script (6-month retention)
+- **Data Isolation by Owner**
+  - Patient.ownerId field links patients to physicians
+  - PHYSICIAN sees only own patients
+  - STAFF sees assigned physicians' patients
+  - ADMIN can view any physician's patients (with selector)
+  - Existing patients remain unassigned (backward compatible)
+- **Authentication Test Coverage** (Feb 2, 2026)
+  - Backend authService.test.ts (19 tests): password hashing, JWT tokens, toAuthUser
+  - Backend auth.test.ts middleware (13 tests): requireAuth, requireRole, optionalAuth
+  - Backend auth.routes.test.ts (8 tests): login validation, auth requirements
+  - Backend admin.routes.test.ts (10 tests): admin endpoint auth requirements
+  - Frontend LoginPage.test.tsx (17 tests): form rendering, validation, auth flow
+  - Frontend authStore.test.ts (25 tests): login/logout, session persistence
+  - E2E auth.spec.ts (9 tests): login form, credentials, session, protected routes
+  - Enhanced CLAUDE.md testing requirements with emphasis and checklists
+- **Installation Guide** (Feb 2, 2026)
+  - Created `docs/INSTALLATION_GUIDE.md` for self-hosted server deployment
+  - Docker Compose deployment option (recommended)
+  - Manual installation option for custom environments
+  - Environment variables reference (required + optional SMTP)
+  - Architecture diagram with Nginx reverse proxy
+  - SSL/TLS configuration options (Let's Encrypt, self-signed, corporate)
+  - Backup and restore procedures
+  - Troubleshooting section
+  - Updated CLAUDE.md to require installation guide updates for deployment-affecting changes
+- **Simplified Installation for Network Admins** (Feb 2, 2026)
+  - Added Quick Start section with 5-step Docker path and 3-step script path
+  - Created `docker-compose.prod.yml` for production deployment
+  - Created `frontend/Dockerfile` for containerized frontend
+  - Created `scripts/install.sh` automated installer (Ubuntu/Debian/RHEL/CentOS)
+  - Created `nginx/nginx.prod.conf` for production reverse proxy
+  - Updated `.env.example` with all configuration options and comments
+  - Added non-git installation options (release archive, pre-built bundle)
+- **Forgot Password Feature** (Feb 3, 2026)
+  - `/forgot-password` page with email form (checks SMTP status)
+  - `/reset-password` page with token validation and new password form
+  - `POST /api/auth/forgot-password` - creates token, sends reset email
+  - `POST /api/auth/reset-password` - validates token, updates password
+  - `GET /api/auth/smtp-status` - frontend checks if email is available
+  - `PasswordResetToken` database model with 1-hour expiration
+  - Email service using nodemailer (configurable SMTP)
+  - Graceful fallback when SMTP not configured ("Contact administrator")
+  - "Forgot password?" link added to login page
+
+### Changed
+- All data/config/import routes now require authentication
+- PatientGrid and MainPage pass physicianId for STAFF and ADMIN users
+- AuditLog model updated with userId relation and changes field
+- Removed username field - authentication uses email only
+- Admin page now includes Header with full navigation
+- Edit lock uses email instead of username
+- **Removed username from Admin user form** (Feb 4, 2026)
+  - Removed username field from create/edit user modal
+  - Removed username from AdminUser and AuditLogEntry interfaces
+  - Users are identified by email only
+- **Dual role display for ADMIN with canHavePatients** (Feb 4, 2026)
+  - Admin users with canHavePatients=true show both "ADMIN" and "PHYSICIAN" badges
+  - Header shows "(ADMIN + PHYSICIAN)" for these users
+  - Patient count column shows count for admins who can have patients
+
+### Fixed
+- **Status Date and Due Date columns sorting alphabetically instead of chronologically** (Feb 4, 2026)
+  - Bug: Dates like "1/15/2026" sorted before "10/1/2025" due to string comparison
+  - Cause: AG Grid valueGetter returns formatted date strings, default sort compares as strings
+  - Fix: Added custom comparator to statusDate and dueDate columns that compares ISO date strings
+  - Now correctly sorts dates in chronological order with empty dates at the end
+- **Unassigned patients not displaying for ADMIN users** (Feb 4, 2026)
+  - Bug: When ADMIN selected "Unassigned patients" from dropdown, grid showed "Select a Physician" prompt
+  - Cause: `needsPhysicianSelection` check treated `null` (unassigned selection) as "no selection"
+  - Fix: Updated check in MainPage.tsx to distinguish between ADMIN (allows null for unassigned) and STAFF (requires physician)
+  - Also fixed: Dockerfile not copying frontend `public` folder to container
+- **Delete row not working for ADMIN users** (Feb 4, 2026)
+  - Bug: Delete API call missing `physicianId` query parameter
+  - Cause: Phase 12 added physician filtering requirement but delete endpoint wasn't updated
+  - Fix: Added `getQueryParams()` to delete API call in MainPage.tsx
+- **Import Replace mode counting all patients instead of target owner's** (Feb 4, 2026)
+  - Bug: Replace mode showed DELETE count for ALL patients (e.g., 117) instead of target physician's patients
+  - Cause: `loadExistingRecords()` loaded all records without filtering by owner
+  - Fix: Added `targetOwnerId` parameter to `calculateDiff()` and `loadExistingRecords()`
+  - Now correctly shows DELETE count only for patients belonging to the selected physician
+- Fixed double `/api` prefix in forgot/reset password API calls (was `/api/api/auth/...`)
+- Added `dotenv` to backend for automatic `.env` loading in local development
+- Configured SMTP environment variables on Render production deployment
+- Added `APP_URL` environment variable on Render for correct password reset links
+
+---
+
 ## [4.0.0] - 2026-02-01
 
 ### Added

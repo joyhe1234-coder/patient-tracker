@@ -29,6 +29,18 @@ export interface ValidationWarning {
 }
 
 /**
+ * Patient reassignment info - when import would change patient's owner
+ */
+export interface PatientReassignment {
+  patientId: number;
+  memberName: string;
+  memberDob: string;
+  currentOwnerId: number | null;
+  currentOwnerName: string | null;
+  newOwnerId: number | null;
+}
+
+/**
  * Cached preview entry
  */
 export interface PreviewEntry {
@@ -39,6 +51,8 @@ export interface PreviewEntry {
   rows: TransformedRow[];
   validation: ValidationResult;
   warnings: ValidationWarning[];
+  reassignments: PatientReassignment[];
+  targetOwnerId: number | null;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -71,6 +85,8 @@ export function storePreview(
   rows: TransformedRow[],
   validation: ValidationResult,
   warnings: ValidationWarning[] = [],
+  reassignments: PatientReassignment[] = [],
+  targetOwnerId: number | null = null,
   ttlMs: number = DEFAULT_TTL_MS
 ): string {
   const id = generatePreviewId();
@@ -84,6 +100,8 @@ export function storePreview(
     rows,
     validation,
     warnings,
+    reassignments,
+    targetOwnerId,
     createdAt: now,
     expiresAt: new Date(now.getTime() + ttlMs),
   };

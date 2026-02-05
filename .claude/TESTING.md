@@ -72,12 +72,13 @@ cd frontend && npm run cypress:run
 
 ## All Implemented Tests
 
-### Backend Tests (130 tests)
+### Backend Tests (347 tests)
 
-**Location:** `backend/src/services/import/__tests__/`
+**Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
 | File | Tests | Description |
 |------|-------|-------------|
+| **Import Service Tests** | | `backend/src/services/import/__tests__/` |
 | `fileParser.test.ts` | 16 | CSV parsing, title row detection, column validation |
 | `columnMapper.test.ts` | 13 | Column mapping, Q1/Q2 grouping, skip columns |
 | `dataTransformer.test.ts` | 17 | Wide-to-long transformation, date parsing |
@@ -85,6 +86,18 @@ cd frontend && npm run cypress:run
 | `configLoader.test.ts` | 22 | System config loading, registry, validation |
 | `errorReporter.test.ts` | 25 | Error report generation, formatting |
 | `integration.test.ts` | 14 | Full pipeline tests, edge cases |
+| **Auth Service Tests** | | `backend/src/services/__tests__/` |
+| `authService.test.ts` | 19 | Password hashing, JWT tokens, toAuthUser |
+| `emailService.test.ts` | 20 | SMTP configuration, reset URL, email content, admin reset notification |
+| **Auth Middleware Tests** | | `backend/src/middleware/__tests__/` |
+| `auth.test.ts` | 13 | requireAuth, requireRole, optionalAuth, requirePatientDataAccess |
+| **Route Tests** | | `backend/src/routes/__tests__/` |
+| `auth.routes.test.ts` | 16 | Login validation, SMTP status, forgot/reset password |
+| `admin.routes.test.ts` | 12 | Admin endpoint auth requirements (users, assignments, audit, bulk-assign) |
+| `data.routes.test.ts` | 6 | Data endpoint auth requirements (GET, POST, PUT, DELETE, duplicate) |
+| `users.routes.test.ts` | 4 | Physician endpoint auth requirements (Phase 12) |
+| **API Tests** | | Various |
+| Patient, Measure routes | ~137 | Patient CRUD, measure operations |
 
 **Running Backend Tests:**
 
@@ -98,16 +111,26 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (45 tests)
+### Frontend Component Tests (203 tests)
 
-**Location:** `frontend/src/components/**/*.test.tsx`
+**Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
 | File | Tests | Description |
 |------|-------|-------------|
-| `StatusFilterBar.test.tsx` | 4 | Filter chip rendering, click behavior, counts |
+| **Component Tests** | | `frontend/src/components/` |
+| `StatusFilterBar.test.tsx` | 29 | Filter chip rendering, click behavior, row colors |
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
-| `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
+| `AddRowModal.test.tsx` | 14 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
+| `Header.test.tsx` | 12 | Provider dropdown visibility, unassigned patients option |
+| **Page Tests** | | `frontend/src/pages/` |
+| `LoginPage.test.tsx` | 17 | Login form, validation, password toggle, auth flow |
+| `ForgotPasswordPage.test.tsx` | 14 | SMTP check, email form, success/error states |
+| `ResetPasswordPage.test.tsx` | 17 | Token validation, password form, reset flow |
+| `ImportPage.test.tsx` | 26 | Import workflow UI, mode selection, file upload |
+| `ImportPreviewPage.test.tsx` | 23 | Preview display, summary cards, changes table |
+| **Store Tests** | | `frontend/src/stores/` |
+| `authStore.test.ts` | 25 | Login/logout, token storage, session persistence |
 
 **Running Component Tests:**
 
@@ -119,7 +142,7 @@ npm run test:run          # Single run (CI)
 npm run test:coverage     # With coverage report
 ```
 
-### Playwright E2E Tests (26 passing, 4 skipped)
+### Playwright E2E Tests (35 passing, 4 skipped)
 
 **Location:** `frontend/e2e/*.spec.ts`
 
@@ -129,8 +152,9 @@ npm run test:coverage     # With coverage report
 | `add-row.spec.ts` | 9 | Add Row modal, validation, form submission |
 | `duplicate-member.spec.ts` | 8 (3 skip) | Duplicate Mbr button, row creation |
 | `delete-row.spec.ts` | 10 (4 skip) | Delete confirmation, cancel, backdrop |
+| `auth.spec.ts` | 9 | Login form, credentials, session, logout, protected routes |
 
-**Page Object Model:** `frontend/e2e/pages/main-page.ts`
+**Page Object Model:** `frontend/e2e/pages/main-page.ts`, `frontend/e2e/pages/login-page.ts`
 
 **Skipped Tests (AG Grid limitations):**
 - Confirming delete removes the row (modal timing issues)
@@ -149,7 +173,7 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (59 passing)
+### Cypress E2E Tests (177 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
@@ -157,6 +181,9 @@ npm run e2e:report        # View HTML report
 |------|-------|-------------|
 | `cascading-dropdowns.cy.ts` | 30 | Dropdown cascading, auto-fill, row colors |
 | `import-flow.cy.ts` | 29 | Import workflow, preview, execution |
+| `patient-assignment.cy.ts` | 32 | Patient/staff assignment, count verification |
+| `role-access-control.cy.ts` | 31 | STAFF/PHYSICIAN/ADMIN access restrictions |
+| `sorting-filtering.cy.ts` | 55 | Column sorting, status filter bar, row colors |
 
 **Test Categories:**
 
@@ -222,6 +249,31 @@ npm run e2e:report        # View HTML report
 
 **Test Data:** `frontend/cypress/fixtures/test-import.csv`
 
+**Sorting & Filtering Tests (55 tests):**
+
+**Column Sorting (16 tests):**
+- Status Date sorting (ascending, descending, chronological not alphabetical, empty values)
+- Due Date sorting (ascending, descending, empty values)
+- Member Name sorting (ascending, descending, alphabetical order verification)
+- Request Type, Quality Measure, Measure Status sorting
+- Time Interval sorting (numeric)
+- Sort indicator behavior (clear on third click, single indicator)
+
+**Status Filter Bar (29 tests):**
+- Filter chip display (All, Not Addressed, Overdue, In Progress, Contacted, Completed, Declined, Resolved, N/A, Duplicates)
+- Filter chip counts
+- Filter by status (Not Addressed, Completed, In Progress, Contacted, Declined, Resolved, N/A, Overdue, Duplicates)
+- Filter toggle behavior (deselect, switch filters, highlight active)
+- Filter with sorting (maintains filter during sort, maintains sort when filtering)
+- Status bar updates (total count, filtered count)
+
+**Row Color Verification (10 tests):**
+- Green status (AWV completed, Screening test completed, Blood pressure at goal, HgbA1c at goal)
+- Blue status (AWV scheduled, Screening test ordered, Colon cancer screening ordered)
+- Yellow status (contacted statuses)
+- Purple status (declined statuses)
+- Row selection preserves color
+
 **Custom AG Grid Commands:** `frontend/cypress/support/commands.ts`
 
 ```typescript
@@ -279,15 +331,23 @@ npm run test:cli -- --save    # Save new baselines
 | Area | Framework | Tests | Status |
 |------|-----------|-------|--------|
 | Backend import services | Jest | 130 | Complete |
-| Frontend components | Vitest | 45 | 4 components |
+| Backend auth services | Jest | 50 | Complete |
+| Backend API routes | Jest | ~137 | Complete |
+| Frontend components | Vitest | 82 | Complete |
+| Frontend pages | Vitest | 96 | Complete |
+| Frontend stores | Vitest | 25 | Complete |
+| Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
 | Cascading dropdowns | Cypress | 30 | Complete |
 | Row colors | Cypress | 5 | In cascading tests |
 | Import UI flow | Cypress | 29 | Complete |
+| Patient assignment | Cypress | 32 | Complete |
+| Role access control | Cypress | 31 | Complete |
+| Sorting & filtering | Cypress | 55 | Complete |
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
 
-**Total Automated Tests: ~260**
+**Total Automated Tests: ~735+**
 
 ---
 
@@ -451,7 +511,10 @@ describe('Feature Name', () => {
 **Current test counts:**
 - cascading-dropdowns.cy.ts: 30 tests
 - import-flow.cy.ts: 29 tests
-- **Total: 59 tests** (when run with fresh seed data)
+- patient-assignment.cy.ts: 32 tests
+- role-access-control.cy.ts: 31 tests
+- sorting-filtering.cy.ts: 55 tests
+- **Total: 177 tests** (when run with fresh seed data)
 
 ---
 
@@ -477,4 +540,18 @@ describe('Feature Name', () => {
 
 ## Last Updated
 
-February 1, 2026 - Added Import Flow E2E tests (29 tests), updated total to ~260 tests
+February 4, 2026 - Added Sorting & Filtering tests:
+- Cypress: sorting-filtering.cy.ts (55 tests) - Column sorting, status filter bar, row colors
+- Fixed Status Date/Due Date chronological sorting (custom comparator)
+- Cypress tests: 177 (was 122)
+- Total tests: ~735+
+
+February 4, 2026 - Added Phase 12 UI tests:
+- Frontend: Header.test.tsx (12 tests) - Provider dropdown visibility, unassigned patients option
+- Backend tests: 360 (stable)
+- Frontend tests: 203 (was 191)
+
+February 2, 2026 - Added Authentication tests:
+- Backend: authService.test.ts (19), auth.test.ts middleware (13), auth.routes.test.ts (8), admin.routes.test.ts (10)
+- Frontend: LoginPage.test.tsx (17), authStore.test.ts (25)
+- E2E: auth.spec.ts (9 Playwright tests)

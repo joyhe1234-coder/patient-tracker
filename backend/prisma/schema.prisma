@@ -12,6 +12,56 @@ datasource db {
 }
 
 // ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+enum UserRole {
+  PHYSICIAN
+  STAFF
+  ADMIN
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  displayName     String    @map("display_name")
+  role            UserRole  @default(PHYSICIAN)
+  canHavePatients Boolean   @default(false) @map("can_have_patients")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastLoginAt     DateTime? @map("last_login_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Patients owned by this physician
+  patients        Patient[]
+
+  // Staff assignments (for STAFF role - which physicians they cover)
+  assignedPhysicians  StaffAssignment[] @relation("StaffUser")
+  // Staff assigned to this physician (for PHYSICIAN role)
+  assignedStaff       StaffAssignment[] @relation("PhysicianUser")
+
+  // Audit log entries created by this user
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+// Many-to-many: Staff can cover multiple Physicians
+model StaffAssignment {
+  id            Int      @id @default(autoincrement())
+  staffId       Int      @map("staff_id")
+  physicianId   Int      @map("physician_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  staff         User     @relation("StaffUser", fields: [staffId], references: [id], onDelete: Cascade)
+  physician     User     @relation("PhysicianUser", fields: [physicianId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, physicianId])
+  @@map("staff_assignments")
+}
+
+// ============================================
 // PATIENT DATA
 // ============================================
 
@@ -21,11 +71,14 @@ model Patient {
   memberDob       DateTime         @map("member_dob") @db.Date
   memberTelephone String?          @map("member_telephone")
   memberAddress   String?          @map("member_address")
+  ownerId         Int?             @map("owner_id")
+  owner           User?            @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   measures        PatientMeasure[]
 
   @@unique([memberName, memberDob])
+  @@index([ownerId])
   @@map("patients")
 }
 
@@ -180,7 +233,7 @@ model HCCCode {
 
 model EditLock {
   id                  Int       @id @default(1)
-  lockedByUsername    String?   @map("locked_by_username")
+  lockedByEmail       String?   @map("locked_by_email")
   lockedByDisplayName String?   @map("locked_by_display_name")
   lockedAt            DateTime? @map("locked_at")
   lastActivity        DateTime? @map("last_activity")
@@ -190,16 +243,33 @@ model EditLock {
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  username  String?
-  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK'
-  entity    String?  // 'patient_measure', 'patient', etc.
+  userId    Int?     @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail String?  @map("user_email") // Kept for when user is deleted
+  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI'
+  entity    String?  // 'patient_measure', 'patient', 'user', etc.
   entityId  Int?     @map("entity_id")
-  details   Json?
+  changes   Json?    // Field-level changes: { fields: [{ field, old, new }] }
+  details   Json?    // Additional context (kept for backwards compatibility)
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([createdAt])
-  @@index([username])
+  @@index([userId])
+  @@index([userEmail])
   @@index([entity, entityId])
   @@map("audit_log")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  email     String
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([email])
+  @@map("password_reset_tokens")
 }

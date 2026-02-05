@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/axios';
+import { useAuthStore } from '../stores/authStore';
 
 type ImportMode = 'replace' | 'merge';
 
@@ -9,12 +10,20 @@ interface HealthcareSystem {
   name: string;
 }
 
+interface Physician {
+  id: number;
+  displayName: string;
+  email: string;
+  role: string;
+}
+
 const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
   { id: 'hill', name: 'Hill Healthcare' },
 ];
 
 export default function ImportPage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [systemId, setSystemId] = useState<string>('hill');
   const [mode, setMode] = useState<ImportMode>('merge');
   const [file, setFile] = useState<File | null>(null);
@@ -28,6 +37,39 @@ export default function ImportPage() {
     memberName?: string;
   }>>([]);
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
+
+  // Physician selection for STAFF/ADMIN
+  const [physicians, setPhysicians] = useState<Physician[]>([]);
+  const [selectedPhysicianId, setSelectedPhysicianId] = useState<number | null>(null);
+  const [loadingPhysicians, setLoadingPhysicians] = useState(false);
+
+  // Determine if user needs to select a physician
+  const needsPhysicianSelection = user?.role === 'STAFF' || user?.role === 'ADMIN';
+
+  // Load available physicians for STAFF/ADMIN users
+  useEffect(() => {
+    if (needsPhysicianSelection) {
+      loadPhysicians();
+    }
+  }, [needsPhysicianSelection]);
+
+  const loadPhysicians = async () => {
+    setLoadingPhysicians(true);
+    try {
+      const response = await api.get('/users/physicians');
+      if (response.data.success) {
+        setPhysicians(response.data.data);
+        // Auto-select if only one physician available
+        if (response.data.data.length === 1) {
+          setSelectedPhysicianId(response.data.data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load physicians:', err);
+    } finally {
+      setLoadingPhysicians(false);
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -84,6 +126,12 @@ export default function ImportPage() {
       return;
     }
 
+    // Validate physician selection for STAFF/ADMIN
+    if (needsPhysicianSelection && !selectedPhysicianId) {
+      setError('Please select a physician to import patients for');
+      return;
+    }
+
     // Show warning for Replace mode
     if (mode === 'replace') {
       setShowReplaceWarning(true);
@@ -110,7 +158,13 @@ export default function ImportPage() {
       formData.append('systemId', systemId);
       formData.append('mode', mode);
 
-      const response = await api.post('/import/preview', formData, {
+      // Build URL with physicianId for STAFF/ADMIN
+      let url = '/import/preview';
+      if (needsPhysicianSelection && selectedPhysicianId) {
+        url += `?physicianId=${selectedPhysicianId}`;
+      }
+
+      const response = await api.post(url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -236,11 +290,56 @@ export default function ImportPage() {
         </div>
       </div>
 
-      {/* Step 3: File Upload */}
+      {/* Step 3: Physician Selection (STAFF/ADMIN only) */}
+      {needsPhysicianSelection && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
+              3
+            </span>
+            <h2 className="text-lg font-semibold text-gray-900">Select Target Physician</h2>
+          </div>
+          {loadingPhysicians ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+              Loading physicians...
+            </div>
+          ) : physicians.length === 0 ? (
+            <div className="text-gray-500">
+              No physicians available. {user?.role === 'STAFF' && 'You need to be assigned to at least one physician.'}
+            </div>
+          ) : (
+            <>
+              <select
+                value={selectedPhysicianId || ''}
+                onChange={(e) => setSelectedPhysicianId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">-- Select a physician --</option>
+                {physicians.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.displayName} {p.role !== 'PHYSICIAN' && `(${p.role})`}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-sm text-gray-500">
+                {user?.role === 'ADMIN'
+                  ? 'Imported patients will be assigned to the selected physician.'
+                  : 'You can only import for physicians you are assigned to.'}
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Step {needsPhysicianSelection ? 4 : 3}: File Upload */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-            3
+            {needsPhysicianSelection ? 4 : 3}
           </span>
           <h2 className="text-lg font-semibold text-gray-900">Upload File</h2>
         </div>

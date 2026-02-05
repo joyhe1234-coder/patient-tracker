@@ -1850,6 +1850,606 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 
 ---
 
+---
+
+## 26. Authentication & Multi-Physician Support (Phase 11)
+
+### TC-26.1: Login Page - Valid Credentials
+**Steps:**
+1. Navigate to application
+2. Enter valid email and password
+3. Click "Sign In"
+
+**Expected:**
+- Redirected to main patient grid
+- User menu shows user's display name in header
+- Protected routes accessible
+
+### TC-26.2: Login Page - Invalid Credentials
+**Steps:**
+1. Navigate to application
+2. Enter invalid email or password
+3. Click "Sign In"
+
+**Expected:**
+- Error message: "Invalid email or password"
+- Remains on login page
+- No token stored
+
+### TC-26.3: Login Page - Form Validation
+**Steps:**
+1. Leave email field empty, click "Sign In"
+2. Enter invalid email format, click "Sign In"
+
+**Expected:**
+- Required field validation shown
+- Cannot submit with invalid email format
+
+### TC-26.4: Logout
+**Steps:**
+1. Login as any user
+2. Click user menu in header
+3. Click "Logout"
+
+**Expected:**
+- Redirected to login page
+- Token cleared from localStorage
+- Cannot access protected routes
+
+### TC-26.5: Password Change
+**Steps:**
+1. Login as any user
+2. Click user menu → "Change Password"
+3. Enter current password, new password, confirm new password
+4. Click "Change Password"
+
+**Expected:**
+- Success message displayed
+- Modal closes
+- Can login with new password
+
+### TC-26.6: Password Change - Wrong Current Password
+**Steps:**
+1. Login as any user
+2. Click user menu → "Change Password"
+3. Enter wrong current password
+4. Click "Change Password"
+
+**Expected:**
+- Error message: "Current password is incorrect"
+- Password not changed
+
+### TC-26.7: PHYSICIAN Role - Data Isolation
+**Steps:**
+1. Login as PHYSICIAN user (e.g., dr.smith@clinic)
+2. View patient grid
+
+**Expected:**
+- Only sees patients where Patient.ownerId = current user's ID
+- Cannot see patients owned by other physicians
+- Cannot see unassigned patients (ownerId = null)
+
+### TC-26.8: STAFF Role - Physician Selector
+**Steps:**
+1. Login as STAFF user
+2. Observe header
+
+**Expected:**
+- Physician selector dropdown visible in header
+- Shows list of assigned physicians (from StaffAssignment)
+- First assigned physician selected by default
+
+### TC-26.9: STAFF Role - Switch Physician
+**Steps:**
+1. Login as STAFF user with multiple assigned physicians
+2. Select different physician from dropdown
+3. Observe patient grid
+
+**Expected:**
+- Grid refreshes with selected physician's patients
+- Only shows patients where ownerId = selected physician
+
+### TC-26.10: STAFF Role - No Assignments
+**Steps:**
+1. Login as STAFF user with no physician assignments
+
+**Expected:**
+- Message: "No physicians assigned"
+- Empty patient grid or message indicating no data access
+
+### TC-26.11: ADMIN Role - Cannot See Patients
+**Steps:**
+1. Login as ADMIN user
+2. Attempt to navigate to patient grid (/)
+
+**Expected:**
+- Redirected to admin dashboard
+- Cannot access patient data routes
+- Error if trying to access /api/data/patients directly
+
+### TC-26.12: ADMIN Role - User Management
+**Steps:**
+1. Login as ADMIN user
+2. Navigate to Admin dashboard
+
+**Expected:**
+- User list visible with all users
+- Can see user email, display name, role, status
+- Create/Edit/Deactivate buttons available
+
+### TC-26.13: Admin - Create User
+**Steps:**
+1. As ADMIN, click "Create User"
+2. Fill in email, username, display name, password, role
+3. Click "Create"
+
+**Expected:**
+- User created successfully
+- Appears in user list
+- Can login with new credentials
+
+### TC-26.14: Admin - Edit User
+**Steps:**
+1. As ADMIN, click "Edit" on a user
+2. Change display name and role
+3. Click "Save"
+
+**Expected:**
+- Changes saved
+- User list shows updated info
+- User's next login reflects new role
+
+### TC-26.15: Admin - Deactivate User
+**Steps:**
+1. As ADMIN, click "Deactivate" on a user
+2. Confirm action
+
+**Expected:**
+- User's isActive set to false
+- User cannot login
+- User appears dimmed/marked as inactive in list
+
+### TC-26.16: Admin - Reset Password
+**Steps:**
+1. As ADMIN, click "Reset Password" on a user
+2. Enter new password
+3. Click "Reset"
+
+**Expected:**
+- Password reset successful
+- User can login with new password
+
+### TC-26.17: Admin - Staff Assignments
+**Steps:**
+1. As ADMIN, edit a STAFF user
+2. Add/remove physician assignments
+3. Save changes
+
+**Expected:**
+- Assignments updated in database
+- STAFF user sees updated physician list on next login
+
+### TC-26.18: Admin - Audit Log Viewer
+**Steps:**
+1. As ADMIN, navigate to Audit Log section
+2. View recent entries
+
+**Expected:**
+- Shows recent audit entries (LOGIN, LOGOUT, PASSWORD_CHANGE, user CRUD)
+- Entries include timestamp, user, action, details
+
+### TC-26.19: Protected Routes - No Token
+**Steps:**
+1. Clear localStorage (remove token)
+2. Navigate directly to /
+
+**Expected:**
+- Redirected to /login
+- Cannot access protected content
+
+### TC-26.20: Protected Routes - Expired Token
+**Steps:**
+1. Login and get token
+2. Wait for token to expire (8 hours by default)
+3. Try to access protected route
+
+**Expected:**
+- Redirected to /login
+- Error message about session expired
+
+### TC-26.21: Import Page - PHYSICIAN Ownership
+**Steps:**
+1. Login as PHYSICIAN
+2. Import patients via /import
+3. Check imported patients
+
+**Expected:**
+- Imported patients have ownerId = current physician's ID
+- Only visible to current physician
+
+### TC-26.22: Import Page - STAFF Physician Selection
+**Steps:**
+1. Login as STAFF with multiple physician assignments
+2. Navigate to Import page
+3. Check if can select target physician
+
+**Expected:**
+- Can select which physician's data to import to
+- OR imports to currently selected physician from header
+
+### TC-26.23: CLI Password Reset
+**Steps:**
+1. Run: `npm run reset-password -- --email user@clinic --password newpass`
+
+**Expected:**
+- Password reset successfully
+- User can login with new password
+- Works for any user including ADMIN
+
+### TC-26.24: Audit Log Cleanup
+**Steps:**
+1. Run: `npm run cleanup-audit-log -- --days 30`
+
+**Expected:**
+- Deletes audit entries older than 30 days
+- Shows count of deleted entries
+- Remaining entries preserved
+
+### TC-26.25: Forgot Password - Link on Login Page
+**Steps:**
+1. Navigate to /login
+2. Look for "Forgot Password?" link
+
+**Expected:**
+- Link visible below sign in button
+- Clicking link navigates to /forgot-password
+
+### TC-26.26: Forgot Password - Request Reset (SMTP Configured)
+**Steps:**
+1. Ensure SMTP is configured in environment
+2. Navigate to /forgot-password
+3. Enter valid email address
+4. Click "Send Reset Link"
+
+**Expected:**
+- Success message: "If an account exists with this email, a reset link has been sent"
+- Email received with reset link
+- Link contains valid token
+- Token expires after 1 hour
+
+### TC-26.27: Forgot Password - Request Reset (SMTP Not Configured)
+**Steps:**
+1. Ensure SMTP is NOT configured
+2. Navigate to /forgot-password
+
+**Expected:**
+- Message displayed: "Password reset is not available. Please contact your administrator."
+- No email form shown
+
+### TC-26.28: Forgot Password - Invalid Email
+**Steps:**
+1. Navigate to /forgot-password
+2. Enter email that doesn't exist in system
+3. Click "Send Reset Link"
+
+**Expected:**
+- Same success message shown (security: don't reveal if email exists)
+- No email sent
+
+### TC-26.29: Reset Password - Valid Token
+**Steps:**
+1. Request password reset email
+2. Click link in email (navigates to /reset-password?token=xxx)
+3. Enter new password and confirm
+4. Click "Reset Password"
+
+**Expected:**
+- Success message: "Password has been reset"
+- Redirected to login page
+- Can login with new password
+
+### TC-26.30: Reset Password - Expired Token
+**Steps:**
+1. Request password reset email
+2. Wait >1 hour (or manually expire token in DB)
+3. Click link in email
+
+**Expected:**
+- Error message: "Reset link has expired"
+- Link to request new reset
+
+### TC-26.31: Reset Password - Invalid Token
+**Steps:**
+1. Navigate to /reset-password?token=invalidtoken
+
+**Expected:**
+- Error message: "Invalid reset link"
+- Link to request new reset
+
+### TC-26.32: Reset Password - Token Already Used
+**Steps:**
+1. Request password reset email
+2. Use the link to reset password
+3. Try to use the same link again
+
+**Expected:**
+- Error message: "Reset link has already been used"
+- Link to request new reset
+
+### TC-26.33: Reset Password - Password Validation
+**Steps:**
+1. Navigate to /reset-password with valid token
+2. Enter mismatched passwords
+3. Enter password too short (<8 chars)
+
+**Expected:**
+- Validation error for mismatched passwords
+- Validation error for short password
+- Cannot submit until valid
+
+---
+
+## 27. Patient Assignment (Phase 12)
+
+### TC-27.1: View Unassigned Patients (ADMIN)
+**Steps:**
+1. Login as ADMIN user
+2. On Patient Grid page, select "Unassigned patients" from dropdown
+
+**Expected:**
+- Grid shows patients with no owner assigned
+- Status bar shows correct count
+- No caching - fresh data on each selection
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.2: Assign Unassigned Patient to Physician
+**Steps:**
+1. Login as ADMIN
+2. Navigate to /admin/patient-assignment
+3. Select one unassigned patient
+4. Select target physician from dropdown
+5. Click "Assign" button
+
+**Expected:**
+- Success message displayed
+- Patient no longer in unassigned list
+- Patient appears in target physician's list
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.3: Bulk Assign Multiple Patients
+**Steps:**
+1. Login as ADMIN
+2. Navigate to /admin/patient-assignment
+3. Select multiple patients (or click "Select All")
+4. Select target physician
+5. Click "Assign" button
+
+**Expected:**
+- All selected patients assigned
+- Count updates immediately
+- Success message shows count
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.4: Patient Count Updates After Assignment
+**Steps:**
+1. Note unassigned patient count
+2. Note target physician's patient count
+3. Assign 1 patient from unassigned to physician
+4. Check both counts again
+
+**Expected:**
+- Unassigned count decreases by 1
+- Physician count increases by 1
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.5: Assign Physician to Staff User
+**Steps:**
+1. Login as ADMIN
+2. Go to Admin page
+3. Click Edit on a STAFF user
+4. Check a physician in the assignments list
+5. Save
+
+**Expected:**
+- Staff user now has physician assigned
+- Assignment count updates in user list
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.6: Staff Sees Only Assigned Physicians
+**Steps:**
+1. As ADMIN, assign Physician A to Staff User
+2. Login as Staff User
+3. Check physician dropdown on Patient Grid
+
+**Expected:**
+- Only Physician A appears in dropdown
+- Cannot view other physicians' patients
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.7: Staff Viewing Assigned Physician's Patients
+**Steps:**
+1. Login as STAFF with physician assignment
+2. Select assigned physician from dropdown
+3. View patient grid
+
+**Expected:**
+- Grid shows that physician's patients
+- Patient count matches physician's actual count
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.8: No Data Caching When Switching Physicians
+**Steps:**
+1. Select Physician A, note patients
+2. Select Physician B, note patients
+3. Select Physician A again
+
+**Expected:**
+- Fresh API call made each time
+- No stale data from previous selection
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.9: Provider Dropdown Only on Patient Grid
+**Steps:**
+1. Login as ADMIN
+2. Check header on Patient Grid page
+3. Navigate to Import page
+4. Navigate to Admin page
+
+**Expected:**
+- Dropdown visible only on Patient Grid (/)
+- Not visible on /import or /admin
+
+**Automated:** `Header.test.tsx`
+
+### TC-27.10: Unassigned Option Only for ADMIN
+**Steps:**
+1. Login as ADMIN, check dropdown
+2. Login as STAFF, check dropdown
+
+**Expected:**
+- ADMIN sees "Unassigned patients" option
+- STAFF does not see "Unassigned patients" option
+
+**Automated:** `Header.test.tsx`
+
+---
+
+## 28. Role-Based Access Control
+
+### TC-28.1: STAFF Cannot Access Admin Page
+**Steps:**
+1. Login as STAFF user
+2. Try to navigate to /admin
+
+**Expected:**
+- Redirected away from /admin
+- No "Admin" link in navigation
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.2: STAFF Cannot See Unassigned Patients Option
+**Steps:**
+1. Login as STAFF user
+2. Go to Patient Grid page
+3. Check physician dropdown
+
+**Expected:**
+- Dropdown only shows assigned physicians
+- No "Unassigned patients" option
+
+**Automated:** `role-access-control.cy.ts`, `Header.test.tsx`
+
+### TC-28.3: STAFF Can Only See Assigned Physicians
+**Steps:**
+1. Login as STAFF user assigned to Physician A only
+2. Check dropdown options
+
+**Expected:**
+- Only Physician A appears in dropdown
+- Cannot view Physician B's patients
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.4: PHYSICIAN Auto-Filters to Own Patients
+**Steps:**
+1. Login as PHYSICIAN user
+2. Navigate to Patient Grid
+
+**Expected:**
+- No physician selector dropdown shown
+- Grid automatically shows own patients only
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.5: PHYSICIAN Cannot See Admin Functions
+**Steps:**
+1. Login as PHYSICIAN user (not also ADMIN)
+2. Check navigation and available pages
+
+**Expected:**
+- No "Admin" link visible
+- Cannot access /admin or /admin/patient-assignment
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.6: PHYSICIAN Cannot View Other Doctors' Patients
+**Steps:**
+1. Login as PHYSICIAN
+2. Try to access API with different physicianId
+
+**Expected:**
+- API ignores physicianId parameter (forces own)
+- Cannot see other doctors' patients
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.7: PHYSICIAN Cannot View Unassigned Patients
+**Steps:**
+1. Login as PHYSICIAN
+2. Try to access unassigned patients
+
+**Expected:**
+- No option to view unassigned
+- API rejects physicianId=unassigned
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.8: ADMIN Full Access
+**Steps:**
+1. Login as ADMIN user
+2. Verify all functions available
+
+**Expected:**
+- Admin link visible
+- Can access /admin
+- Can view any physician's patients
+- Can view unassigned patients
+- Can access patient assignment page
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.9: API Returns 401 Without Authentication
+**Steps:**
+1. Clear all auth tokens
+2. Make API request to /api/data
+
+**Expected:**
+- 401 Unauthorized response
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.10: Admin API Returns 401 Without Authentication
+**Steps:**
+1. Clear all auth tokens
+2. Make API request to /api/admin/users
+
+**Expected:**
+- 401 Unauthorized response
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.11: Navigation Redirects to Login When Unauthenticated
+**Steps:**
+1. Clear auth session
+2. Try to access /, /admin, /import
+
+**Expected:**
+- All redirect to /login
+
+**Automated:** `role-access-control.cy.ts`
+
+---
+
 ## Last Updated
 
-January 28, 2026 - Added Import Executor test cases (Section 23)
+February 4, 2026 - Added Role Access Control test cases (TC-28.1 to TC-28.11)
+February 4, 2026 - Added Patient Assignment test cases (TC-27.1 to TC-27.10)
+February 3, 2026 - Added Forgot Password test cases (TC-26.25 to TC-26.33)
