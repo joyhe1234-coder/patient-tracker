@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [4.1.0-snapshot] - Unreleased
+## [4.2.0] - 2026-02-05
 
 ### Added
 - **Phase 12: Patient Ownership & Assignment System** (Feb 3, 2026)
