@@ -220,7 +220,12 @@ export default function MainPage() {
   }, []);
 
   // Check if STAFF/ADMIN needs to select a physician first
-  const needsPhysicianSelection = (user?.role === 'STAFF' || user?.role === 'ADMIN') && !selectedPhysicianId;
+  // For STAFF: must have a specific physician selected (number)
+  // For ADMIN: can have a specific physician (number) OR view unassigned patients (null)
+  // Only show prompt if selectedPhysicianId is undefined (not yet selected)
+  const needsPhysicianSelection =
+    (user?.role === 'STAFF' && !selectedPhysicianId) ||
+    (user?.role === 'ADMIN' && selectedPhysicianId === undefined);
 
   if (needsPhysicianSelection) {
     return (

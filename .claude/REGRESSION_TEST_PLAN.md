@@ -2189,6 +2189,267 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 
 ---
 
+## 27. Patient Assignment (Phase 12)
+
+### TC-27.1: View Unassigned Patients (ADMIN)
+**Steps:**
+1. Login as ADMIN user
+2. On Patient Grid page, select "Unassigned patients" from dropdown
+
+**Expected:**
+- Grid shows patients with no owner assigned
+- Status bar shows correct count
+- No caching - fresh data on each selection
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.2: Assign Unassigned Patient to Physician
+**Steps:**
+1. Login as ADMIN
+2. Navigate to /admin/patient-assignment
+3. Select one unassigned patient
+4. Select target physician from dropdown
+5. Click "Assign" button
+
+**Expected:**
+- Success message displayed
+- Patient no longer in unassigned list
+- Patient appears in target physician's list
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.3: Bulk Assign Multiple Patients
+**Steps:**
+1. Login as ADMIN
+2. Navigate to /admin/patient-assignment
+3. Select multiple patients (or click "Select All")
+4. Select target physician
+5. Click "Assign" button
+
+**Expected:**
+- All selected patients assigned
+- Count updates immediately
+- Success message shows count
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.4: Patient Count Updates After Assignment
+**Steps:**
+1. Note unassigned patient count
+2. Note target physician's patient count
+3. Assign 1 patient from unassigned to physician
+4. Check both counts again
+
+**Expected:**
+- Unassigned count decreases by 1
+- Physician count increases by 1
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.5: Assign Physician to Staff User
+**Steps:**
+1. Login as ADMIN
+2. Go to Admin page
+3. Click Edit on a STAFF user
+4. Check a physician in the assignments list
+5. Save
+
+**Expected:**
+- Staff user now has physician assigned
+- Assignment count updates in user list
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.6: Staff Sees Only Assigned Physicians
+**Steps:**
+1. As ADMIN, assign Physician A to Staff User
+2. Login as Staff User
+3. Check physician dropdown on Patient Grid
+
+**Expected:**
+- Only Physician A appears in dropdown
+- Cannot view other physicians' patients
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.7: Staff Viewing Assigned Physician's Patients
+**Steps:**
+1. Login as STAFF with physician assignment
+2. Select assigned physician from dropdown
+3. View patient grid
+
+**Expected:**
+- Grid shows that physician's patients
+- Patient count matches physician's actual count
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.8: No Data Caching When Switching Physicians
+**Steps:**
+1. Select Physician A, note patients
+2. Select Physician B, note patients
+3. Select Physician A again
+
+**Expected:**
+- Fresh API call made each time
+- No stale data from previous selection
+
+**Automated:** `patient-assignment.cy.ts`
+
+### TC-27.9: Provider Dropdown Only on Patient Grid
+**Steps:**
+1. Login as ADMIN
+2. Check header on Patient Grid page
+3. Navigate to Import page
+4. Navigate to Admin page
+
+**Expected:**
+- Dropdown visible only on Patient Grid (/)
+- Not visible on /import or /admin
+
+**Automated:** `Header.test.tsx`
+
+### TC-27.10: Unassigned Option Only for ADMIN
+**Steps:**
+1. Login as ADMIN, check dropdown
+2. Login as STAFF, check dropdown
+
+**Expected:**
+- ADMIN sees "Unassigned patients" option
+- STAFF does not see "Unassigned patients" option
+
+**Automated:** `Header.test.tsx`
+
+---
+
+## 28. Role-Based Access Control
+
+### TC-28.1: STAFF Cannot Access Admin Page
+**Steps:**
+1. Login as STAFF user
+2. Try to navigate to /admin
+
+**Expected:**
+- Redirected away from /admin
+- No "Admin" link in navigation
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.2: STAFF Cannot See Unassigned Patients Option
+**Steps:**
+1. Login as STAFF user
+2. Go to Patient Grid page
+3. Check physician dropdown
+
+**Expected:**
+- Dropdown only shows assigned physicians
+- No "Unassigned patients" option
+
+**Automated:** `role-access-control.cy.ts`, `Header.test.tsx`
+
+### TC-28.3: STAFF Can Only See Assigned Physicians
+**Steps:**
+1. Login as STAFF user assigned to Physician A only
+2. Check dropdown options
+
+**Expected:**
+- Only Physician A appears in dropdown
+- Cannot view Physician B's patients
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.4: PHYSICIAN Auto-Filters to Own Patients
+**Steps:**
+1. Login as PHYSICIAN user
+2. Navigate to Patient Grid
+
+**Expected:**
+- No physician selector dropdown shown
+- Grid automatically shows own patients only
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.5: PHYSICIAN Cannot See Admin Functions
+**Steps:**
+1. Login as PHYSICIAN user (not also ADMIN)
+2. Check navigation and available pages
+
+**Expected:**
+- No "Admin" link visible
+- Cannot access /admin or /admin/patient-assignment
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.6: PHYSICIAN Cannot View Other Doctors' Patients
+**Steps:**
+1. Login as PHYSICIAN
+2. Try to access API with different physicianId
+
+**Expected:**
+- API ignores physicianId parameter (forces own)
+- Cannot see other doctors' patients
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.7: PHYSICIAN Cannot View Unassigned Patients
+**Steps:**
+1. Login as PHYSICIAN
+2. Try to access unassigned patients
+
+**Expected:**
+- No option to view unassigned
+- API rejects physicianId=unassigned
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.8: ADMIN Full Access
+**Steps:**
+1. Login as ADMIN user
+2. Verify all functions available
+
+**Expected:**
+- Admin link visible
+- Can access /admin
+- Can view any physician's patients
+- Can view unassigned patients
+- Can access patient assignment page
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.9: API Returns 401 Without Authentication
+**Steps:**
+1. Clear all auth tokens
+2. Make API request to /api/data
+
+**Expected:**
+- 401 Unauthorized response
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.10: Admin API Returns 401 Without Authentication
+**Steps:**
+1. Clear all auth tokens
+2. Make API request to /api/admin/users
+
+**Expected:**
+- 401 Unauthorized response
+
+**Automated:** `role-access-control.cy.ts`
+
+### TC-28.11: Navigation Redirects to Login When Unauthenticated
+**Steps:**
+1. Clear auth session
+2. Try to access /, /admin, /import
+
+**Expected:**
+- All redirect to /login
+
+**Automated:** `role-access-control.cy.ts`
+
+---
+
 ## Last Updated
 
+February 4, 2026 - Added Role Access Control test cases (TC-28.1 to TC-28.11)
+February 4, 2026 - Added Patient Assignment test cases (TC-27.1 to TC-27.10)
 February 3, 2026 - Added Forgot Password test cases (TC-26.25 to TC-26.33)

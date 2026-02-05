@@ -111,7 +111,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (191 tests)
+### Frontend Component Tests (203 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
@@ -122,6 +122,7 @@ npm test -- -t "should parse CSV"  # Specific test
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
 | `AddRowModal.test.tsx` | 14 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
+| `Header.test.tsx` | 12 | Provider dropdown visibility, unassigned patients option |
 | **Page Tests** | | `frontend/src/pages/` |
 | `LoginPage.test.tsx` | 17 | Login form, validation, password toggle, auth flow |
 | `ForgotPasswordPage.test.tsx` | 14 | SMTP check, email form, success/error states |
@@ -172,7 +173,7 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (59 passing)
+### Cypress E2E Tests (122 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
@@ -180,6 +181,8 @@ npm run e2e:report        # View HTML report
 |------|-------|-------------|
 | `cascading-dropdowns.cy.ts` | 30 | Dropdown cascading, auto-fill, row colors |
 | `import-flow.cy.ts` | 29 | Import workflow, preview, execution |
+| `patient-assignment.cy.ts` | 32 | Patient/staff assignment, count verification |
+| `role-access-control.cy.ts` | 31 | STAFF/PHYSICIAN/ADMIN access restrictions |
 
 **Test Categories:**
 
@@ -304,18 +307,20 @@ npm run test:cli -- --save    # Save new baselines
 | Backend import services | Jest | 130 | Complete |
 | Backend auth services | Jest | 50 | Complete |
 | Backend API routes | Jest | ~137 | Complete |
-| Frontend components | Vitest | 70 | Complete |
-| Frontend pages | Vitest | 66 | Complete |
+| Frontend components | Vitest | 82 | Complete |
+| Frontend pages | Vitest | 96 | Complete |
 | Frontend stores | Vitest | 25 | Complete |
 | Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
 | Cascading dropdowns | Cypress | 30 | Complete |
 | Row colors | Cypress | 5 | In cascading tests |
 | Import UI flow | Cypress | 29 | Complete |
+| Patient assignment | Cypress | 32 | Complete |
+| Role access control | Cypress | 31 | Complete |
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
 
-**Total Automated Tests: ~570+**
+**Total Automated Tests: ~680+**
 
 ---
 
@@ -505,8 +510,13 @@ describe('Feature Name', () => {
 
 ## Last Updated
 
+February 4, 2026 - Added Phase 12 UI tests:
+- Frontend: Header.test.tsx (12 tests) - Provider dropdown visibility, unassigned patients option
+- Backend tests: 360 (stable)
+- Frontend tests: 203 (was 191)
+- Updated total to ~620+ tests
+
 February 2, 2026 - Added Authentication tests:
 - Backend: authService.test.ts (19), auth.test.ts middleware (13), auth.routes.test.ts (8), admin.routes.test.ts (10)
 - Frontend: LoginPage.test.tsx (17), authStore.test.ts (25)
 - E2E: auth.spec.ts (9 Playwright tests)
-- Updated total to ~570+ tests

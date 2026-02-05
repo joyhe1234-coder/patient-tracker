@@ -321,6 +321,18 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Preview page: summary cards, filters, changes table
   - Execution: success/error states, navigation
   - Test data: cypress/fixtures/test-import.csv
+- [x] Phase 12: Patient assignment tests (32 tests)
+  - cypress/e2e/patient-assignment.cy.ts - Patient and staff assignment workflows
+  - Assign unassigned patients to physicians
+  - Verify patient counts update correctly
+  - Staff-physician assignment management
+  - Data freshness verification (no caching)
+- [x] Phase 12: Role access control tests (31 tests)
+  - cypress/e2e/role-access-control.cy.ts - Authorization verification
+  - STAFF restrictions: no admin, no unassigned patients, only assigned physicians
+  - PHYSICIAN restrictions: no admin, only own patients
+  - ADMIN capabilities: full access to all features
+  - API 401/403 protection tests
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -332,8 +344,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 347 tests passing (89% statement coverage, 80% branch coverage)
-- Total test count: ~590 automated tests across all frameworks
+- [x] 360 tests passing (89% statement coverage, 80% branch coverage)
+- Total test count: ~680 automated tests across all frameworks
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -608,4 +620,6 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.
+February 4, 2026 - Added Phase 12 tests: Header.test.tsx (12), patient-assignment.cy.ts (32).
 February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

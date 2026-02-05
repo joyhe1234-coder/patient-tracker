@@ -41,6 +41,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Provider dropdown now only visible on Patient Grid page (not Import/Admin)
     - ADMIN users can select "Unassigned patients" to view patients without a provider
     - MainPage properly sends `physicianId=unassigned` for unassigned patient view
+  - **Header Component Tests** (Feb 4, 2026)
+    - NEW: `Header.test.tsx` - 12 tests for provider dropdown visibility and unassigned patients option
+    - Tests provider dropdown only shows on Patient Grid page (not Import/Admin)
+    - Tests "Unassigned patients" option only available for ADMIN users
+    - Tests correct state management when switching between physicians and unassigned
+    - Total frontend component tests: 203 (was 191)
+  - **Patient Assignment E2E Tests** (Feb 4, 2026)
+    - NEW: `patient-assignment.cy.ts` - 32 Cypress tests for patient and staff assignment
+    - Tests assigning unassigned patients to physicians
+    - Tests patient count updates after assignment
+    - Tests staff-physician assignment management
+    - Tests data freshness (no caching when switching physicians)
+  - **Role-Based Access Control Tests** (Feb 4, 2026)
+    - NEW: `role-access-control.cy.ts` - 31 Cypress tests for access restrictions
+    - STAFF: Cannot access admin functions, cannot see unassigned patients
+    - PHYSICIAN: Cannot access admin (unless also admin), cannot see other doctors' patients
+    - ADMIN: Full access to all functions and data
+    - API protection tests (401/403 responses)
+    - Navigation protection tests
+    - Total Cypress tests: 122 (was 59)
   - **Admin Password Reset Email Notification** (Feb 4, 2026)
     - When admin resets a user's password, user receives email notification
     - Email includes admin's name who performed the reset
@@ -132,6 +152,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Patient count column shows count for admins who can have patients
 
 ### Fixed
+- **Unassigned patients not displaying for ADMIN users** (Feb 4, 2026)
+  - Bug: When ADMIN selected "Unassigned patients" from dropdown, grid showed "Select a Physician" prompt
+  - Cause: `needsPhysicianSelection` check treated `null` (unassigned selection) as "no selection"
+  - Fix: Updated check in MainPage.tsx to distinguish between ADMIN (allows null for unassigned) and STAFF (requires physician)
+  - Also fixed: Dockerfile not copying frontend `public` folder to container
 - **Delete row not working for ADMIN users** (Feb 4, 2026)
   - Bug: Delete API call missing `physicianId` query parameter
   - Cause: Phase 12 added physician filtering requirement but delete endpoint wasn't updated
