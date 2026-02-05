@@ -481,18 +481,20 @@ router.post('/users/:id/reset-password', async (req: Request, res: Response, nex
 
 /**
  * GET /api/admin/physicians
- * List all physicians (for staff assignment dropdown)
+ * List all users who can have patients (for staff assignment dropdown)
+ * Includes PHYSICIAN role and ADMIN users with canHavePatients=true
  */
 router.get('/physicians', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const physicians = await prisma.user.findMany({
       where: {
-        role: 'PHYSICIAN',
+        canHavePatients: true,
         isActive: true,
       },
       select: {
         id: true,
         displayName: true,
+        role: true,
       },
       orderBy: { displayName: 'asc' },
     });
