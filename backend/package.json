@@ -1,6 +1,6 @@
 {
   "name": "patient-tracker-backend",
-  "version": "4.1.0-snapshot",
+  "version": "4.2.0",
   "description": "Patient Quality Measure Tracking System - Backend",
   "type": "module",
   "main": "dist/index.js",
