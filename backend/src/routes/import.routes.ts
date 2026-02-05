@@ -299,14 +299,11 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       return next(createError(`System not found: ${systemId}`, 404));
     }
 
-    // Determine target ownerId based on user role
+    // Determine target ownerId based on user roles
     let targetOwnerId: number | null = null;
 
-    if (user.role === 'PHYSICIAN') {
-      // PHYSICIAN imports to their own patients
-      targetOwnerId = user.id;
-    } else if (user.role === 'STAFF') {
-      // STAFF must specify physicianId
+    // STAFF must specify physicianId and can only import to assigned physicians
+    if (user.roles.includes('STAFF')) {
       const physicianIdParam = req.query.physicianId as string | undefined;
       if (!physicianIdParam) {
         return next(createError('physicianId query parameter is required for STAFF users', 400, 'MISSING_PHYSICIAN_ID'));
@@ -324,8 +321,9 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       }
 
       targetOwnerId = physicianId;
-    } else if (user.role === 'ADMIN') {
-      // ADMIN can optionally specify physicianId
+    }
+    // ADMIN can optionally specify physicianId (otherwise imports to unassigned)
+    else if (user.roles.includes('ADMIN')) {
       const physicianIdParam = req.query.physicianId as string | undefined;
       if (physicianIdParam) {
         const physicianId = parseInt(physicianIdParam, 10);
@@ -335,6 +333,10 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
         targetOwnerId = physicianId;
       }
       // If no physicianId specified, targetOwnerId remains null (unassigned)
+    }
+    // PHYSICIAN (without ADMIN/STAFF) imports to their own patients
+    else if (user.roles.includes('PHYSICIAN')) {
+      targetOwnerId = user.id;
     }
 
     // Step 1: Parse the file

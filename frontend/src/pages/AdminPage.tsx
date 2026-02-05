@@ -23,9 +23,8 @@ interface AdminUser {
   id: number;
   email: string;
   displayName: string;
-  role: UserRole;
+  roles: UserRole[];
   isActive: boolean;
-  canHavePatients: boolean;
   lastLoginAt: string | null;
   patientCount: number;
   assignedPhysicians: { physicianId: number; physicianName: string }[];
@@ -72,7 +71,7 @@ export default function AdminPage() {
 
   // Redirect if not admin
   useEffect(() => {
-    if (user && user.role !== 'ADMIN') {
+    if (user && !user.roles.includes('ADMIN')) {
       navigate('/');
     }
   }, [user, navigate]);
@@ -153,29 +152,29 @@ export default function AdminPage() {
     }
   };
 
-  const getRoleBadge = (role: UserRole, canHavePatients?: boolean) => {
+  const getRoleBadge = (roles: UserRole[]) => {
     const colors = {
       ADMIN: 'bg-purple-100 text-purple-800',
       PHYSICIAN: 'bg-blue-100 text-blue-800',
       STAFF: 'bg-green-100 text-green-800',
     };
 
-    // ADMIN with canHavePatients shows both roles
-    if (role === 'ADMIN' && canHavePatients) {
+    // Multiple roles - show all badges
+    if (roles.length > 1) {
       return (
         <div className="flex gap-1">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors.ADMIN}`}>
-            {getRoleIcon('ADMIN')}
-            ADMIN
-          </span>
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors.PHYSICIAN}`}>
-            {getRoleIcon('PHYSICIAN')}
-            PHYSICIAN
-          </span>
+          {roles.map((role) => (
+            <span key={role} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors[role]}`}>
+              {getRoleIcon(role)}
+              {role}
+            </span>
+          ))}
         </div>
       );
     }
 
+    // Single role
+    const role = roles[0];
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${colors[role]}`}>
         {getRoleIcon(role)}
@@ -189,7 +188,7 @@ export default function AdminPage() {
     return new Date(date).toLocaleString();
   };
 
-  if (user?.role !== 'ADMIN') {
+  if (!user?.roles.includes('ADMIN')) {
     return null;
   }
 
@@ -301,8 +300,8 @@ export default function AdminPage() {
                       <tr key={u.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            {(u.role === 'STAFF' && u.assignedPhysicians.length > 0) ||
-                            (u.role === 'PHYSICIAN' && u.assignedStaff.length > 0) ? (
+                            {(u.roles.includes('STAFF') && u.assignedPhysicians.length > 0) ||
+                            (u.roles.includes('PHYSICIAN') && u.assignedStaff.length > 0) ? (
                               <button
                                 onClick={() => toggleUserExpanded(u.id)}
                                 className="p-1 hover:bg-gray-100 rounded"
@@ -322,7 +321,7 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">{getRoleBadge(u.role, u.canHavePatients)}</td>
+                        <td className="px-6 py-4">{getRoleBadge(u.roles)}</td>
                         <td className="px-6 py-4">
                           {u.isActive ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
@@ -340,7 +339,7 @@ export default function AdminPage() {
                           {formatDate(u.lastLoginAt)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          {u.role === 'PHYSICIAN' || u.canHavePatients ? u.patientCount : '-'}
+                          {u.roles.includes('PHYSICIAN') ? u.patientCount : '-'}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
@@ -380,7 +379,7 @@ export default function AdminPage() {
                       {expandedUsers.has(u.id) && (
                         <tr key={`${u.id}-expanded`}>
                           <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                            {u.role === 'STAFF' && u.assignedPhysicians.length > 0 && (
+                            {u.roles.includes('STAFF') && u.assignedPhysicians.length > 0 && (
                               <div>
                                 <span className="text-sm font-medium text-gray-700">
                                   Assigned to physicians:
@@ -397,7 +396,7 @@ export default function AdminPage() {
                                 </div>
                               </div>
                             )}
-                            {u.role === 'PHYSICIAN' && u.assignedStaff.length > 0 && (
+                            {u.roles.includes('PHYSICIAN') && u.assignedStaff.length > 0 && (
                               <div>
                                 <span className="text-sm font-medium text-gray-700">
                                   Staff assigned:
@@ -545,9 +544,8 @@ function UserModal({
     email: user?.email || '',
     password: '',
     displayName: user?.displayName || '',
-    role: user?.role || 'PHYSICIAN',
+    roles: user?.roles || ['PHYSICIAN'] as UserRole[],
     isActive: user?.isActive ?? true,
-    canHavePatients: user?.canHavePatients ?? false,
     assignedPhysicianIds: user?.assignedPhysicians.map((a) => a.physicianId) || [],
   });
   const [error, setError] = useState<string | null>(null);
@@ -564,17 +562,13 @@ function UserModal({
         const updateData: Record<string, unknown> = {
           email: formData.email,
           displayName: formData.displayName,
-          role: formData.role,
+          roles: formData.roles,
           isActive: formData.isActive,
         };
-        // Include canHavePatients for ADMIN role (PHYSICIAN is always true, STAFF is always false)
-        if (formData.role === 'ADMIN') {
-          updateData.canHavePatients = formData.canHavePatients;
-        }
         await api.put(`/admin/users/${user!.id}`, updateData);
 
         // Update staff assignments if role is STAFF
-        if (formData.role === 'STAFF') {
+        if (formData.roles.includes('STAFF')) {
           // Remove old assignments not in new list
           for (const old of user!.assignedPhysicians) {
             if (!formData.assignedPhysicianIds.includes(old.physicianId)) {
@@ -605,16 +599,12 @@ function UserModal({
           email: formData.email,
           password: formData.password,
           displayName: formData.displayName,
-          role: formData.role,
+          roles: formData.roles,
         };
-        // Include canHavePatients for ADMIN role
-        if (formData.role === 'ADMIN') {
-          createData.canHavePatients = formData.canHavePatients;
-        }
         const response = await api.post('/admin/users', createData);
 
         // Add staff assignments if role is STAFF
-        if (formData.role === 'STAFF') {
+        if (formData.roles.includes('STAFF')) {
           const newUserId = response.data.data.id;
           for (const physicianId of formData.assignedPhysicianIds) {
             await api.post('/admin/staff-assignments', {
@@ -693,51 +683,58 @@ function UserModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Roles
             </label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="PHYSICIAN">Physician</option>
-              <option value="STAFF">Staff</option>
-              <option value="ADMIN">Admin</option>
-            </select>
+            <div className="space-y-2 p-3 border border-gray-300 rounded-md">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="roleSelection"
+                  checked={formData.roles.length === 1 && formData.roles[0] === 'PHYSICIAN'}
+                  onChange={() => setFormData({ ...formData, roles: ['PHYSICIAN'] })}
+                  className="rounded"
+                />
+                <span className="text-sm">Physician</span>
+                <span className="text-xs text-gray-500">- Can have patients assigned</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="roleSelection"
+                  checked={formData.roles.length === 1 && formData.roles[0] === 'STAFF'}
+                  onChange={() => setFormData({ ...formData, roles: ['STAFF'] })}
+                  className="rounded"
+                />
+                <span className="text-sm">Staff</span>
+                <span className="text-xs text-gray-500">- Can view assigned physicians' patients</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="roleSelection"
+                  checked={formData.roles.length === 1 && formData.roles[0] === 'ADMIN'}
+                  onChange={() => setFormData({ ...formData, roles: ['ADMIN'] })}
+                  className="rounded"
+                />
+                <span className="text-sm">Admin</span>
+                <span className="text-xs text-gray-500">- Can manage users and view all patients</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="roleSelection"
+                  checked={formData.roles.includes('ADMIN') && formData.roles.includes('PHYSICIAN')}
+                  onChange={() => setFormData({ ...formData, roles: ['ADMIN', 'PHYSICIAN'] })}
+                  className="rounded"
+                />
+                <span className="text-sm">Admin + Physician</span>
+                <span className="text-xs text-gray-500">- Admin who can also have patients</span>
+              </label>
+            </div>
           </div>
 
-          {/* Can Have Patients toggle - only for ADMIN role, always true for PHYSICIAN, always false for STAFF */}
-          {formData.role === 'ADMIN' && (
-            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-              <input
-                type="checkbox"
-                id="canHavePatients"
-                checked={formData.canHavePatients}
-                onChange={(e) => setFormData({ ...formData, canHavePatients: e.target.checked })}
-                className="mt-1 rounded"
-              />
-              <div>
-                <label htmlFor="canHavePatients" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Can Have Patients
-                </label>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Enable this if this admin user should also be able to have patients assigned to them like a physician.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {formData.role === 'PHYSICIAN' && (
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Can Have Patients:</span>
-                <span className="text-sm text-green-600 font-medium">Always enabled for physicians</span>
-              </div>
-            </div>
-          )}
-
-          {formData.role === 'STAFF' && (
+          {formData.roles.includes('STAFF') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assigned Physicians

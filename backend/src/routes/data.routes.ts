@@ -29,13 +29,8 @@ interface OwnerFilter {
 async function getPatientOwnerFilter(req: Request): Promise<OwnerFilter> {
   const user = req.user!;
 
-  if (user.role === 'PHYSICIAN') {
-    // PHYSICIAN sees only their own patients
-    return { ownerId: user.id, isUnassigned: false };
-  }
-
-  if (user.role === 'STAFF') {
-    // STAFF must specify physicianId to view that physician's patients
+  // STAFF role: must specify physicianId and can only view assigned physicians
+  if (user.roles.includes('STAFF')) {
     const physicianIdParam = req.query.physicianId as string | undefined;
     if (!physicianIdParam) {
       throw createError('physicianId query parameter is required for STAFF users', 400, 'MISSING_PHYSICIAN_ID');
@@ -60,8 +55,8 @@ async function getPatientOwnerFilter(req: Request): Promise<OwnerFilter> {
     return { ownerId: physicianId, isUnassigned: false };
   }
 
-  if (user.role === 'ADMIN') {
-    // ADMIN must specify physicianId to view patients
+  // ADMIN role: can view any physician's patients or unassigned
+  if (user.roles.includes('ADMIN')) {
     const physicianIdParam = req.query.physicianId as string | undefined;
     if (!physicianIdParam) {
       throw createError('physicianId query parameter is required for ADMIN users', 400, 'MISSING_PHYSICIAN_ID');
@@ -79,6 +74,11 @@ async function getPatientOwnerFilter(req: Request): Promise<OwnerFilter> {
 
     // ADMIN can view any physician's patients (no assignment check needed)
     return { ownerId: physicianId, isUnassigned: false };
+  }
+
+  // PHYSICIAN role (without ADMIN or STAFF): sees only their own patients
+  if (user.roles.includes('PHYSICIAN')) {
+    return { ownerId: user.id, isUnassigned: false };
   }
 
   throw createError('Unknown user role', 403, 'FORBIDDEN');

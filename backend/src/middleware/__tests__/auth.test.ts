@@ -90,9 +90,9 @@ describe('auth middleware', () => {
       expect(error.statusCode).toBe(401);
     });
 
-    it('should call next with error when user role not in allowed roles', () => {
+    it('should call next with error when user has no matching roles', () => {
       const req = {
-        user: { id: 1, email: 'staff@clinic.com', displayName: 'Staff', role: 'STAFF' as UserRole, isActive: true },
+        user: { id: 1, email: 'staff@clinic.com', displayName: 'Staff', roles: ['STAFF'] as UserRole[], isActive: true },
       } as Request;
       const res = createMockResponse() as Response;
 
@@ -105,9 +105,9 @@ describe('auth middleware', () => {
       expect(error.statusCode).toBe(403);
     });
 
-    it('should call next() when user role is in allowed roles', () => {
+    it('should call next() when user has one of the allowed roles', () => {
       const req = {
-        user: { id: 1, email: 'admin@clinic.com', displayName: 'Admin', role: 'ADMIN' as UserRole, isActive: true },
+        user: { id: 1, email: 'admin@clinic.com', displayName: 'Admin', roles: ['ADMIN'] as UserRole[], isActive: true },
       } as Request;
       const res = createMockResponse() as Response;
 
@@ -120,7 +120,7 @@ describe('auth middleware', () => {
 
     it('should accept multiple allowed roles', () => {
       const req = {
-        user: { id: 1, email: 'staff@clinic.com', displayName: 'Staff', role: 'STAFF' as UserRole, isActive: true },
+        user: { id: 1, email: 'staff@clinic.com', displayName: 'Staff', roles: ['STAFF'] as UserRole[], isActive: true },
       } as Request;
       const res = createMockResponse() as Response;
 
@@ -129,6 +129,19 @@ describe('auth middleware', () => {
 
       expect(mockNext).toHaveBeenCalledTimes(1);
       expect(mockNext).toHaveBeenCalledWith(); // Called without error
+    });
+
+    it('should allow access when user has any matching role from multiple roles', () => {
+      const req = {
+        user: { id: 1, email: 'admin-doc@clinic.com', displayName: 'Admin Doc', roles: ['ADMIN', 'PHYSICIAN'] as UserRole[], isActive: true },
+      } as Request;
+      const res = createMockResponse() as Response;
+
+      const middleware = requireRole(['PHYSICIAN']);
+      middleware(req, res, mockNext as NextFunction);
+
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith(); // Called without error - user has PHYSICIAN role
     });
   });
 
@@ -174,7 +187,7 @@ describe('auth middleware', () => {
 
     it('should call next() for PHYSICIAN role', () => {
       const req = {
-        user: { id: 1, email: 'doctor@clinic.com', displayName: 'Dr. Smith', role: 'PHYSICIAN' as UserRole, isActive: true },
+        user: { id: 1, email: 'doctor@clinic.com', displayName: 'Dr. Smith', roles: ['PHYSICIAN'] as UserRole[], isActive: true },
       } as Request;
       const res = createMockResponse() as Response;
 
@@ -186,7 +199,7 @@ describe('auth middleware', () => {
 
     it('should call next() for STAFF role', () => {
       const req = {
-        user: { id: 2, email: 'staff@clinic.com', displayName: 'Staff Member', role: 'STAFF' as UserRole, isActive: true },
+        user: { id: 2, email: 'staff@clinic.com', displayName: 'Staff Member', roles: ['STAFF'] as UserRole[], isActive: true },
       } as Request;
       const res = createMockResponse() as Response;
 
@@ -198,7 +211,19 @@ describe('auth middleware', () => {
 
     it('should call next() for ADMIN role', () => {
       const req = {
-        user: { id: 3, email: 'admin@clinic.com', displayName: 'Admin', role: 'ADMIN' as UserRole, isActive: true },
+        user: { id: 3, email: 'admin@clinic.com', displayName: 'Admin', roles: ['ADMIN'] as UserRole[], isActive: true },
+      } as Request;
+      const res = createMockResponse() as Response;
+
+      requirePatientDataAccess(req, res, mockNext as NextFunction);
+
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledWith();
+    });
+
+    it('should call next() for ADMIN + PHYSICIAN roles', () => {
+      const req = {
+        user: { id: 4, email: 'admin-doc@clinic.com', displayName: 'Admin Doctor', roles: ['ADMIN', 'PHYSICIAN'] as UserRole[], isActive: true },
       } as Request;
       const res = createMockResponse() as Response;
 

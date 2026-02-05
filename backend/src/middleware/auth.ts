@@ -43,7 +43,7 @@ export async function requireAuth(
       id: authUser.id,
       email: authUser.email,
       displayName: authUser.displayName,
-      role: authUser.role,
+      roles: authUser.roles,
       isActive: authUser.isActive,
     };
 
@@ -56,6 +56,7 @@ export async function requireAuth(
 /**
  * Middleware that requires specific roles.
  * Must be used after requireAuth.
+ * User must have at least one of the allowed roles.
  */
 export function requireRole(allowedRoles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -64,7 +65,9 @@ export function requireRole(allowedRoles: UserRole[]) {
         throw createError('Authentication required', 401, 'UNAUTHORIZED');
       }
 
-      if (!allowedRoles.includes(req.user.role)) {
+      // Check if user has ANY of the allowed roles
+      const hasRole = req.user.roles.some((r) => allowedRoles.includes(r));
+      if (!hasRole) {
         throw createError(
           `Access denied. Required roles: ${allowedRoles.join(', ')}`,
           403,
@@ -109,7 +112,7 @@ export async function optionalAuth(
         id: authUser.id,
         email: authUser.email,
         displayName: authUser.displayName,
-        role: authUser.role,
+        roles: authUser.roles,
         isActive: authUser.isActive,
       };
     }

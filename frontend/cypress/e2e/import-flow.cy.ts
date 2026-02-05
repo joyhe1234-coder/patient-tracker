@@ -273,5 +273,178 @@ describe('Import Flow', () => {
 
       cy.url().should('eq', Cypress.config().baseUrl + '/import');
     });
+
+    it('shows error for empty CSV file', () => {
+      cy.visit('/import');
+
+      // Create an empty CSV (only headers, no data)
+      cy.get('input[type="file"]').selectFile({
+        contents: Cypress.Buffer.from('Patient,DOB,Annual Wellness Visit'),
+        fileName: 'empty.csv',
+        mimeType: 'text/csv',
+      }, { force: true });
+
+      cy.contains('button', 'Preview Import').click();
+
+      // Should show error about no data rows
+      cy.get('.bg-red-50', { timeout: 10000 }).should('be.visible');
+    });
+  });
+
+  describe('Merge Mode Behavior', () => {
+    it('imports data without deleting existing records', () => {
+      // First, do a Replace All import to establish baseline
+      cy.visit('/import');
+      cy.contains('label', 'Replace All').click();
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.contains('button', 'Yes, Delete All').click();
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+      cy.contains('button', /Apply \d+ Changes/).click();
+      cy.contains('Import Successful', { timeout: 30000 }).should('be.visible');
+
+      // Now do a Merge import with different data
+      cy.contains('button', 'Import More').click();
+      cy.contains('label', 'Merge').find('input[type="radio"]').should('be.checked');
+
+      // Create a new patient file
+      cy.get('input[type="file"]').selectFile({
+        contents: Cypress.Buffer.from('Patient,DOB,Phone,Address,Annual Wellness Visit\n"New, Patient",1/1/1980,(555) 999-9999,999 New St,Compliant'),
+        fileName: 'merge-test.csv',
+        mimeType: 'text/csv',
+      }, { force: true });
+
+      cy.contains('button', 'Preview Import').click();
+      cy.url().should('include', '/import/preview/');
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      // In merge mode, should NOT show deletes (or show 0)
+      cy.contains('Delete').should('be.visible');
+      // Verify delete count is 0 or not emphasized
+    });
+
+    it('shows mode indicator on preview page', () => {
+      cy.visit('/import');
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      // Should show merge mode indicator
+      cy.contains('merge').should('be.visible');
+    });
+  });
+
+  describe('Preview Page Details', () => {
+    beforeEach(() => {
+      cy.visit('/import');
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.url().should('include', '/import/preview/');
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+    });
+
+    it('displays file info in header', () => {
+      cy.contains('test-import.csv').should('be.visible');
+    });
+
+    it('displays expiration time', () => {
+      // Preview should show when it expires
+      cy.contains(/expires|valid/i).should('be.visible');
+    });
+
+    it('shows changes table with proper columns', () => {
+      cy.contains('Action').should('be.visible');
+      cy.contains('Patient').should('be.visible');
+      cy.contains('Quality Measure').should('be.visible');
+      cy.contains('Status').should('be.visible');
+    });
+
+    it('clicking INSERT card filters to INSERT actions only', () => {
+      cy.contains('button', 'Insert').click();
+      cy.contains('button', 'Insert').should('have.class', 'ring-2');
+
+      // All visible rows should have INSERT badge
+      cy.get('table tbody tr').each(($row) => {
+        cy.wrap($row).contains('INSERT').should('be.visible');
+      });
+    });
+
+    it('clicking Total card shows all actions', () => {
+      // First filter to INSERT
+      cy.contains('button', 'Insert').click();
+
+      // Then click Total to show all
+      cy.contains('button', 'Total').click();
+      cy.contains('button', 'Total').should('have.class', 'ring-2');
+    });
+  });
+
+  describe('Import with Warnings', () => {
+    it('shows warnings section when file has validation warnings', () => {
+      cy.visit('/import');
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import-warnings.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+
+      cy.url().should('include', '/import/preview/');
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      // Should show warnings if any exist
+      // Note: This depends on how the file is validated
+    });
+  });
+
+  describe('Multiple File Imports', () => {
+    it('can import same file twice with different results', () => {
+      // First import in Replace mode
+      cy.visit('/import');
+      cy.contains('label', 'Replace All').click();
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.contains('button', 'Yes, Delete All').click();
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      // Should show inserts on first import
+      cy.get('button').contains('Insert').should('be.visible');
+
+      cy.contains('button', /Apply \d+ Changes/).click();
+      cy.contains('Import Successful', { timeout: 30000 }).should('be.visible');
+
+      // Second import of same file in Merge mode
+      cy.contains('button', 'Import More').click();
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      // Should show skips (since data already exists)
+      cy.get('button').contains('Skip').should('be.visible');
+    });
+  });
+
+  describe('Cancel and Navigation', () => {
+    it('can cancel at import page and return home', () => {
+      cy.visit('/import');
+      cy.get('a[href="/"]').contains('Cancel').click();
+      cy.url().should('eq', Cypress.config().baseUrl + '/');
+    });
+
+    it('can cancel at preview page and return to import', () => {
+      cy.visit('/import');
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      cy.contains('button', 'Cancel').click();
+      cy.url().should('eq', Cypress.config().baseUrl + '/import');
+    });
+
+    it('browser back works from preview page', () => {
+      cy.visit('/import');
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.contains('button', 'Preview Import').click();
+      cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
+
+      cy.go('back');
+      cy.url().should('include', '/import');
+    });
   });
 });

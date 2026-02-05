@@ -139,11 +139,11 @@ router.get('/me', requireAuth, async (req: Request, res: Response, next: NextFun
       throw createError('User not found', 404, 'USER_NOT_FOUND');
     }
 
-    // Get staff assignments if user is STAFF, or all physicians if ADMIN
+    // Get staff assignments if user has STAFF role, or all physicians if ADMIN role
     let assignments;
-    if (fullUser.role === 'STAFF') {
+    if (fullUser.roles.includes('STAFF')) {
       assignments = await getStaffAssignments(fullUser.id);
-    } else if (fullUser.role === 'ADMIN') {
+    } else if (fullUser.roles.includes('ADMIN')) {
       assignments = await getAllPhysicians();
     }
 

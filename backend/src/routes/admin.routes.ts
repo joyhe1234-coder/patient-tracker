@@ -13,21 +13,40 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole(['ADMIN']));
 
+// Valid role combinations:
+// - [PHYSICIAN] - Standard physician
+// - [ADMIN] - Pure admin, no patients
+// - [STAFF] - Standard staff (cannot combine with other roles)
+// - [ADMIN, PHYSICIAN] - Admin who can also have patients
+const validRoleCombinations = [
+  ['PHYSICIAN'],
+  ['ADMIN'],
+  ['STAFF'],
+  ['ADMIN', 'PHYSICIAN'],
+];
+
+function isValidRoleCombination(roles: UserRole[]): boolean {
+  const sorted = [...roles].sort();
+  return validRoleCombinations.some(valid => {
+    const validSorted = [...valid].sort();
+    return sorted.length === validSorted.length &&
+      sorted.every((r, i) => r === validSorted[i]);
+  });
+}
+
 // Validation schemas
 const createUserSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   displayName: z.string().min(1, 'Display name is required'),
-  role: z.enum(['PHYSICIAN', 'STAFF', 'ADMIN']),
-  canHavePatients: z.boolean().optional(), // Only applicable for ADMIN role
+  roles: z.array(z.enum(['PHYSICIAN', 'STAFF', 'ADMIN'])).min(1, 'At least one role is required'),
 });
 
 const updateUserSchema = z.object({
   email: z.string().email('Invalid email format').optional(),
   displayName: z.string().min(1, 'Display name is required').optional(),
-  role: z.enum(['PHYSICIAN', 'STAFF', 'ADMIN']).optional(),
+  roles: z.array(z.enum(['PHYSICIAN', 'STAFF', 'ADMIN'])).min(1).optional(),
   isActive: z.boolean().optional(),
-  canHavePatients: z.boolean().optional(), // Only applicable for ADMIN role
 });
 
 const assignStaffSchema = z.object({
@@ -50,8 +69,7 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
         id: true,
         email: true,
         displayName: true,
-        role: true,
-        canHavePatients: true,
+        roles: true,
         isActive: true,
         lastLoginAt: true,
         createdAt: true,
@@ -83,7 +101,6 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
         },
       },
       orderBy: [
-        { role: 'asc' },
         { displayName: 'asc' },
       ],
     });
@@ -93,8 +110,7 @@ router.get('/users', async (_req: Request, res: Response, next: NextFunction) =>
       id: user.id,
       email: user.email,
       displayName: user.displayName,
-      role: user.role,
-      canHavePatients: user.canHavePatients,
+      roles: user.roles,
       isActive: user.isActive,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
@@ -135,8 +151,7 @@ router.get('/users/:id', async (req: Request, res: Response, next: NextFunction)
         id: true,
         email: true,
         displayName: true,
-        role: true,
-        canHavePatients: true,
+        roles: true,
         isActive: true,
         lastLoginAt: true,
         createdAt: true,
@@ -171,8 +186,7 @@ router.get('/users/:id', async (req: Request, res: Response, next: NextFunction)
         id: user.id,
         email: user.email,
         displayName: user.displayName,
-        role: user.role,
-        canHavePatients: user.canHavePatients,
+        roles: user.roles,
         isActive: user.isActive,
         lastLoginAt: user.lastLoginAt,
         createdAt: user.createdAt,
@@ -204,7 +218,16 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
       throw createError(parseResult.error.errors[0].message, 400, 'VALIDATION_ERROR');
     }
 
-    const { email, password, displayName, role, canHavePatients } = parseResult.data;
+    const { email, password, displayName, roles } = parseResult.data;
+
+    // Validate role combination
+    if (!isValidRoleCombination(roles as UserRole[])) {
+      throw createError(
+        'Invalid role combination. STAFF cannot be combined with other roles.',
+        400,
+        'INVALID_ROLE_COMBINATION'
+      );
+    }
 
     // Check for existing email
     const existingEmail = await prisma.user.findUnique({ where: { email } });
@@ -215,28 +238,13 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Determine canHavePatients based on role:
-    // - PHYSICIAN: always true
-    // - STAFF: always false
-    // - ADMIN: use provided value or default to false
-    let resolvedCanHavePatients: boolean;
-    if (role === 'PHYSICIAN') {
-      resolvedCanHavePatients = true;
-    } else if (role === 'STAFF') {
-      resolvedCanHavePatients = false;
-    } else {
-      // ADMIN: use provided value or default to false
-      resolvedCanHavePatients = canHavePatients ?? false;
-    }
-
     // Create user
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
         displayName,
-        role: role as UserRole,
-        canHavePatients: resolvedCanHavePatients,
+        roles: roles as UserRole[],
         isActive: true,
       },
     });
@@ -249,7 +257,7 @@ router.post('/users', async (req: Request, res: Response, next: NextFunction) =>
         action: 'CREATE',
         entity: 'user',
         entityId: user.id,
-        details: { email, role },
+        details: { email, roles },
         ipAddress: req.ip || req.socket.remoteAddress,
       },
     });
@@ -285,9 +293,22 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
       throw createError('User not found', 404, 'USER_NOT_FOUND');
     }
 
-    // Prevent admin from changing their own role
-    if (req.user!.id === userId && updates.role && updates.role !== existing.role) {
-      throw createError('You cannot change your own role', 400, 'CANNOT_CHANGE_OWN_ROLE');
+    // Prevent admin from changing their own roles
+    if (req.user!.id === userId && updates.roles) {
+      const existingRolesSorted = [...existing.roles].sort().join(',');
+      const newRolesSorted = [...updates.roles].sort().join(',');
+      if (existingRolesSorted !== newRolesSorted) {
+        throw createError('You cannot change your own roles', 400, 'CANNOT_CHANGE_OWN_ROLE');
+      }
+    }
+
+    // Validate role combination if roles are being updated
+    if (updates.roles && !isValidRoleCombination(updates.roles as UserRole[])) {
+      throw createError(
+        'Invalid role combination. STAFF cannot be combined with other roles.',
+        400,
+        'INVALID_ROLE_COMBINATION'
+      );
     }
 
     // Check for email conflicts
@@ -298,24 +319,8 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
       }
     }
 
-    // Determine the final role (updated or existing)
-    const finalRole = updates.role || existing.role;
-
-    // Build the update data with role-enforced canHavePatients
+    // Build the update data
     const updateData: Record<string, unknown> = { ...updates };
-
-    // Enforce canHavePatients based on role:
-    // - PHYSICIAN: always true (override any provided value)
-    // - STAFF: always false (override any provided value)
-    // - ADMIN: allow toggling via canHavePatients field
-    if (finalRole === 'PHYSICIAN') {
-      updateData.canHavePatients = true;
-    } else if (finalRole === 'STAFF') {
-      updateData.canHavePatients = false;
-    } else if (finalRole === 'ADMIN' && updates.canHavePatients !== undefined) {
-      updateData.canHavePatients = updates.canHavePatients;
-    }
-    // If ADMIN and canHavePatients not provided, leave it unchanged
 
     // Update user
     const user = await prisma.user.update({
@@ -371,21 +376,21 @@ router.delete('/users/:id', async (req: Request, res: Response, next: NextFuncti
       throw createError('You cannot delete your own account', 400, 'CANNOT_DELETE_SELF');
     }
 
-    // If PHYSICIAN, unassign their patients
-    if (user.role === 'PHYSICIAN') {
+    // If user has PHYSICIAN role, unassign their patients and remove staff assignments
+    if (user.roles.includes('PHYSICIAN')) {
       await prisma.patient.updateMany({
         where: { ownerId: userId },
         data: { ownerId: null },
       });
 
-      // Also remove staff assignments
+      // Also remove staff assignments where this user is the physician
       await prisma.staffAssignment.deleteMany({
         where: { physicianId: userId },
       });
     }
 
-    // If STAFF, remove their assignments
-    if (user.role === 'STAFF') {
+    // If user has STAFF role, remove their assignments
+    if (user.roles.includes('STAFF')) {
       await prisma.staffAssignment.deleteMany({
         where: { staffId: userId },
       });
@@ -405,7 +410,7 @@ router.delete('/users/:id', async (req: Request, res: Response, next: NextFuncti
         action: 'DELETE',
         entity: 'user',
         entityId: userId,
-        details: { email: user.email, role: user.role },
+        details: { email: user.email, roles: user.roles },
         ipAddress: req.ip || req.socket.remoteAddress,
       },
     });
@@ -482,19 +487,19 @@ router.post('/users/:id/reset-password', async (req: Request, res: Response, nex
 /**
  * GET /api/admin/physicians
  * List all users who can have patients (for staff assignment dropdown)
- * Includes PHYSICIAN role and ADMIN users with canHavePatients=true
+ * Returns users with PHYSICIAN in their roles array
  */
 router.get('/physicians', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const physicians = await prisma.user.findMany({
       where: {
-        canHavePatients: true,
+        roles: { has: 'PHYSICIAN' },
         isActive: true,
       },
       select: {
         id: true,
         displayName: true,
-        role: true,
+        roles: true,
       },
       orderBy: { displayName: 'asc' },
     });
@@ -521,15 +526,15 @@ router.post('/staff-assignments', async (req: Request, res: Response, next: Next
 
     const { staffId, physicianId } = parseResult.data;
 
-    // Verify staff user exists and is STAFF role
+    // Verify staff user exists and has STAFF role
     const staff = await prisma.user.findUnique({ where: { id: staffId } });
-    if (!staff || staff.role !== 'STAFF') {
+    if (!staff || !staff.roles.includes('STAFF')) {
       throw createError('Staff user not found', 404, 'STAFF_NOT_FOUND');
     }
 
-    // Verify physician user exists and can have patients
+    // Verify physician user exists and has PHYSICIAN role
     const physician = await prisma.user.findUnique({ where: { id: physicianId } });
-    if (!physician || !physician.canHavePatients) {
+    if (!physician || !physician.roles.includes('PHYSICIAN')) {
       throw createError('Physician user not found', 404, 'PHYSICIAN_NOT_FOUND');
     }
 
@@ -671,10 +676,10 @@ router.patch('/patients/bulk-assign', async (req: Request, res: Response, next: 
         throw createError('ownerId must be an integer or null', 400, 'VALIDATION_ERROR');
       }
 
-      // Verify the target user exists and can have patients
+      // Verify the target user exists and has PHYSICIAN role
       const targetUser = await prisma.user.findUnique({
         where: { id: ownerId },
-        select: { id: true, canHavePatients: true, isActive: true, displayName: true },
+        select: { id: true, roles: true, isActive: true, displayName: true },
       });
 
       if (!targetUser) {
@@ -685,7 +690,7 @@ router.patch('/patients/bulk-assign', async (req: Request, res: Response, next: 
         throw createError('Target user is not active', 400, 'USER_INACTIVE');
       }
 
-      if (!targetUser.canHavePatients) {
+      if (!targetUser.roles.includes('PHYSICIAN')) {
         throw createError('Target user cannot have patients assigned', 400, 'USER_CANNOT_HAVE_PATIENTS');
       }
     }

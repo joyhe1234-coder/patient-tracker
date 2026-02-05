@@ -216,11 +216,11 @@ export default function PatientGrid({
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
-    if ((user?.role === 'STAFF' || user?.role === 'ADMIN') && selectedPhysicianId) {
+    if ((user?.roles.includes('STAFF') || user?.roles.includes('ADMIN')) && selectedPhysicianId) {
       return `?physicianId=${selectedPhysicianId}`;
     }
     return '';
-  }, [user?.role, selectedPhysicianId]);
+  }, [user?.roles, selectedPhysicianId]);
 
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);

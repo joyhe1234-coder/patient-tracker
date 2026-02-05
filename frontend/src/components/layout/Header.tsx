@@ -75,7 +75,7 @@ export default function Header() {
               >
                 Import
               </Link>
-              {user?.role === 'ADMIN' && (
+              {user?.roles.includes('ADMIN') && (
                 <Link
                   to="/admin"
                   className={`text-sm font-medium ${
@@ -95,10 +95,10 @@ export default function Header() {
           {isAuthenticated && user ? (
             <>
               {/* Physician Selector for STAFF and ADMIN users - only on Patient Grid page */}
-              {location.pathname === '/' && (user.role === 'STAFF' || user.role === 'ADMIN') && assignments.length > 0 && (
+              {location.pathname === '/' && (user.roles.includes('STAFF') || user.roles.includes('ADMIN')) && assignments.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">
-                    {user.role === 'ADMIN' ? 'Viewing provider:' : 'Viewing as:'}
+                    {user.roles.includes('ADMIN') ? 'Viewing provider:' : 'Viewing as:'}
                   </span>
                   <select
                     value={selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}
@@ -108,7 +108,7 @@ export default function Header() {
                     }}
                     className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {user.role === 'ADMIN' && (
+                    {user.roles.includes('ADMIN') && (
                       <option value="unassigned">Unassigned patients</option>
                     )}
                     {assignments.map((assignment) => (
@@ -129,7 +129,7 @@ export default function Header() {
                   <User className="w-4 h-4" />
                   <span>{user.displayName}</span>
                   <span className="text-xs text-gray-500">
-                    ({user.role === 'ADMIN' && user.canHavePatients ? 'ADMIN + PHYSICIAN' : user.role})
+                    ({user.roles.includes('ADMIN') && user.roles.includes('PHYSICIAN') ? 'ADMIN + PHYSICIAN' : user.roles[0]})
                   </span>
                   <ChevronDown className="w-4 h-4" />
                 </button>

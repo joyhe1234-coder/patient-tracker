@@ -32,8 +32,7 @@ describe('Header', () => {
       id: 1,
       email: 'admin@test.com',
       displayName: 'Test Admin',
-      role: 'ADMIN' as const,
-      canHavePatients: false,
+      roles: ['ADMIN'] as const,
       isActive: true,
       lastLoginAt: null,
     };
@@ -42,8 +41,7 @@ describe('Header', () => {
       id: 2,
       email: 'staff@test.com',
       displayName: 'Test Staff',
-      role: 'STAFF' as const,
-      canHavePatients: false,
+      roles: ['STAFF'] as const,
       isActive: true,
       lastLoginAt: null,
     };
@@ -52,8 +50,7 @@ describe('Header', () => {
       id: 3,
       email: 'physician@test.com',
       displayName: 'Dr. Test',
-      role: 'PHYSICIAN' as const,
-      canHavePatients: true,
+      roles: ['PHYSICIAN'] as const,
       isActive: true,
       lastLoginAt: null,
     };
@@ -170,8 +167,7 @@ describe('Header', () => {
       id: 1,
       email: 'admin@test.com',
       displayName: 'Test Admin',
-      role: 'ADMIN' as const,
-      canHavePatients: false,
+      roles: ['ADMIN'] as const,
       isActive: true,
       lastLoginAt: null,
     };
@@ -180,8 +176,7 @@ describe('Header', () => {
       id: 2,
       email: 'staff@test.com',
       displayName: 'Test Staff',
-      role: 'STAFF' as const,
-      canHavePatients: false,
+      roles: ['STAFF'] as const,
       isActive: true,
       lastLoginAt: null,
     };
@@ -303,14 +298,13 @@ describe('Header', () => {
   });
 
   describe('Role Display', () => {
-    it('should show "ADMIN + PHYSICIAN" for admin with canHavePatients', () => {
+    it('should show "ADMIN + PHYSICIAN" for user with both roles', () => {
       mockUseAuthStore.mockReturnValue({
         user: {
           id: 1,
           email: 'admin@test.com',
           displayName: 'Admin Doc',
-          role: 'ADMIN' as const,
-          canHavePatients: true,
+          roles: ['ADMIN', 'PHYSICIAN'] as const,
           isActive: true,
           lastLoginAt: null,
         },
@@ -330,14 +324,13 @@ describe('Header', () => {
       expect(screen.getByText('(ADMIN + PHYSICIAN)')).toBeInTheDocument();
     });
 
-    it('should show just "ADMIN" for admin without canHavePatients', () => {
+    it('should show just "ADMIN" for user with only ADMIN role', () => {
       mockUseAuthStore.mockReturnValue({
         user: {
           id: 1,
           email: 'admin@test.com',
           displayName: 'Test Admin',
-          role: 'ADMIN' as const,
-          canHavePatients: false,
+          roles: ['ADMIN'] as const,
           isActive: true,
           lastLoginAt: null,
         },

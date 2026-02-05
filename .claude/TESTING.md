@@ -72,7 +72,7 @@ cd frontend && npm run cypress:run
 
 ## All Implemented Tests
 
-### Backend Tests (347 tests)
+### Backend Tests (527 tests)
 
 **Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
@@ -82,13 +82,18 @@ cd frontend && npm run cypress:run
 | `fileParser.test.ts` | 16 | CSV parsing, title row detection, column validation |
 | `columnMapper.test.ts` | 13 | Column mapping, Q1/Q2 grouping, skip columns |
 | `dataTransformer.test.ts` | 17 | Wide-to-long transformation, date parsing |
-| `validator.test.ts` | 23 | Validation rules, error deduplication, duplicates |
+| `validator.test.ts` | 39 | Validation rules, error deduplication, duplicates, date edge cases |
 | `configLoader.test.ts` | 22 | System config loading, registry, validation |
 | `errorReporter.test.ts` | 25 | Error report generation, formatting |
+| `diffCalculator.test.ts` | 17 | Status categorization, merge logic, replace mode edge cases |
+| `reassignment.test.ts` | 21 | PatientReassignment interface, scenarios, display formatting |
 | `integration.test.ts` | 14 | Full pipeline tests, edge cases |
-| **Auth Service Tests** | | `backend/src/services/__tests__/` |
-| `authService.test.ts` | 19 | Password hashing, JWT tokens, toAuthUser |
+| **Service Tests** | | `backend/src/services/__tests__/` |
+| `authService.test.ts` | 20 | Password hashing, JWT tokens, toAuthUser |
 | `emailService.test.ts` | 20 | SMTP configuration, reset URL, email content, admin reset notification |
+| `duplicateDetector.test.ts` | 38 | checkForDuplicate, detectAllDuplicates, updateDuplicateFlags, syncAllDuplicateFlags |
+| `statusDatePromptResolver.test.ts` | 59 | getDefaultDatePrompt (40+ statuses), resolveStatusDatePrompt (tracking1 overrides, DB lookup) |
+| `dueDateCalculator.test.ts` | 24 | Due date calculation, priority system, time interval override |
 | **Auth Middleware Tests** | | `backend/src/middleware/__tests__/` |
 | `auth.test.ts` | 13 | requireAuth, requireRole, optionalAuth, requirePatientDataAccess |
 | **Route Tests** | | `backend/src/routes/__tests__/` |
@@ -96,6 +101,7 @@ cd frontend && npm run cypress:run
 | `admin.routes.test.ts` | 12 | Admin endpoint auth requirements (users, assignments, audit, bulk-assign) |
 | `data.routes.test.ts` | 6 | Data endpoint auth requirements (GET, POST, PUT, DELETE, duplicate) |
 | `users.routes.test.ts` | 4 | Physician endpoint auth requirements (Phase 12) |
+| `import.routes.test.ts` | 11 | Import endpoint auth requirements (systems, parse, preview, execute) |
 | **API Tests** | | Various |
 | Patient, Measure routes | ~137 | Patient CRUD, measure operations |
 
@@ -111,7 +117,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (203 tests)
+### Frontend Component Tests (245 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
@@ -120,9 +126,10 @@ npm test -- -t "should parse CSV"  # Specific test
 | **Component Tests** | | `frontend/src/components/` |
 | `StatusFilterBar.test.tsx` | 29 | Filter chip rendering, click behavior, row colors |
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
-| `AddRowModal.test.tsx` | 14 | Form validation, submission, field handling |
+| `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
 | `Header.test.tsx` | 12 | Provider dropdown visibility, unassigned patients option |
+| `PatientGrid.test.tsx` | 42 | Column defs, row class rules (all colors + overdue), grid config, prop passing |
 | **Page Tests** | | `frontend/src/pages/` |
 | `LoginPage.test.tsx` | 17 | Login form, validation, password toggle, auth flow |
 | `ForgotPasswordPage.test.tsx` | 14 | SMTP check, email form, success/error states |
@@ -173,17 +180,20 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (177 tests)
+### Cypress E2E Tests (252 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
 | File | Tests | Description |
 |------|-------|-------------|
 | `cascading-dropdowns.cy.ts` | 30 | Dropdown cascading, auto-fill, row colors |
-| `import-flow.cy.ts` | 29 | Import workflow, preview, execution |
+| `cell-editing.cy.ts` | 18 | Row selection, text/date/name editing, save indicator |
+| `duplicate-detection.cy.ts` | 15 | Visual indicators, 409 errors, flag clearing, null handling |
+| `import-flow.cy.ts` | 57 | Import workflow, preview, execution, modes, navigation |
 | `patient-assignment.cy.ts` | 32 | Patient/staff assignment, count verification |
 | `role-access-control.cy.ts` | 31 | STAFF/PHYSICIAN/ADMIN access restrictions |
 | `sorting-filtering.cy.ts` | 55 | Column sorting, status filter bar, row colors |
+| `time-interval.cy.ts` | 14 | Dropdown-controlled statuses, manual override, validation |
 
 **Test Categories:**
 
@@ -216,7 +226,7 @@ npm run e2e:report        # View HTML report
 - Changing Request Type clears Quality Measure and downstream
 - Changing Quality Measure clears Measure Status
 
-**Import Flow Tests (29 tests):**
+**Import Flow Tests (57 tests):**
 
 **Import Page (13 tests):**
 - Displays three steps (system, mode, upload)
@@ -227,8 +237,10 @@ npm run e2e:report        # View HTML report
 - Preview button disabled without file
 - Cancel link navigation
 
-**Import Preview Page (7 tests):**
+**Import Preview Flow (1 test):**
 - Navigation from upload to preview
+
+**Import Preview Page (6 tests):**
 - Summary cards display (INSERT, UPDATE, SKIP, BOTH, DELETE, Warnings, Total)
 - Patient counts (new, existing, total)
 - Changes table display
@@ -236,16 +248,39 @@ npm run e2e:report        # View HTML report
 - Cancel returns to import page
 - Apply Changes button shows record count
 
-**Import Execution (6 tests):**
+**Import Execution (7 tests):**
 - Loading state during import
 - Success message after import
 - Import statistics (inserted, updated, deleted, skipped, bothKept)
 - Navigation buttons (Import More, Go to Patient Grid)
 
-**Error Handling (3 tests):**
+**Error Handling (4 tests):**
 - Error display for invalid file format
 - Preview not found for expired/invalid preview ID
 - Start New Import from error page
+- Empty CSV file error
+
+**Merge Mode Behavior (2 tests):**
+- Imports without deleting existing records
+- Mode indicator on preview page
+
+**Preview Page Details (5 tests):**
+- File info in header
+- Expiration time display
+- Changes table columns
+- INSERT card filters to INSERT actions only
+- Total card shows all actions
+
+**Import with Warnings (1 test):**
+- Warnings section displays when file has validation warnings
+
+**Multiple File Imports (2 tests):**
+- Same file imported twice shows different results (inserts vs skips)
+
+**Cancel and Navigation (3 tests):**
+- Cancel at import page returns home
+- Cancel at preview page returns to import
+- Browser back works from preview page
 
 **Test Data:** `frontend/cypress/fixtures/test-import.csv`
 

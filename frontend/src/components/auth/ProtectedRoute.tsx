@@ -62,9 +62,9 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   }
 
   // Check role access if specified
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && user && !user.roles.some(r => allowedRoles.includes(r))) {
     // Redirect based on role
-    if (user.role === 'ADMIN') {
+    if (user.roles.includes('ADMIN')) {
       return <Navigate to="/admin" replace />;
     }
     // PHYSICIAN and STAFF go to main page

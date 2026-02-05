@@ -9,8 +9,85 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.3.0-snapshot] - Unreleased
 
 ### Added
+- **Regression Test Gap Coverage** (Feb 5, 2026)
+  - NEW: `duplicateDetector.test.ts` - 38 Jest tests for duplicate detection logic
+    - checkForDuplicate: null/empty/whitespace handling, Prisma where clause, excludeMeasureId
+    - detectAllDuplicates: grouping, null handling, mixed scenarios, patientId isolation
+    - updateDuplicateFlags: duplicate/single marking, null handling, multiple groups
+    - syncAllDuplicateFlags: full sync workflow
+  - NEW: `statusDatePromptResolver.test.ts` - 59 Jest tests for status date prompt resolution
+    - getDefaultDatePrompt: 40+ status-to-prompt mappings across all measure categories
+    - resolveStatusDatePrompt: tracking1 overrides, null handling, database lookup, priority ordering
+  - NEW: `PatientGrid.test.tsx` - 42 Vitest tests for main grid component
+    - Column definitions, row class rules (all color categories + overdue priority)
+    - Grid configuration, prop passing, column header names
+  - NEW: `cell-editing.cy.ts` - 18 Cypress E2E tests for cell editing
+    - Row selection, text editing (Notes), date editing with format validation, member name editing, save indicator
+  - NEW: `time-interval.cy.ts` - 14 Cypress E2E tests for time interval override
+    - Dropdown-controlled statuses (not editable), manual override with due date recalculation, validation
+  - NEW: `duplicate-detection.cy.ts` - 15 Cypress E2E tests for duplicate detection editing
+    - Visual indicators, 409 error handling, flag clearing, null field handling, filter bar counts
+  - Fixed ESM mocking: switched duplicateDetector and statusDatePromptResolver tests to use `jest.unstable_mockModule`
+  - Total backend tests: 527 (was 426)
+  - Total frontend component tests: 245 (was 203)
+  - Total Cypress E2E tests: 252 (was 205, +47 new tests in 3 files)
+
+- **Feature Requirement Docs & Test Plans** (Feb 5, 2026)
+  - Created 17 formal requirement specs in `.claude/specs/` with requirements.md and test-plan.md:
+    - data-display, cell-editing, sorting, status-filter, row-colors
+    - cascading-dropdowns, due-date, duplicate-detection, row-operations, status-bar
+    - tracking-fields, time-interval, import-pipeline, authentication
+    - patient-ownership, admin-dashboard, role-access-control
+  - Each spec includes: user stories, acceptance criteria, UI workflow, business rules, edge cases
+  - Each test plan maps requirements to manual TCs, automated tests, and identifies gaps
+  - Updated REGRESSION_TEST_PLAN.md with:
+    - Automation status (Automated/Partial/Manual) on every test case
+    - Requirement traceability (AC-X links) on every test case
+    - Automation Summary section with coverage percentages per section
+    - Top Priority Gaps table identifying highest-value test additions
+  - Coverage analysis: 100% of TC-XX test cases now traceable to requirements
+  - Identified top gaps: Cell Editing (0% E2E), Time Interval (0%), Duplicate Detection edit flow
+
+- **Import Workflow Test Coverage** (Feb 5, 2026)
+  - NEW: `import.routes.test.ts` - 11 backend API tests for authentication requirements
+  - NEW: 14 additional Cypress E2E tests in `import-flow.cy.ts`:
+    - Error handling: empty CSV file
+    - Merge mode behavior: preserves existing data, mode indicator
+    - Preview page details: file info, expiration, columns, filtering
+    - Import with warnings handling
+    - Multiple file imports with different results
+    - Cancel and navigation flows
+  - NEW: `test-import-warnings.csv` fixture for validation testing
+  - `newOwnerName` field added to PatientReassignment interface
+  - Import preview now shows actual physician name instead of "New physician"
+  - Backend unit tests: 54 new tests for diffCalculator, validator, reassignment
+  - Total backend tests: 426 (was 360)
+  - Total Cypress import tests: 57 (was 43)
+
+- **Spec-Driven Development Infrastructure** (Feb 5, 2026)
+  - NEW: `.claude/agents/` - TDD agents (test-writer, implementer, refactorer)
+  - NEW: `.claude/commands/` - Spec workflow commands (spec-create, spec-execute, spec-status, spec-list)
+  - NEW: `.claude/commands/` - Bug workflow commands (bug-create, bug-analyze, bug-fix, bug-verify)
+  - NEW: `.claude/skills/` - Test planning and auditing skills
+  - NEW: `.claude/steering/` - Project context docs (product, tech, structure)
+  - NEW: `.claude/templates/` - Spec and bug report templates
 
 ### Changed
+- **Multi-Role User Model** (Feb 5, 2026)
+  - Refactored `User.role: UserRole` (single) → `User.roles: UserRole[]` (array)
+  - Removed `canHavePatients` boolean field - replaced by having PHYSICIAN in roles array
+  - Users can now hold multiple roles simultaneously (e.g., ADMIN + PHYSICIAN)
+  - NEW: Prisma migration `20260205070000_convert_role_to_roles_array`
+  - Updated all backend routes, middleware, services, and tests for roles array
+  - Updated all frontend stores, components, and pages for roles array
+  - JWT token payload now includes `roles: UserRole[]` instead of `role: UserRole`
+  - `getAllPhysicians()` now queries `roles: { has: 'PHYSICIAN' }` instead of `canHavePatients: true`
+
+- **Cross-Platform Build Script** (Feb 5, 2026)
+  - Replaced Unix-only `cp -r` with Node.js cross-platform script
+  - NEW: `backend/scripts/copyConfig.js` - copies JSON config files to dist
+  - Build now works on Windows, Linux, and macOS
+  - Fixed "hill not found" error on Render deployment
 
 ### Fixed
 

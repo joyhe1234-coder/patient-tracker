@@ -31,15 +31,15 @@ export default function MainPage() {
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
-    if (user?.role === 'STAFF' && selectedPhysicianId) {
+    if (user?.roles.includes('STAFF') && selectedPhysicianId) {
       return `?physicianId=${selectedPhysicianId}`;
     }
-    if (user?.role === 'ADMIN') {
+    if (user?.roles.includes('ADMIN')) {
       // ADMIN can view unassigned patients (physicianId=null) or specific physician
       return `?physicianId=${selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}`;
     }
     return '';
-  }, [user?.role, selectedPhysicianId]);
+  }, [user?.roles, selectedPhysicianId]);
 
   // Calculate row counts by status color
   const rowCounts = useMemo(() => {
@@ -224,8 +224,8 @@ export default function MainPage() {
   // For ADMIN: can have a specific physician (number) OR view unassigned patients (null)
   // Only show prompt if selectedPhysicianId is undefined (not yet selected)
   const needsPhysicianSelection =
-    (user?.role === 'STAFF' && !selectedPhysicianId) ||
-    (user?.role === 'ADMIN' && selectedPhysicianId === undefined);
+    (user?.roles.includes('STAFF') && !selectedPhysicianId) ||
+    (user?.roles.includes('ADMIN') && selectedPhysicianId === undefined);
 
   if (needsPhysicianSelection) {
     return (
@@ -241,7 +241,7 @@ export default function MainPage() {
             Please select a physician from the dropdown in the header to view their patients.
           </p>
           <p className="text-sm text-gray-500">
-            {user?.role === 'ADMIN'
+            {user?.roles.includes('ADMIN')
               ? 'As an admin, you can view any physician\'s patients or select "Unassigned" to view patients not yet assigned.'
               : 'You can only view patients for physicians you are assigned to.'}
           </p>

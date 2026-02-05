@@ -8,7 +8,7 @@ import type { User, UserRole } from '@prisma/client';
 export interface JwtPayload {
   userId: number;
   email: string;
-  role: UserRole;
+  roles: UserRole[];
 }
 
 // User info returned to frontend (without sensitive data)
@@ -16,8 +16,7 @@ export interface AuthUser {
   id: number;
   email: string;
   displayName: string;
-  role: UserRole;
-  canHavePatients: boolean;
+  roles: UserRole[];
   isActive: boolean;
   lastLoginAt: Date | null;
 }
@@ -45,11 +44,11 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 /**
  * Generate a JWT token for a user
  */
-export function generateToken(user: Pick<User, 'id' | 'email' | 'role'>): string {
+export function generateToken(user: Pick<User, 'id' | 'email' | 'roles'>): string {
   const payload: JwtPayload = {
     userId: user.id,
     email: user.email,
-    role: user.role,
+    roles: user.roles,
   };
 
   return jwt.sign(payload, config.jwtSecret, {
@@ -116,8 +115,7 @@ export function toAuthUser(user: User): AuthUser {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
-    role: user.role,
-    canHavePatients: user.canHavePatients,
+    roles: user.roles,
     isActive: user.isActive,
     lastLoginAt: user.lastLoginAt,
   };
@@ -162,12 +160,12 @@ export async function isStaffAssignedToPhysician(staffId: number, physicianId: n
 
 /**
  * Get all users who can have patients assigned to them
- * This includes PHYSICIANs and ADMINs with canHavePatients=true
+ * This includes any user with PHYSICIAN in their roles array
  */
 export async function getAllPhysicians(): Promise<StaffAssignment[]> {
   const users = await prisma.user.findMany({
     where: {
-      canHavePatients: true,
+      roles: { has: 'PHYSICIAN' },
       isActive: true,
     },
     select: {
@@ -218,9 +216,9 @@ export async function authenticateUser(
 
   // Get staff assignments if user is STAFF, or all physicians if ADMIN
   let assignments: StaffAssignment[] | undefined;
-  if (user.role === 'STAFF') {
+  if (user.roles.includes('STAFF')) {
     assignments = await getStaffAssignments(user.id);
-  } else if (user.role === 'ADMIN') {
+  } else if (user.roles.includes('ADMIN')) {
     assignments = await getAllPhysicians();
   }
 
