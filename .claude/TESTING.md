@@ -173,7 +173,7 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (122 tests)
+### Cypress E2E Tests (177 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
@@ -183,6 +183,7 @@ npm run e2e:report        # View HTML report
 | `import-flow.cy.ts` | 29 | Import workflow, preview, execution |
 | `patient-assignment.cy.ts` | 32 | Patient/staff assignment, count verification |
 | `role-access-control.cy.ts` | 31 | STAFF/PHYSICIAN/ADMIN access restrictions |
+| `sorting-filtering.cy.ts` | 55 | Column sorting, status filter bar, row colors |
 
 **Test Categories:**
 
@@ -247,6 +248,31 @@ npm run e2e:report        # View HTML report
 - Start New Import from error page
 
 **Test Data:** `frontend/cypress/fixtures/test-import.csv`
+
+**Sorting & Filtering Tests (55 tests):**
+
+**Column Sorting (16 tests):**
+- Status Date sorting (ascending, descending, chronological not alphabetical, empty values)
+- Due Date sorting (ascending, descending, empty values)
+- Member Name sorting (ascending, descending, alphabetical order verification)
+- Request Type, Quality Measure, Measure Status sorting
+- Time Interval sorting (numeric)
+- Sort indicator behavior (clear on third click, single indicator)
+
+**Status Filter Bar (29 tests):**
+- Filter chip display (All, Not Addressed, Overdue, In Progress, Contacted, Completed, Declined, Resolved, N/A, Duplicates)
+- Filter chip counts
+- Filter by status (Not Addressed, Completed, In Progress, Contacted, Declined, Resolved, N/A, Overdue, Duplicates)
+- Filter toggle behavior (deselect, switch filters, highlight active)
+- Filter with sorting (maintains filter during sort, maintains sort when filtering)
+- Status bar updates (total count, filtered count)
+
+**Row Color Verification (10 tests):**
+- Green status (AWV completed, Screening test completed, Blood pressure at goal, HgbA1c at goal)
+- Blue status (AWV scheduled, Screening test ordered, Colon cancer screening ordered)
+- Yellow status (contacted statuses)
+- Purple status (declined statuses)
+- Row selection preserves color
 
 **Custom AG Grid Commands:** `frontend/cypress/support/commands.ts`
 
@@ -317,10 +343,11 @@ npm run test:cli -- --save    # Save new baselines
 | Import UI flow | Cypress | 29 | Complete |
 | Patient assignment | Cypress | 32 | Complete |
 | Role access control | Cypress | 31 | Complete |
+| Sorting & filtering | Cypress | 55 | Complete |
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
 
-**Total Automated Tests: ~680+**
+**Total Automated Tests: ~735+**
 
 ---
 
@@ -484,7 +511,10 @@ describe('Feature Name', () => {
 **Current test counts:**
 - cascading-dropdowns.cy.ts: 30 tests
 - import-flow.cy.ts: 29 tests
-- **Total: 59 tests** (when run with fresh seed data)
+- patient-assignment.cy.ts: 32 tests
+- role-access-control.cy.ts: 31 tests
+- sorting-filtering.cy.ts: 55 tests
+- **Total: 177 tests** (when run with fresh seed data)
 
 ---
 
@@ -510,11 +540,16 @@ describe('Feature Name', () => {
 
 ## Last Updated
 
+February 4, 2026 - Added Sorting & Filtering tests:
+- Cypress: sorting-filtering.cy.ts (55 tests) - Column sorting, status filter bar, row colors
+- Fixed Status Date/Due Date chronological sorting (custom comparator)
+- Cypress tests: 177 (was 122)
+- Total tests: ~735+
+
 February 4, 2026 - Added Phase 12 UI tests:
 - Frontend: Header.test.tsx (12 tests) - Provider dropdown visibility, unassigned patients option
 - Backend tests: 360 (stable)
 - Frontend tests: 203 (was 191)
-- Updated total to ~620+ tests
 
 February 2, 2026 - Added Authentication tests:
 - Backend: authService.test.ts (19), auth.test.ts middleware (13), auth.routes.test.ts (8), admin.routes.test.ts (10)

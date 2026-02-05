@@ -593,6 +593,17 @@ export default function PatientGrid({
         params.data.statusDate = isoDate;
         return true;
       },
+      // Custom comparator for proper date sorting (compares ISO date strings)
+      comparator: (_valueA, _valueB, nodeA, nodeB) => {
+        const dateA = nodeA?.data?.statusDate;
+        const dateB = nodeB?.data?.statusDate;
+        // Null/empty dates sort to the end
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        // Compare ISO date strings chronologically
+        return dateA.localeCompare(dateB);
+      },
     },
     {
       field: 'tracking1',
@@ -757,6 +768,15 @@ export default function PatientGrid({
       width: 120,
       editable: false, // Calculated field
       valueFormatter: (params) => formatDate(params.value),
+      // Custom comparator for proper date sorting
+      comparator: (valueA, valueB) => {
+        // Null/empty dates sort to the end
+        if (!valueA && !valueB) return 0;
+        if (!valueA) return 1;
+        if (!valueB) return -1;
+        // Compare ISO date strings chronologically
+        return valueA.localeCompare(valueB);
+      },
     },
     {
       field: 'timeIntervalDays',

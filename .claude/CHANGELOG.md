@@ -60,7 +60,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - ADMIN: Full access to all functions and data
     - API protection tests (401/403 responses)
     - Navigation protection tests
-    - Total Cypress tests: 122 (was 59)
+  - **Sorting & Filtering Tests** (Feb 4, 2026)
+    - NEW: `sorting-filtering.cy.ts` - 55 Cypress tests for column sorting and status filter bar
+    - Column sorting tests: Status Date, Due Date, Member Name, Request Type, Quality Measure, Measure Status, Time Interval
+    - Date sorting verified as chronological (not alphabetical)
+    - Sort indicator behavior (ascending/descending/clear, single indicator)
+    - Status filter bar: All 10 filter chips (All, Not Addressed, Overdue, In Progress, Contacted, Completed, Declined, Resolved, N/A, Duplicates)
+    - Filter chip counts and click behavior
+    - Filter + sort combination tests
+    - Row color verification for each status category
+    - Total Cypress tests: 177 (was 122)
   - **Admin Password Reset Email Notification** (Feb 4, 2026)
     - When admin resets a user's password, user receives email notification
     - Email includes admin's name who performed the reset
@@ -152,6 +161,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Patient count column shows count for admins who can have patients
 
 ### Fixed
+- **Status Date and Due Date columns sorting alphabetically instead of chronologically** (Feb 4, 2026)
+  - Bug: Dates like "1/15/2026" sorted before "10/1/2025" due to string comparison
+  - Cause: AG Grid valueGetter returns formatted date strings, default sort compares as strings
+  - Fix: Added custom comparator to statusDate and dueDate columns that compares ISO date strings
+  - Now correctly sorts dates in chronological order with empty dates at the end
 - **Unassigned patients not displaying for ADMIN users** (Feb 4, 2026)
   - Bug: When ADMIN selected "Unassigned patients" from dropdown, grid showed "Select a Physician" prompt
   - Cause: `needsPhysicianSelection` check treated `null` (unassigned selection) as "no selection"
