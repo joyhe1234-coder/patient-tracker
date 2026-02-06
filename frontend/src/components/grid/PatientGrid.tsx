@@ -216,8 +216,11 @@ export default function PatientGrid({
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
-    if ((user?.roles.includes('STAFF') || user?.roles.includes('ADMIN')) && selectedPhysicianId) {
+    if (user?.roles.includes('STAFF') && selectedPhysicianId) {
       return `?physicianId=${selectedPhysicianId}`;
+    }
+    if (user?.roles.includes('ADMIN')) {
+      return `?physicianId=${selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}`;
     }
     return '';
   }, [user?.roles, selectedPhysicianId]);
