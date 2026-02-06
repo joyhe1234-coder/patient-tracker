@@ -22,16 +22,15 @@ enum UserRole {
 }
 
 model User {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  passwordHash    String    @map("password_hash")
-  displayName     String    @map("display_name")
-  role            UserRole  @default(PHYSICIAN)
-  canHavePatients Boolean   @default(false) @map("can_have_patients")
-  isActive        Boolean   @default(true) @map("is_active")
-  lastLoginAt     DateTime? @map("last_login_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id              Int        @id @default(autoincrement())
+  email           String     @unique
+  passwordHash    String     @map("password_hash")
+  displayName     String     @map("display_name")
+  roles           UserRole[] @default([PHYSICIAN])
+  isActive        Boolean    @default(true) @map("is_active")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
 
   // Patients owned by this physician
   patients        Patient[]

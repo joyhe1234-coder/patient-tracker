@@ -88,11 +88,16 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Row position and selection preserved during all edits
 - [x] Status color filter bar (clickable chips to filter by row color/status category)
 - [x] Single-select filter behavior (click to select, click again to deselect)
+- [x] Multi-select filter behavior (checkmark + fill visual, OR logic, Duplicates exclusive)
 - [x] Filter counts displayed on each chip
 - [x] Status bar shows "Showing X of Y rows" when filtering
+- [x] Patient name search (search input in StatusFilterBar with case-insensitive partial match)
+  - Search + status color filter uses AND logic (both must match)
+  - Ctrl+F focuses search input, Escape clears and blurs
+  - Clear (X) button to reset search
+  - Status chip counts reflect full dataset (not affected by search)
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
-- [ ] Quick search/filter by patient name
 - [ ] Advanced filter builder (multiple conditions)
 
 ### Phase 5: CSV Import
@@ -291,11 +296,20 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (70 tests total, 99% coverage)
-  - StatusFilterBar.test.tsx (29 tests, 100% coverage - includes getRowStatusColor tests)
+- [x] Phase 4: Component tests (285 tests total)
+  - StatusFilterBar.test.tsx (51 tests, 100% coverage - includes getRowStatusColor + search UI + multi-select tests)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
+  - PatientGrid.test.tsx (42 tests - column defs, row class rules, grid config)
+  - Header.test.tsx (12 tests)
+  - LoginPage.test.tsx (17 tests)
+  - ForgotPasswordPage.test.tsx (14 tests)
+  - ResetPasswordPage.test.tsx (17 tests)
+  - ImportPage.test.tsx (26 tests)
+  - ImportPreviewPage.test.tsx (23 tests)
+  - MainPage.test.tsx (28 tests - search filtering + multi-select filter logic)
+  - authStore.test.ts (25 tests)
 
 ### E2E Testing (Playwright)
 - [x] Phase 2: Setup (playwright.config.ts, Page Object Model)
@@ -311,28 +325,29 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### E2E Testing (Cypress)
 - [x] Phase 6: Cascading dropdowns tests (30 passing)
-  - cypress.config.ts - Cypress configuration
-  - cypress/support/commands.ts - AG Grid helper commands
   - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
   - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
-- [x] Phase 8: Import E2E tests (29 passing)
+- [x] Phase 8: Import E2E tests (57 passing)
   - cypress/e2e/import-flow.cy.ts - Complete import workflow tests
   - Import page: system/mode selection, file upload validation
   - Preview page: summary cards, filters, changes table
   - Execution: success/error states, navigation
-  - Test data: cypress/fixtures/test-import.csv
 - [x] Phase 12: Patient assignment tests (32 tests)
   - cypress/e2e/patient-assignment.cy.ts - Patient and staff assignment workflows
-  - Assign unassigned patients to physicians
-  - Verify patient counts update correctly
-  - Staff-physician assignment management
-  - Data freshness verification (no caching)
 - [x] Phase 12: Role access control tests (31 tests)
   - cypress/e2e/role-access-control.cy.ts - Authorization verification
-  - STAFF restrictions: no admin, no unassigned patients, only assigned physicians
-  - PHYSICIAN restrictions: no admin, only own patients
-  - ADMIN capabilities: full access to all features
-  - API 401/403 protection tests
+- [x] Sorting & filtering tests (55 tests)
+  - cypress/e2e/sorting-filtering.cy.ts - Column sorting, status filter bar
+- [x] Cell editing tests (18 tests)
+  - cypress/e2e/cell-editing.cy.ts - Row selection, text/date/name editing, save indicator
+- [x] Time interval tests (14 tests)
+  - cypress/e2e/time-interval.cy.ts - Dropdown-controlled statuses, manual override, validation
+- [x] Duplicate detection tests (15 tests)
+  - cypress/e2e/duplicate-detection.cy.ts - Visual indicators, 409 errors, flag clearing
+- [x] Patient name search tests (13 tests)
+  - cypress/e2e/patient-name-search.cy.ts - Search input UI, filtering, AND logic, keyboard shortcuts
+- [x] Multi-select filter tests (18 tests)
+  - cypress/e2e/multi-select-filter.cy.ts - Multi-select toggle, duplicates exclusivity, checkmark visual, search combo
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -344,8 +359,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 360 tests passing (89% statement coverage, 80% branch coverage)
-- Total test count: ~680 automated tests across all frameworks
+- [x] 527 tests passing
+- Total test count: ~1092 automated tests across all frameworks (527 Jest + 265 Vitest + 35 Playwright + 265 Cypress)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -439,10 +454,10 @@ Complete redesign of patient ownership, viewing, and import assignment.
 - Admin can **reassign patients** between physicians
 
 **Data Model:**
-- [x] Add `canHavePatients: boolean` field to User model
-  - PHYSICIAN: always `true` (enforced)
-  - ADMIN: default `false`, can be enabled (allows admin to also be physician)
-  - STAFF: always `false`
+- [x] `User.roles: UserRole[]` - Multi-role array (replaces single `role` + `canHavePatients`)
+  - Users with PHYSICIAN in roles can have patients assigned
+  - ADMIN + PHYSICIAN dual-role supported natively
+  - STAFF users don't have PHYSICIAN role
 
 **Role-Based Behavior:**
 
@@ -620,6 +635,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage (6 new test files), spec infrastructure. Total ~1092 tests.
 February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.
 February 4, 2026 - Added Phase 12 tests: Header.test.tsx (12), patient-assignment.cy.ts (32).
 February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

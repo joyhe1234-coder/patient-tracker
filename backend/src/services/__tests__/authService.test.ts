@@ -85,7 +85,7 @@ describe('authService', () => {
       const user = {
         id: 1,
         email: 'test@example.com',
-        role: 'PHYSICIAN' as UserRole,
+        roles: ['PHYSICIAN'] as UserRole[],
       };
 
       const token = generateToken(user);
@@ -99,20 +99,33 @@ describe('authService', () => {
       const user = {
         id: 42,
         email: 'doctor@clinic.com',
-        role: 'ADMIN' as UserRole,
+        roles: ['ADMIN'] as UserRole[],
       };
 
       const token = generateToken(user);
-      const decoded = jwt.decode(token) as { userId: number; email: string; role: string };
+      const decoded = jwt.decode(token) as { userId: number; email: string; roles: string[] };
 
       expect(decoded.userId).toBe(42);
       expect(decoded.email).toBe('doctor@clinic.com');
-      expect(decoded.role).toBe('ADMIN');
+      expect(decoded.roles).toEqual(['ADMIN']);
+    });
+
+    it('should handle multiple roles in token', () => {
+      const user = {
+        id: 42,
+        email: 'admin-doc@clinic.com',
+        roles: ['ADMIN', 'PHYSICIAN'] as UserRole[],
+      };
+
+      const token = generateToken(user);
+      const decoded = jwt.decode(token) as { userId: number; email: string; roles: string[] };
+
+      expect(decoded.roles).toEqual(['ADMIN', 'PHYSICIAN']);
     });
 
     it('should generate different tokens for different users', () => {
-      const user1 = { id: 1, email: 'user1@test.com', role: 'PHYSICIAN' as UserRole };
-      const user2 = { id: 2, email: 'user2@test.com', role: 'STAFF' as UserRole };
+      const user1 = { id: 1, email: 'user1@test.com', roles: ['PHYSICIAN'] as UserRole[] };
+      const user2 = { id: 2, email: 'user2@test.com', roles: ['STAFF'] as UserRole[] };
 
       const token1 = generateToken(user1);
       const token2 = generateToken(user2);
@@ -126,7 +139,7 @@ describe('authService', () => {
       const user = {
         id: 1,
         email: 'test@example.com',
-        role: 'PHYSICIAN' as UserRole,
+        roles: ['PHYSICIAN'] as UserRole[],
       };
       const token = generateToken(user);
 
@@ -135,7 +148,7 @@ describe('authService', () => {
       expect(payload).not.toBeNull();
       expect(payload?.userId).toBe(1);
       expect(payload?.email).toBe('test@example.com');
-      expect(payload?.role).toBe('PHYSICIAN');
+      expect(payload?.roles).toEqual(['PHYSICIAN']);
     });
 
     it('should return null for invalid token', () => {
@@ -151,7 +164,7 @@ describe('authService', () => {
     it('should return null for token with wrong secret', () => {
       // Create token with different secret
       const token = jwt.sign(
-        { userId: 1, email: 'test@test.com', role: 'ADMIN' },
+        { userId: 1, email: 'test@test.com', roles: ['ADMIN'] },
         'different-secret',
         { expiresIn: '1h' }
       );
@@ -163,7 +176,7 @@ describe('authService', () => {
     it('should return null for expired token', () => {
       // Create an expired token
       const token = jwt.sign(
-        { userId: 1, email: 'test@test.com', role: 'ADMIN' },
+        { userId: 1, email: 'test@test.com', roles: ['ADMIN'] },
         'test-secret-key',
         { expiresIn: '-1h' } // Already expired
       );
@@ -185,8 +198,7 @@ describe('authService', () => {
         email: 'test@example.com',
         passwordHash: 'secret_hash_value',
         displayName: 'Test User',
-        role: 'PHYSICIAN',
-        canHavePatients: true,
+        roles: ['PHYSICIAN'],
         isActive: true,
         lastLoginAt: new Date('2026-01-15'),
         createdAt: new Date('2026-01-01'),
@@ -198,8 +210,7 @@ describe('authService', () => {
       expect(authUser.id).toBe(1);
       expect(authUser.email).toBe('test@example.com');
       expect(authUser.displayName).toBe('Test User');
-      expect(authUser.role).toBe('PHYSICIAN');
-      expect(authUser.canHavePatients).toBe(true);
+      expect(authUser.roles).toEqual(['PHYSICIAN']);
       expect(authUser.isActive).toBe(true);
       expect(authUser.lastLoginAt).toEqual(new Date('2026-01-15'));
       // Should not include sensitive data
@@ -214,8 +225,7 @@ describe('authService', () => {
         email: 'newuser@example.com',
         passwordHash: 'hash',
         displayName: 'New User',
-        role: 'STAFF',
-        canHavePatients: false,
+        roles: ['STAFF'],
         isActive: true,
         lastLoginAt: null,
         createdAt: new Date(),
@@ -227,17 +237,21 @@ describe('authService', () => {
       expect(authUser.lastLoginAt).toBeNull();
     });
 
-    it('should handle all user roles', () => {
-      const roles: UserRole[] = ['PHYSICIAN', 'STAFF', 'ADMIN'];
+    it('should handle all role combinations', () => {
+      const roleCombinations: UserRole[][] = [
+        ['PHYSICIAN'],
+        ['STAFF'],
+        ['ADMIN'],
+        ['ADMIN', 'PHYSICIAN'],
+      ];
 
-      roles.forEach((role) => {
+      roleCombinations.forEach((roles) => {
         const user: User = {
           id: 1,
           email: 'test@example.com',
           passwordHash: 'hash',
           displayName: 'Test',
-          role,
-          canHavePatients: role === 'PHYSICIAN',
+          roles,
           isActive: true,
           lastLoginAt: null,
           createdAt: new Date(),
@@ -245,7 +259,7 @@ describe('authService', () => {
         };
 
         const authUser = toAuthUser(user);
-        expect(authUser.role).toBe(role);
+        expect(authUser.roles).toEqual(roles);
       });
     });
 
@@ -255,8 +269,7 @@ describe('authService', () => {
         email: 'inactive@example.com',
         passwordHash: 'hash',
         displayName: 'Inactive User',
-        role: 'STAFF',
-        canHavePatients: false,
+        roles: ['STAFF'],
         isActive: false,
         lastLoginAt: null,
         createdAt: new Date(),

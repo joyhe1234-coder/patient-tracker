@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import StatusFilterBar, { getRowStatusColor } from './StatusFilterBar';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import StatusFilterBar, { getRowStatusColor, StatusColor } from './StatusFilterBar';
 
 describe('StatusFilterBar', () => {
-  const defaultCounts = {
+  const defaultCounts: Record<StatusColor, number> = {
     all: 0,
     duplicate: 5,
     white: 20,
@@ -16,12 +16,22 @@ describe('StatusFilterBar', () => {
     red: 5,
   };
 
+  const defaultSearchProps = {
+    searchText: '',
+    onSearchChange: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders all filter chips', () => {
     render(
       <StatusFilterBar
         activeFilters={['all']}
         onFilterChange={() => {}}
         rowCounts={defaultCounts}
+        {...defaultSearchProps}
       />
     );
 
@@ -43,6 +53,7 @@ describe('StatusFilterBar', () => {
         activeFilters={['all']}
         onFilterChange={() => {}}
         rowCounts={defaultCounts}
+        {...defaultSearchProps}
       />
     );
 
@@ -63,6 +74,7 @@ describe('StatusFilterBar', () => {
         activeFilters={['all']}
         onFilterChange={handleChange}
         rowCounts={defaultCounts}
+        {...defaultSearchProps}
       />
     );
 
@@ -70,17 +82,18 @@ describe('StatusFilterBar', () => {
     expect(handleChange).toHaveBeenCalledWith(['duplicate']);
   });
 
-  it('clicking selected filter returns to all', () => {
+  it('toggling off the last selected chip returns to all', () => {
     const handleChange = vi.fn();
     render(
       <StatusFilterBar
-        activeFilters={['duplicate']}
+        activeFilters={['green']}
         onFilterChange={handleChange}
         rowCounts={defaultCounts}
+        {...defaultSearchProps}
       />
     );
 
-    fireEvent.click(screen.getByText('Duplicates'));
+    fireEvent.click(screen.getByText('Completed'));
     expect(handleChange).toHaveBeenCalledWith(['all']);
   });
 
@@ -91,6 +104,7 @@ describe('StatusFilterBar', () => {
         activeFilters={['duplicate']}
         onFilterChange={handleChange}
         rowCounts={defaultCounts}
+        {...defaultSearchProps}
       />
     );
 
@@ -104,16 +118,198 @@ describe('StatusFilterBar', () => {
         activeFilters={[]}
         onFilterChange={() => {}}
         rowCounts={defaultCounts}
+        {...defaultSearchProps}
       />
     );
 
-    // All chip should be active (has ring-2 class)
+    // All chip should be active (aria-pressed=true)
     const allButton = screen.getByRole('button', { name: /All/ });
-    expect(allButton.className).toContain('ring-2');
+    expect(allButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  describe('Multi-Select Toggle Behavior', () => {
+    it('clicking unselected chip adds it to active filters', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('In Progress'));
+      expect(handleChange).toHaveBeenCalledWith(['green', 'blue']);
+    });
+
+    it('clicking selected chip removes it without affecting others', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Completed'));
+      expect(handleChange).toHaveBeenCalledWith(['blue']);
+    });
+
+    it('clicking chip while All is active selects only that chip', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Completed'));
+      expect(handleChange).toHaveBeenCalledWith(['green']);
+    });
+
+    it('clicking Duplicates deselects all color chips', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Duplicates'));
+      expect(handleChange).toHaveBeenCalledWith(['duplicate']);
+    });
+
+    it('clicking color chip while Duplicates active exits duplicates mode', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['duplicate']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('In Progress'));
+      expect(handleChange).toHaveBeenCalledWith(['blue']);
+    });
+
+    it('toggling off Duplicates returns to all', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['duplicate']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Duplicates'));
+      expect(handleChange).toHaveBeenCalledWith(['all']);
+    });
+
+    it('can select three chips simultaneously', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Contacted'));
+      expect(handleChange).toHaveBeenCalledWith(['green', 'blue', 'yellow']);
+    });
+  });
+
+  describe('Checkmark + Fill Visual Style', () => {
+    it('active chip has aria-pressed true', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const greenButton = screen.getByRole('button', { name: /Completed/ });
+      expect(greenButton).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('inactive chip has aria-pressed false', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const blueButton = screen.getByRole('button', { name: /In Progress/ });
+      expect(blueButton).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('active chip has filled background (no opacity-50)', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const greenButton = screen.getByRole('button', { name: /Completed/ });
+      expect(greenButton.className).not.toContain('opacity-50');
+    });
+
+    it('inactive chip has opacity-50 class', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const blueButton = screen.getByRole('button', { name: /In Progress/ });
+      expect(blueButton.className).toContain('opacity-50');
+    });
+
+    it('multiple active chips all have aria-pressed true', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const greenButton = screen.getByRole('button', { name: /Completed/ });
+      const blueButton = screen.getByRole('button', { name: /In Progress/ });
+      expect(greenButton).toHaveAttribute('aria-pressed', 'true');
+      expect(blueButton).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 
   it('shows zero count when rowCounts is missing a category', () => {
-    const partialCounts = {
+    const partialCounts: Record<StatusColor, number> = {
       all: 0,
       duplicate: 5,
       white: 20,
@@ -123,7 +319,7 @@ describe('StatusFilterBar', () => {
       purple: 5,
       orange: 5,
       gray: 10,
-      red: 0, // Missing or zero
+      red: 0,
     };
 
     render(
@@ -131,11 +327,168 @@ describe('StatusFilterBar', () => {
         activeFilters={['all']}
         onFilterChange={() => {}}
         rowCounts={partialCounts}
+        {...defaultSearchProps}
       />
     );
 
     // Should render without errors
     expect(screen.getByText('Overdue')).toBeInTheDocument();
+  });
+
+  describe('Search Input', () => {
+    it('renders search input with placeholder', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const input = screen.getByPlaceholderText('Search by name...');
+      expect(input).toBeInTheDocument();
+    });
+
+    it('has aria-label on search input', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const input = screen.getByLabelText('Search patients by name');
+      expect(input).toBeInTheDocument();
+    });
+
+    it('does NOT show clear button when searchText is empty', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText=""
+          onSearchChange={vi.fn()}
+        />
+      );
+
+      expect(screen.queryByLabelText('Clear search')).not.toBeInTheDocument();
+    });
+
+    it('shows clear button when searchText is non-empty', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText="smith"
+          onSearchChange={vi.fn()}
+        />
+      );
+
+      expect(screen.getByLabelText('Clear search')).toBeInTheDocument();
+    });
+
+    it('calls onSearchChange when user types in input', () => {
+      const handleSearch = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText=""
+          onSearchChange={handleSearch}
+        />
+      );
+
+      const input = screen.getByPlaceholderText('Search by name...');
+      fireEvent.change(input, { target: { value: 'john' } });
+      expect(handleSearch).toHaveBeenCalledWith('john');
+    });
+
+    it('calls onSearchChange with empty string when clear button clicked', () => {
+      const handleSearch = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText="smith"
+          onSearchChange={handleSearch}
+        />
+      );
+
+      fireEvent.click(screen.getByLabelText('Clear search'));
+      expect(handleSearch).toHaveBeenCalledWith('');
+    });
+
+    it('has aria-label on clear button', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText="test"
+          onSearchChange={vi.fn()}
+        />
+      );
+
+      const clearButton = screen.getByLabelText('Clear search');
+      expect(clearButton).toBeInTheDocument();
+    });
+
+    it('clears search and blurs input on Escape key', () => {
+      const handleSearch = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText="smith"
+          onSearchChange={handleSearch}
+        />
+      );
+
+      const input = screen.getByPlaceholderText('Search by name...');
+      input.focus();
+      fireEvent.keyDown(input, { key: 'Escape' });
+      expect(handleSearch).toHaveBeenCalledWith('');
+    });
+
+    it('does not clear search on non-Escape keys', () => {
+      const handleSearch = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText="smith"
+          onSearchChange={handleSearch}
+        />
+      );
+
+      const input = screen.getByPlaceholderText('Search by name...');
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(handleSearch).not.toHaveBeenCalled();
+    });
+
+    it('displays current searchText value in input', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          searchText="john doe"
+          onSearchChange={vi.fn()}
+        />
+      );
+
+      const input = screen.getByPlaceholderText('Search by name...') as HTMLInputElement;
+      expect(input.value).toBe('john doe');
+    });
   });
 });
 

@@ -1,6 +1,16 @@
 # Patient Quality Measure Tracking System - Regression Test Plan
 
-This document contains manual test cases for verifying system functionality. Run these tests after major changes or before releases.
+This document contains test cases for verifying system functionality. Each test case includes automation status and requirement traceability. Run manual tests after major changes or before releases.
+
+---
+
+## Automation Legend
+
+| Status | Meaning |
+|--------|---------|
+| **Automated** | Fully covered by automated test(s) |
+| **Partial** | Some aspects automated, manual verification recommended |
+| **Manual** | No automated test exists - must test manually |
 
 ---
 
@@ -15,7 +25,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 1. Data Loading & Display
 
+**Requirement Spec:** [`.claude/specs/data-display/requirements.md`](specs/data-display/requirements.md)
+
 ### TC-1.1: Initial Data Load
+**Requirement:** AC-1, AC-7, AC-8, AC-9
+**Automation:** Automated - `smoke.spec.ts: "should load the application"`, `smoke.spec.ts: "should display the status bar"`
 **Steps:**
 1. Navigate to application
 2. Wait for loading spinner to complete
@@ -26,6 +40,8 @@ This document contains manual test cases for verifying system functionality. Run
 - No error messages
 
 ### TC-1.2: Patient Data Columns
+**Requirement:** AC-2, AC-3
+**Automation:** Automated - `smoke.spec.ts: "should display the patient grid"`, `Toolbar.test.tsx`
 **Steps:**
 1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Tracking #3, Notes
 
@@ -34,6 +50,8 @@ This document contains manual test cases for verifying system functionality. Run
 - DOB, Telephone, Address columns hidden by default
 
 ### TC-1.3: Member Info Toggle
+**Requirement:** AC-4, AC-5, AC-6
+**Automation:** Partial - `Toolbar.test.tsx: "toggles member info"` (toggle tested, DOB masking and phone formatting not automated)
 **Steps:**
 1. Click "Show Member Info" button in toolbar
 2. Observe grid columns
@@ -47,7 +65,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 2. Row Selection & Editing
 
+**Requirement Spec:** [`.claude/specs/cell-editing/requirements.md`](specs/cell-editing/requirements.md)
+
 ### TC-2.1: Row Selection
+**Requirement:** AC-1, AC-2, AC-9
+**Automation:** Partial - `sorting-filtering.cy.ts: "Row selection preserves color"` (color preservation tested, outline and status bar not explicitly)
 **Steps:**
 1. Click on any row in the grid
 2. Observe visual feedback
@@ -58,6 +80,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Status bar remains unchanged
 
 ### TC-2.2: Cell Editing - Text Fields
+**Requirement:** AC-3, AC-4, AC-5
+**Automation:** Manual - cell editing E2E not automated (AG Grid interaction complexity)
 **Steps:**
 1. Click on Notes cell
 2. Enter new text
@@ -69,6 +93,8 @@ This document contains manual test cases for verifying system functionality. Run
 - "Saving..." then "Saved" indicator appears in toolbar
 
 ### TC-2.3: Cell Editing - Date Fields
+**Requirement:** AC-6, AC-7
+**Automation:** Manual - date field editing not automated
 **Steps:**
 1. Click on Status Date cell
 2. Enter date in format: 1/15/2026
@@ -79,6 +105,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Due Date recalculates based on status rules
 
 ### TC-2.4: Date Input Flexibility
+**Requirement:** AC-6
+**Automation:** Manual - date format flexibility not E2E tested (backend dateParser.ts has unit tests)
 **Steps:**
 1. Try entering dates in various formats:
    - M/D/YY → 1/5/26
@@ -90,6 +118,8 @@ This document contains manual test cases for verifying system functionality. Run
 - All formats are accepted and normalized to MM/DD/YYYY
 
 ### TC-2.5: Invalid Date Handling
+**Requirement:** AC-8
+**Automation:** Manual - invalid date handling not E2E tested
 **Steps:**
 1. Click on Status Date cell
 2. Enter invalid text: "abc"
@@ -103,7 +133,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 3. Sorting Behavior
 
+**Requirement Spec:** [`.claude/specs/sorting/requirements.md`](specs/sorting/requirements.md)
+
 ### TC-3.1: Column Header Sort
+**Requirement:** AC-1, AC-2
+**Automation:** Automated - `sorting-filtering.cy.ts: "Sort indicator behavior"` (16 sorting tests)
 **Steps:**
 1. Click on "Quality Measure" column header
 2. Observe grid
@@ -115,6 +149,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Click third time to clear sort
 
 ### TC-3.2: No Auto-Sort During Editing
+**Requirement:** AC-3, AC-4, AC-5
+**Automation:** Manual - post-edit sort suppression not automated
 **Steps:**
 1. Sort by "Quality Measure" column (ascending)
 2. Select a row in the middle of the grid
@@ -127,6 +163,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Row selection is preserved
 
 ### TC-3.3: Sort Indicator Clearing with Position Preservation
+**Requirement:** AC-3, AC-4
+**Automation:** Manual - sort indicator clearing on edit not automated
 **Steps:**
 1. Sort by "Member Name" column
 2. Note a row's position (e.g., row 5)
@@ -139,6 +177,8 @@ This document contains manual test cases for verifying system functionality. Run
 - All other rows maintain their positions
 
 ### TC-3.4: Multi-Cell Edit Without Re-Sort
+**Requirement:** AC-6
+**Automation:** Manual - multi-cell edit behavior not automated
 **Steps:**
 1. Sort by "Measure Status"
 2. Edit Measure Status on row 3
@@ -153,7 +193,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 4. Status Color Filter Bar
 
+**Requirement Spec:** [`.claude/specs/status-filter/requirements.md`](specs/status-filter/requirements.md)
+
 ### TC-4.1: Filter Bar Display
+**Requirement:** AC-1, AC-2, AC-3
+**Automation:** Automated - `StatusFilterBar.test.tsx` (45 tests), `sorting-filtering.cy.ts: "Filter chip display"`
 **Steps:**
 1. Observe filter bar below toolbar
 
@@ -163,6 +207,8 @@ This document contains manual test cases for verifying system functionality. Run
 - "All" chip is selected by default (has ring highlight)
 
 ### TC-4.2: Single Filter Selection
+**Requirement:** AC-4, AC-7
+**Automation:** Automated - `sorting-filtering.cy.ts: "Filter by status"` (9 tests)
 **Steps:**
 1. Click "Completed" (green) chip
 
@@ -173,6 +219,8 @@ This document contains manual test cases for verifying system functionality. Run
 - "All" chip no longer highlighted
 
 ### TC-4.3: Filter Deselection
+**Requirement:** AC-5
+**Automation:** Automated - `sorting-filtering.cy.ts: "Filter toggle behavior"`
 **Steps:**
 1. With "Completed" selected, click "Completed" again
 
@@ -182,6 +230,8 @@ This document contains manual test cases for verifying system functionality. Run
 - "All" chip is highlighted
 
 ### TC-4.4: Filter Switch
+**Requirement:** AC-6
+**Automation:** Automated - `sorting-filtering.cy.ts: "Filter toggle behavior"`
 **Steps:**
 1. Click "In Progress" (blue) chip
 2. Click "Declined" (purple) chip
@@ -192,6 +242,8 @@ This document contains manual test cases for verifying system functionality. Run
 - "Declined" chip highlighted, "In Progress" not highlighted
 
 ### TC-4.5: Filter Counts Accuracy
+**Requirement:** AC-8
+**Automation:** Automated - `sorting-filtering.cy.ts: "Filter chip counts"`
 **Steps:**
 1. Count rows of each color manually (or note total)
 2. Compare with chip counts
@@ -204,7 +256,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 5. Row Status Colors
 
+**Requirement Spec:** [`.claude/specs/row-colors/requirements.md`](specs/row-colors/requirements.md)
+
 ### TC-5.1: Status-Based Colors
+**Requirement:** AC-1
+**Automation:** Automated - `sorting-filtering.cy.ts: "Row Color Verification"` (10 tests), `cascading-dropdowns.cy.ts: row color tests`
 **Steps:**
 1. Find rows with different Measure Status values
 2. Verify colors match:
@@ -219,6 +275,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Colors match the status category
 
 ### TC-5.2: Overdue Row Color (Pending Status)
+**Requirement:** AC-2, AC-3
+**Automation:** Partial - `sorting-filtering.cy.ts: "Overdue" filter` (filter tested, not date-specific overdue logic)
 **Steps:**
 1. Find a row with Due Date in the past
 2. Ensure Measure Status is pending (blue/yellow/white category)
@@ -228,6 +286,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Overdue color takes priority over status color
 
 ### TC-5.2b: Overdue Row Color (Completed Status)
+**Requirement:** AC-3, AC-4
+**Automation:** Manual - completed overdue (annual renewal) not automated
 **Steps:**
 1. Find patient "Bennett, Carol" (AWV completed 400+ days ago)
 2. Verify the Due Date is in the past (365 days after completion)
@@ -237,6 +297,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Indicates annual measure renewal is needed
 
 ### TC-5.2c: Non-Overdue Terminal Statuses
+**Requirement:** AC-5
+**Automation:** Manual - terminal status overdue exclusion not automated
 **Steps:**
 1. Find a row with "Patient declined AWV" (purple)
 2. Verify no due date or past due date
@@ -246,6 +308,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Declined statuses never turn red
 
 ### TC-5.2d: Completed Row Turns Red on Edit
+**Requirement:** AC-4, AC-7
+**Automation:** Manual - edit-triggers-overdue not automated
 **Steps:**
 1. Find a green (completed) row with future due date
 2. Change Status Date to over 365 days ago
@@ -256,6 +320,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Row immediately turns red (overdue)
 
 ### TC-5.3: Color Preserved During Selection
+**Requirement:** AC-6
+**Automation:** Automated - `sorting-filtering.cy.ts: "Row selection preserves color"`
 **Steps:**
 1. Click on a green (completed) row
 2. Observe the row
@@ -265,6 +331,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Green color is NOT overridden by selection
 
 ### TC-5.4: Real-Time Color Update
+**Requirement:** AC-7
+**Automation:** Automated - `cascading-dropdowns.cy.ts: status change color tests`
 **Steps:**
 1. Select a white row (Not Addressed)
 2. Change Measure Status to "AWV completed"
@@ -278,7 +346,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 6. Cascading Dropdowns
 
+**Requirement Spec:** [`.claude/specs/cascading-dropdowns/requirements.md`](specs/cascading-dropdowns/requirements.md)
+
 ### TC-6.1: Request Type to Quality Measure
+**Requirement:** AC-1, AC-2
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "AWV auto-fills Quality Measure"`
 **Steps:**
 1. Click Request Type cell
 2. Select "AWV"
@@ -287,6 +359,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Quality Measure auto-fills with "Annual Wellness Visit"
 
 ### TC-6.2: Quality Measure Options
+**Requirement:** AC-4
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Quality shows 8 options"`
 **Steps:**
 1. Set Request Type to "Quality"
 2. Click Quality Measure cell
@@ -295,6 +369,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Dropdown shows 8 options (Diabetic Eye Exam, Diabetes Control, etc.)
 
 ### TC-6.3: Measure Status Filtering
+**Requirement:** AC-6
+**Automation:** Automated - `cascading-dropdowns.cy.ts: AWV/Breast Cancer/Chronic status tests`
 **Steps:**
 1. Set Quality Measure to "Annual Wellness Visit"
 2. Click Measure Status cell
@@ -303,6 +379,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Dropdown shows AWV-specific options (AWV completed, AWV scheduled, etc.)
 
 ### TC-6.4: Dependent Field Reset
+**Requirement:** AC-8
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Changing Quality Measure clears Measure Status"`
 **Steps:**
 1. Set Quality Measure to "Annual Wellness Visit"
 2. Set Measure Status to "AWV completed"
@@ -313,6 +391,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Previous status value is NOT retained
 
 ### TC-6.5: Chronic DX Auto-Fill
+**Requirement:** AC-3
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Chronic DX auto-fills"`
 **Steps:**
 1. Set Request Type to "Chronic DX"
 
@@ -321,6 +401,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Cannot select other quality measures
 
 ### TC-6.6: Screening Quality Measures
+**Requirement:** AC-5
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Screening shows 3 options"`
 **Steps:**
 1. Set Request Type to "Screening"
 2. Click Quality Measure dropdown
@@ -329,6 +411,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Shows exactly 3 options: Breast Cancer Screening, Colon Cancer Screening, Cervical Cancer Screening
 
 ### TC-6.7: Quality Request Type Options
+**Requirement:** AC-4
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Quality shows 8 Quality Measure options"`
 **Steps:**
 1. Set Request Type to "Quality"
 2. Click Quality Measure dropdown
@@ -337,6 +421,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Shows 8 options: Diabetic Eye Exam, GC/Chlamydia Screening, Diabetic Nephropathy, Hypertension Management, ACE/ARB in DM or CAD, Vaccination, Diabetes Control, Annual Serum K&Cr
 
 ### TC-6.8: Cascading Clear on Request Type Change
+**Requirement:** AC-7, AC-10
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Changing Request Type clears Quality Measure"`
 **Steps:**
 1. Fill in a complete row: Request Type, Quality Measure, Measure Status, Status Date, Tracking #1, Due Date populated
 2. Change Request Type to a different value
@@ -351,6 +437,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Notes are PRESERVED (not cleared)
 
 ### TC-6.9: Cascading Clear on Quality Measure Change
+**Requirement:** AC-8, AC-10
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Changing Quality Measure clears Measure Status"`
 **Steps:**
 1. Fill in row with Measure Status, Status Date, Tracking values
 2. Change Quality Measure to a different value
@@ -364,6 +452,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Notes are PRESERVED
 
 ### TC-6.10: Cascading Clear on Measure Status Change
+**Requirement:** AC-9, AC-10
+**Automation:** Manual - Measure Status cascade clear not explicitly automated
 **Steps:**
 1. Fill in row with Status Date, Tracking #1 = "Colonoscopy", Due Date calculated
 2. Change Measure Status to a different value
@@ -376,6 +466,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Notes are PRESERVED
 
 ### TC-6.11: Time Interval Manual Override
+**Requirement:** See time-interval spec AC-2, AC-3
+**Automation:** Manual - time interval override not automated
 **Steps:**
 1. Set up row with "Screening test ordered" status (previously non-editable)
 2. Click on Time Interval cell
@@ -390,7 +482,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 7. Due Date Calculation
 
+**Requirement Spec:** [`.claude/specs/due-date/requirements.md`](specs/due-date/requirements.md)
+
 ### TC-7.1: Basic Due Date Calculation
+**Requirement:** AC-1, AC-3
+**Automation:** Automated (backend) - `dueDateCalculator.test.ts` (20 tests). Manual (E2E)
 **Steps:**
 1. Set Measure Status to "Patient called to schedule AWV"
 2. Set Status Date to 01/10/2026
@@ -400,6 +496,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Time Interval (Days) shows 7
 
 ### TC-7.2: Tracking-Dependent Due Date
+**Requirement:** AC-2
+**Automation:** Automated (backend) - `dueDateCalculator.test.ts: tracking rule tests`. Manual (E2E)
 **Steps:**
 1. Set Quality Measure to "Colon Cancer Screening"
 2. Set Measure Status to "Colon cancer screening ordered"
@@ -411,6 +509,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Time Interval shows 42
 
 ### TC-7.3: Time Interval Manual Edit
+**Requirement:** See time-interval spec AC-4
+**Automation:** Manual - time interval manual edit not automated
 **Steps:**
 1. Set a status with baseDueDays default
 2. Note the Due Date
@@ -424,7 +524,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 8. Duplicate Detection
 
+**Requirement Spec:** [`.claude/specs/duplicate-detection/requirements.md`](specs/duplicate-detection/requirements.md)
+
 ### TC-8.1: Add Duplicate Row (Same Patient + Request Type + Quality Measure)
+**Requirement:** AC-1, AC-3, AC-8
+**Automation:** Automated - `add-row.spec.ts: duplicate error tests`
 **Steps:**
 1. Click "Add Row" button
 2. Enter Member Name matching an existing patient
@@ -437,6 +541,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Form data is preserved for correction
 
 ### TC-8.2: Add Row With Same Patient But Different Request Type
+**Requirement:** AC-1
+**Automation:** Manual - different request type scenario not automated
 **Steps:**
 1. Add a row for "Patient A" with Request Type "AWV"
 2. Click "Add Row" again
@@ -448,6 +554,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Wait - this would be duplicate. User should change Request Type in grid after creation
 
 ### TC-8.3: Duplicate Detection Skip When Fields Empty
+**Requirement:** AC-2
+**Automation:** Manual - null field skip not automated
 **Steps:**
 1. Create a row with empty/null Request Type (via direct database or API)
 2. Create another row with same patient and empty Request Type
@@ -457,6 +565,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Neither row marked as duplicate
 
 ### TC-8.4: Duplicate Visual Indicator
+**Requirement:** AC-6
+**Automation:** Partial - `sorting-filtering.cy.ts: "Duplicates" filter chip` (filter tested, visual indicator not directly)
 **Steps:**
 1. Create two rows with same patient + requestType + qualityMeasure
    (e.g., via API or by editing requestType/qualityMeasure in grid)
@@ -465,6 +575,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Both rows have light yellow duplicate indicator background (#FEF3C7)
 
 ### TC-8.5: Update Row Blocked When Creating Duplicate
+**Requirement:** AC-4, AC-5, AC-8
+**Automation:** Manual - edit-creates-duplicate flow not automated
 **Steps:**
 1. Have two rows for same patient with different qualityMeasure
 2. Edit one row's requestType or qualityMeasure to match the other row
@@ -476,6 +588,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Update is NOT saved to database
 
 ### TC-8.5b: Duplicate Error Resets Dependent Fields
+**Requirement:** AC-5
+**Automation:** Manual - dependent field reset on duplicate error not automated
 **Steps:**
 1. Have a row with Request Type = "AWV", Quality Measure = "Annual Wellness Visit"
 2. Have another row for same patient with Request Type = "Quality", Quality Measure = "Breast Cancer Screening"
@@ -488,6 +602,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Measure Status resets to empty
 
 ### TC-8.6: Delete Removes Duplicate Status
+**Requirement:** AC-7, AC-9
+**Automation:** Manual - delete-removes-duplicate not automated
 **Steps:**
 1. Have two duplicate rows (same patient + requestType + qualityMeasure)
 2. Delete one of the rows
@@ -500,7 +616,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 9. Add/Delete Operations
 
+**Requirement Spec:** [`.claude/specs/row-operations/requirements.md`](specs/row-operations/requirements.md)
+
 ### TC-9.0: Duplicate Row Button
+**Requirement:** AC-10
+**Automation:** Automated - `duplicate-member.spec.ts: "Duplicate button disabled without selection"`
 **Steps:**
 1. Ensure no row is selected
 2. Observe "Duplicate" button in toolbar
@@ -509,6 +629,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Duplicate button is disabled (grayed out)
 
 ### TC-9.0b: Duplicate Row - Creates Copy Below
+**Requirement:** AC-11, AC-12, AC-13
+**Automation:** Automated - `duplicate-member.spec.ts: "creates copy below selected row"`
 **Steps:**
 1. Select a row in the middle of the grid (e.g., row 5)
 2. Note the patient's name, DOB, phone, address
@@ -522,6 +644,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Request Type cell is focused for editing
 
 ### TC-9.0c: Duplicate Row - Persists After Refresh
+**Requirement:** AC-14
+**Automation:** Manual - persistence after refresh not automated
 **Steps:**
 1. Duplicate a row
 2. Note the new row's position
@@ -533,6 +657,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Row order is correct
 
 ### TC-9.1: Add New Row - First Row Position
+**Requirement:** AC-1, AC-2, AC-3, AC-4
+**Automation:** Automated - `add-row.spec.ts` (9 tests) - modal form, validation, row creation
 **Steps:**
 1. Note the current first row in the grid
 2. Click "Add Row" button
@@ -546,6 +672,8 @@ This document contains manual test cases for verifying system functionality. Run
 - requestType, qualityMeasure, measureStatus are empty (not defaulted)
 
 ### TC-9.1b: Add New Row - Sort Cleared
+**Requirement:** AC-5
+**Automation:** Manual - sort clearing on add not automated
 **Steps:**
 1. Sort grid by any column (e.g., Member Name)
 2. Click "Add Row" and add a new row
@@ -556,6 +684,8 @@ This document contains manual test cases for verifying system functionality. Run
 - New row is at top
 
 ### TC-9.1c: Add New Row - Persists After Refresh
+**Requirement:** AC-6
+**Automation:** Manual - persistence after refresh not automated
 **Steps:**
 1. Add a new row
 2. Refresh the page
@@ -565,6 +695,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Row order is preserved (new row has rowOrder: 0)
 
 ### TC-9.2: Delete Row
+**Requirement:** AC-7, AC-8, AC-9
+**Automation:** Automated - `delete-row.spec.ts` (10 tests, 4 skipped)
 **Steps:**
 1. Select a row
 2. Click "Delete" button
@@ -576,6 +708,8 @@ This document contains manual test cases for verifying system functionality. Run
 - "Saved" indicator shows
 
 ### TC-9.3: Delete Without Selection
+**Requirement:** AC-7
+**Automation:** Automated - `delete-row.spec.ts: "Delete button disabled without selection"`
 **Steps:**
 1. Ensure no row is selected
 2. Observe Delete button
@@ -587,7 +721,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 10. Status Bar
 
+**Requirement Spec:** [`.claude/specs/status-bar/requirements.md`](specs/status-bar/requirements.md)
+
 ### TC-10.1: Row Count Display
+**Requirement:** AC-1, AC-2
+**Automation:** Automated - `smoke.spec.ts: "should display the status bar"`
 **Steps:**
 1. Observe status bar at bottom
 
@@ -596,6 +734,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Shows "Connected" in green
 
 ### TC-10.2: Filtered Row Count
+**Requirement:** AC-3, AC-4, AC-5
+**Automation:** Automated - `sorting-filtering.cy.ts: "Status bar updates"` (2 tests)
 **Steps:**
 1. Select a color filter (e.g., "Completed")
 2. Observe status bar
@@ -608,7 +748,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 11. Tracking Fields
 
+**Requirement Spec:** [`.claude/specs/tracking-fields/requirements.md`](specs/tracking-fields/requirements.md)
+
 ### TC-11.1: Tracking #1 Dropdown
+**Requirement:** AC-1
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Screening test ordered shows Tracking #1 options"`
 **Steps:**
 1. Set Quality Measure to "Colon Cancer Screening"
 2. Set Measure Status to "Colon cancer screening ordered"
@@ -618,6 +762,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Dropdown shows: Colonoscopy, Sigmoidoscopy, Cologuard, FOBT
 
 ### TC-11.2: Tracking #1 N/A State
+**Requirement:** AC-2, AC-3
+**Automation:** Manual - N/A display and editability not automated
 **Steps:**
 1. Set Measure Status to a status without tracking options
 2. Observe Tracking #1 cell
@@ -628,6 +774,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Cell is NOT editable
 
 ### TC-11.3: Tracking #2 for HgbA1c
+**Requirement:** AC-5
+**Automation:** Manual - HgbA1c month dropdown not automated
 **Steps:**
 1. Set Quality Measure to "Diabetes Control"
 2. Set Measure Status to "HgbA1c ordered"
@@ -637,6 +785,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Dropdown shows month options (1 month, 2 months, etc.)
 
 ### TC-11.4: Tracking #1 Free Text for HgbA1c
+**Requirement:** AC-4
+**Automation:** Manual - HgbA1c free text prompt not automated
 **Steps:**
 1. Set Quality Measure to "Diabetes Control"
 2. Set Measure Status to "HgbA1c at goal"
@@ -648,6 +798,8 @@ This document contains manual test cases for verifying system functionality. Run
 - NOT a dropdown
 
 ### TC-11.5: Tracking #2 Free Text for Hypertension
+**Requirement:** AC-6
+**Automation:** Manual - Hypertension BP reading not automated
 **Steps:**
 1. Set Quality Measure to "Hypertension Management"
 2. Set Measure Status to "Scheduled call back - BP not at goal"
@@ -659,6 +811,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Tracking #1 shows call interval dropdown
 
 ### TC-11.6: Cervical Cancer Month Tracking
+**Requirement:** AC-7, AC-8
+**Automation:** Partial - `dueDateCalculator.test.ts` covers calculation, E2E dropdown not automated
 **Steps:**
 1. Set Quality Measure to "Cervical Cancer Screening"
 2. Set Measure Status to "Screening discussed"
@@ -669,6 +823,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Selecting "In 3 Months" sets due date to statusDate + 90 days
 
 ### TC-11.7: Chronic Diagnosis Attestation Tracking
+**Requirement:** AC-9
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Chronic diagnosis resolved shows attestation options"`
 **Steps:**
 1. Set Quality Measure to "Chronic Diagnosis Code"
 2. Set Measure Status to "Chronic diagnosis resolved"
@@ -683,7 +839,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 12. Time Interval Editability
 
+**Requirement Spec:** [`.claude/specs/time-interval/requirements.md`](specs/time-interval/requirements.md)
+
 ### TC-12.1: Time Interval Editable (Base Due Days)
+**Requirement:** AC-1, AC-2
+**Automation:** Manual - time interval editability not E2E automated
 **Steps:**
 1. Set Measure Status to "AWV scheduled" (baseDueDays = 1)
 2. Click Time Interval cell
@@ -695,6 +855,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Value is saved
 
 ### TC-12.2: Time Interval Override (Tracking Dropdown Status)
+**Requirement:** AC-3, AC-4, AC-5
+**Automation:** Manual - time interval override not automated
 **Steps:**
 1. Set Quality Measure to "Colon Cancer Screening"
 2. Set Measure Status to "Colon cancer screening ordered"
@@ -708,6 +870,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Override is saved to database
 
 ### TC-12.3: Time Interval Override (HgbA1c Status)
+**Requirement:** AC-3, AC-4, AC-5
+**Automation:** Manual - HgbA1c interval override not automated
 **Steps:**
 1. Set Quality Measure to "Diabetes Control"
 2. Set Measure Status to "HgbA1c at goal"
@@ -725,6 +889,7 @@ This document contains manual test cases for verifying system functionality. Run
 ## 13. Error Handling
 
 ### TC-13.1: Network Error Recovery
+**Automation:** Manual - network error recovery not automated
 **Steps:**
 1. Stop backend server
 2. Try to edit a cell
@@ -735,6 +900,7 @@ This document contains manual test cases for verifying system functionality. Run
 - Retry button or auto-retry works
 
 ### TC-13.2: Validation Error
+**Automation:** Manual - generic validation error not automated
 **Steps:**
 1. Try to save invalid data
 
@@ -746,7 +912,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 14. Import Test Page
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-14.1: Navigate to Import Test Page
+**Requirement:** AC-45
+**Automation:** Automated - `import-flow.cy.ts: "Import page" tests`
 **Steps:**
 1. Click "Import Test" link in header navigation
 
@@ -755,6 +925,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Shows file upload section with "Choose File" button
 
 ### TC-14.2: Upload CSV File
+**Requirement:** AC-1, AC-4
+**Automation:** Automated - `import-flow.cy.ts: file upload tests`, `fileParser.test.ts` (47 tests)
 **Steps:**
 1. Navigate to Import Test page
 2. Click file input and select a CSV file
@@ -767,6 +939,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Preview table shows first 10 rows
 
 ### TC-14.3: Upload Excel File
+**Requirement:** AC-2
+**Automation:** Automated - `fileParser.test.ts: Excel parsing tests`
 **Steps:**
 1. Navigate to Import Test page
 2. Click file input and select an Excel (.xlsx) file
@@ -779,6 +953,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Preview shows actual data rows
 
 ### TC-14.4: Column Validation Display
+**Requirement:** AC-3
+**Automation:** Automated - `fileParser.test.ts: column validation`, `import-flow.cy.ts`
 **Steps:**
 1. Upload file with required columns
 
@@ -787,6 +963,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Red badge shows "Missing columns" with list if invalid
 
 ### TC-14.5: Error Handling
+**Requirement:** AC-5
+**Automation:** Automated - `import-flow.cy.ts: "Error Handling"` (4 tests)
 **Steps:**
 1. Upload unsupported file type (e.g., .txt)
 
@@ -798,7 +976,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 15. Column Mapping (Phase 5c)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-15.1: Patient Column Mapping
+**Requirement:** AC-6
+**Automation:** Automated - `columnMapper.test.ts` (28 tests)
 **Steps:**
 1. Upload CSV with columns: Patient, DOB, Phone, Address
 2. Click Transform or Validate
@@ -808,6 +990,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Mapping stats show 4 mapped patient columns
 
 ### TC-15.2: Measure Column Mapping (Q1/Q2)
+**Requirement:** AC-7
+**Automation:** Automated - `columnMapper.test.ts: Q1/Q2 mapping tests`
 **Steps:**
 1. Upload file with "Annual Wellness Visit Q1" and "Annual Wellness Visit Q2" columns
 2. Click Transform
@@ -817,6 +1001,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Q1 = statusDate field, Q2 = complianceStatus field
 
 ### TC-15.3: Skip Columns
+**Requirement:** AC-9
+**Automation:** Automated - `columnMapper.test.ts: skip column tests`
 **Steps:**
 1. Upload file with columns: Age, Sex, MembID, LOB
 2. Click Transform
@@ -827,6 +1013,8 @@ This document contains manual test cases for verifying system functionality. Run
 - No error for these columns
 
 ### TC-15.4: Unmapped Columns
+**Requirement:** AC-10
+**Automation:** Automated - `columnMapper.test.ts: unmapped column tests`
 **Steps:**
 1. Upload file with unknown column "CustomField"
 2. Click Transform
@@ -836,6 +1024,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Warning displayed but not blocking
 
 ### TC-15.5: Missing Required Columns
+**Requirement:** AC-3
+**Automation:** Automated - `fileParser.test.ts: column validation`
 **Steps:**
 1. Upload file missing "Patient" column
 2. Click Parse
@@ -845,6 +1035,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Red indicator for missing required column
 
 ### TC-15.6: Multiple Columns → Same Quality Measure
+**Requirement:** AC-8
+**Automation:** Automated - `columnMapper.test.ts: grouping tests`
 **Steps:**
 1. Upload file with columns:
    - "Breast Cancer Screening E Q2"
@@ -861,7 +1053,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 16. Data Transformation (Phase 5c)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-16.1: Wide to Long Format
+**Requirement:** AC-11
+**Automation:** Automated - `dataTransformer.test.ts` (34 tests)
 **Steps:**
 1. Upload file with 50 patients, each having 10 measure columns with data
 2. Click Transform
@@ -872,6 +1068,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Each patient has multiple output rows (one per measure)
 
 ### TC-16.2: Original vs Generated Rows Display
+**Requirement:** AC-11
+**Automation:** Automated - `import-flow.cy.ts: stats display`
 **Steps:**
 1. Upload file with 100 input rows
 2. Click Transform
@@ -883,6 +1081,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Both values clearly labeled and separate
 
 ### TC-16.3: Empty Measure Columns Skipped
+**Requirement:** AC-12
+**Automation:** Automated - `dataTransformer.test.ts: empty column tests`
 **Steps:**
 1. Upload file where Patient A has data in 5 of 10 measure columns
 2. Click Transform
@@ -892,6 +1092,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Empty measure columns do not create rows
 
 ### TC-16.4: Status Date = Import Date
+**Requirement:** AC-13
+**Automation:** Automated - `dataTransformer.test.ts: status date tests`
 **Steps:**
 1. Upload file with compliance values
 2. Click Transform
@@ -902,6 +1104,8 @@ This document contains manual test cases for verifying system functionality. Run
 - statusDate does NOT come from Q1 column
 
 ### TC-16.5: Patients With No Measures
+**Requirement:** AC-16
+**Automation:** Automated - `dataTransformer.test.ts: no measures tests`
 **Steps:**
 1. Upload file where Patient B has ALL measure columns empty
 2. Click Transform
@@ -913,6 +1117,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Patient B has 0 generated rows
 
 ### TC-16.6: Phone Number Normalization
+**Requirement:** AC-14
+**Automation:** Automated - `dataTransformer.test.ts: phone normalization`
 **Steps:**
 1. Upload file with Phone = "5551234567"
 2. Click Transform
@@ -926,31 +1132,47 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 17. Date Parsing (Phase 5c)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-17.1: MM/DD/YYYY Format
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts: date parsing tests`
 **Input:** DOB = "01/15/2026"
 **Expected:** Parsed as 2026-01-15
 
 ### TC-17.2: M/D/YYYY Format
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts`
 **Input:** DOB = "1/5/2026"
 **Expected:** Parsed as 2026-01-05
 
 ### TC-17.3: M/D/YY Format
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts`
 **Input:** DOB = "1/5/26"
 **Expected:** Parsed as 2026-01-05
 
 ### TC-17.4: YYYY-MM-DD Format
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts`
 **Input:** DOB = "2026-01-15"
 **Expected:** Parsed as 2026-01-15
 
 ### TC-17.5: M.D.YYYY Format
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts`
 **Input:** DOB = "1.15.2026"
 **Expected:** Parsed as 2026-01-15
 
 ### TC-17.6: Excel Serial Number
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts: Excel serial tests`
 **Input:** DOB = "44941" (Excel serial)
 **Expected:** Parsed as valid date (Excel epoch conversion)
 
 ### TC-17.7: Invalid Date
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts: invalid date tests`
 **Input:** DOB = "abc"
 **Expected:**
 - Transform error: "Invalid date format: abc"
@@ -960,7 +1182,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 18. "Any Non-Compliant Wins" Logic (Phase 5c)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-18.1: All Compliant
+**Requirement:** AC-17, AC-18
+**Automation:** Automated - `dataTransformer.test.ts: compliance logic`
 **Data:**
 - Breast Cancer Screening E Q2 = "Compliant"
 - Breast Cancer Screening 42-51 Q2 = "Compliant"
@@ -968,6 +1194,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** measureStatus = "Screening test completed" (compliant mapping)
 
 ### TC-18.2: Any Non-Compliant Wins
+**Requirement:** AC-17, AC-19
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Breast Cancer Screening E Q2 = "Compliant"
 - Breast Cancer Screening 42-51 Q2 = "Non Compliant"
@@ -975,6 +1203,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** measureStatus = "Not Addressed" (non-compliant wins)
 
 ### TC-18.3: All Non-Compliant
+**Requirement:** AC-19
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Breast Cancer Screening E Q2 = "NC"
 - Breast Cancer Screening 42-51 Q2 = "Non Compliant"
@@ -982,6 +1212,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** measureStatus = "Not Addressed"
 
 ### TC-18.4: Mixed Empty + Compliant
+**Requirement:** AC-17, AC-18
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Breast Cancer Screening E Q2 = ""
 - Breast Cancer Screening 42-51 Q2 = "Compliant"
@@ -990,6 +1222,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** measureStatus = "Screening test completed" (uses non-empty compliant)
 
 ### TC-18.5: Mixed Empty + Non-Compliant
+**Requirement:** AC-17, AC-19
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Breast Cancer Screening E Q2 = ""
 - Breast Cancer Screening 42-51 Q2 = "NC"
@@ -997,6 +1231,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** measureStatus = "Not Addressed"
 
 ### TC-18.6: All Empty
+**Requirement:** AC-21
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Breast Cancer Screening E Q2 = ""
 - Breast Cancer Screening 42-51 Q2 = ""
@@ -1005,6 +1241,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** No row generated for Breast Cancer Screening (skipped)
 
 ### TC-18.7: Case Insensitive
+**Requirement:** AC-20
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Col1 = "COMPLIANT"
 - Col2 = "compliant"
@@ -1012,6 +1250,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** Both recognized as compliant
 
 ### TC-18.8: Compliant Abbreviations
+**Requirement:** AC-20
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Col1 = "C"
 - Col2 = "Yes"
@@ -1019,6 +1259,8 @@ This document contains manual test cases for verifying system functionality. Run
 **Expected:** Both recognized as compliant
 
 ### TC-18.9: Non-Compliant Abbreviations
+**Requirement:** AC-20
+**Automation:** Automated - `dataTransformer.test.ts`
 **Data:**
 - Col1 = "NC"
 - Col2 = "No"
@@ -1029,7 +1271,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 19. Validation (Phase 5d)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-19.1: Missing Member Name
+**Requirement:** AC-22
+**Automation:** Automated - `validator.test.ts` (57 tests)
 **Data:** Row with memberName = "" or null
 **Expected:**
 - Error: "Member name is required"
@@ -1037,54 +1283,72 @@ This document contains manual test cases for verifying system functionality. Run
 - Error includes "(Unknown)" as member name
 
 ### TC-19.2: Missing DOB
+**Requirement:** AC-22
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with memberDob = null
 **Expected:**
 - Error: "Date of birth is required"
 - Error severity: error (blocking)
 
 ### TC-19.3: Invalid DOB Format
+**Requirement:** AC-23
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with memberDob = "invalid-date"
 **Expected:**
 - Error: "Invalid date of birth format"
 - Error includes value: "invalid-date"
 
 ### TC-19.4: Missing Request Type
+**Requirement:** AC-22
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with requestType = ""
 **Expected:**
 - Error: "Request type is required"
 - Error severity: error (blocking)
 
 ### TC-19.5: Invalid Request Type
+**Requirement:** AC-23
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with requestType = "Unknown"
 **Expected:**
 - Error: "Invalid request type: Unknown"
 - Error severity: error (blocking)
 
 ### TC-19.6: Missing Quality Measure
+**Requirement:** AC-22
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with qualityMeasure = ""
 **Expected:**
 - Error: "Quality measure is required"
 - Error severity: error (blocking)
 
 ### TC-19.7: Invalid Quality Measure for Request Type
+**Requirement:** AC-23
+**Automation:** Automated - `validator.test.ts`
 **Data:** requestType = "AWV", qualityMeasure = "Breast Cancer Screening"
 **Expected:**
 - Warning: "Invalid quality measure for request type"
 - Warning severity: warning (non-blocking)
 
 ### TC-19.8: Missing Measure Status
+**Requirement:** AC-25
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with measureStatus = null
 **Expected:**
 - Warning: "Measure status is empty - will be set to Not Addressed"
 - Warning severity: warning (non-blocking)
 
 ### TC-19.9: Missing Phone
+**Requirement:** AC-25
+**Automation:** Automated - `validator.test.ts`
 **Data:** Row with memberTelephone = null
 **Expected:**
 - Warning: "Phone number is missing"
 - Warning severity: warning (non-blocking)
 
 ### TC-19.10: Duplicate Within Import
+**Requirement:** AC-24
+**Automation:** Automated - `validator.test.ts: duplicate detection`
 **Data:** Two rows with same:
 - memberName = "John Smith"
 - memberDob = "1980-01-15"
@@ -1100,7 +1364,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 20. Error Reporting (Phase 5d)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-20.1: Error Message Includes Member Name
+**Requirement:** AC-26
+**Automation:** Automated - `errorReporter.test.ts` (48 tests)
 **Steps:**
 1. Upload file with validation errors for patient "John Smith"
 2. Click Validate
@@ -1111,6 +1379,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Member name in parentheses after row number
 
 ### TC-20.2: Error Count Display
+**Requirement:** AC-28
+**Automation:** Automated - `import-flow.cy.ts: error handling tests`, `errorReporter.test.ts`
 **Steps:**
 1. Upload file with 3 validation errors
 2. Click Validate
@@ -1121,6 +1391,8 @@ This document contains manual test cases for verifying system functionality. Run
 - 3 error items listed
 
 ### TC-20.3: Warning Count Display
+**Requirement:** AC-29
+**Automation:** Automated - `import-flow.cy.ts: warning tests`, `errorReporter.test.ts`
 **Steps:**
 1. Upload file with 5 warnings (missing phone, etc.)
 2. Click Validate
@@ -1131,6 +1403,8 @@ This document contains manual test cases for verifying system functionality. Run
 - 5 warning items listed
 
 ### TC-20.4: Duplicate Groups Display
+**Requirement:** AC-30
+**Automation:** Manual - duplicate groups UI display not E2E tested
 **Steps:**
 1. Upload file with 2 sets of duplicate rows
 2. Click Validate
@@ -1141,6 +1415,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Each group shows patient name, measure, and row numbers
 
 ### TC-20.5: Validation Summary - All Valid
+**Requirement:** AC-31, AC-32
+**Automation:** Automated - `ImportPage.test.tsx`, `validator.test.ts`
 **Steps:**
 1. Upload file with all valid data, no warnings
 2. Click Validate
@@ -1151,6 +1427,8 @@ This document contains manual test cases for verifying system functionality. Run
 - canProceed: true
 
 ### TC-20.6: Validation Summary - Warnings Only
+**Requirement:** AC-31, AC-32
+**Automation:** Automated - `ImportPage.test.tsx`, `validator.test.ts`
 **Steps:**
 1. Upload file with valid data but some warnings
 2. Click Validate
@@ -1161,6 +1439,8 @@ This document contains manual test cases for verifying system functionality. Run
 - canProceed: true
 
 ### TC-20.7: Validation Summary - Has Errors
+**Requirement:** AC-31, AC-32
+**Automation:** Automated - `ImportPage.test.tsx`, `validator.test.ts`
 **Steps:**
 1. Upload file with validation errors
 2. Click Validate
@@ -1171,6 +1451,8 @@ This document contains manual test cases for verifying system functionality. Run
 - canProceed: false
 
 ### TC-20.8: Can Proceed - False (Errors)
+**Requirement:** AC-32
+**Automation:** Automated - `validator.test.ts: canProceed tests`
 **Steps:**
 1. Upload file with errors
 2. Click Validate
@@ -1180,6 +1462,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Import action should be disabled
 
 ### TC-20.9: Can Proceed - True (Warnings Only)
+**Requirement:** AC-32
+**Automation:** Automated - `validator.test.ts: canProceed tests`
 **Steps:**
 1. Upload file with warnings but no errors
 2. Click Validate
@@ -1192,7 +1476,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 21. Import Test Page UI (Phase 5c-5d)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-21.1: Transform Button
+**Requirement:** AC-45
+**Automation:** Automated - `import-flow.cy.ts`
 **Steps:**
 1. Upload CSV file
 2. Click "Transform" button
@@ -1203,6 +1491,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats and preview displayed
 
 ### TC-21.2: Validate Button
+**Requirement:** AC-45
+**Automation:** Automated - `import-flow.cy.ts`
 **Steps:**
 1. Upload CSV file
 2. Click "Validate" button
@@ -1213,6 +1503,7 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats, errors, warnings, duplicates displayed
 
 ### TC-21.3: Tab Navigation
+**Automation:** Automated - `ImportPage.test.tsx: tab tests`
 **Steps:**
 1. Upload and process file
 2. Click between Parse/Transform/Validate tabs
@@ -1223,6 +1514,7 @@ This document contains manual test cases for verifying system functionality. Run
 - Active tab visually highlighted
 
 ### TC-21.4: Stats Grid - Transform Tab
+**Automation:** Automated - `import-flow.cy.ts: stats display`
 **Steps:**
 1. Upload file and Transform
 2. Check stats section
@@ -1237,6 +1529,7 @@ This document contains manual test cases for verifying system functionality. Run
   - No Measures (purple if > 0)
 
 ### TC-21.5: Stats Grid - Validate Tab
+**Automation:** Automated - `import-flow.cy.ts`
 **Steps:**
 1. Upload file and Validate
 2. Check stats section
@@ -1252,6 +1545,7 @@ This document contains manual test cases for verifying system functionality. Run
   - No Measures (purple if > 0)
 
 ### TC-21.6: Preview Table
+**Automation:** Automated - `import-flow.cy.ts: changes table tests`
 **Steps:**
 1. Process file (Transform or Validate)
 2. Scroll to preview section
@@ -1262,6 +1556,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Alternating row colors for readability
 
 ### TC-21.7: Patients No Measures Section
+**Requirement:** AC-16
+**Automation:** Partial - `dataTransformer.test.ts` covers backend, E2E section display not directly tested
 **Steps:**
 1. Upload file with patients having empty measures
 2. Transform or Validate
@@ -1273,6 +1569,7 @@ This document contains manual test cases for verifying system functionality. Run
 - Scrollable if many patients
 
 ### TC-21.8: Scrollable Error List
+**Automation:** Manual - scrollable error list UI not explicitly tested
 **Steps:**
 1. Upload file with many errors (20+)
 2. Validate
@@ -1283,6 +1580,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Section doesn't overflow page
 
 ### TC-21.9: Row Numbers Match Spreadsheet (No Title Row)
+**Requirement:** AC-33
+**Automation:** Automated - `validator.test.ts: row number tests`, `errorReporter.test.ts`
 **Steps:**
 1. Upload `test-validation-errors.csv` (no title row)
 2. Click Validate
@@ -1293,6 +1592,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Patient "MissingDOB, Patient3" error shows "Row 4" (data starts at row 2)
 
 ### TC-21.10: Row Numbers Match Spreadsheet (With Title Row)
+**Requirement:** AC-33
+**Automation:** Automated - `fileParser.test.ts: title row detection`, `errorReporter.test.ts`
 **Steps:**
 1. Upload Excel file with title/report row before headers
 2. Click Validate
@@ -1303,6 +1604,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Patient on first data row shows "Row 3" not "Row 2"
 
 ### TC-21.11: Error Deduplication Per Patient
+**Requirement:** AC-27
+**Automation:** Automated - `validator.test.ts: deduplication tests`
 **Steps:**
 1. Upload file with patient having validation error (e.g., missing DOB)
 2. Click Validate
@@ -1313,6 +1616,8 @@ This document contains manual test cases for verifying system functionality. Run
 - If patient generates 4 measure rows, DOB error shows 1 time, not 4
 
 ### TC-21.12: Patients With No Measures Row Numbers
+**Requirement:** AC-33
+**Automation:** Automated - `dataTransformer.test.ts`, `errorReporter.test.ts`
 **Steps:**
 1. Upload `test-no-measures.csv`
 2. Click Validate or Transform
@@ -1326,7 +1631,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 22. Import Preview (Phase 5e-5f)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-22.1: Preview Button and Mode Selection
+**Requirement:** AC-34, AC-46
+**Automation:** Automated - `import-flow.cy.ts: preview tests`, `ImportPreviewPage.test.tsx`
 **Steps:**
 1. Navigate to Import Test page
 2. Upload a CSV file (test-data/merge-test-cases.csv)
@@ -1339,6 +1648,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Preview ID and expiration time displayed
 
 ### TC-22.2: Preview Summary Stats
+**Requirement:** AC-34, AC-39
+**Automation:** Automated - `diffCalculator.test.ts` (104 tests), `mergeLogic.test.ts` (37 tests), `import-flow.cy.ts`
 **Steps:**
 1. Upload merge-test-cases.csv
 2. Preview in Merge mode
@@ -1352,6 +1663,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Total: 20
 
 ### TC-22.3: INSERT Action - New Patient
+**Requirement:** AC-34
+**Automation:** Automated - `diffCalculator.test.ts: INSERT tests`, `import-flow.cy.ts: filter tests`
 **Steps:**
 1. In preview results, filter by INSERT action
 2. Look for "New Patient, Alice"
@@ -1363,6 +1676,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Reason: "New patient+measure combination"
 
 ### TC-22.4: UPDATE Action - Upgrade to Compliant
+**Requirement:** AC-35
+**Automation:** Automated - `diffCalculator.test.ts: UPDATE tests`
 **Steps:**
 1. In preview results, filter by UPDATE action
 2. Look for "Smith, John"
@@ -1374,6 +1689,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Reason contains "Upgrading"
 
 ### TC-22.5: SKIP Action - Both Compliant
+**Requirement:** AC-35
+**Automation:** Automated - `diffCalculator.test.ts: SKIP tests`
 **Steps:**
 1. In preview results, filter by SKIP action
 2. Look for "Wilson, Sarah"
@@ -1385,6 +1702,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Reason: "Both compliant - keeping existing"
 
 ### TC-22.6: SKIP Action - Both Non-Compliant
+**Requirement:** AC-35
+**Automation:** Automated - `diffCalculator.test.ts: SKIP tests`
 **Steps:**
 1. In preview results, filter by SKIP action
 2. Look for "Jones, Michael"
@@ -1396,6 +1715,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Reason: "Both non-compliant - keeping existing"
 
 ### TC-22.7: BOTH Action - Downgrade Detected
+**Requirement:** AC-35
+**Automation:** Automated - `diffCalculator.test.ts: BOTH tests`
 **Steps:**
 1. In preview results, filter by BOTH action
 2. Look for "Brown, Patricia"
@@ -1407,6 +1728,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Reason: "Downgrade detected - keeping both"
 
 ### TC-22.8: Replace All Mode
+**Requirement:** AC-36
+**Automation:** Automated - `diffCalculator.test.ts: replace mode tests`, `import-flow.cy.ts: mode tests`
 **Steps:**
 1. Upload merge-test-cases.csv
 2. Select "Replace All" mode
@@ -1419,6 +1742,8 @@ This document contains manual test cases for verifying system functionality. Run
 - All deletes show reason: "Replace All mode"
 
 ### TC-22.9: Patient Summary
+**Requirement:** AC-39
+**Automation:** Automated - `ImportPreviewPage.test.tsx: patient counts`
 **Steps:**
 1. In preview results, check Patient Summary section
 
@@ -1428,6 +1753,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Total: 14
 
 ### TC-22.10: Action Filter Buttons
+**Requirement:** AC-38
+**Automation:** Automated - `import-flow.cy.ts: "Filter by action type"`
 **Steps:**
 1. Click on each action card (INSERT, UPDATE, SKIP, etc.)
 2. Verify table filters correctly
@@ -1438,6 +1765,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Count in card matches filtered row count
 
 ### TC-22.11: Preview Expiration
+**Requirement:** AC-37
+**Automation:** Automated - `previewCache.test.ts` (21 tests)
 **Steps:**
 1. Note the expiration time in preview header
 2. Verify it's approximately 30 minutes from now
@@ -1447,6 +1776,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Attempting to load expired preview shows error
 
 ### TC-22.12: Date Parsing in Preview
+**Requirement:** AC-15
+**Automation:** Automated - `fileParser.test.ts: date parsing`, `diffCalculator.test.ts`
 **Steps:**
 1. Verify DOB dates display correctly in preview
 2. Check "Smith, John" shows DOB 1955-01-15
@@ -1459,7 +1790,11 @@ This document contains manual test cases for verifying system functionality. Run
 
 ## 23. Import Executor (Phase 5h)
 
+**Requirement Spec:** [`.claude/specs/import-pipeline/requirements.md`](specs/import-pipeline/requirements.md)
+
 ### TC-23.1: Execute Import - Preview Not Found
+**Requirement:** AC-40
+**Automation:** Automated - `importExecutor.test.ts` (22 tests)
 **Steps:**
 1. Call executeImport with invalid preview ID
 
@@ -1468,6 +1803,8 @@ This document contains manual test cases for verifying system functionality. Run
 - No database changes
 
 ### TC-23.2: Execute Import - Merge Mode INSERT
+**Requirement:** AC-40, AC-44
+**Automation:** Automated - `importExecutor.test.ts: INSERT tests`
 **Steps:**
 1. Create preview with INSERT actions (new patient + measure)
 2. Call executeImport
@@ -1479,6 +1816,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats show inserted: 1
 
 ### TC-23.3: Execute Import - Merge Mode UPDATE
+**Requirement:** AC-40, AC-44
+**Automation:** Automated - `importExecutor.test.ts: UPDATE tests`
 **Steps:**
 1. Create preview with UPDATE action (upgrade status)
 2. Call executeImport
@@ -1491,6 +1830,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats show updated: 1
 
 ### TC-23.4: Execute Import - Merge Mode SKIP
+**Requirement:** AC-40, AC-44
+**Automation:** Automated - `importExecutor.test.ts: SKIP tests`
 **Steps:**
 1. Create preview with SKIP action (both compliant)
 2. Call executeImport
@@ -1500,6 +1841,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats show skipped: 1
 
 ### TC-23.5: Execute Import - Merge Mode BOTH (Downgrade)
+**Requirement:** AC-40, AC-44
+**Automation:** Automated - `importExecutor.test.ts: BOTH tests`
 **Steps:**
 1. Create preview with BOTH action (downgrade scenario)
 2. Call executeImport
@@ -1510,6 +1853,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats show bothKept: 1
 
 ### TC-23.6: Execute Import - Replace Mode DELETE
+**Requirement:** AC-40, AC-44
+**Automation:** Automated - `importExecutor.test.ts: replace mode tests`
 **Steps:**
 1. Create preview with DELETE actions (replace mode)
 2. Call executeImport
@@ -1519,6 +1864,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats show deleted: N
 
 ### TC-23.7: Execute Import - Replace Mode INSERT
+**Requirement:** AC-40, AC-44
+**Automation:** Automated - `importExecutor.test.ts`
 **Steps:**
 1. Create preview in replace mode with INSERT actions
 2. Call executeImport
@@ -1528,6 +1875,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats show inserted: N
 
 ### TC-23.8: Execute Import - Transaction Rollback
+**Requirement:** AC-41
+**Automation:** Automated - `importExecutor.test.ts: rollback tests`
 **Steps:**
 1. Create preview that will cause database error mid-execution
 2. Call executeImport
@@ -1538,6 +1887,8 @@ This document contains manual test cases for verifying system functionality. Run
 - result.errors contains transaction error
 
 ### TC-23.9: Execute Import - Duplicate Flags Synced
+**Requirement:** AC-42
+**Automation:** Automated - `importExecutor.test.ts: duplicate sync tests`
 **Steps:**
 1. Execute import that creates duplicate records
 2. Check duplicate flags after
@@ -1547,6 +1898,8 @@ This document contains manual test cases for verifying system functionality. Run
 - isDuplicate flags correctly set
 
 ### TC-23.10: Execute Import - Preview Deleted After Success
+**Requirement:** AC-43
+**Automation:** Automated - `importExecutor.test.ts`
 **Steps:**
 1. Execute import successfully
 2. Try to retrieve preview by ID
@@ -1556,6 +1909,7 @@ This document contains manual test cases for verifying system functionality. Run
 - getPreview returns null
 
 ### TC-23.11: Execute Import - Null DOB Handling
+**Automation:** Automated - `importExecutor.test.ts: null handling`
 **Steps:**
 1. Create preview with change that has null memberDob
 2. Call executeImport
@@ -1566,6 +1920,8 @@ This document contains manual test cases for verifying system functionality. Run
 - Stats accurate
 
 ### TC-23.12: Execute Import - Stats Accuracy
+**Requirement:** AC-44
+**Automation:** Automated - `importExecutor.test.ts: stats tests`
 **Steps:**
 1. Create preview with mixed actions (2 INSERT, 1 UPDATE, 3 SKIP, 1 BOTH)
 2. Call executeImport
@@ -1594,166 +1950,6 @@ This document contains manual test cases for verifying system functionality. Run
 
 ---
 
-## Test Execution Checklist
-
-| Test Case | Pass | Fail | Notes |
-|-----------|------|------|-------|
-| TC-1.1 | | | |
-| TC-1.2 | | | |
-| TC-1.3 | | | |
-| TC-2.1 | | | |
-| TC-2.2 | | | |
-| TC-2.3 | | | |
-| TC-2.4 | | | |
-| TC-2.5 | | | |
-| TC-3.1 | | | |
-| TC-3.2 | | | |
-| TC-3.3 | | | |
-| TC-3.4 | | | |
-| TC-4.1 | | | |
-| TC-4.2 | | | |
-| TC-4.3 | | | |
-| TC-4.4 | | | |
-| TC-4.5 | | | |
-| TC-5.1 | | | |
-| TC-5.2 | | | |
-| TC-5.2b | | | Completed row overdue |
-| TC-5.2c | | | Terminal status no red |
-| TC-5.2d | | | Edit triggers red |
-| TC-5.3 | | | |
-| TC-5.4 | | | |
-| TC-6.1 | | | |
-| TC-6.2 | | | |
-| TC-6.3 | | | |
-| TC-6.4 | | | |
-| TC-6.5 | | | Chronic DX auto-fill |
-| TC-6.6 | | | Screening options |
-| TC-6.7 | | | Quality options |
-| TC-6.8 | | | Cascade clear on requestType |
-| TC-6.9 | | | Cascade clear on qualityMeasure |
-| TC-6.10 | | | Cascade clear on measureStatus |
-| TC-6.11 | | | Time interval manual override |
-| TC-7.1 | | | |
-| TC-7.2 | | | |
-| TC-7.3 | | | |
-| TC-8.1 | | | Same patient+type+measure |
-| TC-8.2 | | | Same patient, diff type |
-| TC-8.3 | | | Skip when fields empty |
-| TC-8.4 | | | Visual indicator |
-| TC-8.5 | | | Update blocked when creating duplicate |
-| TC-8.5b | | | Duplicate error resets dependent fields |
-| TC-8.6 | | | Delete removes duplicate |
-| TC-9.0 | | | Duplicate button disabled |
-| TC-9.0b | | | Duplicate creates copy below |
-| TC-9.0c | | | Duplicate persists after refresh |
-| TC-9.1 | | | First row position |
-| TC-9.1b | | | Sort cleared on add |
-| TC-9.1c | | | Persists after refresh |
-| TC-9.2 | | | |
-| TC-9.3 | | | |
-| TC-10.1 | | | |
-| TC-10.2 | | | |
-| TC-11.1 | | | |
-| TC-11.2 | | | |
-| TC-11.3 | | | |
-| TC-11.4 | | | HgbA1c free text |
-| TC-11.5 | | | Hypertension BP reading |
-| TC-11.6 | | | Cervical month tracking |
-| TC-11.7 | | | Chronic attestation |
-| TC-12.1 | | | Time interval editable |
-| TC-12.2 | | | Time interval override (tracking) |
-| TC-12.3 | | | Time interval override (HgbA1c) |
-| TC-13.1 | | | |
-| TC-13.2 | | | |
-| TC-14.1 | | | Import Test navigation |
-| TC-14.2 | | | CSV file upload |
-| TC-14.3 | | | Excel file upload |
-| TC-14.4 | | | Column validation |
-| TC-14.5 | | | Error handling |
-| **15. Column Mapping** | | | |
-| TC-15.1 | | | Patient column mapping |
-| TC-15.2 | | | Measure column mapping Q1/Q2 |
-| TC-15.3 | | | Skip columns |
-| TC-15.4 | | | Unmapped columns |
-| TC-15.5 | | | Missing required columns |
-| TC-15.6 | | | Multiple columns → same measure |
-| **16. Data Transformation** | | | |
-| TC-16.1 | | | Wide to long format |
-| TC-16.2 | | | Original vs generated rows |
-| TC-16.3 | | | Empty measure columns skipped |
-| TC-16.4 | | | Status date = import date |
-| TC-16.5 | | | Patients with no measures |
-| TC-16.6 | | | Phone number normalization |
-| **17. Date Parsing** | | | |
-| TC-17.1 | | | MM/DD/YYYY format |
-| TC-17.2 | | | M/D/YYYY format |
-| TC-17.3 | | | M/D/YY format |
-| TC-17.4 | | | YYYY-MM-DD format |
-| TC-17.5 | | | M.D.YYYY format |
-| TC-17.6 | | | Excel serial number |
-| TC-17.7 | | | Invalid date |
-| **18. Non-Compliant Wins Logic** | | | |
-| TC-18.1 | | | All compliant |
-| TC-18.2 | | | Any non-compliant wins |
-| TC-18.3 | | | All non-compliant |
-| TC-18.4 | | | Mixed empty + compliant |
-| TC-18.5 | | | Mixed empty + non-compliant |
-| TC-18.6 | | | All empty (skip) |
-| TC-18.7 | | | Case insensitive |
-| TC-18.8 | | | Compliant abbreviations |
-| TC-18.9 | | | Non-compliant abbreviations |
-| **19. Validation** | | | |
-| TC-19.1 | | | Missing member name |
-| TC-19.2 | | | Missing DOB |
-| TC-19.3 | | | Invalid DOB format |
-| TC-19.4 | | | Missing request type |
-| TC-19.5 | | | Invalid request type |
-| TC-19.6 | | | Missing quality measure |
-| TC-19.7 | | | Invalid quality measure |
-| TC-19.8 | | | Missing measure status |
-| TC-19.9 | | | Missing phone |
-| TC-19.10 | | | Duplicate within import |
-| **20. Error Reporting** | | | |
-| TC-20.1 | | | Error includes member name |
-| TC-20.2 | | | Error count display |
-| TC-20.3 | | | Warning count display |
-| TC-20.4 | | | Duplicate groups display |
-| TC-20.5 | | | Summary - all valid |
-| TC-20.6 | | | Summary - warnings only |
-| TC-20.7 | | | Summary - has errors |
-| TC-20.8 | | | Can proceed false (errors) |
-| TC-20.9 | | | Can proceed true (warnings) |
-| **21. Import Test Page UI** | | | |
-| TC-21.1 | | | Transform button |
-| TC-21.2 | | | Validate button |
-| TC-21.3 | | | Tab navigation |
-| TC-21.4 | | | Stats grid - Transform |
-| TC-21.5 | | | Stats grid - Validate |
-| TC-21.6 | | | Preview table |
-| TC-21.7 | | | Patients no measures section |
-| TC-21.8 | | | Scrollable error list |
-| TC-21.9 | | | Row numbers match spreadsheet (no title) |
-| TC-21.10 | | | Row numbers match spreadsheet (with title) |
-| TC-21.11 | | | Error deduplication per patient |
-| TC-21.12 | | | Patients no measures row numbers |
-| **22. Import Preview** | | | |
-| TC-22.1 | | | Preview button and mode selection |
-| TC-22.2 | | | Preview summary stats |
-| TC-22.3 | | | INSERT action - new patient |
-| TC-22.4 | | | UPDATE action - upgrade to compliant |
-| TC-22.5 | | | SKIP action - both compliant |
-| TC-22.6 | | | SKIP action - both non-compliant |
-| TC-22.7 | | | BOTH action - downgrade detected |
-| TC-22.8 | | | Replace All mode |
-| TC-22.9 | | | Patient summary |
-| TC-22.10 | | | Action filter buttons |
-| TC-22.11 | | | Preview expiration |
-| TC-22.12 | | | Date parsing in preview |
-
----
-
----
-
 ## 24. Automated E2E Tests (Playwright)
 
 The following test cases are automated using Playwright. Run with `npm run e2e` in the frontend directory.
@@ -1766,6 +1962,7 @@ The following test cases are automated using Playwright. Run with `npm run e2e` 
 | `e2e/add-row.spec.ts` | Add Row modal and form functionality | 9 |
 | `e2e/duplicate-member.spec.ts` | Duplicate Member button behavior | 8 (3 skipped) |
 | `e2e/delete-row.spec.ts` | Delete Row confirmation flow | 10 (4 skipped) |
+| `e2e/auth.spec.ts` | Authentication flow (login, logout, protected routes) | 13 |
 
 ### Skipped Tests (Require Test Isolation)
 
@@ -1790,53 +1987,57 @@ npm run e2e:report    # View test report
 
 ## 25. Automated E2E Tests (Cypress)
 
-Cypress tests for AG Grid cascading dropdown functionality. Cypress handles AG Grid dropdown selection better than Playwright due to native browser event simulation.
+Cypress tests for AG Grid interactions, import flow, patient assignment, role access control, and sorting/filtering.
 
-### Test File
+### Test Files
 
 | File | Description | Tests |
 |------|-------------|-------|
-| `cypress/e2e/cascading-dropdowns.cy.ts` | Cascading dropdown behavior | 19 |
+| `cypress/e2e/cascading-dropdowns.cy.ts` | Cascading dropdown behavior, row colors | 30 |
+| `cypress/e2e/import-flow.cy.ts` | Import workflow, preview, execution | 57 |
+| `cypress/e2e/patient-assignment.cy.ts` | Patient/staff assignment, count verification | 32 |
+| `cypress/e2e/role-access-control.cy.ts` | STAFF/PHYSICIAN/ADMIN access restrictions | 31 |
+| `cypress/e2e/sorting-filtering.cy.ts` | Column sorting, status filter bar, row colors | 55 |
+| `cypress/e2e/patient-name-search.cy.ts` | Search input UI, filtering, AND logic, keyboard shortcuts | 13 |
+| `cypress/e2e/multi-select-filter.cy.ts` | Multi-select toggle, duplicates exclusivity, checkmark visual | 18 |
 
 ### Test Categories
 
-**Request Type Selection (4 tests):**
+**Cascading Dropdowns (30 tests):**
 - Request Type dropdown has 4 options (AWV, Chronic DX, Quality, Screening)
 - AWV auto-fills Quality Measure with "Annual Wellness Visit"
 - Chronic DX auto-fills Quality Measure with "Chronic Diagnosis Code"
 - Quality shows 8 Quality Measure options
 - Screening shows 3 Quality Measure options
+- AWV Measure Status options and row colors
+- Breast Cancer Screening status and tracking options
+- Chronic Diagnosis Code status and attestation tracking
+- Cascading field clearing behavior
 
-**AWV Measure Status (5 tests):**
-- AWV has 7 status options
-- Can select AWV completed status
-- AWV completed shows green row color
-- AWV scheduled shows blue row color
-- Patient declined AWV shows purple row color
+**Import Flow (57 tests):**
+- Import page: system/mode selection, file upload validation
+- Preview page: summary cards, filters, changes table
+- Execution: success/error states, navigation
+- Error handling, merge mode behavior, warnings
 
-**Breast Cancer Screening (5 tests):**
-- Breast Cancer Screening has 8 status options
-- Screening test ordered shows Tracking #1 options (Mammogram, Breast Ultrasound, Breast MRI)
-- Can select Mammogram tracking
-- Screening test completed shows green row
+**Patient Assignment (32 tests):**
+- Assign unassigned patients to physicians
+- Verify patient counts update correctly
+- Staff-physician assignment management
+- Data freshness verification (no caching)
 
-**Chronic Diagnosis Code (3 tests):**
-- Chronic Diagnosis Code has 5 status options
-- Chronic diagnosis resolved shows attestation options
-- Chronic diagnosis resolved shows orange row
+**Role Access Control (31 tests):**
+- STAFF restrictions: no admin, no unassigned patients, only assigned physicians
+- PHYSICIAN restrictions: no admin, only own patients
+- ADMIN capabilities: full access to all features
+- API 401/403 protection tests
 
-**Cascading Field Clearing (2 tests):**
-- Changing Request Type clears Quality Measure and downstream
-- Changing Quality Measure clears Measure Status
-
-### Running Cypress Tests
-
-```bash
-cd frontend
-npm run cypress         # Open Cypress Test Runner
-npm run cypress:run     # Run headless
-npm run cypress:headed  # Run with browser visible
-```
+**Sorting & Filtering (55 tests):**
+- Column sorting (ascending, descending, clear)
+- Date/numeric column sorting (chronological, numeric)
+- Status filter bar behavior (filter, deselect, switch)
+- Row color verification (10 tests)
+- Status bar count updates
 
 ### Custom AG Grid Commands
 
@@ -1848,13 +2049,24 @@ cy.selectAgGridDropdown(rowIndex, colId, value) // Select dropdown value
 cy.getAgGridDropdownOptions()                // Get all options from open dropdown
 ```
 
----
+### Running Cypress Tests
+
+```bash
+cd frontend
+npm run cypress         # Open Cypress Test Runner
+npm run cypress:run     # Run headless
+npm run cypress:headed  # Run with browser visible
+```
 
 ---
 
 ## 26. Authentication & Multi-Physician Support (Phase 11)
 
+**Requirement Spec:** [`.claude/specs/authentication/requirements.md`](specs/authentication/requirements.md)
+
 ### TC-26.1: Login Page - Valid Credentials
+**Requirement:** AC-1, AC-2, AC-6
+**Automation:** Automated - `LoginPage.test.tsx` (19 tests), `auth.spec.ts: login tests`
 **Steps:**
 1. Navigate to application
 2. Enter valid email and password
@@ -1866,6 +2078,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Protected routes accessible
 
 ### TC-26.2: Login Page - Invalid Credentials
+**Requirement:** AC-3
+**Automation:** Automated - `LoginPage.test.tsx: error handling`, `auth.spec.ts: "invalid credentials"`
 **Steps:**
 1. Navigate to application
 2. Enter invalid email or password
@@ -1877,6 +2091,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - No token stored
 
 ### TC-26.3: Login Page - Form Validation
+**Requirement:** AC-4
+**Automation:** Automated - `LoginPage.test.tsx: validation tests`
 **Steps:**
 1. Leave email field empty, click "Sign In"
 2. Enter invalid email format, click "Sign In"
@@ -1886,6 +2102,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Cannot submit with invalid email format
 
 ### TC-26.4: Logout
+**Requirement:** AC-5
+**Automation:** Automated - `auth.spec.ts: logout test`, `authStore.test.ts: logout`
 **Steps:**
 1. Login as any user
 2. Click user menu in header
@@ -1897,6 +2115,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Cannot access protected routes
 
 ### TC-26.5: Password Change
+**Requirement:** AC-11, AC-12, AC-14, AC-15
+**Automation:** Manual - password change UI flow not E2E automated
 **Steps:**
 1. Login as any user
 2. Click user menu → "Change Password"
@@ -1909,6 +2129,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Can login with new password
 
 ### TC-26.6: Password Change - Wrong Current Password
+**Requirement:** AC-13
+**Automation:** Partial - `auth.routes.test.ts: password change validation` (backend only)
 **Steps:**
 1. Login as any user
 2. Click user menu → "Change Password"
@@ -1920,6 +2142,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Password not changed
 
 ### TC-26.7: PHYSICIAN Role - Data Isolation
+**Requirement:** See patient-ownership spec AC-1, AC-2, AC-3
+**Automation:** Automated - `role-access-control.cy.ts: "PHYSICIAN auto-filters"`
 **Steps:**
 1. Login as PHYSICIAN user (e.g., dr.smith@clinic)
 2. View patient grid
@@ -1930,6 +2154,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Cannot see unassigned patients (ownerId = null)
 
 ### TC-26.8: STAFF Role - Physician Selector
+**Requirement:** See patient-ownership spec AC-5
+**Automation:** Automated - `role-access-control.cy.ts: "STAFF assigned physicians"`
 **Steps:**
 1. Login as STAFF user
 2. Observe header
@@ -1940,6 +2166,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - First assigned physician selected by default
 
 ### TC-26.9: STAFF Role - Switch Physician
+**Requirement:** See patient-ownership spec AC-7
+**Automation:** Automated - `patient-assignment.cy.ts: physician switching`
 **Steps:**
 1. Login as STAFF user with multiple assigned physicians
 2. Select different physician from dropdown
@@ -1950,6 +2178,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Only shows patients where ownerId = selected physician
 
 ### TC-26.10: STAFF Role - No Assignments
+**Requirement:** See patient-ownership spec AC-8
+**Automation:** Manual - no assignments message not tested
 **Steps:**
 1. Login as STAFF user with no physician assignments
 
@@ -1958,6 +2188,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Empty patient grid or message indicating no data access
 
 ### TC-26.11: ADMIN Role - Cannot See Patients
+**Requirement:** See patient-ownership spec AC-9
+**Automation:** Automated - `role-access-control.cy.ts: "ADMIN" tests`
 **Steps:**
 1. Login as ADMIN user
 2. Attempt to navigate to patient grid (/)
@@ -1968,6 +2200,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Error if trying to access /api/data/patients directly
 
 ### TC-26.12: ADMIN Role - User Management
+**Requirement:** See admin-dashboard spec AC-1
+**Automation:** Automated - `patient-assignment.cy.ts: user management`
 **Steps:**
 1. Login as ADMIN user
 2. Navigate to Admin dashboard
@@ -1978,6 +2212,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Create/Edit/Deactivate buttons available
 
 ### TC-26.13: Admin - Create User
+**Requirement:** See admin-dashboard spec AC-2
+**Automation:** Automated - `patient-assignment.cy.ts: "Create user"`
 **Steps:**
 1. As ADMIN, click "Create User"
 2. Fill in email, username, display name, password, role
@@ -1989,6 +2225,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Can login with new credentials
 
 ### TC-26.14: Admin - Edit User
+**Requirement:** See admin-dashboard spec AC-3
+**Automation:** Automated - `patient-assignment.cy.ts: "Edit user"`
 **Steps:**
 1. As ADMIN, click "Edit" on a user
 2. Change display name and role
@@ -2000,6 +2238,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - User's next login reflects new role
 
 ### TC-26.15: Admin - Deactivate User
+**Requirement:** See admin-dashboard spec AC-4
+**Automation:** Manual - deactivation flow not E2E tested
 **Steps:**
 1. As ADMIN, click "Deactivate" on a user
 2. Confirm action
@@ -2010,6 +2250,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - User appears dimmed/marked as inactive in list
 
 ### TC-26.16: Admin - Reset Password
+**Requirement:** See admin-dashboard spec AC-5
+**Automation:** Manual - admin password reset not E2E tested
 **Steps:**
 1. As ADMIN, click "Reset Password" on a user
 2. Enter new password
@@ -2020,6 +2262,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - User can login with new password
 
 ### TC-26.17: Admin - Staff Assignments
+**Requirement:** See admin-dashboard spec AC-6, AC-7
+**Automation:** Automated - `patient-assignment.cy.ts: "Staff assignments"`
 **Steps:**
 1. As ADMIN, edit a STAFF user
 2. Add/remove physician assignments
@@ -2030,6 +2274,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - STAFF user sees updated physician list on next login
 
 ### TC-26.18: Admin - Audit Log Viewer
+**Requirement:** See admin-dashboard spec AC-9, AC-10, AC-11
+**Automation:** Manual - audit log display not automated
 **Steps:**
 1. As ADMIN, navigate to Audit Log section
 2. View recent entries
@@ -2039,6 +2285,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Entries include timestamp, user, action, details
 
 ### TC-26.19: Protected Routes - No Token
+**Requirement:** AC-8
+**Automation:** Automated - `auth.spec.ts: "protected routes"`, `role-access-control.cy.ts: "Navigation redirects"`
 **Steps:**
 1. Clear localStorage (remove token)
 2. Navigate directly to /
@@ -2048,6 +2296,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Cannot access protected content
 
 ### TC-26.20: Protected Routes - Expired Token
+**Requirement:** AC-9
+**Automation:** Partial - `authService.test.ts: JWT expiry` (backend only, not E2E)
 **Steps:**
 1. Login and get token
 2. Wait for token to expire (8 hours by default)
@@ -2058,6 +2308,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Error message about session expired
 
 ### TC-26.21: Import Page - PHYSICIAN Ownership
+**Requirement:** See patient-ownership spec AC-17
+**Automation:** Manual - physician auto-import-assign not E2E tested
 **Steps:**
 1. Login as PHYSICIAN
 2. Import patients via /import
@@ -2068,6 +2320,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Only visible to current physician
 
 ### TC-26.22: Import Page - STAFF Physician Selection
+**Requirement:** See patient-ownership spec AC-16
+**Automation:** Automated - `ImportPage.test.tsx: physician dropdown`
 **Steps:**
 1. Login as STAFF with multiple physician assignments
 2. Navigate to Import page
@@ -2078,6 +2332,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - OR imports to currently selected physician from header
 
 ### TC-26.23: CLI Password Reset
+**Requirement:** AC-26
+**Automation:** Manual - CLI scripts not automated
 **Steps:**
 1. Run: `npm run reset-password -- --email user@clinic --password newpass`
 
@@ -2087,6 +2343,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Works for any user including ADMIN
 
 ### TC-26.24: Audit Log Cleanup
+**Requirement:** AC-27
+**Automation:** Manual - CLI scripts not automated
 **Steps:**
 1. Run: `npm run cleanup-audit-log -- --days 30`
 
@@ -2096,6 +2354,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Remaining entries preserved
 
 ### TC-26.25: Forgot Password - Link on Login Page
+**Requirement:** AC-16
+**Automation:** Automated - `ForgotPasswordPage.test.tsx` (20 tests), `auth.spec.ts`
 **Steps:**
 1. Navigate to /login
 2. Look for "Forgot Password?" link
@@ -2105,6 +2365,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Clicking link navigates to /forgot-password
 
 ### TC-26.26: Forgot Password - Request Reset (SMTP Configured)
+**Requirement:** AC-17, AC-19
+**Automation:** Automated - `ForgotPasswordPage.test.tsx: SMTP configured tests`
 **Steps:**
 1. Ensure SMTP is configured in environment
 2. Navigate to /forgot-password
@@ -2118,6 +2380,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Token expires after 1 hour
 
 ### TC-26.27: Forgot Password - Request Reset (SMTP Not Configured)
+**Requirement:** AC-18
+**Automation:** Automated - `ForgotPasswordPage.test.tsx: no SMTP test`
 **Steps:**
 1. Ensure SMTP is NOT configured
 2. Navigate to /forgot-password
@@ -2127,6 +2391,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - No email form shown
 
 ### TC-26.28: Forgot Password - Invalid Email
+**Requirement:** AC-19
+**Automation:** Automated - `auth.routes.test.ts: forgot password`, `ForgotPasswordPage.test.tsx`
 **Steps:**
 1. Navigate to /forgot-password
 2. Enter email that doesn't exist in system
@@ -2137,6 +2403,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - No email sent
 
 ### TC-26.29: Reset Password - Valid Token
+**Requirement:** AC-22, AC-25
+**Automation:** Automated - `ResetPasswordPage.test.tsx` (17 tests)
 **Steps:**
 1. Request password reset email
 2. Click link in email (navigates to /reset-password?token=xxx)
@@ -2149,6 +2417,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Can login with new password
 
 ### TC-26.30: Reset Password - Expired Token
+**Requirement:** AC-20, AC-23
+**Automation:** Automated - `ResetPasswordPage.test.tsx: expired token`, `authService.test.ts`
 **Steps:**
 1. Request password reset email
 2. Wait >1 hour (or manually expire token in DB)
@@ -2159,6 +2429,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Link to request new reset
 
 ### TC-26.31: Reset Password - Invalid Token
+**Requirement:** AC-23
+**Automation:** Automated - `ResetPasswordPage.test.tsx: invalid token`
 **Steps:**
 1. Navigate to /reset-password?token=invalidtoken
 
@@ -2167,6 +2439,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Link to request new reset
 
 ### TC-26.32: Reset Password - Token Already Used
+**Requirement:** AC-21
+**Automation:** Automated - `auth.routes.test.ts: used token test`
 **Steps:**
 1. Request password reset email
 2. Use the link to reset password
@@ -2177,6 +2451,8 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Link to request new reset
 
 ### TC-26.33: Reset Password - Password Validation
+**Requirement:** AC-24
+**Automation:** Automated - `ResetPasswordPage.test.tsx: password validation`
 **Steps:**
 1. Navigate to /reset-password with valid token
 2. Enter mismatched passwords
@@ -2191,7 +2467,11 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 
 ## 27. Patient Assignment (Phase 12)
 
+**Requirement Spec:** [`.claude/specs/patient-ownership/requirements.md`](specs/patient-ownership/requirements.md)
+
 ### TC-27.1: View Unassigned Patients (ADMIN)
+**Requirement:** See patient-ownership spec AC-9, AC-10
+**Automation:** Automated - `patient-assignment.cy.ts`
 **Steps:**
 1. Login as ADMIN user
 2. On Patient Grid page, select "Unassigned patients" from dropdown
@@ -2201,9 +2481,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Status bar shows correct count
 - No caching - fresh data on each selection
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.2: Assign Unassigned Patient to Physician
+**Requirement:** See patient-ownership spec AC-13
+**Automation:** Automated - `patient-assignment.cy.ts: "Assign patients"`
 **Steps:**
 1. Login as ADMIN
 2. Navigate to /admin/patient-assignment
@@ -2216,9 +2496,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Patient no longer in unassigned list
 - Patient appears in target physician's list
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.3: Bulk Assign Multiple Patients
+**Requirement:** See patient-ownership spec AC-13
+**Automation:** Automated - `patient-assignment.cy.ts: bulk assign tests`
 **Steps:**
 1. Login as ADMIN
 2. Navigate to /admin/patient-assignment
@@ -2231,9 +2511,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Count updates immediately
 - Success message shows count
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.4: Patient Count Updates After Assignment
+**Requirement:** See patient-ownership spec AC-14
+**Automation:** Automated - `patient-assignment.cy.ts: "Count updates"`
 **Steps:**
 1. Note unassigned patient count
 2. Note target physician's patient count
@@ -2244,9 +2524,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Unassigned count decreases by 1
 - Physician count increases by 1
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.5: Assign Physician to Staff User
+**Requirement:** See admin-dashboard spec AC-6, AC-7
+**Automation:** Automated - `patient-assignment.cy.ts: "Staff assignments"`
 **Steps:**
 1. Login as ADMIN
 2. Go to Admin page
@@ -2258,9 +2538,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Staff user now has physician assigned
 - Assignment count updates in user list
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.6: Staff Sees Only Assigned Physicians
+**Requirement:** See patient-ownership spec AC-5
+**Automation:** Automated - `patient-assignment.cy.ts: "Staff sees assigned"`, `role-access-control.cy.ts`
 **Steps:**
 1. As ADMIN, assign Physician A to Staff User
 2. Login as Staff User
@@ -2270,9 +2550,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Only Physician A appears in dropdown
 - Cannot view other physicians' patients
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.7: Staff Viewing Assigned Physician's Patients
+**Requirement:** See patient-ownership spec AC-7
+**Automation:** Automated - `patient-assignment.cy.ts`
 **Steps:**
 1. Login as STAFF with physician assignment
 2. Select assigned physician from dropdown
@@ -2282,9 +2562,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Grid shows that physician's patients
 - Patient count matches physician's actual count
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.8: No Data Caching When Switching Physicians
+**Requirement:** See patient-ownership spec AC-7
+**Automation:** Automated - `patient-assignment.cy.ts: data freshness tests`
 **Steps:**
 1. Select Physician A, note patients
 2. Select Physician B, note patients
@@ -2294,9 +2574,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Fresh API call made each time
 - No stale data from previous selection
 
-**Automated:** `patient-assignment.cy.ts`
-
 ### TC-27.9: Provider Dropdown Only on Patient Grid
+**Requirement:** See patient-ownership spec AC-11
+**Automation:** Automated - `Header.test.tsx: "dropdown only on grid page"`
 **Steps:**
 1. Login as ADMIN
 2. Check header on Patient Grid page
@@ -2307,9 +2587,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Dropdown visible only on Patient Grid (/)
 - Not visible on /import or /admin
 
-**Automated:** `Header.test.tsx`
-
 ### TC-27.10: Unassigned Option Only for ADMIN
+**Requirement:** See patient-ownership spec AC-9, role-access-control spec AC-3
+**Automation:** Automated - `Header.test.tsx: "Unassigned option for ADMIN"`, `role-access-control.cy.ts`
 **Steps:**
 1. Login as ADMIN, check dropdown
 2. Login as STAFF, check dropdown
@@ -2318,13 +2598,15 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - ADMIN sees "Unassigned patients" option
 - STAFF does not see "Unassigned patients" option
 
-**Automated:** `Header.test.tsx`
-
 ---
 
 ## 28. Role-Based Access Control
 
+**Requirement Spec:** [`.claude/specs/role-access-control/requirements.md`](specs/role-access-control/requirements.md)
+
 ### TC-28.1: STAFF Cannot Access Admin Page
+**Requirement:** AC-1, AC-2
+**Automation:** Automated - `role-access-control.cy.ts: "STAFF Cannot Access Admin"`
 **Steps:**
 1. Login as STAFF user
 2. Try to navigate to /admin
@@ -2333,9 +2615,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Redirected away from /admin
 - No "Admin" link in navigation
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.2: STAFF Cannot See Unassigned Patients Option
+**Requirement:** AC-3
+**Automation:** Automated - `role-access-control.cy.ts: "No unassigned option"`, `Header.test.tsx`
 **Steps:**
 1. Login as STAFF user
 2. Go to Patient Grid page
@@ -2345,9 +2627,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Dropdown only shows assigned physicians
 - No "Unassigned patients" option
 
-**Automated:** `role-access-control.cy.ts`, `Header.test.tsx`
-
 ### TC-28.3: STAFF Can Only See Assigned Physicians
+**Requirement:** AC-4
+**Automation:** Automated - `role-access-control.cy.ts: "Only assigned physicians"`
 **Steps:**
 1. Login as STAFF user assigned to Physician A only
 2. Check dropdown options
@@ -2356,9 +2638,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Only Physician A appears in dropdown
 - Cannot view Physician B's patients
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.4: PHYSICIAN Auto-Filters to Own Patients
+**Requirement:** AC-6, AC-7
+**Automation:** Automated - `role-access-control.cy.ts: "PHYSICIAN auto-filters"`
 **Steps:**
 1. Login as PHYSICIAN user
 2. Navigate to Patient Grid
@@ -2367,9 +2649,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - No physician selector dropdown shown
 - Grid automatically shows own patients only
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.5: PHYSICIAN Cannot See Admin Functions
+**Requirement:** AC-8, AC-9
+**Automation:** Automated - `role-access-control.cy.ts: "PHYSICIAN no admin"`
 **Steps:**
 1. Login as PHYSICIAN user (not also ADMIN)
 2. Check navigation and available pages
@@ -2378,9 +2660,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - No "Admin" link visible
 - Cannot access /admin or /admin/patient-assignment
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.6: PHYSICIAN Cannot View Other Doctors' Patients
+**Requirement:** AC-10
+**Automation:** Automated - `role-access-control.cy.ts: "API ignores physicianId"`
 **Steps:**
 1. Login as PHYSICIAN
 2. Try to access API with different physicianId
@@ -2389,9 +2671,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - API ignores physicianId parameter (forces own)
 - Cannot see other doctors' patients
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.7: PHYSICIAN Cannot View Unassigned Patients
+**Requirement:** AC-11
+**Automation:** Automated - `role-access-control.cy.ts`
 **Steps:**
 1. Login as PHYSICIAN
 2. Try to access unassigned patients
@@ -2400,9 +2682,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - No option to view unassigned
 - API rejects physicianId=unassigned
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.8: ADMIN Full Access
+**Requirement:** AC-12, AC-13, AC-14, AC-15, AC-16
+**Automation:** Automated - `role-access-control.cy.ts: "ADMIN Full Access"`
 **Steps:**
 1. Login as ADMIN user
 2. Verify all functions available
@@ -2414,9 +2696,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 - Can view unassigned patients
 - Can access patient assignment page
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.9: API Returns 401 Without Authentication
+**Requirement:** AC-17
+**Automation:** Automated - `role-access-control.cy.ts: "API 401"`, `data.routes.test.ts`
 **Steps:**
 1. Clear all auth tokens
 2. Make API request to /api/data
@@ -2424,9 +2706,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 **Expected:**
 - 401 Unauthorized response
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.10: Admin API Returns 401 Without Authentication
+**Requirement:** AC-18
+**Automation:** Automated - `role-access-control.cy.ts: "Admin API 401"`, `admin.routes.test.ts`
 **Steps:**
 1. Clear all auth tokens
 2. Make API request to /api/admin/users
@@ -2434,9 +2716,9 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 **Expected:**
 - 401 Unauthorized response
 
-**Automated:** `role-access-control.cy.ts`
-
 ### TC-28.11: Navigation Redirects to Login When Unauthenticated
+**Requirement:** AC-20
+**Automation:** Automated - `role-access-control.cy.ts: "Navigation redirects"`
 **Steps:**
 1. Clear auth session
 2. Try to access /, /admin, /import
@@ -2444,12 +2726,219 @@ cy.getAgGridDropdownOptions()                // Get all options from open dropdo
 **Expected:**
 - All redirect to /login
 
-**Automated:** `role-access-control.cy.ts`
+---
+
+## 29. Patient Name Search
+
+**Requirement Spec:** [`.claude/specs/patient-name-search/requirements.md`](specs/patient-name-search/requirements.md)
+
+### TC-29.1: Search Input UI
+**Requirement:** Req 1 (AC 1.1-1.7)
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Search Input"` (10 tests), `patient-name-search.cy.ts: "Search Input UI"` (3 tests)
+**Steps:**
+1. Navigate to patient grid
+2. Observe the StatusFilterBar
+
+**Expected:**
+- Search input visible to the right of status chips
+- Placeholder text "Search by name..."
+- Search magnifying glass icon visible
+- Clear (X) button hidden when input is empty
+- Clear (X) button visible when input has text
+- `aria-label="Search patients by name"` on input
+- `aria-label="Clear search"` on clear button
+
+### TC-29.2: Real-Time Name Filtering
+**Requirement:** Req 2 (AC 2.1-2.6)
+**Automation:** Automated - `MainPage.test.tsx` (20 tests), `patient-name-search.cy.ts: "Filtering Behavior"` (4 tests)
+**Steps:**
+1. Type "Smith" in the search input
+2. Observe grid rows
+
+**Expected:**
+- Grid filters in real-time as you type
+- Only rows where memberName contains "Smith" are shown
+- Case-insensitive (typing "smith" matches "Smith, John")
+- Partial match (typing "Smi" matches "Smith, John")
+- Matches any part of name ("john" matches "Johnson, Mary")
+- Typing non-matching text shows empty grid
+
+### TC-29.3: Search with Status Filter (AND Logic)
+**Requirement:** Req 3 (AC 3.1-3.4)
+**Automation:** Automated - `MainPage.test.tsx: "search + status filter"` (6 tests), `patient-name-search.cy.ts: "Filter Combination"` (2 tests)
+**Steps:**
+1. Click "Completed" status chip
+2. Type "Smith" in search input
+
+**Expected:**
+- Only rows matching BOTH green status AND "Smith" name shown
+- Clearing search restores all green rows (status filter maintained)
+- Status chip counts reflect full dataset (not affected by search)
+
+### TC-29.4: Clear Search Behavior
+**Requirement:** Req 1 (AC 1.5, 1.6)
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Clear search"` (2 tests), `patient-name-search.cy.ts: "Clear Behavior"` (2 tests)
+**Steps:**
+1. Type text in search input
+2. Click clear (X) button
+
+**Expected:**
+- Search input cleared to empty
+- Clear button disappears
+- All rows restored (respecting active status filter)
+
+### TC-29.5: Row Count Update
+**Requirement:** Req 4 (AC 4.1-4.2)
+**Automation:** Automated - `MainPage.test.tsx: "chip counts"` (1 test), `patient-name-search.cy.ts: "Status Bar Row Count"` (1 test)
+**Steps:**
+1. Note status bar row count
+2. Type a search term
+
+**Expected:**
+- Status bar shows "Showing X of Y rows" when search is active
+- Status chip counts do NOT change during search
+
+### TC-29.6: Keyboard Shortcuts
+**Requirement:** Req 5 (AC 5.1-5.2)
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Escape key"` (2 tests), `patient-name-search.cy.ts: "Keyboard Shortcuts"` (2 tests)
+**Steps:**
+1. Press Ctrl+F (or Cmd+F)
+2. Type a search term
+3. Press Escape
+
+**Expected:**
+- Ctrl+F focuses the search input
+- Does NOT intercept Ctrl+F when editing AG Grid cell
+- Escape clears search text and blurs the input
+
+## 30. Multi-Select Status Filter
+
+**Spec:** `.claude/specs/multi-select-filter/requirements.md`
+
+### TC-30.1: Multi-Select Toggle Behavior
+**Requirements:** AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6
+**Automation:** Automated - `StatusFilterBar.test.tsx` (7 tests), `multi-select-filter.cy.ts` (5 tests)
+
+**Steps:**
+1. Click a status chip → toggles ON (added to active filters)
+2. Click a second chip → both active (multi-select)
+3. Click an active chip → toggles OFF (removed from filters, others unaffected)
+4. Toggle off the last chip → "All" auto-activates
+5. Click "All" → clears all individual selections
+6. Click chip while "All" active → only clicked chip active
+
+**Expected:**
+- Multi-select toggle works for all scenarios
+- Grid shows rows matching ANY selected color (OR logic)
+- Zero-selection state impossible (always falls back to "All")
+
+### TC-30.2: Checkmark + Fill Visual Style
+**Requirements:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, AC-2.6
+**Automation:** Automated - `StatusFilterBar.test.tsx` (5 tests), `multi-select-filter.cy.ts` (4 tests)
+
+**Steps:**
+1. Observe active chips → filled background + checkmark icon
+2. Observe inactive chips → outlined style + reduced opacity
+3. Hover inactive chip → subtle opacity increase
+4. Observe "All" chip → same visual treatment as other chips
+
+**Expected:**
+- Active chips show checkmark + filled background matching status color
+- Inactive chips at 50% opacity with 75% on hover
+- All chips including "All" and "Duplicates" use consistent visual treatment
+
+### TC-30.3: Duplicates Filter Exclusivity
+**Requirements:** AC-3.1, AC-3.2, AC-3.3, AC-3.4
+**Automation:** Automated - `StatusFilterBar.test.tsx` (2 tests), `multi-select-filter.cy.ts` (3 tests)
+
+**Steps:**
+1. Select color chips, then click "Duplicates" → color chips deselected
+2. While "Duplicates" active, click a color chip → exits duplicates mode
+3. Click "Duplicates" again to toggle off → returns to "All"
+
+**Expected:**
+- "Duplicates" and color chips are mutually exclusive
+- "Duplicates" and "All" are mutually exclusive
+- "Duplicates" uses same checkmark + fill visual
+
+### TC-30.4: Status Bar and Chip Counts
+**Requirements:** AC-4.1, AC-4.2, AC-4.3
+**Automation:** Automated - `MainPage.test.tsx` (8 tests), `multi-select-filter.cy.ts` (2 tests)
+
+**Steps:**
+1. Select multiple filters → status bar shows combined count
+2. Observe chip counts → always reflect full dataset
+3. Add search with multi-filter → AND logic applies
+
+**Expected:**
+- Status bar shows "Showing X of Y rows" for combined count
+- Chip counts unchanged when filters active
+- Search narrows within multi-filter results
+
+### TC-30.5: Keyboard Accessibility
+**Requirements:** AC-5.1, AC-5.2, AC-5.3
+**Automation:** Automated - `multi-select-filter.cy.ts` (2 tests), `StatusFilterBar.test.tsx` (aria-pressed tests)
+
+**Steps:**
+1. Focus a chip and press Enter/Space → toggles state
+2. Tab between chips → focus moves in order
+3. Check `aria-pressed` attribute → reflects toggle state
+
+**Expected:**
+- Native button keyboard behavior works (Enter/Space toggle)
+- Tab navigation works between chips
+- `aria-pressed` is `true` for active, `false` for inactive chips
+
+---
+
+## Automation Summary
+
+### Coverage by Section
+
+| Section | Total TCs | Automated | Partial | Manual | Coverage |
+|---------|-----------|-----------|---------|--------|----------|
+| 1. Data Loading | 3 | 2 | 1 | 0 | 83% |
+| 2. Cell Editing | 5 | 0 | 2 | 3 | 20% |
+| 3. Sorting | 4 | 1 | 0 | 3 | 25% |
+| 4. Status Filter | 5 | 5 | 0 | 0 | 100% |
+| 5. Row Colors | 7 | 3 | 1 | 3 | 50% |
+| 6. Cascading Dropdowns | 11 | 9 | 0 | 2 | 82% |
+| 7. Due Date | 3 | 2 | 0 | 1 | 67% |
+| 8. Duplicate Detection | 7 | 1 | 1 | 5 | 21% |
+| 9. Row Operations | 10 | 6 | 0 | 4 | 60% |
+| 10. Status Bar | 2 | 2 | 0 | 0 | 100% |
+| 11. Tracking Fields | 7 | 2 | 1 | 4 | 36% |
+| 12. Time Interval | 3 | 0 | 0 | 3 | 0% |
+| 13. Error Handling | 2 | 0 | 0 | 2 | 0% |
+| 14-23. Import Pipeline | 62 | 58 | 2 | 2 | 95% |
+| 26. Authentication | 19 | 14 | 2 | 3 | 79% |
+| 27. Patient Assignment | 10 | 10 | 0 | 0 | 100% |
+| 28. RBAC | 11 | 11 | 0 | 0 | 100% |
+| 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
+| 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
+
+### Top Priority Gaps
+
+| Priority | Area | Gap | Recommended Framework |
+|----------|------|-----|----------------------|
+| HIGH | Cell Editing | 0 automated E2E tests for cell edit workflow | Cypress |
+| HIGH | Time Interval | 0 automated tests for editability/override | Cypress |
+| HIGH | Duplicate Detection | Edit-creates-duplicate flow not tested | Cypress |
+| MEDIUM | Sorting | Post-edit sort suppression not tested | Cypress |
+| MEDIUM | Row Colors | Overdue logic (completed expiry, terminal exclusion) | Cypress |
+| MEDIUM | Tracking Fields | N/A display, free text prompts not tested | Cypress |
+| MEDIUM | Authentication | Password change UI flow not E2E tested | Playwright |
+| MEDIUM | Admin Dashboard | Audit log viewer not tested | Cypress |
+| LOW | Network Error | Error recovery not tested | Playwright |
 
 ---
 
 ## Last Updated
 
+February 5, 2026 - Added Multi-Select Status Filter test cases (TC-30.1 to TC-30.5)
+February 5, 2026 - Added Patient Name Search test cases (TC-29.1 to TC-29.6)
+February 5, 2026 - Added automation status and requirement traceability to all test cases
+February 5, 2026 - Added Automation Summary section with coverage percentages and priority gaps
 February 4, 2026 - Added Role Access Control test cases (TC-28.1 to TC-28.11)
 February 4, 2026 - Added Patient Assignment test cases (TC-27.1 to TC-27.10)
 February 3, 2026 - Added Forgot Password test cases (TC-26.25 to TC-26.33)

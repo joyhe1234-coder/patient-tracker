@@ -11,43 +11,19 @@ router.use(requireAuth);
 
 /**
  * GET /api/users/physicians
- * Get list of users who can have patients assigned to them.
+ * Get list of users who can have patients assigned to them (users with PHYSICIAN role).
  * Used for physician selector dropdowns.
  *
- * - PHYSICIAN: Not typically needed (they only see their own patients)
- * - STAFF: Returns only their assigned physicians
- * - ADMIN: Returns all users with canHavePatients=true
+ * - STAFF role: Returns only their assigned physicians
+ * - ADMIN role: Returns all users with PHYSICIAN role
+ * - PHYSICIAN role (without ADMIN/STAFF): Returns only themselves
  */
 router.get('/physicians', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user!;
 
-    if (user.role === 'PHYSICIAN') {
-      // PHYSICIAN can only see themselves (they don't need a selector)
-      // Return just themselves for consistency
-      const physician = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          displayName: true,
-          email: true,
-          role: true,
-        },
-      });
-
-      return res.json({
-        success: true,
-        data: physician ? [{
-          id: physician.id,
-          displayName: physician.displayName,
-          email: physician.email,
-          role: physician.role,
-        }] : [],
-      });
-    }
-
-    if (user.role === 'STAFF') {
-      // STAFF sees only their assigned physicians
+    // STAFF: sees only their assigned physicians
+    if (user.roles.includes('STAFF')) {
       const assignments = await prisma.staffAssignment.findMany({
         where: { staffId: user.id },
         include: {
@@ -56,23 +32,22 @@ router.get('/physicians', async (req: Request, res: Response, next: NextFunction
               id: true,
               displayName: true,
               email: true,
-              role: true,
-              canHavePatients: true,
+              roles: true,
               isActive: true,
             },
           },
         },
       });
 
-      // Filter to only active users with canHavePatients
+      // Filter to only active users with PHYSICIAN role
       const physicians = assignments
         .map(a => a.physician)
-        .filter(p => p.isActive && p.canHavePatients)
+        .filter(p => p.isActive && p.roles.includes('PHYSICIAN'))
         .map(p => ({
           id: p.id,
           displayName: p.displayName,
           email: p.email,
-          role: p.role,
+          roles: p.roles,
         }));
 
       return res.json({
@@ -81,18 +56,18 @@ router.get('/physicians', async (req: Request, res: Response, next: NextFunction
       });
     }
 
-    if (user.role === 'ADMIN') {
-      // ADMIN sees all users with canHavePatients=true
+    // ADMIN: sees all users with PHYSICIAN role
+    if (user.roles.includes('ADMIN')) {
       const users = await prisma.user.findMany({
         where: {
-          canHavePatients: true,
+          roles: { has: 'PHYSICIAN' },
           isActive: true,
         },
         select: {
           id: true,
           displayName: true,
           email: true,
-          role: true,
+          roles: true,
         },
         orderBy: {
           displayName: 'asc',
@@ -102,6 +77,29 @@ router.get('/physicians', async (req: Request, res: Response, next: NextFunction
       return res.json({
         success: true,
         data: users,
+      });
+    }
+
+    // PHYSICIAN (without ADMIN/STAFF): can only see themselves
+    if (user.roles.includes('PHYSICIAN')) {
+      const physician = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          displayName: true,
+          email: true,
+          roles: true,
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: physician ? [{
+          id: physician.id,
+          displayName: physician.displayName,
+          email: physician.email,
+          roles: physician.roles,
+        }] : [],
       });
     }
 
@@ -125,17 +123,18 @@ router.get('/physicians/:id', async (req: Request, res: Response, next: NextFunc
       throw createError('Invalid physician ID', 400, 'INVALID_PHYSICIAN_ID');
     }
 
-    // Validate access
-    if (user.role === 'PHYSICIAN') {
-      // PHYSICIAN can only see themselves
-      if (user.id !== physicianId) {
-        throw createError('You can only view your own information', 403, 'FORBIDDEN');
-      }
-    } else if (user.role === 'STAFF') {
-      // STAFF can only see assigned physicians
+    // Validate access based on roles
+    // STAFF can only see assigned physicians
+    if (user.roles.includes('STAFF')) {
       const isAssigned = await isStaffAssignedToPhysician(user.id, physicianId);
       if (!isAssigned) {
         throw createError('You are not assigned to this physician', 403, 'NOT_ASSIGNED');
+      }
+    }
+    // PHYSICIAN (without ADMIN) can only see themselves
+    else if (user.roles.includes('PHYSICIAN') && !user.roles.includes('ADMIN')) {
+      if (user.id !== physicianId) {
+        throw createError('You can only view your own information', 403, 'FORBIDDEN');
       }
     }
     // ADMIN can view any physician
@@ -146,13 +145,12 @@ router.get('/physicians/:id', async (req: Request, res: Response, next: NextFunc
         id: true,
         displayName: true,
         email: true,
-        role: true,
-        canHavePatients: true,
+        roles: true,
         isActive: true,
       },
     });
 
-    if (!physician || !physician.canHavePatients) {
+    if (!physician || !physician.roles.includes('PHYSICIAN')) {
       throw createError('Physician not found', 404, 'NOT_FOUND');
     }
 
@@ -162,7 +160,7 @@ router.get('/physicians/:id', async (req: Request, res: Response, next: NextFunc
         id: physician.id,
         displayName: physician.displayName,
         email: physician.email,
-        role: physician.role,
+        roles: physician.roles,
       },
     });
   } catch (error) {

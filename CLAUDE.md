@@ -15,9 +15,30 @@ Before starting any implementation:
 
 ---
 
-## IMPORTANT: Implementation Request Workflow
+## IMPORTANT: Implementation Request Workflow (Spec-Driven + TDD)
 
-**When the user asks to implement a requirement, ALWAYS follow this workflow:**
+**When the user asks to implement a requirement, use the FULL spec-driven workflow with TDD:**
+
+### Option A: Use Spec Workflow (Recommended for New Features)
+
+```bash
+# 1. Set up project steering documents (first time only)
+/spec-steering-setup
+
+# 2. Create detailed specification
+/spec-create feature-name "description"
+
+# 3. Execute with TDD
+/spec-execute 1 feature-name
+```
+
+This will:
+1. Create `requirements.md` with user stories and acceptance criteria
+2. Create `design.md` with technical architecture
+3. Create `tasks.md` with atomic, testable tasks
+4. Execute each task using TDD (Red-Green-Refactor)
+
+### Option B: Manual Workflow (For Quick Fixes)
 
 ### Step 1: Clarify & Rephrase
 Before any implementation, rephrase the requirement in an organized format:
@@ -40,8 +61,24 @@ Wait for user confirmation before writing any code. Ask:
 - "Does this plan look correct?"
 - Clarify any ambiguities before proceeding
 
-### Step 4: Implement
-Only after approval, proceed with implementation.
+### Step 4: Implement with TDD
+Use the TDD workflow for each acceptance criterion:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  RED: Write failing test first                          │
+│  - Use tdd-test-writer agent                            │
+│  - Test MUST fail before proceeding                     │
+├─────────────────────────────────────────────────────────┤
+│  GREEN: Write minimal code to pass                      │
+│  - Use tdd-implementer agent                            │
+│  - Test MUST pass before proceeding                     │
+├─────────────────────────────────────────────────────────┤
+│  REFACTOR: Improve while keeping green                  │
+│  - Use tdd-refactorer agent                             │
+│  - All tests MUST stay green                            │
+└─────────────────────────────────────────────────────────┘
+```
 
 > ⚠️ **CRITICAL: Implementation is NOT complete until tests are written and passing.**
 > Do NOT commit code without corresponding tests. Proceed directly to Step 5.
@@ -424,3 +461,114 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 - `update_in_progress` - Deploying after successful build
 - `build_failed` - Build failed (check events for details)
 - `deactivated` - Previous deploy, replaced by newer one
+
+---
+
+## Available Skills & Commands
+
+### Spec Workflow (Requirements → Implementation)
+
+| Command | Purpose |
+|---------|---------|
+| `/spec-steering-setup` | Create project context (product.md, tech.md, structure.md) |
+| `/spec-create <name> "desc"` | Create full spec: requirements → design → tasks |
+| `/spec-execute <task-id> <name>` | Execute a task with TDD |
+| `/spec-status` | Show spec progress |
+| `/spec-list` | List all specs |
+
+### Bug Fix Workflow
+
+| Command | Purpose |
+|---------|---------|
+| `/bug-create <name> "desc"` | Document bug with structured format |
+| `/bug-analyze` | Investigate root cause |
+| `/bug-fix` | Implement fix |
+| `/bug-verify` | Verify resolution |
+| `/bug-status` | Show bug fix progress |
+
+### Test Planning Skills
+
+| Skill | Purpose | Location |
+|-------|---------|----------|
+| `ln-510-test-planner` | Orchestrate testing workflow | `.claude/skills/` |
+| `ln-511-test-researcher` | Research edge cases | `.claude/skills/` |
+| `ln-513-auto-test-planner` | Plan E2E/integration/unit tests | `.claude/skills/` |
+| `ln-630-test-auditor` | Audit test quality | `.claude/skills/` |
+| `ln-634-test-coverage-auditor` | Find coverage gaps | `.claude/skills/` |
+
+### TDD Agents
+
+| Agent | Purpose | Location |
+|-------|---------|----------|
+| `tdd-test-writer` | Write failing tests (RED phase) | `.claude/agents/` |
+| `tdd-implementer` | Write minimal passing code (GREEN phase) | `.claude/agents/` |
+| `tdd-refactorer` | Improve code quality (REFACTOR phase) | `.claude/agents/` |
+
+### Release & Version
+
+| Command | Purpose |
+|---------|---------|
+| `/release` | Merge develop → main, deploy to Render |
+| `/commit` | Smart commit with doc updates |
+| `/version` | Bump version number |
+
+---
+
+## Full Development Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  PHASE 1: REQUIREMENTS                                              │
+│  /spec-create feature-name "description"                            │
+│                                                                     │
+│  Output: .claude/specs/feature-name/requirements.md                 │
+│  • User stories with acceptance criteria                            │
+│  • Edge cases documented                                            │
+│  • UI workflow defined                                              │
+│                                                                     │
+│  → USER REVIEWS & APPROVES                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 2: DESIGN                                                    │
+│  (Auto-created by spec-create)                                      │
+│                                                                     │
+│  Output: .claude/specs/feature-name/design.md                       │
+│  • Technical architecture                                           │
+│  • API design                                                       │
+│  • Component structure                                              │
+│                                                                     │
+│  → USER REVIEWS & APPROVES                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 3: TASKS                                                     │
+│  (Auto-created by spec-create)                                      │
+│                                                                     │
+│  Output: .claude/specs/feature-name/tasks.md                        │
+│  • Atomic, testable tasks                                           │
+│  • Dependencies mapped                                              │
+│  • Acceptance criteria per task                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 4: IMPLEMENTATION (TDD)                                      │
+│  /spec-execute 1 feature-name                                       │
+│                                                                     │
+│  For each task:                                                     │
+│    RED:    tdd-test-writer → failing test                           │
+│    GREEN:  tdd-implementer → minimal passing code                   │
+│    REFACTOR: tdd-refactorer → improve quality                       │
+│                                                                     │
+│  → TESTS RUN AUTOMATICALLY                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 5: VERIFICATION                                              │
+│  Use ln-630-test-auditor                                            │
+│                                                                     │
+│  Checks:                                                            │
+│  • All acceptance criteria have tests                               │
+│  • Coverage meets targets                                           │
+│  • Business logic covered                                           │
+│  • E2E priority verified                                            │
+│                                                                     │
+│  → FIX ANY GAPS                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 6: COMMIT & RELEASE                                          │
+│  /commit                                                            │
+│  /release (when ready)                                              │
+└─────────────────────────────────────────────────────────────────────┘
+```

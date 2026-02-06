@@ -62,8 +62,7 @@ describe('authStore', () => {
       id: 1,
       email: 'doctor@clinic.com',
       displayName: 'Dr. Smith',
-      role: 'PHYSICIAN',
-      canHavePatients: true,
+      roles: ['PHYSICIAN'],
       isActive: true,
       lastLoginAt: '2026-01-15T10:00:00Z',
     };
@@ -72,8 +71,7 @@ describe('authStore', () => {
       id: 2,
       email: 'staff@clinic.com',
       displayName: 'Staff Member',
-      role: 'STAFF',
-      canHavePatients: false,
+      roles: ['STAFF'],
       isActive: true,
       lastLoginAt: '2026-01-15T10:00:00Z',
     };
@@ -243,7 +241,7 @@ describe('authStore', () => {
     beforeEach(() => {
       // Set up authenticated state
       useAuthStore.setState({
-        user: { id: 1, email: 'test@test.com', displayName: 'Test', role: 'PHYSICIAN', isActive: true, lastLoginAt: null },
+        user: { id: 1, email: 'test@test.com', displayName: 'Test', roles: ['PHYSICIAN'], isActive: true, lastLoginAt: null },
         token: 'test-token',
         isAuthenticated: true,
         assignments: [],
@@ -329,8 +327,7 @@ describe('authStore', () => {
       id: 1,
       email: 'doctor@clinic.com',
       displayName: 'Dr. Smith',
-      role: 'PHYSICIAN',
-      canHavePatients: true,
+      roles: ['PHYSICIAN'],
       isActive: true,
       lastLoginAt: null,
     };
@@ -397,8 +394,7 @@ describe('authStore', () => {
       id: 1,
       email: 'doctor@clinic.com',
       displayName: 'Dr. Smith Updated',
-      role: 'PHYSICIAN',
-      canHavePatients: true,
+      roles: ['PHYSICIAN'],
       isActive: true,
       lastLoginAt: null,
     };
@@ -430,7 +426,7 @@ describe('authStore', () => {
     it('clears state if token becomes invalid', async () => {
       useAuthStore.setState({
         token: 'expired-token',
-        user: { id: 1, email: 'test@test.com', displayName: 'Test', role: 'PHYSICIAN', isActive: true, lastLoginAt: null },
+        user: { id: 1, email: 'test@test.com', displayName: 'Test', roles: ['PHYSICIAN'], isActive: true, lastLoginAt: null },
         isAuthenticated: true,
       });
       mockGet.mockRejectedValue(new Error('Unauthorized'));

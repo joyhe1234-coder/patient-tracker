@@ -14,7 +14,7 @@ interface Physician {
   id: number;
   displayName: string;
   email: string;
-  role: string;
+  roles: string[];
 }
 
 const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
@@ -44,7 +44,7 @@ export default function ImportPage() {
   const [loadingPhysicians, setLoadingPhysicians] = useState(false);
 
   // Determine if user needs to select a physician
-  const needsPhysicianSelection = user?.role === 'STAFF' || user?.role === 'ADMIN';
+  const needsPhysicianSelection = user?.roles.includes('STAFF') || user?.roles.includes('ADMIN');
 
   // Load available physicians for STAFF/ADMIN users
   useEffect(() => {
@@ -309,7 +309,7 @@ export default function ImportPage() {
             </div>
           ) : physicians.length === 0 ? (
             <div className="text-gray-500">
-              No physicians available. {user?.role === 'STAFF' && 'You need to be assigned to at least one physician.'}
+              No physicians available. {user?.roles.includes('STAFF') && 'You need to be assigned to at least one physician.'}
             </div>
           ) : (
             <>
@@ -321,12 +321,12 @@ export default function ImportPage() {
                 <option value="">-- Select a physician --</option>
                 {physicians.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.displayName} {p.role !== 'PHYSICIAN' && `(${p.role})`}
+                    {p.displayName} {p.roles && p.roles.includes('ADMIN') && '(ADMIN)'}
                   </option>
                 ))}
               </select>
               <p className="mt-2 text-sm text-gray-500">
-                {user?.role === 'ADMIN'
+                {user?.roles.includes('ADMIN')
                   ? 'Imported patients will be assigned to the selected physician.'
                   : 'You can only import for physicians you are assigned to.'}
               </p>

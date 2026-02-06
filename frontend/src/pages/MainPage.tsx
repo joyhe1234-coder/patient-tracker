@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Loader2, Users } from 'lucide-react';
 import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
@@ -29,17 +29,21 @@ export default function MainPage() {
   // Status color filters
   const [activeFilters, setActiveFilters] = useState<StatusColor[]>(['all']);
 
+  // Patient name search
+  const [searchText, setSearchText] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
-    if (user?.role === 'STAFF' && selectedPhysicianId) {
+    if (user?.roles.includes('STAFF') && selectedPhysicianId) {
       return `?physicianId=${selectedPhysicianId}`;
     }
-    if (user?.role === 'ADMIN') {
+    if (user?.roles.includes('ADMIN')) {
       // ADMIN can view unassigned patients (physicianId=null) or specific physician
       return `?physicianId=${selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}`;
     }
     return '';
-  }, [user?.role, selectedPhysicianId]);
+  }, [user?.roles, selectedPhysicianId]);
 
   // Calculate row counts by status color
   const rowCounts = useMemo(() => {
@@ -69,22 +73,43 @@ export default function MainPage() {
     return counts;
   }, [rowData]);
 
-  // Filter row data based on active filters
+  // Filter row data based on active filters and name search
   const filteredRowData = useMemo(() => {
-    if (activeFilters.includes('all') || activeFilters.length === 0) {
-      return rowData;
+    let filtered = rowData;
+
+    // Apply status color filter
+    if (!activeFilters.includes('all') && activeFilters.length > 0) {
+      filtered = filtered.filter((row) => {
+        if (activeFilters.includes('duplicate')) return row.isDuplicate;
+        const color = getRowStatusColor(row);
+        return activeFilters.includes(color);
+      });
     }
 
-    return rowData.filter((row) => {
-      // Special handling for duplicate filter
-      if (activeFilters.includes('duplicate')) {
-        return row.isDuplicate;
+    // Apply name search filter
+    if (searchText.trim()) {
+      const search = searchText.trim().toLowerCase();
+      filtered = filtered.filter((row) =>
+        row.memberName?.toLowerCase().includes(search)
+      );
+    }
+
+    return filtered;
+  }, [rowData, activeFilters, searchText]);
+
+  // Ctrl+F / Cmd+F to focus search input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        // Don't intercept if editing a cell in AG Grid
+        if (document.querySelector('.ag-popup-editor')) return;
+        e.preventDefault();
+        searchInputRef.current?.focus();
       }
-      // Regular status color filtering
-      const color = getRowStatusColor(row);
-      return activeFilters.includes(color);
-    });
-  }, [rowData, activeFilters]);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Load data when component mounts or when selectedPhysicianId changes (for STAFF)
   useEffect(() => {
@@ -224,8 +249,8 @@ export default function MainPage() {
   // For ADMIN: can have a specific physician (number) OR view unassigned patients (null)
   // Only show prompt if selectedPhysicianId is undefined (not yet selected)
   const needsPhysicianSelection =
-    (user?.role === 'STAFF' && !selectedPhysicianId) ||
-    (user?.role === 'ADMIN' && selectedPhysicianId === undefined);
+    (user?.roles.includes('STAFF') && !selectedPhysicianId) ||
+    (user?.roles.includes('ADMIN') && selectedPhysicianId === undefined);
 
   if (needsPhysicianSelection) {
     return (
@@ -241,7 +266,7 @@ export default function MainPage() {
             Please select a physician from the dropdown in the header to view their patients.
           </p>
           <p className="text-sm text-gray-500">
-            {user?.role === 'ADMIN'
+            {user?.roles.includes('ADMIN')
               ? 'As an admin, you can view any physician\'s patients or select "Unassigned" to view patients not yet assigned.'
               : 'You can only view patients for physicians you are assigned to.'}
           </p>
@@ -294,6 +319,9 @@ export default function MainPage() {
         activeFilters={activeFilters}
         onFilterChange={setActiveFilters}
         rowCounts={rowCounts}
+        searchText={searchText}
+        onSearchChange={setSearchText}
+        searchInputRef={searchInputRef}
       />
 
       <div className="flex-1 p-4">

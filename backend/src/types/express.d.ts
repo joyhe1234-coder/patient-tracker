@@ -8,7 +8,7 @@ declare global {
         id: number;
         email: string;
         displayName: string;
-        role: UserRole;
+        roles: UserRole[];
         isActive: boolean;
       };
     }
