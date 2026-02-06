@@ -598,6 +598,7 @@ async function main() {
 
   // Create admin user (upsert to avoid duplicates)
   // Pure ADMIN role (to also have patients, would need [ADMIN, PHYSICIAN])
+  // Only set password on create; don't overwrite if user already exists
   await prisma.user.upsert({
     where: { email: adminEmail },
     create: {
@@ -607,9 +608,7 @@ async function main() {
       roles: ['ADMIN'],
       isActive: true,
     },
-    update: {
-      passwordHash: adminPasswordHash,
-    },
+    update: {},
   });
 
   console.log(`Initialized admin user: ${adminEmail}`);
@@ -617,12 +616,15 @@ async function main() {
   // ============================================
   // COMPREHENSIVE SAMPLE DATA (all combinations)
   // ============================================
+  // Only create sample data if no patients exist (first-time setup only)
+  const existingPatientCount = await prisma.patient.count();
+  if (existingPatientCount > 0) {
+    console.log(`Skipping sample data: ${existingPatientCount} patients already exist`);
+    console.log('Database seed completed successfully! (config-only mode)');
+    return;
+  }
 
-  // Clean up ALL existing patients and measures for a fresh start
-  console.log('Cleaning up all existing patient data...');
-  await prisma.patientMeasure.deleteMany({});
-  await prisma.patient.deleteMany({});
-  console.log('All patient data cleaned up');
+  console.log('No patients found - creating sample data for initial setup...');
 
   // Helper to create dates relative to today
   const today = new Date();
