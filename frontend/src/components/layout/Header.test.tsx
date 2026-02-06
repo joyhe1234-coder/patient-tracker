@@ -297,6 +297,78 @@ describe('Header', () => {
     });
   });
 
+  describe('Change Password Modal', () => {
+    const adminUser = {
+      id: 1,
+      email: 'admin@test.com',
+      displayName: 'Test Admin',
+      roles: ['ADMIN'] as const,
+      isActive: true,
+      lastLoginAt: null,
+    };
+
+    function openPasswordModal() {
+      mockUseAuthStore.mockReturnValue({
+        user: adminUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      // Open user menu
+      fireEvent.click(screen.getByText('Test Admin'));
+      // Click Change Password
+      fireEvent.click(screen.getByText('Change Password'));
+    }
+
+    it('opens password modal and shows all 3 fields', () => {
+      openPasswordModal();
+
+      expect(screen.getByText('Current Password')).toBeInTheDocument();
+      expect(screen.getByText('New Password')).toBeInTheDocument();
+      expect(screen.getByText('Confirm New Password')).toBeInTheDocument();
+    });
+
+    it('shows "Must be at least 8 characters" helper text', () => {
+      openPasswordModal();
+
+      expect(screen.getByText('Must be at least 8 characters')).toBeInTheDocument();
+    });
+
+    it('has password visibility toggle buttons with aria-labels', () => {
+      openPasswordModal();
+
+      expect(screen.getByLabelText('Show current password')).toBeInTheDocument();
+      expect(screen.getByLabelText('Show new password')).toBeInTheDocument();
+      expect(screen.getByLabelText('Show confirm password')).toBeInTheDocument();
+    });
+
+    it('toggles password visibility when eye icon is clicked', () => {
+      openPasswordModal();
+
+      // All fields start as password type
+      const inputs = screen.getAllByDisplayValue('');
+      const passwordInputs = inputs.filter(
+        (input) => input.getAttribute('type') === 'password' || input.getAttribute('type') === 'text'
+      );
+      expect(passwordInputs.length).toBe(3);
+
+      // Click the "Show current password" toggle
+      fireEvent.click(screen.getByLabelText('Show current password'));
+
+      // After click, aria-label should change to "Hide"
+      expect(screen.getByLabelText('Hide current password')).toBeInTheDocument();
+    });
+  });
+
   describe('Role Display', () => {
     it('should show "ADMIN + PHYSICIAN" for user with both roles', () => {
       mockUseAuthStore.mockReturnValue({

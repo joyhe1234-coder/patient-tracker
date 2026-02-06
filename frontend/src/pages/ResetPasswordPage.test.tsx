@@ -96,6 +96,12 @@ describe('ResetPasswordPage', () => {
 
       expect(screen.getByRole('link', { name: /back to login/i })).toBeInTheDocument();
     });
+
+    it('shows password minimum length helper text', () => {
+      renderResetPasswordPage('valid-token-123');
+
+      expect(screen.getByText('Must be at least 8 characters')).toBeInTheDocument();
+    });
   });
 
   describe('Form Validation', () => {

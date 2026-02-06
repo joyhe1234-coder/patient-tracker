@@ -120,26 +120,27 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (296 tests)
+### Frontend Component Tests (314 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
 | File | Tests | Description |
 |------|-------|-------------|
 | **Component Tests** | | `frontend/src/components/` |
-| `StatusFilterBar.test.tsx` | 39 | Filter chip rendering, click behavior, row colors, search input UI |
+| `StatusFilterBar.test.tsx` | 52 | Filter chip rendering, click behavior, row colors, search input UI, accessibility (focus-visible) |
+| `StatusBar.test.tsx` | 6 | Consistent "Showing X of Y rows" display, locale formatting, Connected status |
 | `Toolbar.test.tsx` | 15 | Button states, save indicator, member info toggle |
 | `AddRowModal.test.tsx` | 15 | Form validation, submission, field handling |
 | `ConfirmModal.test.tsx` | 11 | Modal display, confirm/cancel actions |
-| `Header.test.tsx` | 12 | Provider dropdown visibility, unassigned patients option |
-| `PatientGrid.test.tsx` | 42 | Column defs, row class rules (all colors + overdue), grid config, prop passing |
+| `Header.test.tsx` | 16 | Provider dropdown, unassigned patients, change password modal, visibility toggles, helper text |
+| `PatientGrid.test.tsx` | 46 | Column defs, row class rules, row numbers, headerTooltip, DOB aria-label, grid config |
 | **Page Tests** | | `frontend/src/pages/` |
 | `LoginPage.test.tsx` | 17 | Login form, validation, password toggle, auth flow |
 | `ForgotPasswordPage.test.tsx` | 14 | SMTP check, email form, success/error states |
-| `ResetPasswordPage.test.tsx` | 17 | Token validation, password form, reset flow |
-| `ImportPage.test.tsx` | 26 | Import workflow UI, mode selection, file upload |
+| `ResetPasswordPage.test.tsx` | 18 | Token validation, password form, reset flow, helper text |
+| `ImportPage.test.tsx` | 27 | Import workflow UI, mode selection, file upload, warning icon, max file size |
 | `ImportPreviewPage.test.tsx` | 23 | Preview display, summary cards, changes table |
-| `MainPage.test.tsx` | 20 | Search filtering logic (pure function, AND logic, null handling) |
+| `MainPage.test.tsx` | 28 | Search filtering logic (pure function, AND logic, null handling) |
 | **Store Tests** | | `frontend/src/stores/` |
 | `authStore.test.ts` | 25 | Login/logout, token storage, session persistence |
 
@@ -184,7 +185,7 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (283 tests)
+### Cypress E2E Tests (298 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
@@ -200,6 +201,7 @@ npm run e2e:report        # View HTML report
 | `time-interval.cy.ts` | 14 | Dropdown-controlled statuses, manual override, validation |
 | `patient-name-search.cy.ts` | 13 | Search input UI, filtering, AND logic, keyboard shortcuts |
 | `multi-select-filter.cy.ts` | 18 | Multi-select toggle, duplicates exclusivity, checkmark visual, search combo |
+| `ux-improvements.cy.ts` | 15 | Row numbers, status bar, filter accessibility, import UX, password toggles |
 
 **Test Categories:**
 
@@ -423,8 +425,8 @@ npm run test:cli -- --save    # Save new baselines
 | Backend import services | Jest | 130 | Complete |
 | Backend auth services | Jest | 50 | Complete |
 | Backend API routes | Jest | ~137 | Complete |
-| Frontend components | Vitest | 134 | Complete |
-| Frontend pages | Vitest | 137 | Complete |
+| Frontend components | Vitest | 161 | Complete |
+| Frontend pages | Vitest | 128 | Complete |
 | Frontend stores | Vitest | 25 | Complete |
 | Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
@@ -440,9 +442,10 @@ npm run test:cli -- --save    # Save new baselines
 | Time intervals | Cypress | 14 | Complete |
 | Duplicate detection | Cypress | 15 | Complete |
 | Multi-select filter | Cypress | 18 | Complete |
+| UX improvements | Cypress | 15 | Complete |
 | Visual/UX review | MCP Playwright | - | On-demand |
 
-**Total Automated Tests: ~1141**
+**Total Automated Tests: ~1174**
 
 ---
 
@@ -614,7 +617,8 @@ describe('Feature Name', () => {
 - time-interval.cy.ts: 14 tests
 - patient-name-search.cy.ts: 13 tests
 - multi-select-filter.cy.ts: 18 tests
-- **Total: 283 tests** (when run with fresh seed data)
+- ux-improvements.cy.ts: 15 tests
+- **Total: 298 tests** (when run with fresh seed data)
 
 ---
 
@@ -639,6 +643,16 @@ describe('Feature Name', () => {
 ---
 
 ## Last Updated
+
+February 6, 2026 - 9 UX quick-win fixes (batch 2): 18 new Vitest + 15 new Cypress tests
+- NEW: StatusBar.test.tsx (6 tests) - consistent display, locale formatting
+- Updated: Header.test.tsx (+4, now 16) - change password modal, visibility toggles, helper text
+- Updated: PatientGrid.test.tsx (+4, now 46) - row numbers, headerTooltip, DOB aria-label
+- Updated: ResetPasswordPage.test.tsx (+1, now 18) - password helper text
+- Updated: ImportPage.test.tsx (+1, now 27) - warning icon
+- Updated: StatusFilterBar.test.tsx (+1, now 52) - focus-visible accessibility
+- NEW: ux-improvements.cy.ts (15 tests) - row numbers, status bar, filter accessibility, import UX, password toggles
+- Test counts: Vitest 314, Cypress 298, total ~1174
 
 February 6, 2026 - Added MCP Playwright Visual Review as 5th test layer:
 - Documented MCP Playwright visual review workflow (page guides, reports, bug logging)

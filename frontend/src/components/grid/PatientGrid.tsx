@@ -464,6 +464,19 @@ export default function PatientGrid({
 
   const columnDefs: ColDef<GridRow>[] = useMemo(() => [
     {
+      headerName: '#',
+      headerTooltip: 'Row Number',
+      width: 55,
+      pinned: 'left',
+      editable: false,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      suppressNavigable: true,
+      valueGetter: (params) => params.node ? params.node.rowIndex! + 1 : '',
+      cellStyle: { color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center' },
+    },
+    {
       field: 'requestType',
       headerName: 'Request Type',
       headerTooltip: 'Request Type',
@@ -496,6 +509,11 @@ export default function PatientGrid({
       hide: !showMemberInfo,
       editable: true,
       valueFormatter: (params) => formatDobMasked(params.value),
+      cellRenderer: (params: { value: string | null }) => {
+        const display = formatDobMasked(params.value);
+        if (!display) return '';
+        return `<span aria-label="Date of birth hidden for privacy">${display}</span>`;
+      },
       valueGetter: (params) => {
         // Return YYYY-MM-DD format for editing
         const value = params.data?.memberDob;

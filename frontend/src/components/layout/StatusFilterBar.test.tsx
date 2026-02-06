@@ -490,6 +490,27 @@ describe('StatusFilterBar', () => {
       expect(input.value).toBe('john doe');
     });
   });
+
+  describe('Accessibility', () => {
+    it('filter chip buttons have focus-visible ring classes', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={vi.fn()}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const buttons = screen.getAllByRole('button').filter(btn => btn.getAttribute('aria-pressed') !== null);
+      expect(buttons.length).toBeGreaterThan(0);
+
+      buttons.forEach((button) => {
+        expect(button.className).toContain('focus-visible:ring-2');
+        expect(button.className).toContain('focus-visible:ring-blue-500');
+      });
+    });
+  });
 });
 
 describe('getRowStatusColor', () => {

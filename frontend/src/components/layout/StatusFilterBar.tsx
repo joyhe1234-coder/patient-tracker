@@ -95,6 +95,7 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
             className={`
               inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
               border-2 transition-all duration-150 cursor-pointer
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500
               ${isActive
                 ? `${category.bgColor} ${category.textColor} ${category.borderColor}`
                 : `bg-white ${category.textColor} ${category.borderColor} opacity-50 hover:opacity-75`

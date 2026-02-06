@@ -112,11 +112,11 @@ describe('PatientGrid', () => {
     it('passes correct number of column definitions', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field: string }[];
-      // Expected columns: requestType, memberName, memberDob, memberTelephone, memberAddress,
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; headerName?: string }[];
+      // Expected columns: # (row number) + requestType, memberName, memberDob, memberTelephone, memberAddress,
       // qualityMeasure, measureStatus, statusDate, tracking1, tracking2, tracking3,
-      // dueDate, timeIntervalDays, notes = 14 columns
-      expect(columnDefs).toHaveLength(14);
+      // dueDate, timeIntervalDays, notes = 15 columns
+      expect(columnDefs).toHaveLength(15);
     });
 
     it('includes all expected column fields', () => {
@@ -139,6 +139,31 @@ describe('PatientGrid', () => {
       expect(fields).toContain('dueDate');
       expect(fields).toContain('timeIntervalDays');
       expect(fields).toContain('notes');
+    });
+
+    it('has row number column as first column', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; headerName?: string; editable?: boolean; sortable?: boolean; pinned?: string }[];
+      const firstCol = columnDefs[0];
+
+      expect(firstCol.headerName).toBe('#');
+      expect(firstCol.editable).toBe(false);
+      expect(firstCol.sortable).toBe(false);
+      expect(firstCol.pinned).toBe('left');
+      expect(firstCol.field).toBeUndefined();
+    });
+
+    it('row number column has valueGetter that returns row index + 1', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { valueGetter?: (params: { node: { rowIndex: number } | null }) => number | string }[];
+      const firstCol = columnDefs[0];
+
+      expect(firstCol.valueGetter).toBeDefined();
+      expect(firstCol.valueGetter!({ node: { rowIndex: 0 } })).toBe(1);
+      expect(firstCol.valueGetter!({ node: { rowIndex: 4 } })).toBe(5);
+      expect(firstCol.valueGetter!({ node: null })).toBe('');
     });
 
     it('has requestType and memberName pinned to the left', () => {
@@ -523,6 +548,41 @@ describe('PatientGrid', () => {
       expect(headerMap['dueDate']).toBe('Due Date');
       expect(headerMap['timeIntervalDays']).toBe('Time Interval (Days)');
       expect(headerMap['notes']).toBe('Possible Actions Needed & Notes');
+    });
+
+    it('all columns have headerTooltip set', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; headerName?: string; headerTooltip?: string }[];
+      // All columns (including row number) should have headerTooltip
+      columnDefs.forEach((col) => {
+        expect(col.headerTooltip).toBeDefined();
+        expect(col.headerTooltip!.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('DOB Column', () => {
+    it('has cellRenderer that wraps masked value with aria-label', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; cellRenderer?: (params: { value: string | null }) => string }[];
+      const dobCol = columnDefs.find((col) => col.field === 'memberDob');
+
+      expect(dobCol?.cellRenderer).toBeDefined();
+
+      const result = dobCol!.cellRenderer!({ value: '2000-01-15' });
+      expect(result).toContain('aria-label="Date of birth hidden for privacy"');
+      expect(result).toContain('###');
+    });
+
+    it('DOB cellRenderer returns empty string for null value', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; cellRenderer?: (params: { value: string | null }) => string }[];
+      const dobCol = columnDefs.find((col) => col.field === 'memberDob');
+
+      expect(dobCol!.cellRenderer!({ value: null })).toBe('');
     });
   });
 });

@@ -206,12 +206,12 @@ See **Phase 5: CSV Import** in "In Progress" section above.
   - Design consideration: what's the expected behavior when a row is created that doesn't match the active filter?
 
 ### Row Numbers Feature
-- [ ] **Add row numbers column to AG Grid**
+- [x] **Add row numbers column to AG Grid** — DONE: `#` column, pinned left, width 55, uses valueGetter with rowIndex+1
   - Display sequential row numbers as the first column (non-editable, auto-generated)
-  - **Filter interaction**: When a filter is active, row numbers should reflect the filtered view (1, 2, 3...) not the absolute position
-  - **Search interaction**: Same as filter — show sequential numbers for visible/matched rows
-  - **Sort interaction**: Row numbers should NOT change when sorting — they represent visual position, not data order. After sort, row 1 is whatever row is displayed first.
-  - **Pagination interaction** (future): If pagination is added, row numbers should be page-relative (page 2 starts at 1, not 51) OR absolute across pages — needs design decision
+  - **Filter interaction**: Row numbers reflect filtered view (1, 2, 3...) via rowIndex
+  - **Search interaction**: Same as filter — sequential numbers for visible rows
+  - **Sort interaction**: Row numbers represent visual position (rowIndex-based)
+  - **Pagination interaction** (future): Needs design decision
 
 ---
 
@@ -221,9 +221,9 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ### Quick Wins
 - [x] Add `title` tooltips to all AG Grid column headers (fixes truncation) — DONE: `headerTooltip` on all 14 columns
-- [ ] Add `aria-label="Date of birth hidden for privacy"` to masked DOB cells
-- [ ] Add `:focus-visible` outline styles to filter chip buttons
-- [ ] Fix inconsistent status bar text ("Rows: 100" vs "Showing X of Y rows")
+- [x] Add `aria-label="Date of birth hidden for privacy"` to masked DOB cells — DONE: cellRenderer on memberDob column
+- [x] Add `:focus-visible` outline styles to filter chip buttons — DONE: focus-visible ring classes
+- [x] Fix inconsistent status bar text ("Rows: 100" vs "Showing X of Y rows") — DONE: always "Showing X of Y rows"
 
 ### Important UX Fixes
 - [x] Change single-click edit to double-click edit (prevents accidental edits with auto-save) — DONE: `singleClickEdit={false}`
@@ -242,13 +242,13 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ### Quick Wins
 - [x] Add `autocomplete` attributes to Change Password modal inputs (`current-password`, `new-password`) — DONE
-- [ ] Add "Must be at least 8 characters" helper text below New Password fields
+- [x] Add "Must be at least 8 characters" helper text below New Password fields — DONE: ResetPasswordPage + Header modal
 
 ### Important UX Fixes
 - [ ] Replace native HTML5 validation with custom JS validation + red banner pattern on all auth forms
 
 ### Nice-to-Have
-- [ ] Add password visibility toggles to Change Password modal (3 fields)
+- [x] Add password visibility toggles to Change Password modal (3 fields) — DONE: Eye/EyeOff with aria-labels
 
 ## Import Flow UI/UX Review Findings (Feb 6, 2026) — Deep Review
 
@@ -260,12 +260,12 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [x] Display filename in preview header metadata (currently shows "File:" with no value) — DONE: passed through previewCache
 
 ### Important (Responsive)
-- [ ] Add `overflow-x: auto` to preview changes table (completely broken on mobile 375px)
+- [x] Add `overflow-x: auto` to preview changes table (completely broken on mobile 375px) — DONE
 - [ ] Fix mobile header overflow (title wraps 4 lines, user menu pushed off-screen)
 
 ### Nice-to-Have
-- [ ] Add warning triangle icon to Replace mode warning card
-- [ ] Add "Maximum file size" text to file upload zone
+- [x] Add warning triangle icon to Replace mode warning card — DONE: AlertTriangle icon
+- [x] Add "Maximum file size" text to file upload zone — DONE: "Maximum file size: 10MB"
 - [ ] Add loading spinner during preview generation (for large files)
 
 ## Admin Pages UI/UX Review Findings (Feb 6, 2026)
@@ -382,6 +382,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 6, 2026 - Completed 9 UX quick-wins (batch 2): row numbers, focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size
 February 6, 2026 - Added grid feature requests: Copy Member label, filter-aware row creation, row numbers
 February 6, 2026 - Comprehensive MCP Playwright visual review: 4 review reports, 3 bugs fixed, 24 UX suggestions logged
 February 5, 2026 - Multi-select status filter, patient name search, test gap coverage, spec infrastructure

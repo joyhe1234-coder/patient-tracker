@@ -2891,6 +2891,98 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 31. UX Improvements (Feb 6, 2026)
+
+### TC-31.1: Row Numbers Column
+**Automation:** Automated - `PatientGrid.test.tsx: row number tests` (3 tests), `ux-improvements.cy.ts: "Row Numbers Column"` (5 tests)
+**Steps:**
+1. Load patient grid
+2. Verify first column is `#` with row numbers starting at 1
+3. Verify row numbers are not editable
+4. Apply a filter and verify row numbers restart at 1
+
+**Expected:**
+- `#` column is pinned left, width 55px
+- Numbers are sequential (1, 2, 3...) based on visible row position
+- Column is not editable (double-click has no effect)
+- Filtering resets numbers to sequential from 1
+
+### TC-31.2: Status Bar Consistent Format
+**Automation:** Automated - `StatusBar.test.tsx` (6 tests), `ux-improvements.cy.ts: "Status Bar Consistency"` (3 tests)
+**Steps:**
+1. Load grid with no filters
+2. Observe status bar text
+3. Apply a filter and observe again
+
+**Expected:**
+- Always shows "Showing X of Y rows" format (even when unfiltered, X equals Y)
+- Shows "Connected" status indicator
+
+### TC-31.3: Filter Chip Focus-Visible
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Accessibility"` (1 test), `ux-improvements.cy.ts: "Filter Chip Accessibility"` (2 tests)
+**Steps:**
+1. Tab to filter chips using keyboard
+2. Verify visible focus ring appears
+
+**Expected:**
+- Blue focus ring (ring-2 ring-blue-500) appears on keyboard focus
+- `aria-pressed` attribute present on all chips
+
+### TC-31.4: DOB Masked Aria-Label
+**Automation:** Automated - `PatientGrid.test.tsx: "DOB cellRenderer"` (1 test)
+**Steps:**
+1. Verify masked DOB cells have `aria-label`
+
+**Expected:**
+- DOB "###" cells have `aria-label="Date of birth hidden for privacy"`
+
+### TC-31.5: Password Helper Text
+**Automation:** Automated - `ResetPasswordPage.test.tsx: "helper text"` (1 test), `Header.test.tsx: "helper text"` (1 test), `ux-improvements.cy.ts` (1 test)
+**Steps:**
+1. Open Reset Password page
+2. Open Change Password modal
+
+**Expected:**
+- "Must be at least 8 characters" shown below New Password field in both locations
+
+### TC-31.6: Password Visibility Toggles (Change Password Modal)
+**Automation:** Automated - `Header.test.tsx: "visibility toggles"` (2 tests), `ux-improvements.cy.ts: "Password Visibility Toggles"` (3 tests)
+**Steps:**
+1. Open Change Password modal
+2. Verify 3 eye icons exist
+3. Click an eye icon to toggle visibility
+
+**Expected:**
+- 3 toggle buttons with `aria-label` ("Show/Hide current/new/confirm password")
+- Clicking toggles input type between password and text
+- Eye icon changes between Eye and EyeOff
+
+### TC-31.7: Import Page Warning Icon
+**Automation:** Automated - `ImportPage.test.tsx: "warning text with icon"` (1 test), `ux-improvements.cy.ts` (1 test)
+**Steps:**
+1. View Import page Replace All warning
+
+**Expected:**
+- AlertTriangle SVG icon appears before "Warning:" text
+
+### TC-31.8: Import Page Max File Size
+**Automation:** Automated - `ImportPage.test.tsx: "max file size"` (1 test), `ux-improvements.cy.ts` (1 test)
+**Steps:**
+1. View Import page file upload zone
+
+**Expected:**
+- Shows "Maximum file size: 10MB" text
+
+### TC-31.9: Import Preview Table Horizontal Scroll
+**Automation:** Automated - `ImportPreviewPage.test.tsx` (existing overflow tests)
+**Steps:**
+1. View import preview on narrow viewport
+
+**Expected:**
+- Table scrolls horizontally (overflow-x: auto) instead of breaking layout
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -2916,6 +3008,7 @@ npm run cypress:headed  # Run with browser visible
 | 28. RBAC | 11 | 11 | 0 | 0 | 100% |
 | 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
 | 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
+| 31. UX Improvements | 9 | 9 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -2935,6 +3028,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 6, 2026 - Added UX Improvements test cases (TC-31.1 to TC-31.9): row numbers, status bar, focus-visible, DOB aria-label, password helpers/toggles, import UX
 February 5, 2026 - Added Multi-Select Status Filter test cases (TC-30.1 to TC-30.5)
 February 5, 2026 - Added Patient Name Search test cases (TC-29.1 to TC-29.6)
 February 5, 2026 - Added automation status and requirement traceability to all test cases

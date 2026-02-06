@@ -29,7 +29,8 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 **Status: Complete**
 
-- [x] AG Grid displaying 14 columns
+- [x] AG Grid displaying 15 columns (14 data + 1 row number)
+- [x] Row number column: `#` pinned left, auto-generated via rowIndex, non-editable
 - [x] Cell editing with double-click activation (changed from single-click to prevent accidental edits)
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Delete Row with confirmation dialog
@@ -39,7 +40,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Flexible date input (accepts M/D/YY, MM/DD/YYYY, YYYY-MM-DD, M.D.YYYY, etc.)
 - [x] Date validation with error popup for invalid format
 - [x] Timezone-safe date handling (UTC noon to prevent date shift)
-- [x] DOB masking (displays as ### for privacy)
+- [x] DOB masking (displays as ### for privacy, with `aria-label="Date of birth hidden for privacy"`)
 - [x] Phone number formatting ((555) 123-4567)
 - [x] Member Info column toggle (toolbar button to show/hide DOB, Telephone, Address columns)
 - [x] Member Info columns hidden by default
@@ -90,7 +91,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Single-select filter behavior (click to select, click again to deselect)
 - [x] Multi-select filter behavior (checkmark + fill visual, OR logic, Duplicates exclusive)
 - [x] Filter counts displayed on each chip
-- [x] Status bar shows "Showing X of Y rows" when filtering
+- [x] Status bar always shows "Showing X of Y rows" (consistent format, even when unfiltered)
 - [x] Patient name search (search input in StatusFilterBar with case-insensitive partial match)
   - Search + status color filter uses AND logic (both must match)
   - Ctrl+F focuses search input, Escape clears and blurs
@@ -296,17 +297,18 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (296 tests total)
-  - StatusFilterBar.test.tsx (51 tests, 100% coverage - includes getRowStatusColor + search UI + multi-select tests)
+- [x] Phase 4: Component tests (314 tests total)
+  - StatusFilterBar.test.tsx (52 tests - includes getRowStatusColor + search UI + multi-select + accessibility)
+  - StatusBar.test.tsx (6 tests - consistent display format, locale formatting, Connected status)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
-  - PatientGrid.test.tsx (42 tests - column defs, row class rules, grid config)
-  - Header.test.tsx (12 tests)
+  - PatientGrid.test.tsx (46 tests - column defs, row class rules, row numbers, headerTooltip, DOB aria-label)
+  - Header.test.tsx (16 tests - provider dropdown, unassigned patients, change password modal, visibility toggles)
   - LoginPage.test.tsx (17 tests)
   - ForgotPasswordPage.test.tsx (14 tests)
-  - ResetPasswordPage.test.tsx (17 tests)
-  - ImportPage.test.tsx (26 tests)
+  - ResetPasswordPage.test.tsx (18 tests - includes password helper text)
+  - ImportPage.test.tsx (27 tests - includes warning icon, max file size)
   - ImportPreviewPage.test.tsx (23 tests)
   - MainPage.test.tsx (28 tests - search filtering + multi-select filter logic)
   - authStore.test.ts (25 tests)
@@ -360,7 +362,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 527 tests passing
-- Total test count: ~1141 automated tests across all frameworks (527 Jest + 296 Vitest + 35 Playwright + 283 Cypress)
+- Total test count: ~1174 automated tests across all frameworks (527 Jest + 314 Vitest + 35 Playwright + 298 Cypress)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -635,6 +637,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 6, 2026 - 9 UX quick-win fixes (batch 2): row numbers, focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size. 18 new Vitest + 15 new Cypress tests. Total ~1174 tests.
 February 6, 2026 - MCP Playwright visual review (4 phases, 3 bugs fixed, 24 UX suggestions), 5 quick-win UX fixes (double-click edit, header tooltips, import button disable, filename display, autocomplete). Total ~1141 tests.
 February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage (6 new test files), spec infrastructure. Total ~1092 tests.
 February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.

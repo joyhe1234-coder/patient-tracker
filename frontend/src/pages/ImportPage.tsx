@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { api } from '../api/axios';
 import { useAuthStore } from '../stores/authStore';
 
@@ -282,8 +283,9 @@ export default function ImportPage() {
             />
             <div>
               <div className="font-medium text-gray-900">Replace All</div>
-              <div className="text-sm text-red-600">
-                Warning: This will delete ALL existing patient data before importing. Use only when you need a complete fresh start.
+              <div className="text-sm text-red-600 flex items-start gap-1">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>Warning: This will delete ALL existing patient data before importing. Use only when you need a complete fresh start.</span>
               </div>
             </div>
           </label>
@@ -373,7 +375,7 @@ export default function ImportPage() {
               />
             </label>
             <p className="mt-3 text-sm text-gray-500">
-              Supported formats: CSV, Excel (.xlsx, .xls)
+              Supported formats: CSV, Excel (.xlsx, .xls) &middot; Maximum file size: 10MB
             </p>
           </div>
         ) : (

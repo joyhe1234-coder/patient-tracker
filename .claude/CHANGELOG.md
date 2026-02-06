@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated TESTING.md with MCP Playwright as Layer 5
   - Updated WORKFLOW.md with 5-layer pyramid diagram and bug discovery cycle
   - Updated CLAUDE.md Quick Commands with layer numbers and current counts
-  - Test counts: Jest 527 + Vitest 296 + Playwright 35 + Cypress 283 = 1141 automated
+  - Test counts: Jest 527 + Vitest 314 + Playwright 35 + Cypress 298 = 1174 automated
 
 ### Changed
 - **Double-click edit** replaces single-click edit on AG Grid (prevents accidental edits with auto-save) — `PatientGrid.tsx`
@@ -30,6 +30,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Import "Preview Import" button** now disabled when physician not selected (was showing error after click) — `ImportPage.tsx`
 - **Import preview filename** now passed from backend to frontend (was showing "File:" with no value) — `previewCache.ts`, `import.routes.ts`
 - **Change Password modal** now has `autocomplete` attributes (`current-password`, `new-password`) — `Header.tsx`
+
+- **9 UX Quick-Win Fixes (Batch 2)** (Feb 6, 2026)
+  - **Row numbers column** added as first pinned column in AG Grid — `PatientGrid.tsx`
+  - **Focus-visible outlines** on filter chip buttons for keyboard accessibility — `StatusFilterBar.tsx`
+  - **aria-label on masked DOB cells** ("Date of birth hidden for privacy") — `PatientGrid.tsx`
+  - **Consistent status bar text** — always shows "Showing X of Y rows" — `StatusBar.tsx`
+  - **Password min-length helper text** ("Must be at least 8 characters") on Reset Password and Change Password — `ResetPasswordPage.tsx`, `Header.tsx`
+  - **Password visibility toggles** on Change Password modal (3 eye icons with aria-labels) — `Header.tsx`
+  - **overflow-x: auto** on import preview changes table (fixes mobile horizontal scroll) — `ImportPreviewPage.tsx`
+  - **Warning triangle icon** on Replace All mode warning — `ImportPage.tsx`
+  - **Maximum file size text** on file upload zone — `ImportPage.tsx`
+  - 18 new Vitest tests (296→314): StatusBar.test.tsx (6 new), Header.test.tsx (+4), PatientGrid.test.tsx (+4), ResetPasswordPage.test.tsx (+1), ImportPage.test.tsx (+2), StatusFilterBar.test.tsx (+1)
+  - 15 new Cypress E2E tests (283→298): ux-improvements.cy.ts — row numbers, status bar, filter accessibility, import UX, password toggles
 
 ### Fixed
 - **BUG-1**: Reset password page shows generic "Failed to reset password" instead of specific error messages (expired token, used token, invalid token) — `ResetPasswordPage.tsx`
