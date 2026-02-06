@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.0-snapshot] - Unreleased
 
 ### Added
+- **Patient Management Spec — Requirements Phase** (Feb 6, 2026)
+  - Created `.claude/specs/patient-management/requirements.md`
+  - Consolidates Import page + Patient Assignment page into unified tabbed page
+  - 5 requirements with 28 acceptance criteria covering all roles
+  - Validated by spec-requirements-validator agent (PASS)
+
 - **Comprehensive MCP Playwright Visual Review** (Feb 6, 2026)
   - Created 100+ test scenario plan covering all pages x all roles
   - Test plan: `.claude/agent-memory/ui-ux-reviewer/test-plans/comprehensive-visual-review-plan.md`

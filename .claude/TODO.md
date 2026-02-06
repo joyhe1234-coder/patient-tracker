@@ -6,6 +6,13 @@ This document tracks planned features and enhancements for future development.
 
 ## In Progress
 
+### Patient Management Page (Spec In Progress)
+**Spec:** `.claude/specs/patient-management/`
+- [x] Requirements phase — `requirements.md` created and approved
+- [ ] Design phase — `design.md` (pending)
+- [ ] Tasks phase — `tasks.md` (pending)
+- [ ] Implementation — consolidate Import + Patient Assignment into tabbed `/patient-management` page
+
 ### Phase 3: Adding & Duplicating Rows
 - [x] Add Row functionality with modal (basic patient info only)
 - [x] New row appears as first row (shifts other rows down)
@@ -379,6 +386,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 6, 2026 - Created patient-management spec requirements (consolidate Import + Patient Assignment pages)
 February 6, 2026 - Removed row numbers column (user feedback). Fixed search bug (re-fetch clears search). Added word-based search matching.
 February 6, 2026 - Completed 8 UX quick-wins (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size
 February 6, 2026 - Added grid feature requests: Copy Member label, filter-aware row creation, row numbers
