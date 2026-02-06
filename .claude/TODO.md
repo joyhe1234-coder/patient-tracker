@@ -206,12 +206,9 @@ See **Phase 5: CSV Import** in "In Progress" section above.
   - Design consideration: what's the expected behavior when a row is created that doesn't match the active filter?
 
 ### Row Numbers Feature
-- [x] **Add row numbers column to AG Grid** — DONE: `#` column, pinned left, width 55, uses valueGetter with rowIndex+1
-  - Display sequential row numbers as the first column (non-editable, auto-generated)
-  - **Filter interaction**: Row numbers reflect filtered view (1, 2, 3...) via rowIndex
-  - **Search interaction**: Same as filter — sequential numbers for visible rows
-  - **Sort interaction**: Row numbers represent visual position (rowIndex-based)
-  - **Pagination interaction** (future): Needs design decision
+- [x] ~~**Add row numbers column to AG Grid**~~ — REMOVED: user found it confusing/invisible
+  - Was: `#` column, pinned left, width 55, valueGetter with rowIndex+1
+  - Removed in Feb 6, 2026 based on user feedback
 
 ---
 
@@ -382,7 +379,8 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 6, 2026 - Completed 9 UX quick-wins (batch 2): row numbers, focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size
+February 6, 2026 - Removed row numbers column (user feedback). Fixed search bug (re-fetch clears search). Added word-based search matching.
+February 6, 2026 - Completed 8 UX quick-wins (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size
 February 6, 2026 - Added grid feature requests: Copy Member label, filter-aware row creation, row numbers
 February 6, 2026 - Comprehensive MCP Playwright visual review: 4 review reports, 3 bugs fixed, 24 UX suggestions logged
 February 5, 2026 - Multi-select status filter, patient name search, test gap coverage, spec infrastructure

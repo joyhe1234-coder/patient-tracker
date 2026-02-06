@@ -1,71 +1,9 @@
 /**
  * UX Improvements E2E Tests
  *
- * Tests for row numbers column, status bar consistency,
- * password visibility toggles, and other UX quick-wins.
+ * Tests for status bar consistency, password visibility toggles,
+ * and other UX quick-wins.
  */
-
-describe('Row Numbers Column', () => {
-  const adminEmail = 'admin2@gmail.com';
-  const adminPassword = 'welcome100';
-
-  beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
-    cy.visit('/');
-    cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
-  });
-
-  it('should display # column as first pinned column', () => {
-    // The row number column should be pinned left
-    cy.get('.ag-pinned-left-header .ag-header-cell').first()
-      .should('contain.text', '#');
-  });
-
-  it('should show sequential row numbers starting at 1', () => {
-    // First row should show "1"
-    cy.get('.ag-pinned-left-cols-container [row-index="0"] .ag-cell').first()
-      .should('contain.text', '1');
-
-    // Second row should show "2"
-    cy.get('.ag-pinned-left-cols-container [row-index="1"] .ag-cell').first()
-      .should('contain.text', '2');
-
-    // Third row should show "3"
-    cy.get('.ag-pinned-left-cols-container [row-index="2"] .ag-cell').first()
-      .should('contain.text', '3');
-  });
-
-  it('should not allow editing the row number column', () => {
-    // Double-click on row number cell
-    cy.get('.ag-pinned-left-cols-container [row-index="0"] .ag-cell').first()
-      .dblclick();
-    cy.wait(300);
-
-    // No editor should appear (no input element inside the cell)
-    cy.get('.ag-pinned-left-cols-container [row-index="0"] .ag-cell').first()
-      .find('input').should('not.exist');
-  });
-
-  it('should update row numbers when filtering', () => {
-    // Click a filter chip to filter rows
-    cy.contains('button', 'Completed').click();
-    cy.wait(500);
-
-    // First visible row should still be "1" (not the original row number)
-    cy.get('.ag-pinned-left-cols-container [row-index="0"] .ag-cell').first()
-      .should('contain.text', '1');
-  });
-
-  it('should have row number column with tooltip "Row Number"', () => {
-    cy.get('.ag-pinned-left-header .ag-header-cell').first()
-      .should('have.attr', 'aria-colindex', '1');
-  });
-});
 
 describe('Status Bar Consistency', () => {
   const adminEmail = 'admin2@gmail.com';

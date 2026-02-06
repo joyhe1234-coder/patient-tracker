@@ -29,8 +29,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 **Status: Complete**
 
-- [x] AG Grid displaying 15 columns (14 data + 1 row number)
-- [x] Row number column: `#` pinned left, auto-generated via rowIndex, non-editable
+- [x] AG Grid displaying 14 data columns
 - [x] Cell editing with double-click activation (changed from single-click to prevent accidental edits)
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Delete Row with confirmation dialog
@@ -297,20 +296,20 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (314 tests total)
+- [x] Phase 4: Component tests (317 tests total)
   - StatusFilterBar.test.tsx (52 tests - includes getRowStatusColor + search UI + multi-select + accessibility)
   - StatusBar.test.tsx (6 tests - consistent display format, locale formatting, Connected status)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
-  - PatientGrid.test.tsx (46 tests - column defs, row class rules, row numbers, headerTooltip, DOB aria-label)
+  - PatientGrid.test.tsx (44 tests - column defs, row class rules, headerTooltip, DOB aria-label)
   - Header.test.tsx (16 tests - provider dropdown, unassigned patients, change password modal, visibility toggles)
   - LoginPage.test.tsx (17 tests)
   - ForgotPasswordPage.test.tsx (14 tests)
   - ResetPasswordPage.test.tsx (18 tests - includes password helper text)
   - ImportPage.test.tsx (27 tests - includes warning icon, max file size)
   - ImportPreviewPage.test.tsx (23 tests)
-  - MainPage.test.tsx (28 tests - search filtering + multi-select filter logic)
+  - MainPage.test.tsx (33 tests - search filtering, word-based search, multi-select filter logic)
   - authStore.test.ts (25 tests)
 
 ### E2E Testing (Playwright)
@@ -350,6 +349,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - cypress/e2e/patient-name-search.cy.ts - Search input UI, filtering, AND logic, keyboard shortcuts
 - [x] Multi-select filter tests (18 tests)
   - cypress/e2e/multi-select-filter.cy.ts - Multi-select toggle, duplicates exclusivity, checkmark visual, search combo
+- [x] UX improvements tests (10 tests)
+  - cypress/e2e/ux-improvements.cy.ts - Status bar, filter accessibility, import UX, password toggles
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -637,7 +638,8 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 6, 2026 - 9 UX quick-win fixes (batch 2): row numbers, focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size. 18 new Vitest + 15 new Cypress tests. Total ~1174 tests.
+February 6, 2026 - Removed row numbers column (user feedback), fixed search bug (data re-fetch clears search), added word-based search matching. Total ~1172 tests (Vitest 317, Cypress 293).
+February 6, 2026 - 8 UX quick-win fixes (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size. 18 new Vitest + 10 new Cypress tests.
 February 6, 2026 - MCP Playwright visual review (4 phases, 3 bugs fixed, 24 UX suggestions), 5 quick-win UX fixes (double-click edit, header tooltips, import button disable, filename display, autocomplete). Total ~1141 tests.
 February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage (6 new test files), spec infrastructure. Total ~1092 tests.
 February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.

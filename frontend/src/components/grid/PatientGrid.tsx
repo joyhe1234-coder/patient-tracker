@@ -464,19 +464,6 @@ export default function PatientGrid({
 
   const columnDefs: ColDef<GridRow>[] = useMemo(() => [
     {
-      headerName: '#',
-      headerTooltip: 'Row Number',
-      width: 55,
-      pinned: 'left',
-      editable: false,
-      sortable: false,
-      filter: false,
-      resizable: false,
-      suppressNavigable: true,
-      valueGetter: (params) => params.node ? params.node.rowIndex! + 1 : '',
-      cellStyle: { color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center' },
-    },
-    {
       field: 'requestType',
       headerName: 'Request Type',
       headerTooltip: 'Request Type',

@@ -15,6 +15,7 @@ export default function MainPage() {
   const [rowData, setRowData] = useState<GridRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [newRowId, setNewRowId] = useState<number | null>(null);
@@ -86,12 +87,14 @@ export default function MainPage() {
       });
     }
 
-    // Apply name search filter
+    // Apply name search filter — each word matches independently
+    // so "williams robert" matches "williams, robert"
     if (searchText.trim()) {
-      const search = searchText.trim().toLowerCase();
-      filtered = filtered.filter((row) =>
-        row.memberName?.toLowerCase().includes(search)
-      );
+      const searchWords = searchText.trim().toLowerCase().split(/\s+/);
+      filtered = filtered.filter((row) => {
+        const name = row.memberName?.toLowerCase() || '';
+        return searchWords.every((word) => name.includes(word));
+      });
     }
 
     return filtered;
@@ -118,12 +121,17 @@ export default function MainPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      // Only show full-screen loading spinner on initial load.
+      // Subsequent re-fetches update data silently to preserve search/filter state.
+      if (!hasLoadedOnce.current) {
+        setLoading(true);
+      }
       setError(null);
       const queryParams = getQueryParams();
       const response = await api.get(`/data${queryParams}`);
       console.log('Loaded data:', response.data);
       setRowData(response.data.data || []);
+      hasLoadedOnce.current = true;
     } catch (err) {
       console.error('Failed to load data:', err);
       setError('Failed to load patient data. Please try again.');

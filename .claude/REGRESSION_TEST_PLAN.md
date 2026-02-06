@@ -2748,12 +2748,13 @@ npm run cypress:headed  # Run with browser visible
 - `aria-label="Search patients by name"` on input
 - `aria-label="Clear search"` on clear button
 
-### TC-29.2: Real-Time Name Filtering
+### TC-29.2: Real-Time Name Filtering (Word-Based)
 **Requirement:** Req 2 (AC 2.1-2.6)
-**Automation:** Automated - `MainPage.test.tsx` (20 tests), `patient-name-search.cy.ts: "Filtering Behavior"` (4 tests)
+**Automation:** Automated - `MainPage.test.tsx` (25 tests), `patient-name-search.cy.ts: "Filtering Behavior"` (4 tests)
 **Steps:**
 1. Type "Smith" in the search input
 2. Observe grid rows
+3. Type "smith john" — multi-word search
 
 **Expected:**
 - Grid filters in real-time as you type
@@ -2761,6 +2762,10 @@ npm run cypress:headed  # Run with browser visible
 - Case-insensitive (typing "smith" matches "Smith, John")
 - Partial match (typing "Smi" matches "Smith, John")
 - Matches any part of name ("john" matches "Johnson, Mary")
+- **Word-based matching**: "smith john" matches "Smith, John" (each word matched independently)
+- **Any order**: "john smith" also matches "Smith, John"
+- **Partial words**: "smi ali" matches "Smith, Alice"
+- **All words required**: "smith charlie" returns no match if no row has both
 - Typing non-matching text shows empty grid
 
 ### TC-29.3: Search with Status Filter (AND Logic)
@@ -2893,19 +2898,10 @@ npm run cypress:headed  # Run with browser visible
 
 ## 31. UX Improvements (Feb 6, 2026)
 
-### TC-31.1: Row Numbers Column
-**Automation:** Automated - `PatientGrid.test.tsx: row number tests` (3 tests), `ux-improvements.cy.ts: "Row Numbers Column"` (5 tests)
-**Steps:**
-1. Load patient grid
-2. Verify first column is `#` with row numbers starting at 1
-3. Verify row numbers are not editable
-4. Apply a filter and verify row numbers restart at 1
-
-**Expected:**
-- `#` column is pinned left, width 55px
-- Numbers are sequential (1, 2, 3...) based on visible row position
-- Column is not editable (double-click has no effect)
-- Filtering resets numbers to sequential from 1
+### ~~TC-31.1: Row Numbers Column~~ REMOVED
+**Status:** REMOVED — Row numbers column was removed per user feedback (confusing/invisible).
+- Previously: `#` column pinned left, 3 Vitest + 5 Cypress tests
+- All tests removed from `PatientGrid.test.tsx` and `ux-improvements.cy.ts`
 
 ### TC-31.2: Status Bar Consistent Format
 **Automation:** Automated - `StatusBar.test.tsx` (6 tests), `ux-improvements.cy.ts: "Status Bar Consistency"` (3 tests)
@@ -3008,7 +3004,7 @@ npm run cypress:headed  # Run with browser visible
 | 28. RBAC | 11 | 11 | 0 | 0 | 100% |
 | 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
 | 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
-| 31. UX Improvements | 9 | 9 | 0 | 0 | 100% |
+| 31. UX Improvements | 8 | 8 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3028,7 +3024,8 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
-February 6, 2026 - Added UX Improvements test cases (TC-31.1 to TC-31.9): row numbers, status bar, focus-visible, DOB aria-label, password helpers/toggles, import UX
+February 6, 2026 - TC-31.1 (Row Numbers) removed — feature removed per user feedback. TC-29.2 updated for word-based search matching.
+February 6, 2026 - Added UX Improvements test cases (TC-31.2 to TC-31.9): status bar, focus-visible, DOB aria-label, password helpers/toggles, import UX
 February 5, 2026 - Added Multi-Select Status Filter test cases (TC-30.1 to TC-30.5)
 February 5, 2026 - Added Patient Name Search test cases (TC-29.1 to TC-29.6)
 February 5, 2026 - Added automation status and requirement traceability to all test cases
