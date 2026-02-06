@@ -442,9 +442,9 @@ export default function ImportPage() {
         </a>
         <button
           onClick={handleSubmitClick}
-          disabled={!file || loading}
+          disabled={!file || loading || (needsPhysicianSelection && !selectedPhysicianId)}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            !file || loading
+            !file || loading || (needsPhysicianSelection && !selectedPhysicianId)
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}

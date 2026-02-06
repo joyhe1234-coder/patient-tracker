@@ -73,7 +73,7 @@ describe('LoginPage', () => {
       expect(screen.getByText('Patient Quality Measure Tracker')).toBeInTheDocument();
       expect(screen.getByText('Sign in to access the patient tracking system')).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
@@ -106,7 +106,7 @@ describe('LoginPage', () => {
     it('does not call login when email is empty', async () => {
       renderLoginPage();
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await userEvent.type(passwordInput, 'password123');
@@ -146,7 +146,7 @@ describe('LoginPage', () => {
       renderLoginPage();
 
       const emailInput = screen.getByLabelText(/email address/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await userEvent.type(emailInput, 'doctor@clinic.com');
@@ -163,7 +163,7 @@ describe('LoginPage', () => {
       renderLoginPage();
 
       const emailInput = screen.getByLabelText(/email address/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await userEvent.type(emailInput, '  doctor@clinic.com  ');
@@ -180,7 +180,7 @@ describe('LoginPage', () => {
       renderLoginPage();
 
       const emailInput = screen.getByLabelText(/email address/i);
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
       await userEvent.type(emailInput, 'doctor@clinic.com');
@@ -260,7 +260,7 @@ describe('LoginPage', () => {
       renderLoginPage();
 
       expect(screen.getByLabelText(/email address/i)).toBeDisabled();
-      expect(screen.getByLabelText(/password/i)).toBeDisabled();
+      expect(screen.getByLabelText('Password')).toBeDisabled();
       expect(screen.getByRole('button', { name: /signing in/i })).toBeDisabled();
     });
   });
@@ -269,14 +269,14 @@ describe('LoginPage', () => {
     it('initially hides password', () => {
       renderLoginPage();
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       expect(passwordInput).toHaveAttribute('type', 'password');
     });
 
     it('shows password when toggle is clicked', async () => {
       renderLoginPage();
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       const toggleButton = passwordInput.parentElement?.querySelector('button');
 
       expect(toggleButton).toBeInTheDocument();
@@ -290,7 +290,7 @@ describe('LoginPage', () => {
     it('hides password again when toggle is clicked twice', async () => {
       renderLoginPage();
 
-      const passwordInput = screen.getByLabelText(/password/i);
+      const passwordInput = screen.getByLabelText('Password');
       const toggleButton = passwordInput.parentElement?.querySelector('button');
 
       if (toggleButton) {

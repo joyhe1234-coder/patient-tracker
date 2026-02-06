@@ -282,7 +282,7 @@ describe('ResetPasswordPage', () => {
 
     it('shows error message for invalid token', async () => {
       mockPost.mockRejectedValue({
-        response: { data: { message: 'Invalid or expired reset token' } },
+        response: { data: { success: false, error: { code: 'INVALID_TOKEN', message: 'Invalid reset link' } } },
       });
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
@@ -298,13 +298,35 @@ describe('ResetPasswordPage', () => {
       await user.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Invalid or expired reset token')).toBeInTheDocument();
+        expect(screen.getByText('Invalid reset link')).toBeInTheDocument();
+      });
+    });
+
+    it('shows error message for expired token', async () => {
+      mockPost.mockRejectedValue({
+        response: { data: { success: false, error: { code: 'TOKEN_EXPIRED', message: 'Reset link has expired' } } },
+      });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+      renderResetPasswordPage('expired-token');
+
+      const passwordInput = screen.getByLabelText(/new password/i);
+      const confirmInput = screen.getByLabelText(/confirm password/i);
+
+      await user.type(passwordInput, 'newpassword123');
+      await user.type(confirmInput, 'newpassword123');
+
+      const submitButton = screen.getByRole('button', { name: /reset password/i });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Reset link has expired')).toBeInTheDocument();
       });
     });
 
     it('shows error message for already used token', async () => {
       mockPost.mockRejectedValue({
-        response: { data: { message: 'Reset link has already been used' } },
+        response: { data: { success: false, error: { code: 'TOKEN_USED', message: 'Reset link has already been used' } } },
       });
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 

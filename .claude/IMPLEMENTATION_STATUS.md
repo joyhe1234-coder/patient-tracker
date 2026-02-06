@@ -30,7 +30,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 **Status: Complete**
 
 - [x] AG Grid displaying 14 columns
-- [x] Cell editing with single-click activation
+- [x] Cell editing with double-click activation (changed from single-click to prevent accidental edits)
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Delete Row with confirmation dialog
 - [x] Row selection indicator (blue outline, preserves status colors)
@@ -296,7 +296,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (285 tests total)
+- [x] Phase 4: Component tests (296 tests total)
   - StatusFilterBar.test.tsx (51 tests, 100% coverage - includes getRowStatusColor + search UI + multi-select tests)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
@@ -360,7 +360,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 527 tests passing
-- Total test count: ~1092 automated tests across all frameworks (527 Jest + 265 Vitest + 35 Playwright + 265 Cypress)
+- Total test count: ~1141 automated tests across all frameworks (527 Jest + 296 Vitest + 35 Playwright + 283 Cypress)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -635,6 +635,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 6, 2026 - MCP Playwright visual review (4 phases, 3 bugs fixed, 24 UX suggestions), 5 quick-win UX fixes (double-click edit, header tooltips, import button disable, filename display, autocomplete). Total ~1141 tests.
 February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage (6 new test files), spec infrastructure. Total ~1092 tests.
 February 4, 2026 - Added role access control tests: role-access-control.cy.ts (31). Total ~680 tests.
 February 4, 2026 - Added Phase 12 tests: Header.test.tsx (12), patient-assignment.cy.ts (32).

@@ -43,8 +43,8 @@ export function ResetPasswordPage() {
         navigate('/login');
       }, 3000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Failed to reset password');
+      const error = err as { response?: { data?: { error?: { message?: string }; message?: string } } };
+      setError(error.response?.data?.error?.message || error.response?.data?.message || 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }

@@ -10,7 +10,7 @@ import { api } from '../api/axios';
 import { useAuthStore } from '../stores/authStore';
 
 export default function MainPage() {
-  const { user, selectedPhysicianId } = useAuthStore();
+  const { user, selectedPhysicianId, assignments } = useAuthStore();
 
   const [rowData, setRowData] = useState<GridRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -251,6 +251,30 @@ export default function MainPage() {
   const needsPhysicianSelection =
     (user?.roles.includes('STAFF') && !selectedPhysicianId) ||
     (user?.roles.includes('ADMIN') && selectedPhysicianId === undefined);
+
+  // STAFF user with no physician assignments - show contact admin message
+  const staffHasNoAssignments = user?.roles.includes('STAFF') && !user?.roles.includes('ADMIN') && assignments.length === 0;
+
+  if (staffHasNoAssignments) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-yellow-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            No Physician Assignments
+          </h2>
+          <p className="text-gray-600 mb-4">
+            You have not been assigned to any physicians yet.
+          </p>
+          <p className="text-sm text-gray-500">
+            Please contact your administrator to be assigned to a physician so you can view their patients.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (needsPhysicianSelection) {
     return (

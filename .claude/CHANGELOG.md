@@ -9,10 +9,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.0-snapshot] - Unreleased
 
 ### Added
+- **Comprehensive MCP Playwright Visual Review** (Feb 6, 2026)
+  - Created 100+ test scenario plan covering all pages x all roles
+  - Test plan: `.claude/agent-memory/ui-ux-reviewer/test-plans/comprehensive-visual-review-plan.md`
+  - Executed 4 review phases: Auth Flow, Patient Grid, Import Page, Admin Pages
+  - 4 detailed review reports in `.claude/agent-memory/ui-ux-reviewer/reviews/`
+  - 12 screenshots captured across all phases
+  - Found 3 bugs (all fixed), logged 24 UX improvement suggestions
+  - Established ui-ux-reviewer agent MEMORY.md for persistent learnings
+
+- **5-Layer Test Pyramid Documentation** (Feb 6, 2026)
+  - Updated TESTING.md with MCP Playwright as Layer 5
+  - Updated WORKFLOW.md with 5-layer pyramid diagram and bug discovery cycle
+  - Updated CLAUDE.md Quick Commands with layer numbers and current counts
+  - Test counts: Jest 527 + Vitest 296 + Playwright 35 + Cypress 283 = 1141 automated
 
 ### Changed
+- **Double-click edit** replaces single-click edit on AG Grid (prevents accidental edits with auto-save) — `PatientGrid.tsx`
+- **Column header tooltips** added to all 14 AG Grid columns (fixes truncated header text) — `PatientGrid.tsx`
+- **Import "Preview Import" button** now disabled when physician not selected (was showing error after click) — `ImportPage.tsx`
+- **Import preview filename** now passed from backend to frontend (was showing "File:" with no value) — `previewCache.ts`, `import.routes.ts`
+- **Change Password modal** now has `autocomplete` attributes (`current-password`, `new-password`) — `Header.tsx`
 
 ### Fixed
+- **BUG-1**: Reset password page shows generic "Failed to reset password" instead of specific error messages (expired token, used token, invalid token) — `ResetPasswordPage.tsx`
+- **BUG-2**: STAFF user with no physician assignments sees "select from dropdown in header" but no dropdown exists — `MainPage.tsx` — Added separate "No Physician Assignments" check with "contact administrator" guidance
+- **BUG-3**: Password visibility toggle button not keyboard accessible (had `tabIndex={-1}`) — `LoginPage.tsx` — Removed tabIndex, added dynamic `aria-label`
 
 ---
 

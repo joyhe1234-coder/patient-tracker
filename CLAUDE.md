@@ -214,11 +214,12 @@ describe('My Grid Feature', () => {
 #### 5g. Run ALL Tests Before Commit
 
 ```bash
-# Run ALL test suites - ALL must pass
-cd backend && npm test                    # Jest (130+ tests)
-cd frontend && npm run test:run           # Vitest (45+ tests)
-cd frontend && npm run e2e                # Playwright (26+ tests)
-cd frontend && npm run cypress:run        # Cypress (19+ tests)
+# Run ALL test suites - ALL must pass (5-layer pyramid)
+cd backend && npm test                    # Layer 1: Jest (527 tests)
+cd frontend && npm run test:run           # Layer 2: Vitest (296 tests)
+cd frontend && npm run e2e               # Layer 3: Playwright E2E (35 tests)
+cd frontend && npm run cypress:run       # Layer 4: Cypress E2E (283 tests)
+# Layer 5: MCP Playwright visual review (for UI changes — run ui-ux-reviewer agent)
 ```
 
 #### 5h. Update Test Documentation
@@ -255,6 +256,7 @@ Add entry for:
 | `TODO.md` | Mark completed tasks, remove obsolete items |
 | `REGRESSION_TEST_PLAN.md` | Test cases match current features |
 | Requirements docs | Specs match current implementation |
+| Page guides (`.claude/agent-memory/ui-ux-reviewer/page-guides/`) | Use cases, interactions, and expected behaviors match current UI |
 
 **If there are conflicts between documents:**
 1. **CHANGELOG wins** - It reflects the actual implemented state
@@ -265,6 +267,7 @@ Add entry for:
 - Changed UI fields or behavior
 - Modified API endpoints or parameters
 - Outdated test counts
+- Page guide use cases no longer matching actual UI behavior (new columns, changed interactions, new roles)
 
 ### Step 3: Stage and Commit Together
 
@@ -410,11 +413,12 @@ Read the following files before starting work:
 - Dev server: `docker-compose up`
 - Build: `cd frontend && npm run build`
 
-### Testing (Run all before commit)
-- Backend unit tests: `cd backend && npm test` (130 tests)
-- Frontend component tests: `cd frontend && npm run test:run` (45 tests)
-- Playwright E2E: `cd frontend && npm run e2e` (25 tests)
-- Cypress E2E: `cd frontend && npm run cypress:run` (19 tests)
+### Testing (Run all before commit — 5-layer pyramid)
+- **Layer 1** Backend unit tests: `cd backend && npm test` (527 tests)
+- **Layer 2** Frontend component tests: `cd frontend && npm run test:run` (296 tests)
+- **Layer 3** Playwright E2E: `cd frontend && npm run e2e` (35 tests)
+- **Layer 4** Cypress E2E: `cd frontend && npm run cypress:run` (283 tests)
+- **Layer 5** MCP Playwright visual review: ui-ux-reviewer agent (for UI changes)
 - Cypress interactive: `cd frontend && npm run cypress`
 
 ### Test Locations

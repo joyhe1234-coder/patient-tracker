@@ -52,6 +52,7 @@ cd frontend && npm run cypress:run
 | **Vitest** | Frontend component tests | `frontend/src/**/*.test.ts(x)` | `cd frontend && npm run test` |
 | **Playwright** | Frontend E2E (general UI) | `frontend/e2e/*.spec.ts` | `cd frontend && npm run e2e` |
 | **Cypress** | Frontend E2E (AG Grid) | `frontend/cypress/e2e/*.cy.ts` | `cd frontend && npm run cypress:run` |
+| **MCP Playwright** | Visual/UX/accessibility review | `.claude/agent-memory/ui-ux-reviewer/` | ui-ux-reviewer agent via Task tool |
 
 ### When to Use Each Framework
 
@@ -65,6 +66,8 @@ cd frontend && npm run cypress:run
 | **AG Grid dropdown selection** | **Cypress** | Better native event handling |
 | AG Grid cell editing | Cypress | Reliable AG Grid interaction |
 | Complex multi-step workflows | Playwright or Cypress | E2E coverage |
+| Visual design, UX patterns, accessibility | MCP Playwright | Browser-based review with screenshots |
+| Role-specific UI behavior | MCP Playwright | Tests each role sees correct UI |
 
 **Note:** Playwright has issues committing AG Grid dropdown selections. Use Cypress for any AG Grid dropdown tests.
 
@@ -117,7 +120,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (265 tests)
+### Frontend Component Tests (296 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
@@ -334,6 +337,55 @@ npm run cypress:run       # Headless (CI)
 npm run cypress:headed    # With browser visible
 ```
 
+### MCP Playwright Visual Review (on-demand)
+
+**Location:** `.claude/agent-memory/ui-ux-reviewer/`
+
+MCP Playwright is a **browser-based visual review** layer that uses the `ui-ux-reviewer` agent to launch a real browser, navigate the app as different roles, take screenshots, and analyze visual design, UX patterns, and accessibility.
+
+**What It Tests:**
+- Visual design consistency (layout, spacing, typography, color)
+- UX patterns (interaction feedback, error states, empty states, cognitive load)
+- Accessibility (color contrast, keyboard navigation, focus indicators, ARIA labels)
+- Role-specific UI behavior (ADMIN vs STAFF vs PHYSICIAN see correct UI)
+- Responsive design across breakpoints (desktop, tablet, mobile)
+
+**How to Invoke:**
+
+Launch the `ui-ux-reviewer` agent via the Task tool, specifying the page and role to review:
+
+```
+Task tool → subagent_type: "ui-ux-reviewer"
+Prompt: "Review the [page name] as [role]. The dev server is running at http://localhost:5173"
+```
+
+**Page Guides Available:**
+
+| Page | Guide | Key Review Points |
+|------|-------|-------------------|
+| Patient Grid | `page-guides/patient-grid.md` | AG Grid layout, row colors, dropdowns, role-based columns |
+| Auth Flow | `page-guides/auth-flow.md` | Login form, password reset, change password modal |
+
+Page guides define all use cases, interactions, role-based behaviors, and expected states. The agent uses them as a review checklist.
+
+**Where Reports Go:**
+- Reviews are saved to `.claude/agent-memory/ui-ux-reviewer/reviews/`
+- Named by page and date: e.g., `patient-grid-2026-02-06.md`
+- Reports include severity-rated findings with screenshots
+
+**How Bugs Are Logged:**
+- **Confirmed Bugs** (code doesn't match spec) → `TODO.md` "Confirmed Bugs" section with `BUG-N` format
+- **UX Suggestions** (works but could be better) → `TODO.md` "UI/UX Review Findings" section
+- Each entry includes: severity, affected file, root cause, fix hint
+
+**When to Run:**
+- After implementing new UI features or pages
+- After fixing UX bugs (to verify the fix)
+- As periodic audit (e.g., before a release)
+- When a user reports a visual or UX issue
+
+---
+
 ### CLI Test Script (7 test files)
 
 **Location:** `backend/scripts/test-transform.ts`
@@ -371,8 +423,8 @@ npm run test:cli -- --save    # Save new baselines
 | Backend import services | Jest | 130 | Complete |
 | Backend auth services | Jest | 50 | Complete |
 | Backend API routes | Jest | ~137 | Complete |
-| Frontend components | Vitest | 94 | Complete |
-| Frontend pages | Vitest | 124 | Complete |
+| Frontend components | Vitest | 134 | Complete |
+| Frontend pages | Vitest | 137 | Complete |
 | Frontend stores | Vitest | 25 | Complete |
 | Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
@@ -384,10 +436,13 @@ npm run test:cli -- --save    # Save new baselines
 | Sorting & filtering | Cypress | 55 | Complete |
 | Multi-select filter | Cypress | 18 | Complete |
 | Patient name search | Vitest + Cypress | 33 | Complete |
-| Grid editing | - | 0 | Planned |
-| Time intervals | - | 0 | Planned |
+| Cell editing | Cypress | 18 | Complete |
+| Time intervals | Cypress | 14 | Complete |
+| Duplicate detection | Cypress | 15 | Complete |
+| Multi-select filter | Cypress | 18 | Complete |
+| Visual/UX review | MCP Playwright | - | On-demand |
 
-**Total Automated Tests: ~1130**
+**Total Automated Tests: ~1141**
 
 ---
 
@@ -550,12 +605,16 @@ describe('Feature Name', () => {
 
 **Current test counts:**
 - cascading-dropdowns.cy.ts: 30 tests
-- import-flow.cy.ts: 29 tests
+- cell-editing.cy.ts: 18 tests
+- duplicate-detection.cy.ts: 15 tests
+- import-flow.cy.ts: 57 tests
 - patient-assignment.cy.ts: 32 tests
 - role-access-control.cy.ts: 31 tests
 - sorting-filtering.cy.ts: 55 tests
+- time-interval.cy.ts: 14 tests
 - patient-name-search.cy.ts: 13 tests
-- **Total: 190 tests** (when run with fresh seed data)
+- multi-select-filter.cy.ts: 18 tests
+- **Total: 283 tests** (when run with fresh seed data)
 
 ---
 
@@ -580,6 +639,12 @@ describe('Feature Name', () => {
 ---
 
 ## Last Updated
+
+February 6, 2026 - Added MCP Playwright Visual Review as 5th test layer:
+- Documented MCP Playwright visual review workflow (page guides, reports, bug logging)
+- Updated test counts: Vitest 296, Cypress 283, total ~1141
+- Added "When to Use" entries for visual/UX and role-specific testing
+- Updated Test Coverage Summary table with current Cypress test files
 
 February 5, 2026 - Added Patient Name Search tests:
 - Vitest: MainPage.test.tsx (20 tests) - Search filtering logic, AND logic, null handling

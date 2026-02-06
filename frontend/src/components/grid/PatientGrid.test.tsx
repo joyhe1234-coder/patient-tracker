@@ -270,10 +270,10 @@ describe('PatientGrid', () => {
       expect(typeof capturedGridProps.onSelectionChanged).toBe('function');
     });
 
-    it('enables single click edit', () => {
+    it('uses double-click edit (not single-click)', () => {
       render(<PatientGrid rowData={[]} />);
 
-      expect(capturedGridProps.singleClickEdit).toBe(true);
+      expect(capturedGridProps.singleClickEdit).toBe(false);
     });
 
     it('enables stop editing when cells lose focus', () => {
