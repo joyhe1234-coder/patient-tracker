@@ -1999,6 +1999,7 @@ Cypress tests for AG Grid interactions, import flow, patient assignment, role ac
 | `cypress/e2e/role-access-control.cy.ts` | STAFF/PHYSICIAN/ADMIN access restrictions | 31 |
 | `cypress/e2e/sorting-filtering.cy.ts` | Column sorting, status filter bar, row colors | 55 |
 | `cypress/e2e/patient-name-search.cy.ts` | Search input UI, filtering, AND logic, keyboard shortcuts | 13 |
+| `cypress/e2e/multi-select-filter.cy.ts` | Multi-select toggle, duplicates exclusivity, checkmark visual | 18 |
 
 ### Test Categories
 
@@ -2810,6 +2811,84 @@ npm run cypress:headed  # Run with browser visible
 - Does NOT intercept Ctrl+F when editing AG Grid cell
 - Escape clears search text and blurs the input
 
+## 30. Multi-Select Status Filter
+
+**Spec:** `.claude/specs/multi-select-filter/requirements.md`
+
+### TC-30.1: Multi-Select Toggle Behavior
+**Requirements:** AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6
+**Automation:** Automated - `StatusFilterBar.test.tsx` (7 tests), `multi-select-filter.cy.ts` (5 tests)
+
+**Steps:**
+1. Click a status chip → toggles ON (added to active filters)
+2. Click a second chip → both active (multi-select)
+3. Click an active chip → toggles OFF (removed from filters, others unaffected)
+4. Toggle off the last chip → "All" auto-activates
+5. Click "All" → clears all individual selections
+6. Click chip while "All" active → only clicked chip active
+
+**Expected:**
+- Multi-select toggle works for all scenarios
+- Grid shows rows matching ANY selected color (OR logic)
+- Zero-selection state impossible (always falls back to "All")
+
+### TC-30.2: Checkmark + Fill Visual Style
+**Requirements:** AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, AC-2.6
+**Automation:** Automated - `StatusFilterBar.test.tsx` (5 tests), `multi-select-filter.cy.ts` (4 tests)
+
+**Steps:**
+1. Observe active chips → filled background + checkmark icon
+2. Observe inactive chips → outlined style + reduced opacity
+3. Hover inactive chip → subtle opacity increase
+4. Observe "All" chip → same visual treatment as other chips
+
+**Expected:**
+- Active chips show checkmark + filled background matching status color
+- Inactive chips at 50% opacity with 75% on hover
+- All chips including "All" and "Duplicates" use consistent visual treatment
+
+### TC-30.3: Duplicates Filter Exclusivity
+**Requirements:** AC-3.1, AC-3.2, AC-3.3, AC-3.4
+**Automation:** Automated - `StatusFilterBar.test.tsx` (2 tests), `multi-select-filter.cy.ts` (3 tests)
+
+**Steps:**
+1. Select color chips, then click "Duplicates" → color chips deselected
+2. While "Duplicates" active, click a color chip → exits duplicates mode
+3. Click "Duplicates" again to toggle off → returns to "All"
+
+**Expected:**
+- "Duplicates" and color chips are mutually exclusive
+- "Duplicates" and "All" are mutually exclusive
+- "Duplicates" uses same checkmark + fill visual
+
+### TC-30.4: Status Bar and Chip Counts
+**Requirements:** AC-4.1, AC-4.2, AC-4.3
+**Automation:** Automated - `MainPage.test.tsx` (8 tests), `multi-select-filter.cy.ts` (2 tests)
+
+**Steps:**
+1. Select multiple filters → status bar shows combined count
+2. Observe chip counts → always reflect full dataset
+3. Add search with multi-filter → AND logic applies
+
+**Expected:**
+- Status bar shows "Showing X of Y rows" for combined count
+- Chip counts unchanged when filters active
+- Search narrows within multi-filter results
+
+### TC-30.5: Keyboard Accessibility
+**Requirements:** AC-5.1, AC-5.2, AC-5.3
+**Automation:** Automated - `multi-select-filter.cy.ts` (2 tests), `StatusFilterBar.test.tsx` (aria-pressed tests)
+
+**Steps:**
+1. Focus a chip and press Enter/Space → toggles state
+2. Tab between chips → focus moves in order
+3. Check `aria-pressed` attribute → reflects toggle state
+
+**Expected:**
+- Native button keyboard behavior works (Enter/Space toggle)
+- Tab navigation works between chips
+- `aria-pressed` is `true` for active, `false` for inactive chips
+
 ---
 
 ## Automation Summary
@@ -2836,6 +2915,7 @@ npm run cypress:headed  # Run with browser visible
 | 27. Patient Assignment | 10 | 10 | 0 | 0 | 100% |
 | 28. RBAC | 11 | 11 | 0 | 0 | 100% |
 | 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
+| 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -2855,6 +2935,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 5, 2026 - Added Multi-Select Status Filter test cases (TC-30.1 to TC-30.5)
 February 5, 2026 - Added Patient Name Search test cases (TC-29.1 to TC-29.6)
 February 5, 2026 - Added automation status and requirement traceability to all test cases
 February 5, 2026 - Added Automation Summary section with coverage percentages and priority gaps

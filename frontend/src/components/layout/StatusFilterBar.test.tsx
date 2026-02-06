@@ -82,18 +82,18 @@ describe('StatusFilterBar', () => {
     expect(handleChange).toHaveBeenCalledWith(['duplicate']);
   });
 
-  it('clicking selected filter returns to all', () => {
+  it('toggling off the last selected chip returns to all', () => {
     const handleChange = vi.fn();
     render(
       <StatusFilterBar
-        activeFilters={['duplicate']}
+        activeFilters={['green']}
         onFilterChange={handleChange}
         rowCounts={defaultCounts}
         {...defaultSearchProps}
       />
     );
 
-    fireEvent.click(screen.getByText('Duplicates'));
+    fireEvent.click(screen.getByText('Completed'));
     expect(handleChange).toHaveBeenCalledWith(['all']);
   });
 
@@ -122,9 +122,190 @@ describe('StatusFilterBar', () => {
       />
     );
 
-    // All chip should be active (has ring-2 class)
+    // All chip should be active (aria-pressed=true)
     const allButton = screen.getByRole('button', { name: /All/ });
-    expect(allButton.className).toContain('ring-2');
+    expect(allButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  describe('Multi-Select Toggle Behavior', () => {
+    it('clicking unselected chip adds it to active filters', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('In Progress'));
+      expect(handleChange).toHaveBeenCalledWith(['green', 'blue']);
+    });
+
+    it('clicking selected chip removes it without affecting others', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Completed'));
+      expect(handleChange).toHaveBeenCalledWith(['blue']);
+    });
+
+    it('clicking chip while All is active selects only that chip', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Completed'));
+      expect(handleChange).toHaveBeenCalledWith(['green']);
+    });
+
+    it('clicking Duplicates deselects all color chips', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Duplicates'));
+      expect(handleChange).toHaveBeenCalledWith(['duplicate']);
+    });
+
+    it('clicking color chip while Duplicates active exits duplicates mode', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['duplicate']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('In Progress'));
+      expect(handleChange).toHaveBeenCalledWith(['blue']);
+    });
+
+    it('toggling off Duplicates returns to all', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['duplicate']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Duplicates'));
+      expect(handleChange).toHaveBeenCalledWith(['all']);
+    });
+
+    it('can select three chips simultaneously', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={handleChange}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Contacted'));
+      expect(handleChange).toHaveBeenCalledWith(['green', 'blue', 'yellow']);
+    });
+  });
+
+  describe('Checkmark + Fill Visual Style', () => {
+    it('active chip has aria-pressed true', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const greenButton = screen.getByRole('button', { name: /Completed/ });
+      expect(greenButton).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('inactive chip has aria-pressed false', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const blueButton = screen.getByRole('button', { name: /In Progress/ });
+      expect(blueButton).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('active chip has filled background (no opacity-50)', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const greenButton = screen.getByRole('button', { name: /Completed/ });
+      expect(greenButton.className).not.toContain('opacity-50');
+    });
+
+    it('inactive chip has opacity-50 class', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const blueButton = screen.getByRole('button', { name: /In Progress/ });
+      expect(blueButton.className).toContain('opacity-50');
+    });
+
+    it('multiple active chips all have aria-pressed true', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['green', 'blue']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+        />
+      );
+
+      const greenButton = screen.getByRole('button', { name: /Completed/ });
+      const blueButton = screen.getByRole('button', { name: /In Progress/ });
+      expect(greenButton).toHaveAttribute('aria-pressed', 'true');
+      expect(blueButton).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 
   it('shows zero count when rowCounts is missing a category', () => {

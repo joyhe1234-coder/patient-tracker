@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Check, Search, X } from 'lucide-react';
 
 // Status color categories matching PatientGrid row class rules
 export type StatusColor = 'all' | 'duplicate' | 'white' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'red';
@@ -37,17 +37,41 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
   const isAllSelected = activeFilters.includes('all') || activeFilters.length === 0;
 
   const handleChipClick = (id: StatusColor) => {
-    // Single-select behavior: clicking a chip selects only that filter
-    // Clicking the already-selected filter switches back to 'all'
+    // "All" clears everything
     if (id === 'all') {
       onFilterChange(['all']);
-    } else if (activeFilters.includes(id) && !activeFilters.includes('all')) {
-      // Clicking the same filter again - go back to 'all'
-      onFilterChange(['all']);
-    } else {
-      // Select only this filter
-      onFilterChange([id]);
+      return;
     }
+
+    // "Duplicates" is exclusive — toggle it
+    if (id === 'duplicate') {
+      if (activeFilters.includes('duplicate')) {
+        onFilterChange(['all']);
+      } else {
+        onFilterChange(['duplicate']);
+      }
+      return;
+    }
+
+    // Status color chip — multi-select toggle
+    let newFilters: StatusColor[];
+
+    if (activeFilters.includes('all') || activeFilters.includes('duplicate')) {
+      // Coming from All or Duplicates → start fresh with just this chip
+      newFilters = [id];
+    } else if (activeFilters.includes(id)) {
+      // Toggle OFF — remove this chip
+      newFilters = activeFilters.filter((f) => f !== id);
+      // If nothing left, fall back to All
+      if (newFilters.length === 0) {
+        newFilters = ['all'];
+      }
+    } else {
+      // Toggle ON — add this chip
+      newFilters = [...activeFilters, id];
+    }
+
+    onFilterChange(newFilters);
   };
 
   const totalRows = useMemo(() => {
@@ -67,13 +91,17 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
           <button
             key={category.id}
             onClick={() => handleChipClick(category.id)}
+            aria-pressed={isActive}
             className={`
               inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
-              border-2 transition-all duration-150
-              ${category.bgColor} ${category.textColor} ${category.borderColor}
-              ${isActive ? 'ring-2 ring-offset-1 ring-blue-500' : 'opacity-60 hover:opacity-100'}
+              border-2 transition-all duration-150 cursor-pointer
+              ${isActive
+                ? `${category.bgColor} ${category.textColor} ${category.borderColor}`
+                : `bg-white ${category.textColor} ${category.borderColor} opacity-50 hover:opacity-75`
+              }
             `}
           >
+            {isActive && <Check size={14} strokeWidth={3} />}
             <span>{category.label}</span>
             <span className="text-xs opacity-75">({count})</span>
           </button>

@@ -210,6 +210,58 @@ describe('MainPage search filtering logic', () => {
     });
   });
 
+  describe('multi-select filter (OR logic)', () => {
+    it('filters by multiple colors with OR logic', () => {
+      const result = filterRows(sampleRows, ['green', 'blue'], '');
+      // green: John Smith (1), Charlie Brown (5). blue: Jane Doe (2)
+      expect(result).toHaveLength(3);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 5]);
+    });
+
+    it('filters by three colors with OR logic', () => {
+      const result = filterRows(sampleRows, ['green', 'blue', 'purple'], '');
+      // green: 1, 5. blue: 2. purple: 4
+      expect(result).toHaveLength(4);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 4, 5]);
+    });
+
+    it('single color filter works same as old single-select', () => {
+      const result = filterRows(sampleRows, ['green'], '');
+      expect(result).toHaveLength(2);
+      expect(result.map((r) => r.id)).toEqual([1, 5]);
+    });
+
+    it('duplicates filter returns only duplicate rows', () => {
+      const result = filterRows(sampleRows, ['duplicate'], '');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(5);
+    });
+
+    it('all chips selected shows all rows (equivalent to All)', () => {
+      const allColors: StatusColor[] = ['white', 'red', 'blue', 'yellow', 'green', 'purple', 'orange', 'gray'];
+      const result = filterRows(sampleRows, allColors, '');
+      expect(result).toHaveLength(5);
+    });
+
+    it('multi-filter + search applies AND logic', () => {
+      const result = filterRows(sampleRows, ['green', 'purple'], 'smith');
+      // green smith: John Smith (1). purple smith: Alice Smith (4). Charlie Brown is green but not smith.
+      expect(result).toHaveLength(2);
+      expect(result.map((r) => r.id)).toEqual([1, 4]);
+    });
+
+    it('multi-filter with no matching rows returns empty', () => {
+      const result = filterRows(sampleRows, ['orange', 'gray'], '');
+      // No rows with orange or gray status in sample data
+      expect(result).toHaveLength(0);
+    });
+
+    it('multi-filter + search with no matching combo returns empty', () => {
+      const result = filterRows(sampleRows, ['green', 'blue'], 'xyz');
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe('chip counts (rowCounts) independence', () => {
     it('rowCounts are computed from unfiltered rowData', () => {
       // Simulate what MainPage does: rowCounts computed from rowData (not filteredRowData)

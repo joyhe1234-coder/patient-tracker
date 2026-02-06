@@ -37,6 +37,7 @@ This document tracks planned features and enhancements for future development.
 - [x] Row position and selection preserved during all edits
 - [x] Status color filter bar (filter by row color with clickable chips)
 - [x] Single-select filter behavior
+- [x] Multi-select filter behavior (checkmark + fill visual style)
 - [x] Filter counts displayed on each chip
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
@@ -273,5 +274,5 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 5, 2026 - Patient name search feature, multi-role refactoring, test gap coverage, spec infrastructure
+February 5, 2026 - Multi-select status filter, patient name search, test gap coverage, spec infrastructure
 February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

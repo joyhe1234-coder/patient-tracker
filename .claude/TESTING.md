@@ -181,7 +181,7 @@ npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
 
-### Cypress E2E Tests (265 tests)
+### Cypress E2E Tests (283 tests)
 
 **Location:** `frontend/cypress/e2e/*.cy.ts`
 
@@ -196,6 +196,7 @@ npm run e2e:report        # View HTML report
 | `sorting-filtering.cy.ts` | 55 | Column sorting, status filter bar, row colors |
 | `time-interval.cy.ts` | 14 | Dropdown-controlled statuses, manual override, validation |
 | `patient-name-search.cy.ts` | 13 | Search input UI, filtering, AND logic, keyboard shortcuts |
+| `multi-select-filter.cy.ts` | 18 | Multi-select toggle, duplicates exclusivity, checkmark visual, search combo |
 
 **Test Categories:**
 
@@ -370,8 +371,8 @@ npm run test:cli -- --save    # Save new baselines
 | Backend import services | Jest | 130 | Complete |
 | Backend auth services | Jest | 50 | Complete |
 | Backend API routes | Jest | ~137 | Complete |
-| Frontend components | Vitest | 82 | Complete |
-| Frontend pages | Vitest | 116 | Complete |
+| Frontend components | Vitest | 94 | Complete |
+| Frontend pages | Vitest | 124 | Complete |
 | Frontend stores | Vitest | 25 | Complete |
 | Authentication E2E | Playwright | 9 | Complete |
 | CRUD operations | Playwright | 26 (4 skip) | Complete |
@@ -381,11 +382,12 @@ npm run test:cli -- --save    # Save new baselines
 | Patient assignment | Cypress | 32 | Complete |
 | Role access control | Cypress | 31 | Complete |
 | Sorting & filtering | Cypress | 55 | Complete |
+| Multi-select filter | Cypress | 18 | Complete |
 | Patient name search | Vitest + Cypress | 33 | Complete |
 | Grid editing | - | 0 | Planned |
 | Time intervals | - | 0 | Planned |
 
-**Total Automated Tests: ~1092**
+**Total Automated Tests: ~1130**
 
 ---
 

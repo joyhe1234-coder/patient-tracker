@@ -503,43 +503,38 @@ describe('Status Filter Bar', () => {
       });
     });
 
-    it('should switch filters when clicking different filter', () => {
+    it('should add second filter when clicking different chip (multi-select)', () => {
       // Click Completed
       cy.contains('button', 'Completed').click();
       cy.wait(500);
       cy.get('.ag-center-cols-container .ag-row').its('length').as('greenCount');
 
-      // Click In Progress
+      // Click In Progress to add it
       cy.contains('button', 'In Progress').click();
       cy.wait(500);
-      cy.get('.ag-center-cols-container .ag-row').its('length').as('blueCount');
 
-      // Counts should be different (usually)
-      cy.log('Filter switched from Completed to In Progress');
+      // Both chips should be active
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
+
+      // Combined count should be >= individual count
+      cy.get('@greenCount').then((greenCount) => {
+        cy.get('.ag-center-cols-container .ag-row').its('length').should('be.gte', greenCount);
+      });
     });
 
-    it('should highlight active filter chip', () => {
-      // Get initial styles of the button
-      cy.contains('button', 'Completed').then(($btn) => {
-        const initialClasses = $btn.attr('class') || '';
+    it('should highlight active filter chip with aria-pressed and checkmark', () => {
+      // Initially Completed is inactive
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'false');
+      cy.contains('button', 'Completed').find('svg').should('not.exist');
 
-        // Click to select
-        cy.contains('button', 'Completed').click();
-        cy.wait(300);
+      // Click to select
+      cy.contains('button', 'Completed').click();
+      cy.wait(300);
 
-        // Button should have some visual indication of being active
-        // Check that classes changed or button has active-like styling
-        cy.contains('button', 'Completed').then(($activeBtn) => {
-          const activeClasses = $activeBtn.attr('class') || '';
-          // Either classes changed or we have some active indicator
-          const hasRing = activeClasses.includes('ring');
-          const hasSelected = activeClasses.includes('selected');
-          const hasBorder = activeClasses.includes('border');
-          const classesChanged = activeClasses !== initialClasses;
-
-          expect(hasRing || hasSelected || hasBorder || classesChanged).to.be.true;
-        });
-      });
+      // Should have aria-pressed=true and a checkmark SVG
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+      cy.contains('button', 'Completed').find('svg').should('exist');
     });
   });
 

@@ -88,6 +88,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Row position and selection preserved during all edits
 - [x] Status color filter bar (clickable chips to filter by row color/status category)
 - [x] Single-select filter behavior (click to select, click again to deselect)
+- [x] Multi-select filter behavior (checkmark + fill visual, OR logic, Duplicates exclusive)
 - [x] Filter counts displayed on each chip
 - [x] Status bar shows "Showing X of Y rows" when filtering
 - [x] Patient name search (search input in StatusFilterBar with case-insensitive partial match)
@@ -295,8 +296,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (265 tests total)
-  - StatusFilterBar.test.tsx (39 tests, 100% coverage - includes getRowStatusColor + search UI tests)
+- [x] Phase 4: Component tests (285 tests total)
+  - StatusFilterBar.test.tsx (51 tests, 100% coverage - includes getRowStatusColor + search UI + multi-select tests)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
@@ -307,7 +308,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - ResetPasswordPage.test.tsx (17 tests)
   - ImportPage.test.tsx (26 tests)
   - ImportPreviewPage.test.tsx (23 tests)
-  - MainPage.test.tsx (20 tests - search filtering logic)
+  - MainPage.test.tsx (28 tests - search filtering + multi-select filter logic)
   - authStore.test.ts (25 tests)
 
 ### E2E Testing (Playwright)
@@ -345,6 +346,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - cypress/e2e/duplicate-detection.cy.ts - Visual indicators, 409 errors, flag clearing
 - [x] Patient name search tests (13 tests)
   - cypress/e2e/patient-name-search.cy.ts - Search input UI, filtering, AND logic, keyboard shortcuts
+- [x] Multi-select filter tests (18 tests)
+  - cypress/e2e/multi-select-filter.cy.ts - Multi-select toggle, duplicates exclusivity, checkmark visual, search combo
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management

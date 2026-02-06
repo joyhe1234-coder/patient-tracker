@@ -9,6 +9,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.3.0-snapshot] - Unreleased
 
 ### Added
+- **Multi-Select Status Filter** (Feb 5, 2026)
+  - Redesigned StatusFilterBar from single-select to multi-select toggle behavior
+  - Users can now select multiple status chips simultaneously (OR logic filtering)
+  - Checkmark + fill visual style: active chips show checkmark icon + filled background color
+  - Inactive chips show outlined style at 50% opacity with hover at 75%
+  - "All" chip clears all selections; "Duplicates" chip is exclusive (deselects color chips)
+  - Zero-selection prevented: toggling off last chip auto-activates "All"
+  - `aria-pressed` attribute on all chips for accessibility
+  - Search + multi-filter uses AND logic (unchanged from single-select)
+  - Updated `StatusFilterBar.test.tsx` - 12 new multi-select + visual tests (51 total, was 39)
+  - Updated `MainPage.test.tsx` - 8 new multi-filter integration tests (28 total, was 20)
+  - NEW: `multi-select-filter.cy.ts` - 18 Cypress E2E tests for multi-select behavior
+  - Updated `sorting-filtering.cy.ts` - 2 tests updated for multi-select (55 total)
+  - Total Vitest tests: 285 (was 265, +20 new)
+  - Total Cypress tests: 283 (was 265, +18 new)
+
 - **Patient Name Search** (Feb 5, 2026)
   - Search input in StatusFilterBar for filtering patients by name
   - Case-insensitive partial match filtering on memberName field
