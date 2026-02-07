@@ -10,11 +10,12 @@ import { api } from '../api/axios';
 import { useAuthStore } from '../stores/authStore';
 
 export default function MainPage() {
-  const { user, selectedPhysicianId } = useAuthStore();
+  const { user, selectedPhysicianId, assignments } = useAuthStore();
 
   const [rowData, setRowData] = useState<GridRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [newRowId, setNewRowId] = useState<number | null>(null);
@@ -86,12 +87,14 @@ export default function MainPage() {
       });
     }
 
-    // Apply name search filter
+    // Apply name search filter — each word matches independently
+    // so "williams robert" matches "williams, robert"
     if (searchText.trim()) {
-      const search = searchText.trim().toLowerCase();
-      filtered = filtered.filter((row) =>
-        row.memberName?.toLowerCase().includes(search)
-      );
+      const searchWords = searchText.trim().toLowerCase().split(/\s+/);
+      filtered = filtered.filter((row) => {
+        const name = row.memberName?.toLowerCase() || '';
+        return searchWords.every((word) => name.includes(word));
+      });
     }
 
     return filtered;
@@ -118,12 +121,17 @@ export default function MainPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      // Only show full-screen loading spinner on initial load.
+      // Subsequent re-fetches update data silently to preserve search/filter state.
+      if (!hasLoadedOnce.current) {
+        setLoading(true);
+      }
       setError(null);
       const queryParams = getQueryParams();
       const response = await api.get(`/data${queryParams}`);
       console.log('Loaded data:', response.data);
       setRowData(response.data.data || []);
+      hasLoadedOnce.current = true;
     } catch (err) {
       console.error('Failed to load data:', err);
       setError('Failed to load patient data. Please try again.');
@@ -251,6 +259,30 @@ export default function MainPage() {
   const needsPhysicianSelection =
     (user?.roles.includes('STAFF') && !selectedPhysicianId) ||
     (user?.roles.includes('ADMIN') && selectedPhysicianId === undefined);
+
+  // STAFF user with no physician assignments - show contact admin message
+  const staffHasNoAssignments = user?.roles.includes('STAFF') && !user?.roles.includes('ADMIN') && assignments.length === 0;
+
+  if (staffHasNoAssignments) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-yellow-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            No Physician Assignments
+          </h2>
+          <p className="text-gray-600 mb-4">
+            You have not been assigned to any physicians yet.
+          </p>
+          <p className="text-sm text-gray-500">
+            Please contact your administrator to be assigned to a physician so you can view their patients.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (needsPhysicianSelection) {
     return (

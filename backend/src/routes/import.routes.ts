@@ -394,7 +394,9 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       validationResult,
       warnings,
       reassignments,
-      targetOwnerId
+      targetOwnerId,
+      undefined,
+      parseResult.fileName
     );
 
     // Get the stored entry for summary

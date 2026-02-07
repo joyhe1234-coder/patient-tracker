@@ -61,10 +61,11 @@ describe('ImportPage', () => {
       expect(screen.getByText('Merge (Recommended)')).toBeInTheDocument();
     });
 
-    it('renders file upload area', () => {
+    it('renders file upload area with max file size', () => {
       renderImportPage();
       expect(screen.getByText('Drag and drop your file here, or')).toBeInTheDocument();
       expect(screen.getByText('Browse Files')).toBeInTheDocument();
+      expect(screen.getByText(/Maximum file size: 10MB/)).toBeInTheDocument();
     });
 
     it('renders Preview Import button (disabled without file)', () => {
@@ -99,6 +100,11 @@ describe('ImportPage', () => {
       await userEvent.click(replaceRadio);
 
       expect(replaceRadio).toBeChecked();
+    });
+
+    it('shows warning text with icon for Replace All mode', () => {
+      renderImportPage();
+      expect(screen.getByText(/Warning:.*This will delete ALL existing patient data/)).toBeInTheDocument();
     });
 
     it('shows Merge as recommended', () => {
@@ -170,7 +176,7 @@ describe('ImportPage', () => {
 
       // Should navigate to preview page
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/import/preview/test-preview-123');
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/test-preview-123');
       });
     });
 
@@ -196,7 +202,7 @@ describe('ImportPage', () => {
 
       // Should navigate directly
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/import/preview/test-preview-123');
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/test-preview-123');
       });
     });
   });
@@ -318,7 +324,7 @@ describe('ImportPage', () => {
       await userEvent.click(button);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/import/preview/test-preview-123');
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/test-preview-123');
       });
     });
 

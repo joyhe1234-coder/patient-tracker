@@ -112,8 +112,8 @@ describe('Role-Based Access Control', () => {
     });
 
     it('should prevent PHYSICIAN from accessing patient assignment page', () => {
-      // /admin/patient-assignment is admin-only
-      cy.log('PHYSICIAN cannot access /admin/patient-assignment');
+      // /patient-management?tab=reassign is admin-only tab
+      cy.log('PHYSICIAN cannot access /patient-management?tab=reassign');
     });
   });
 
@@ -153,9 +153,9 @@ describe('Role-Based Access Control', () => {
     });
 
     it('should allow ADMIN to access patient assignment page', () => {
-      cy.visit('/admin/patient-assignment');
-      cy.url().should('include', '/admin/patient-assignment');
-      cy.contains('Assign').should('be.visible');
+      cy.visit('/patient-management?tab=reassign');
+      cy.url().should('include', '/patient-management');
+      cy.contains('Reassign Patients').should('be.visible');
     });
   });
 
@@ -228,11 +228,11 @@ describe('Role-Based Access Control', () => {
       cy.url().should('include', '/login');
     });
 
-    it('should redirect unauthenticated users from /import to login', () => {
+    it('should redirect unauthenticated users from /patient-management to login', () => {
       cy.clearCookies();
       cy.clearLocalStorage();
 
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.url().should('include', '/login');
     });
   });
@@ -335,7 +335,7 @@ describe('STAFF User Specific Tests', () => {
       Expected behavior for STAFF:
       1. No "Admin" link in navigation
       2. Cannot access /admin directly (redirect)
-      3. Cannot access /admin/patient-assignment
+      3. Cannot access /patient-management?tab=reassign
       4. Cannot manage users
       5. Cannot bulk assign patients
     `);

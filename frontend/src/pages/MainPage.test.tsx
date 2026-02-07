@@ -28,12 +28,13 @@ function filterRows(
     });
   }
 
-  // Apply name search filter
+  // Apply name search filter — each word matches independently
   if (searchText.trim()) {
-    const search = searchText.trim().toLowerCase();
-    filtered = filtered.filter((row) =>
-      row.memberName?.toLowerCase().includes(search)
-    );
+    const searchWords = searchText.trim().toLowerCase().split(/\s+/);
+    filtered = filtered.filter((row) => {
+      const name = row.memberName?.toLowerCase() || '';
+      return searchWords.every((word) => name.includes(word));
+    });
   }
 
   return filtered;
@@ -64,11 +65,11 @@ function makeRow(overrides: Partial<GridRow> & { id: number; memberName: string 
 }
 
 const sampleRows: GridRow[] = [
-  makeRow({ id: 1, memberName: 'John Smith', measureStatus: 'AWV completed' }),      // green
-  makeRow({ id: 2, memberName: 'Jane Doe', measureStatus: 'AWV scheduled' }),         // blue
-  makeRow({ id: 3, memberName: 'Bob Johnson', measureStatus: null }),                  // white
-  makeRow({ id: 4, memberName: 'Alice Smith', measureStatus: 'Patient declined AWV' }), // purple
-  makeRow({ id: 5, memberName: 'Charlie Brown', measureStatus: 'AWV completed', isDuplicate: true }), // green + dup
+  makeRow({ id: 1, memberName: 'Smith, John', measureStatus: 'AWV completed' }),      // green
+  makeRow({ id: 2, memberName: 'Doe, Jane', measureStatus: 'AWV scheduled' }),         // blue
+  makeRow({ id: 3, memberName: 'Johnson, Bob', measureStatus: null }),                  // white
+  makeRow({ id: 4, memberName: 'Smith, Alice', measureStatus: 'Patient declined AWV' }), // purple
+  makeRow({ id: 5, memberName: 'Brown, Charlie', measureStatus: 'AWV completed', isDuplicate: true }), // green + dup
 ];
 
 describe('MainPage search filtering logic', () => {
@@ -92,7 +93,7 @@ describe('MainPage search filtering logic', () => {
 
     it('matches any part of the name', () => {
       const result = filterRows(sampleRows, ['all'], 'john');
-      // "John Smith" (id:1) and "Bob Johnson" (id:3)
+      // "Smith, John" (id:1) and "Johnson, Bob" (id:3)
       expect(result).toHaveLength(2);
       expect(result.map((r) => r.id)).toEqual([1, 3]);
     });
@@ -121,12 +122,45 @@ describe('MainPage search filtering logic', () => {
       const result = filterRows(sampleRows, ['all'], '  smith  ');
       expect(result).toHaveLength(2);
     });
+
+    it('matches multi-word search across "lastname, firstname" format', () => {
+      // "smith john" should match "Smith, John" (words matched independently)
+      const result = filterRows(sampleRows, ['all'], 'smith john');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('matches multi-word search in any order', () => {
+      // "john smith" should also match "Smith, John"
+      const result = filterRows(sampleRows, ['all'], 'john smith');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('matches multi-word search with partial words', () => {
+      // "smi ali" should match "Smith, Alice"
+      const result = filterRows(sampleRows, ['all'], 'smi ali');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(4);
+    });
+
+    it('requires all words to match', () => {
+      // "smith charlie" should NOT match anything (no row has both)
+      const result = filterRows(sampleRows, ['all'], 'smith charlie');
+      expect(result).toHaveLength(0);
+    });
+
+    it('handles extra spaces between words', () => {
+      const result = filterRows(sampleRows, ['all'], 'smith   john');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
   });
 
   describe('null memberName handling', () => {
     it('excludes rows with null memberName from search results', () => {
       const rowsWithNull: GridRow[] = [
-        makeRow({ id: 1, memberName: 'John Smith' }),
+        makeRow({ id: 1, memberName: 'Smith, John' }),
         // Force a null memberName for testing
         { ...makeRow({ id: 2, memberName: '' }), memberName: null as unknown as string },
       ];
@@ -138,7 +172,7 @@ describe('MainPage search filtering logic', () => {
 
     it('returns null memberName rows when search is empty', () => {
       const rowsWithNull: GridRow[] = [
-        makeRow({ id: 1, memberName: 'John Smith' }),
+        makeRow({ id: 1, memberName: 'Smith, John' }),
         { ...makeRow({ id: 2, memberName: '' }), memberName: null as unknown as string },
       ];
 
@@ -150,14 +184,14 @@ describe('MainPage search filtering logic', () => {
   describe('search + status filter (AND logic)', () => {
     it('applies both filters: green + "smith"', () => {
       const result = filterRows(sampleRows, ['green'], 'smith');
-      // John Smith (green) matches. Alice Smith (purple) does not match green filter.
+      // Smith, John (green) matches. Smith, Alice (purple) does not match green filter.
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(1);
     });
 
     it('applies both filters: blue + "doe"', () => {
       const result = filterRows(sampleRows, ['blue'], 'doe');
-      // Jane Doe (blue) matches both
+      // Doe, Jane (blue) matches both
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(2);
     });
@@ -175,7 +209,7 @@ describe('MainPage search filtering logic', () => {
 
     it('applies duplicate filter + name search', () => {
       const result = filterRows(sampleRows, ['duplicate'], 'brown');
-      // Charlie Brown is the only duplicate, and matches "brown"
+      // Brown, Charlie is the only duplicate, and matches "brown"
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(5);
     });
@@ -205,7 +239,7 @@ describe('MainPage search filtering logic', () => {
 
       // Clear search but keep status filter
       const restored = filterRows(sampleRows, ['green'], '');
-      // Green rows: John Smith (id:1) and Charlie Brown (id:5)
+      // Green rows: Smith, John (id:1) and Brown, Charlie (id:5)
       expect(restored).toHaveLength(2);
     });
   });
@@ -213,7 +247,7 @@ describe('MainPage search filtering logic', () => {
   describe('multi-select filter (OR logic)', () => {
     it('filters by multiple colors with OR logic', () => {
       const result = filterRows(sampleRows, ['green', 'blue'], '');
-      // green: John Smith (1), Charlie Brown (5). blue: Jane Doe (2)
+      // green: Smith, John (1), Brown, Charlie (5). blue: Doe, Jane (2)
       expect(result).toHaveLength(3);
       expect(result.map((r) => r.id)).toEqual([1, 2, 5]);
     });
@@ -245,7 +279,7 @@ describe('MainPage search filtering logic', () => {
 
     it('multi-filter + search applies AND logic', () => {
       const result = filterRows(sampleRows, ['green', 'purple'], 'smith');
-      // green smith: John Smith (1). purple smith: Alice Smith (4). Charlie Brown is green but not smith.
+      // green smith: Smith, John (1). purple smith: Smith, Alice (4). Brown, Charlie is green but not smith.
       expect(result).toHaveLength(2);
       expect(result.map((r) => r.id)).toEqual([1, 4]);
     });
@@ -276,11 +310,11 @@ describe('MainPage search filtering logic', () => {
       });
 
       // Counts should reflect ALL rows regardless of search
-      expect(counts.green).toBe(2);  // John Smith + Charlie Brown
-      expect(counts.blue).toBe(1);   // Jane Doe
-      expect(counts.white).toBe(1);  // Bob Johnson
-      expect(counts.purple).toBe(1); // Alice Smith
-      expect(counts.duplicate).toBe(1); // Charlie Brown
+      expect(counts.green).toBe(2);  // Smith, John + Brown, Charlie
+      expect(counts.blue).toBe(1);   // Doe, Jane
+      expect(counts.white).toBe(1);  // Johnson, Bob
+      expect(counts.purple).toBe(1); // Smith, Alice
+      expect(counts.duplicate).toBe(1); // Brown, Charlie
 
       // Even after filtering, counts stay the same (they use rowData, not filteredRowData)
       const filtered = filterRows(sampleRows, ['all'], 'smith');

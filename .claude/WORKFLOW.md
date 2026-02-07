@@ -409,154 +409,135 @@ const patients = await prisma.patient.findMany({
 
 **Goal:** Ensure code works correctly, securely, and doesn't break existing functionality.
 
-### 7.1 Unit Tests
+### 7.1 Five-Layer Test Pyramid
 
-**Backend (Jest):**
-```bash
-cd backend && npm test -- <filename>
-cd backend && npm test -- --coverage  # Full coverage report
+All testing follows a structured 5-layer pyramid. Lower layers are fast and run frequently; higher layers are slower and run less often.
+
+```
+    ┌─────────────────────────────────────────────┐
+    │  Layer 5: MCP Playwright Visual Review       │  On-demand
+    │  (visual design, UX, accessibility)          │
+    ├─────────────────────────────────────────────┤
+    │  Layer 4: Cypress E2E                        │  Before PR/release
+    │  (AG Grid interactions, complex workflows)   │
+    ├─────────────────────────────────────────────┤
+    │  Layer 3: Playwright E2E                     │  Before PR/release
+    │  (user flows, navigation, modals)            │
+    ├─────────────────────────────────────────────┤
+    │  Layer 2: Vitest                             │  Every commit
+    │  (frontend components, pages, stores)        │
+    ├─────────────────────────────────────────────┤
+    │  Layer 1: Jest                               │  Every commit
+    │  (backend unit/integration tests)            │
+    └─────────────────────────────────────────────┘
 ```
 
-**Frontend (Vitest):**
-```bash
-cd frontend && npm test
-cd frontend && npm run test:coverage
-```
+### 7.2 Test Execution Order
 
-### 7.2 Integration Tests
-
-**API + Database Integration:**
-```typescript
-// backend/src/services/__tests__/patient.integration.test.ts
-describe('PatientService Integration', () => {
-  beforeEach(async () => {
-    await prisma.patient.deleteMany();
-    await seedTestPatients();
-  });
-
-  it('should create patient with audit log', async () => {
-    const patient = await patientService.create(testPatient, adminUser);
-
-    // Verify patient created
-    expect(patient.id).toBeDefined();
-
-    // Verify audit log entry
-    const auditEntry = await prisma.auditLog.findFirst({
-      where: {
-        action: 'PATIENT_CREATE',
-        resourceId: patient.id
-      }
-    });
-    expect(auditEntry).toBeDefined();
-    expect(auditEntry.userId).toBe(adminUser.id);
-  });
-});
-```
-
-### 7.3 Security Tests
-
-```typescript
-// backend/src/__tests__/security.test.ts
-describe('Security', () => {
-  it('should reject unauthorized PHI access', async () => {
-    const response = await request(app)
-      .get('/api/patients/123')
-      .set('Authorization', `Bearer ${unauthorizedUserToken}`);
-
-    expect(response.status).toBe(403);
-  });
-
-  it('should not expose PHI in error messages', async () => {
-    const response = await request(app)
-      .get('/api/patients/invalid-id')
-      .set('Authorization', `Bearer ${validToken}`);
-
-    expect(response.body.message).not.toMatch(/SSN|social security/i);
-    expect(response.body.message).not.toMatch(/\d{3}-\d{2}-\d{4}/);
-  });
-
-  it('should rate limit login attempts', async () => {
-    for (let i = 0; i < 6; i++) {
-      await request(app).post('/api/auth/login').send(invalidCredentials);
-    }
-
-    const response = await request(app)
-      .post('/api/auth/login')
-      .send(validCredentials);
-
-    expect(response.status).toBe(429);
-  });
-});
-```
-
-### 7.4 E2E Tests
-
-**Playwright (general E2E):**
-```bash
-cd frontend && npm run test:e2e
-cd frontend && npm run test:e2e:ui  # Interactive mode
-```
-
-**Cypress (AG Grid interactions):**
-```bash
-cd frontend && npm run cypress:open  # Interactive
-cd frontend && npm run cypress:run   # Headless
-```
-
-### 7.5 Load Testing
+Run layers bottom-up. Stop and fix failures before proceeding to the next layer.
 
 ```bash
-# Install k6
-brew install k6
+# === LAYER 1: Backend Unit Tests (Jest — 527 tests) ===
+cd backend && npm test
 
-# Run load test for expected patient volume
-k6 run --vus 50 --duration 5m tests/load/patient-search.js
+# === LAYER 2: Frontend Component Tests (Vitest — 296 tests) ===
+cd frontend && npm run test:run
+
+# === LAYER 3: Playwright E2E (35 tests) ===
+# Requires dev server running: docker-compose up
+cd frontend && npm run e2e
+
+# === LAYER 4: Cypress E2E (283 tests) ===
+# Requires dev server running: docker-compose up
+cd frontend && npm run cypress:run
+
+# === LAYER 5: MCP Playwright Visual Review (on-demand) ===
+# Launch ui-ux-reviewer agent for pages affected by changes
+# See TESTING.md "MCP Playwright Visual Review" section
 ```
 
-```javascript
-// tests/load/patient-search.js
-import http from 'k6/http';
-import { check, sleep } from 'k6';
+### 7.3 When to Run Each Layer
 
-export const options = {
-  thresholds: {
-    http_req_duration: ['p(95)<500'],  // 95% under 500ms
-    http_req_failed: ['rate<0.01'],     // <1% errors
-  },
-};
+| Layer | When to Run | Time |
+|-------|-------------|------|
+| **1-2** (Jest + Vitest) | Every commit | ~30 seconds |
+| **3-4** (Playwright + Cypress) | Before PR or release | ~5 minutes (needs dev server) |
+| **5** (MCP Playwright) | After new UI features, UX bug fixes, or periodic audit | ~10 minutes |
 
-export default function() {
-  const res = http.get(`${BASE_URL}/api/patients?search=Smith`, {
-    headers: { Authorization: `Bearer ${TOKEN}` }
-  });
+**Rule of thumb:**
+- Changed backend code? → Run Layer 1
+- Changed frontend code? → Run Layers 1-2
+- Changed UI behavior? → Run Layers 1-4
+- New UI feature or UX fix? → Run Layers 1-5
 
-  check(res, {
-    'status is 200': (r) => r.status === 200,
-    'response time OK': (r) => r.timings.duration < 500,
-  });
-
-  sleep(1);
-}
-```
-
-### 7.6 Test File Locations
+### 7.4 Test File Locations
 
 | Type | Location | Framework |
 |------|----------|-----------|
 | Backend unit | `backend/src/**/__tests__/*.test.ts` | Jest |
-| Backend integration | `backend/src/**/__tests__/*.integration.test.ts` | Jest |
 | Frontend unit | `frontend/src/**/*.test.tsx` | Vitest |
 | E2E general | `frontend/e2e/*.spec.ts` | Playwright |
 | E2E AG Grid | `frontend/cypress/e2e/*.cy.ts` | Cypress |
-| Security | `backend/src/__tests__/security.test.ts` | Jest |
-| Load | `tests/load/*.js` | k6 |
+| Visual review | `.claude/agent-memory/ui-ux-reviewer/` | MCP Playwright |
 
-### 7.7 Test Coverage Requirements
+### 7.5 Test Coverage Requirements
 
 - New features: Write tests for all new functionality
 - Bug fixes: Add regression test for the bug
 - Security features: 100% coverage required
 - Aim for >80% coverage on new code
+
+### 7.6 Bug Discovery & Fix Workflow
+
+When tests or reviews find issues, use this structured cycle:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  DISCOVER: Run test layers, review findings         │
+│  • Automated tests (Layers 1-4) → failures = bugs  │
+│  • MCP Playwright (Layer 5) → findings = investigate│
+├─────────────────────────────────────────────────────┤
+│  INVESTIGATE: Confirm bugs vs UX suggestions        │
+│  • Read source code, check error paths              │
+│  • Verify: Does code match documented behavior?     │
+│  • Bug = code doesn't match spec                    │
+│  • UX suggestion = code works but could be better   │
+├─────────────────────────────────────────────────────┤
+│  LOG: Add to TODO.md                                │
+│  • Bugs → "Confirmed Bugs" section (BUG-N format)  │
+│  • UX items → "UI/UX Review Findings" section       │
+│  • Include: severity, file, root cause, fix hint    │
+├─────────────────────────────────────────────────────┤
+│  FIX: Apply fixes, update tests                     │
+│  • Fix the code                                     │
+│  • Update/add tests to cover the bug                │
+│  • Re-run Layers 1-2 to verify fix                  │
+├─────────────────────────────────────────────────────┤
+│  VERIFY: Re-run affected test layers                │
+│  • Re-run MCP review for visual fixes               │
+│  • Mark BUG-N as FIXED in TODO.md                   │
+│  • Update CHANGELOG.md with fix description         │
+└─────────────────────────────────────────────────────┘
+```
+
+**Bug Entry Format (in TODO.md):**
+
+```markdown
+- [ ] **BUG-N**: [Short description] — Severity: HIGH/MEDIUM/LOW
+  - File: `path/to/file.tsx`
+  - Root cause: [What's wrong]
+  - Fix: [Hint for how to fix]
+  - Found by: [Layer N / MCP review / manual testing]
+```
+
+**Distinction: Bug vs UX Suggestion:**
+
+| | Bug | UX Suggestion |
+|---|-----|---------------|
+| **Definition** | Code doesn't match spec or causes incorrect behavior | Code works correctly but UX could be improved |
+| **Priority** | Fix before release | Backlog for future improvement |
+| **Logged as** | `BUG-N` in "Confirmed Bugs" | Item in "UI/UX Review Findings" |
+| **Example** | Button click doesn't save | Button could have better hover feedback |
 
 ---
 

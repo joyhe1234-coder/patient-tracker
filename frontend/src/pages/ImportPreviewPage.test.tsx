@@ -84,9 +84,9 @@ const mockPreviewData = {
 
 const renderPreviewPage = (previewId = 'test-preview-123') => {
   return render(
-    <MemoryRouter initialEntries={[`/import/preview/${previewId}`]}>
+    <MemoryRouter initialEntries={[`/patient-management/preview/${previewId}`]}>
       <Routes>
-        <Route path="/import/preview/:previewId" element={<ImportPreviewPage />} />
+        <Route path="/patient-management/preview/:previewId" element={<ImportPreviewPage />} />
       </Routes>
     </MemoryRouter>
   );
@@ -139,7 +139,7 @@ describe('ImportPreviewPage', () => {
       });
     });
 
-    it('navigates to /import when clicking Start New Import', async () => {
+    it('navigates to /patient-management when clicking Start New Import', async () => {
       (api.get as any).mockResolvedValue({
         data: {
           success: false,
@@ -155,7 +155,7 @@ describe('ImportPreviewPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: 'Start New Import' }));
 
-      expect(mockNavigate).toHaveBeenCalledWith('/import');
+      expect(mockNavigate).toHaveBeenCalledWith('/patient-management');
     });
   });
 
@@ -308,7 +308,7 @@ describe('ImportPreviewPage', () => {
       (api.delete as any).mockResolvedValue({ data: { success: true } });
     });
 
-    it('deletes preview and navigates to /import on cancel', async () => {
+    it('deletes preview and navigates to /patient-management on cancel', async () => {
       renderPreviewPage();
 
       await waitFor(() => {
@@ -318,7 +318,7 @@ describe('ImportPreviewPage', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(api.delete).toHaveBeenCalledWith('/import/preview/test-preview-123');
-      expect(mockNavigate).toHaveBeenCalledWith('/import');
+      expect(mockNavigate).toHaveBeenCalledWith('/patient-management');
     });
   });
 

@@ -9,10 +9,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.0-snapshot] - Unreleased
 
 ### Added
+- **Patient Management Page — Full Implementation** (Feb 7, 2026)
+  - Created unified `/patient-management` page with tabbed interface (Import + Reassign tabs)
+  - New file: `PatientManagementPage.tsx` — tab bar, URL sync via `?tab=`, role-based visibility
+  - Extracted `ImportTabContent` from `ImportPage.tsx` (named export, thin wrapper preserved)
+  - Extracted `ReassignTabContent` from `PatientAssignmentPage.tsx` (lazy-load via `isActive` prop)
+  - Header nav: "Import" → "Patient Mgmt", path `/import` → `/patient-management`
+  - AdminPage "Assign Patients" button → `/patient-management?tab=reassign`
+  - ImportPreviewPage all navigate calls → `/patient-management`
+  - Route redirects: `/import` → `/patient-management`, `/admin/patient-assignment` → `/patient-management?tab=reassign`, `/import/preview/:id` → `/patient-management/preview/:id`
+  - 18 new Vitest tests: `PatientManagementPage.test.tsx` (tab visibility, URL params, role checks)
+  - 8 new Playwright E2E tests: `patient-management.spec.ts` (navigation, redirects, role behavior)
+  - Updated Cypress tests: `import-flow.cy.ts`, `patient-assignment.cy.ts`, `role-access-control.cy.ts`, `ux-improvements.cy.ts` with new URL paths
+  - Updated existing test assertions: `ImportPage.test.tsx`, `ImportPreviewPage.test.tsx`, `Header.test.tsx`
+  - Test counts: Vitest 317→335, Playwright 35→43
+  - Spec documents: `.claude/specs/patient-management/` (requirements, design, tasks)
+
+- **Patient Management Spec — Requirements Phase** (Feb 6, 2026)
+  - Created `.claude/specs/patient-management/requirements.md`
+  - Consolidates Import page + Patient Assignment page into unified tabbed page
+  - 5 requirements with 28 acceptance criteria covering all roles
+  - Validated by spec-requirements-validator agent (PASS)
+
+- **Comprehensive MCP Playwright Visual Review** (Feb 6, 2026)
+  - Created 100+ test scenario plan covering all pages x all roles
+  - Test plan: `.claude/agent-memory/ui-ux-reviewer/test-plans/comprehensive-visual-review-plan.md`
+  - Executed 4 review phases: Auth Flow, Patient Grid, Import Page, Admin Pages
+  - 4 detailed review reports in `.claude/agent-memory/ui-ux-reviewer/reviews/`
+  - 12 screenshots captured across all phases
+  - Found 3 bugs (all fixed), logged 24 UX improvement suggestions
+  - Established ui-ux-reviewer agent MEMORY.md for persistent learnings
+
+- **5-Layer Test Pyramid Documentation** (Feb 6, 2026)
+  - Updated TESTING.md with MCP Playwright as Layer 5
+  - Updated WORKFLOW.md with 5-layer pyramid diagram and bug discovery cycle
+  - Updated CLAUDE.md Quick Commands with layer numbers and current counts
+  - Test counts: Jest 527 + Vitest 335 + Playwright 43 + Cypress 293 = 1198 automated
 
 ### Changed
+- **Double-click edit** replaces single-click edit on AG Grid (prevents accidental edits with auto-save) — `PatientGrid.tsx`
+- **Column header tooltips** added to all 14 AG Grid columns (fixes truncated header text) — `PatientGrid.tsx`
+- **Import "Preview Import" button** now disabled when physician not selected (was showing error after click) — `ImportPage.tsx`
+- **Import preview filename** now passed from backend to frontend (was showing "File:" with no value) — `previewCache.ts`, `import.routes.ts`
+- **Change Password modal** now has `autocomplete` attributes (`current-password`, `new-password`) — `Header.tsx`
+
+- **8 UX Quick-Win Fixes (Batch 2)** (Feb 6, 2026)
+  - **Focus-visible outlines** on filter chip buttons for keyboard accessibility — `StatusFilterBar.tsx`
+  - **aria-label on masked DOB cells** ("Date of birth hidden for privacy") — `PatientGrid.tsx`
+  - **Consistent status bar text** — always shows "Showing X of Y rows" — `StatusBar.tsx`
+  - **Password min-length helper text** ("Must be at least 8 characters") on Reset Password and Change Password — `ResetPasswordPage.tsx`, `Header.tsx`
+  - **Password visibility toggles** on Change Password modal (3 eye icons with aria-labels) — `Header.tsx`
+  - **overflow-x: auto** on import preview changes table (fixes mobile horizontal scroll) — `ImportPreviewPage.tsx`
+  - **Warning triangle icon** on Replace All mode warning — `ImportPage.tsx`
+  - **Maximum file size text** on file upload zone — `ImportPage.tsx`
+  - 18 new Vitest tests (296→314): StatusBar.test.tsx (6 new), Header.test.tsx (+4), PatientGrid.test.tsx (+4), ResetPasswordPage.test.tsx (+1), ImportPage.test.tsx (+2), StatusFilterBar.test.tsx (+1)
+  - 10 new Cypress E2E tests (283→293): ux-improvements.cy.ts — status bar, filter accessibility, import UX, password toggles
+
+- **Row numbers column removed** (Feb 6, 2026) — user found it confusing/invisible
+  - Removed `#` column definition from `PatientGrid.tsx`
+  - Removed 2 Vitest tests and 5 Cypress E2E tests for row numbers
+
+- **Search improvements** (Feb 6, 2026)
+  - **Word-based search matching** — each search word matches independently, so "williams robert" matches "Williams, Robert" — `MainPage.tsx`
+  - **Search persists during data re-fetch** — only shows full-screen loading spinner on initial load; subsequent re-fetches update data silently to preserve search/filter state — `MainPage.tsx`
+  - 5 new Vitest tests for word-based search (MainPage.test.tsx)
+  - Test counts: Vitest 314→317, Cypress 298→293, total 1172
 
 ### Fixed
+- **BUG-1**: Reset password page shows generic "Failed to reset password" instead of specific error messages (expired token, used token, invalid token) — `ResetPasswordPage.tsx`
+- **BUG-2**: STAFF user with no physician assignments sees "select from dropdown in header" but no dropdown exists — `MainPage.tsx` — Added separate "No Physician Assignments" check with "contact administrator" guidance
+- **BUG-3**: Password visibility toggle button not keyboard accessible (had `tabIndex={-1}`) — `LoginPage.tsx` — Removed tabIndex, added dynamic `aria-label`
 
 ---
 

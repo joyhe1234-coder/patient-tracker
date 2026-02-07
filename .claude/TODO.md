@@ -6,6 +6,17 @@ This document tracks planned features and enhancements for future development.
 
 ## In Progress
 
+### Patient Management Page (Complete)
+**Spec:** `.claude/specs/patient-management/`
+- [x] Requirements phase — `requirements.md` created and approved
+- [x] Design phase — `design.md` created and approved
+- [x] Tasks phase — `tasks.md` created and approved (9 tasks)
+- [x] Implementation — consolidated Import + Patient Assignment into tabbed `/patient-management` page
+- [x] Vitest unit tests (18 tests in `PatientManagementPage.test.tsx`)
+- [x] Playwright E2E tests (8 tests in `patient-management.spec.ts`)
+- [x] Cypress tests updated with new URL paths
+- [x] Existing test assertions updated for new routes
+
 ### Phase 3: Adding & Duplicating Rows
 - [x] Add Row functionality with modal (basic patient info only)
 - [x] New row appears as first row (shifts other rows down)
@@ -177,7 +188,122 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
+## Confirmed Bugs (from UI/UX Reviews, Feb 6, 2026) - ALL FIXED
+
+### BUG-1: ~~Reset password shows generic error instead of specific message~~ FIXED
+- Fixed in `ResetPasswordPage.tsx:47`: reads `data.error.message` with `data.message` fallback
+- Tests updated to use real backend error format (TOKEN_EXPIRED, TOKEN_USED, INVALID_TOKEN)
+
+### BUG-2: ~~STAFF user sees "select from dropdown" but no dropdown exists~~ FIXED
+- Fixed in `MainPage.tsx`: added `staffHasNoAssignments` check before `needsPhysicianSelection`
+- Shows yellow "No Physician Assignments" message with "contact your administrator" guidance
+
+### BUG-3: ~~Password visibility toggle not keyboard accessible~~ FIXED
+- Fixed in `LoginPage.tsx`: removed `tabIndex={-1}`, added `aria-label` toggling
+- Updated `LoginPage.test.tsx` to use exact `'Password'` label to avoid aria-label collision
+
+---
+
+## Grid Feature Requests (Feb 6, 2026)
+
+### Duplicate Row UX Improvements
+- [ ] **"Duplicate Mbr" button label → "Copy Member"** when viewing a duplicate row
+  - When user is looking at a duplicate patient, the action button should say "Copy Member" instead of "Duplicate Mbr" to clarify intent
+- [ ] **Newly created/duplicated rows should remain visible when filters are active**
+  - If duplicate filter is ON and user duplicates a row, the new row should be visible (not hidden by the filter)
+  - Same applies to other filters (status color filters, search) — newly added rows should either:
+    - Temporarily bypass the active filter so the user can see their new row, OR
+    - Auto-clear filters after row creation with a toast notification
+  - Design consideration: what's the expected behavior when a row is created that doesn't match the active filter?
+
+### Row Numbers Feature
+- [x] ~~**Add row numbers column to AG Grid**~~ — REMOVED: user found it confusing/invisible
+  - Was: `#` column, pinned left, width 55, valueGetter with rowIndex+1
+  - Removed in Feb 6, 2026 based on user feedback
+
+---
+
+## UI/UX Review Findings (Feb 6, 2026)
+
+**Full report:** `.claude/agent-memory/ui-ux-reviewer/reviews/patient-grid-2026-02-06.md`
+
+### Quick Wins
+- [x] Add `title` tooltips to all AG Grid column headers (fixes truncation) — DONE: `headerTooltip` on all 14 columns
+- [x] Add `aria-label="Date of birth hidden for privacy"` to masked DOB cells — DONE: cellRenderer on memberDob column
+- [x] Add `:focus-visible` outline styles to filter chip buttons — DONE: focus-visible ring classes
+- [x] Fix inconsistent status bar text ("Rows: 100" vs "Showing X of Y rows") — DONE: always "Showing X of Y rows"
+
+### Important UX Fixes
+- [x] Change single-click edit to double-click edit (prevents accidental edits with auto-save) — DONE: `singleClickEdit={false}`
+- [ ] Make tracking prompt cells ("Select test type") use row color + italic placeholder instead of dark olive background
+- [ ] Improve Member Info toggle active/inactive visual state (icon swap, filled background)
+
+### Accessibility (WCAG)
+- [ ] Add screen-reader-only grid structure summary for split pinned/scrollable headers
+- [ ] Add secondary status indicators beyond color (icon or text badge for color-blind users)
+- [ ] Audit full keyboard navigation path through grid (Tab, arrow keys, Enter to edit)
+- [ ] Add `aria-label` attributes to N/A disabled tracking cells
+
+## Auth Flow UI/UX Review Findings (Feb 6, 2026)
+
+**Full report:** `.claude/agent-memory/ui-ux-reviewer/reviews/auth-flow-2026-02-06.md`
+
+### Quick Wins
+- [x] Add `autocomplete` attributes to Change Password modal inputs (`current-password`, `new-password`) — DONE
+- [x] Add "Must be at least 8 characters" helper text below New Password fields — DONE: ResetPasswordPage + Header modal
+
+### Important UX Fixes
+- [ ] Replace native HTML5 validation with custom JS validation + red banner pattern on all auth forms
+
+### Nice-to-Have
+- [x] Add password visibility toggles to Change Password modal (3 fields) — DONE: Eye/EyeOff with aria-labels
+
+## Import Flow UI/UX Review Findings (Feb 6, 2026) — Deep Review
+
+**Full report:** `.claude/agent-memory/ui-ux-reviewer/reviews/import-page-2026-02-06.md`
+**Screenshots**: 14 screenshots (`import-review-01` through `import-review-14`)
+
+### UX Suggestions
+- [x] Disable "Preview Import" button until physician is selected (currently shows error after click) — DONE
+- [x] Display filename in preview header metadata (currently shows "File:" with no value) — DONE: passed through previewCache
+
+### Important (Responsive)
+- [x] Add `overflow-x: auto` to preview changes table (completely broken on mobile 375px) — DONE
+- [ ] Fix mobile header overflow (title wraps 4 lines, user menu pushed off-screen)
+
+### Nice-to-Have
+- [x] Add warning triangle icon to Replace mode warning card — DONE: AlertTriangle icon
+- [x] Add "Maximum file size" text to file upload zone — DONE: "Maximum file size: 10MB"
+- [ ] Add loading spinner during preview generation (for large files)
+
+## Admin Pages UI/UX Review Findings (Feb 6, 2026)
+
+**Full report:** `.claude/agent-memory/ui-ux-reviewer/reviews/admin-pages-2026-02-06.md`
+
+### Important UX Fixes
+- [ ] Add pagination to Audit Log (25-50 entries per page)
+- [ ] Add action type filter dropdown to Audit Log
+- [ ] Add user filter and date range filter to Audit Log
+
+### Nice-to-Have
+- [ ] Replace native `confirm()` with custom ConfirmModal for user deletion
+- [ ] Add distinct action badge colors for LOGOUT, PASSWORD_RESET
+- [ ] Show entity display names alongside IDs in Audit Log
+- [ ] Improve Details column (show IP for LOGIN, target for PASSWORD_RESET)
+
+---
+
 ## Medium Priority
+
+### Security Audit & Hardening
+**Existing report:** `.claude/specs/hardening/plan.md` (Score: 5.6/10, Target: 8.0/10)
+- [ ] Install Claude Code security audit skill (Security Sentinel or similar) for automated scanning
+- [ ] Run `npm audit` on both frontend and backend
+- [ ] Implement Phase 1: Rate limiting, account lockout, error handlers, timeouts, error boundary, graceful shutdown
+- [ ] Implement Phase 2: JWT httpOnly cookies, refresh tokens, CORS hardening, Helmet CSP, Zod input validation
+- [ ] Implement Phase 3: Structured logging (Winston/Pino), request logging, health check enhancement
+- [ ] Implement Phase 4: DB transactions, automated backups, optimistic locking, CSV export
+- [ ] Implement Phase 5: Cypress in CI, env var validation, migration safety
 
 ### Charting & Stats Analyzer
 - [ ] Dashboard view with summary statistics
@@ -274,5 +400,11 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 7, 2026 - Patient Management Page complete: tabbed `/patient-management` page, 18 Vitest + 8 Playwright tests, Cypress tests updated
+February 6, 2026 - Created patient-management spec requirements (consolidate Import + Patient Assignment pages)
+February 6, 2026 - Removed row numbers column (user feedback). Fixed search bug (re-fetch clears search). Added word-based search matching.
+February 6, 2026 - Completed 8 UX quick-wins (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size
+February 6, 2026 - Added grid feature requests: Copy Member label, filter-aware row creation, row numbers
+February 6, 2026 - Comprehensive MCP Playwright visual review: 4 review reports, 3 bugs fixed, 24 UX suggestions logged
 February 5, 2026 - Multi-select status filter, patient name search, test gap coverage, spec infrastructure
 February 4, 2026 - Bug fixes: Delete row physicianId, removed username from Admin UI

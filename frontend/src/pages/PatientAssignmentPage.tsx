@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/axios';
 import { Users, ArrowRight, Check, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -17,19 +17,28 @@ interface Physician {
   role: string;
 }
 
-export default function PatientAssignmentPage() {
+interface ReassignTabContentProps {
+  isActive: boolean;
+}
+
+export function ReassignTabContent({ isActive }: ReassignTabContentProps) {
   const [patients, setPatients] = useState<UnassignedPatient[]>([]);
   const [physicians, setPhysicians] = useState<Physician[]>([]);
   const [selectedPatients, setSelectedPatients] = useState<Set<number>>(new Set());
   const [targetPhysicianId, setTargetPhysicianId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const hasActivated = useRef(false);
 
+  // Lazy-load data only when tab is first activated
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isActive && !hasActivated.current) {
+      hasActivated.current = true;
+      loadData();
+    }
+  }, [isActive]);
 
   const loadData = async () => {
     setLoading(true);
@@ -100,9 +109,10 @@ export default function PatientAssignmentPage() {
     }
   };
 
-  if (loading) {
+  // Show loading on first activation
+  if (loading && !hasActivated.current || (loading && patients.length === 0 && !error)) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           <p className="text-gray-600">Loading unassigned patients...</p>
@@ -112,20 +122,7 @@ export default function PatientAssignmentPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Users className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Patient Assignment</h1>
-            <p className="text-gray-600">Assign unassigned patients to physicians</p>
-          </div>
-        </div>
-      </div>
-
+    <>
       {/* Error Message */}
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
@@ -277,7 +274,27 @@ export default function PatientAssignmentPage() {
           </div>
         </>
       )}
+    </>
+  );
+}
 
+// Backwards-compatible wrapper (used by old /admin/patient-assignment route during transition)
+export default function PatientAssignmentPage() {
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <Users className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Patient Assignment</h1>
+            <p className="text-gray-600">Assign unassigned patients to physicians</p>
+          </div>
+        </div>
+      </div>
+      <ReassignTabContent isActive={true} />
       {/* Back Link */}
       <div className="mt-6">
         <a href="/admin" className="text-blue-600 hover:text-blue-800">

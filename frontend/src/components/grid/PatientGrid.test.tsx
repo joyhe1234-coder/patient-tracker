@@ -112,7 +112,7 @@ describe('PatientGrid', () => {
     it('passes correct number of column definitions', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field: string }[];
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; headerName?: string }[];
       // Expected columns: requestType, memberName, memberDob, memberTelephone, memberAddress,
       // qualityMeasure, measureStatus, statusDate, tracking1, tracking2, tracking3,
       // dueDate, timeIntervalDays, notes = 14 columns
@@ -270,10 +270,10 @@ describe('PatientGrid', () => {
       expect(typeof capturedGridProps.onSelectionChanged).toBe('function');
     });
 
-    it('enables single click edit', () => {
+    it('uses double-click edit (not single-click)', () => {
       render(<PatientGrid rowData={[]} />);
 
-      expect(capturedGridProps.singleClickEdit).toBe(true);
+      expect(capturedGridProps.singleClickEdit).toBe(false);
     });
 
     it('enables stop editing when cells lose focus', () => {
@@ -523,6 +523,41 @@ describe('PatientGrid', () => {
       expect(headerMap['dueDate']).toBe('Due Date');
       expect(headerMap['timeIntervalDays']).toBe('Time Interval (Days)');
       expect(headerMap['notes']).toBe('Possible Actions Needed & Notes');
+    });
+
+    it('all columns have headerTooltip set', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; headerName?: string; headerTooltip?: string }[];
+      // All columns should have headerTooltip
+      columnDefs.forEach((col) => {
+        expect(col.headerTooltip).toBeDefined();
+        expect(col.headerTooltip!.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('DOB Column', () => {
+    it('has cellRenderer that wraps masked value with aria-label', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; cellRenderer?: (params: { value: string | null }) => string }[];
+      const dobCol = columnDefs.find((col) => col.field === 'memberDob');
+
+      expect(dobCol?.cellRenderer).toBeDefined();
+
+      const result = dobCol!.cellRenderer!({ value: '2000-01-15' });
+      expect(result).toContain('aria-label="Date of birth hidden for privacy"');
+      expect(result).toContain('###');
+    });
+
+    it('DOB cellRenderer returns empty string for null value', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; cellRenderer?: (params: { value: string | null }) => string }[];
+      const dobCol = columnDefs.find((col) => col.field === 'memberDob');
+
+      expect(dobCol!.cellRenderer!({ value: null })).toBe('');
     });
   });
 });

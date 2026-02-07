@@ -2748,12 +2748,13 @@ npm run cypress:headed  # Run with browser visible
 - `aria-label="Search patients by name"` on input
 - `aria-label="Clear search"` on clear button
 
-### TC-29.2: Real-Time Name Filtering
+### TC-29.2: Real-Time Name Filtering (Word-Based)
 **Requirement:** Req 2 (AC 2.1-2.6)
-**Automation:** Automated - `MainPage.test.tsx` (20 tests), `patient-name-search.cy.ts: "Filtering Behavior"` (4 tests)
+**Automation:** Automated - `MainPage.test.tsx` (25 tests), `patient-name-search.cy.ts: "Filtering Behavior"` (4 tests)
 **Steps:**
 1. Type "Smith" in the search input
 2. Observe grid rows
+3. Type "smith john" — multi-word search
 
 **Expected:**
 - Grid filters in real-time as you type
@@ -2761,6 +2762,10 @@ npm run cypress:headed  # Run with browser visible
 - Case-insensitive (typing "smith" matches "Smith, John")
 - Partial match (typing "Smi" matches "Smith, John")
 - Matches any part of name ("john" matches "Johnson, Mary")
+- **Word-based matching**: "smith john" matches "Smith, John" (each word matched independently)
+- **Any order**: "john smith" also matches "Smith, John"
+- **Partial words**: "smi ali" matches "Smith, Alice"
+- **All words required**: "smith charlie" returns no match if no row has both
 - Typing non-matching text shows empty grid
 
 ### TC-29.3: Search with Status Filter (AND Logic)
@@ -2891,6 +2896,133 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 31. UX Improvements (Feb 6, 2026)
+
+### ~~TC-31.1: Row Numbers Column~~ REMOVED
+**Status:** REMOVED — Row numbers column was removed per user feedback (confusing/invisible).
+- Previously: `#` column pinned left, 3 Vitest + 5 Cypress tests
+- All tests removed from `PatientGrid.test.tsx` and `ux-improvements.cy.ts`
+
+### TC-31.2: Status Bar Consistent Format
+**Automation:** Automated - `StatusBar.test.tsx` (6 tests), `ux-improvements.cy.ts: "Status Bar Consistency"` (3 tests)
+**Steps:**
+1. Load grid with no filters
+2. Observe status bar text
+3. Apply a filter and observe again
+
+**Expected:**
+- Always shows "Showing X of Y rows" format (even when unfiltered, X equals Y)
+- Shows "Connected" status indicator
+
+### TC-31.3: Filter Chip Focus-Visible
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Accessibility"` (1 test), `ux-improvements.cy.ts: "Filter Chip Accessibility"` (2 tests)
+**Steps:**
+1. Tab to filter chips using keyboard
+2. Verify visible focus ring appears
+
+**Expected:**
+- Blue focus ring (ring-2 ring-blue-500) appears on keyboard focus
+- `aria-pressed` attribute present on all chips
+
+### TC-31.4: DOB Masked Aria-Label
+**Automation:** Automated - `PatientGrid.test.tsx: "DOB cellRenderer"` (1 test)
+**Steps:**
+1. Verify masked DOB cells have `aria-label`
+
+**Expected:**
+- DOB "###" cells have `aria-label="Date of birth hidden for privacy"`
+
+### TC-31.5: Password Helper Text
+**Automation:** Automated - `ResetPasswordPage.test.tsx: "helper text"` (1 test), `Header.test.tsx: "helper text"` (1 test), `ux-improvements.cy.ts` (1 test)
+**Steps:**
+1. Open Reset Password page
+2. Open Change Password modal
+
+**Expected:**
+- "Must be at least 8 characters" shown below New Password field in both locations
+
+### TC-31.6: Password Visibility Toggles (Change Password Modal)
+**Automation:** Automated - `Header.test.tsx: "visibility toggles"` (2 tests), `ux-improvements.cy.ts: "Password Visibility Toggles"` (3 tests)
+**Steps:**
+1. Open Change Password modal
+2. Verify 3 eye icons exist
+3. Click an eye icon to toggle visibility
+
+**Expected:**
+- 3 toggle buttons with `aria-label` ("Show/Hide current/new/confirm password")
+- Clicking toggles input type between password and text
+- Eye icon changes between Eye and EyeOff
+
+### TC-31.7: Import Page Warning Icon
+**Automation:** Automated - `ImportPage.test.tsx: "warning text with icon"` (1 test), `ux-improvements.cy.ts` (1 test)
+**Steps:**
+1. View Import page Replace All warning
+
+**Expected:**
+- AlertTriangle SVG icon appears before "Warning:" text
+
+### TC-31.8: Import Page Max File Size
+**Automation:** Automated - `ImportPage.test.tsx: "max file size"` (1 test), `ux-improvements.cy.ts` (1 test)
+**Steps:**
+1. View Import page file upload zone
+
+**Expected:**
+- Shows "Maximum file size: 10MB" text
+
+### TC-31.9: Import Preview Table Horizontal Scroll
+**Automation:** Automated - `ImportPreviewPage.test.tsx` (existing overflow tests)
+**Steps:**
+1. View import preview on narrow viewport
+
+**Expected:**
+- Table scrolls horizontally (overflow-x: auto) instead of breaking layout
+
+---
+
+## 32. Patient Management Page
+
+### TC-32.1: Page renders with heading
+**Automation:** Automated - `PatientManagementPage.test.tsx` (2 tests)
+**Steps:** Navigate to `/patient-management`
+**Expected:** "Patient Management" heading and icon visible
+
+### TC-32.2: ADMIN sees both tabs
+**Automation:** Automated - `PatientManagementPage.test.tsx`, `patient-management.spec.ts`
+**Steps:** Login as ADMIN, navigate to `/patient-management`
+**Expected:** Both "Import Patients" and "Reassign Patients" tabs visible
+
+### TC-32.3: Non-ADMIN sees only Import tab
+**Automation:** Automated - `PatientManagementPage.test.tsx`, `patient-management.spec.ts`
+**Steps:** Login as PHYSICIAN/STAFF, navigate to `/patient-management`
+**Expected:** Only "Import Patients" tab visible
+
+### TC-32.4: Tab switching and URL sync
+**Automation:** Automated - `PatientManagementPage.test.tsx` (4 tests)
+**Steps:** Click tabs, verify URL updates and content visibility
+**Expected:** Active tab reflected in URL `?tab=` param, correct content shown/hidden
+
+### TC-32.5: URL param ?tab=reassign for non-ADMIN falls back
+**Automation:** Automated - `PatientManagementPage.test.tsx`, `patient-management.spec.ts`
+**Steps:** As PHYSICIAN, navigate to `/patient-management?tab=reassign`
+**Expected:** Import tab active (fallback), Reassign tab not visible
+
+### TC-32.6: Redirect /import → /patient-management
+**Automation:** Automated - `patient-management.spec.ts`
+**Steps:** Navigate to `/import`
+**Expected:** Redirected to `/patient-management`
+
+### TC-32.7: Redirect /admin/patient-assignment → /patient-management?tab=reassign
+**Automation:** Automated - `patient-management.spec.ts`
+**Steps:** Navigate to `/admin/patient-assignment`
+**Expected:** Redirected to `/patient-management?tab=reassign`
+
+### TC-32.8: Header nav shows "Patient Mgmt" with active highlight
+**Automation:** Automated - `patient-management.spec.ts`
+**Steps:** Navigate to `/patient-management`
+**Expected:** "Patient Mgmt" link visible and highlighted (blue)
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -2916,6 +3048,8 @@ npm run cypress:headed  # Run with browser visible
 | 28. RBAC | 11 | 11 | 0 | 0 | 100% |
 | 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
 | 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
+| 31. UX Improvements | 8 | 8 | 0 | 0 | 100% |
+| 32. Patient Management Page | 8 | 8 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -2935,6 +3069,9 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 7, 2026 - Added Section 32: Patient Management Page (TC-32.1 to TC-32.8)
+February 6, 2026 - TC-31.1 (Row Numbers) removed — feature removed per user feedback. TC-29.2 updated for word-based search matching.
+February 6, 2026 - Added UX Improvements test cases (TC-31.2 to TC-31.9): status bar, focus-visible, DOB aria-label, password helpers/toggles, import UX
 February 5, 2026 - Added Multi-Select Status Filter test cases (TC-30.1 to TC-30.5)
 February 5, 2026 - Added Patient Name Search test cases (TC-29.1 to TC-29.6)
 February 5, 2026 - Added automation status and requirement traceability to all test cases

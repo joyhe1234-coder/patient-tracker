@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { api } from '../api/axios';
 import { useAuthStore } from '../stores/authStore';
 
@@ -21,7 +22,7 @@ const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
   { id: 'hill', name: 'Hill Healthcare' },
 ];
 
-export default function ImportPage() {
+export function ImportTabContent() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [systemId, setSystemId] = useState<string>('hill');
@@ -170,7 +171,7 @@ export default function ImportPage() {
 
       if (response.data.success) {
         const previewId = response.data.data.previewId;
-        navigate(`/import/preview/${previewId}`);
+        navigate(`/patient-management/preview/${previewId}`);
       } else {
         // Check for validation errors
         const errors = response.data.data?.validation?.errors;
@@ -202,14 +203,7 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Import Patient Data</h1>
-        <p className="mt-2 text-gray-600">
-          Upload a CSV or Excel file to import patient quality measure data.
-        </p>
-      </div>
-
+    <>
       {/* Step 1: Healthcare System */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
@@ -282,8 +276,9 @@ export default function ImportPage() {
             />
             <div>
               <div className="font-medium text-gray-900">Replace All</div>
-              <div className="text-sm text-red-600">
-                Warning: This will delete ALL existing patient data before importing. Use only when you need a complete fresh start.
+              <div className="text-sm text-red-600 flex items-start gap-1">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>Warning: This will delete ALL existing patient data before importing. Use only when you need a complete fresh start.</span>
               </div>
             </div>
           </label>
@@ -373,7 +368,7 @@ export default function ImportPage() {
               />
             </label>
             <p className="mt-3 text-sm text-gray-500">
-              Supported formats: CSV, Excel (.xlsx, .xls)
+              Supported formats: CSV, Excel (.xlsx, .xls) &middot; Maximum file size: 10MB
             </p>
           </div>
         ) : (
@@ -442,9 +437,9 @@ export default function ImportPage() {
         </a>
         <button
           onClick={handleSubmitClick}
-          disabled={!file || loading}
+          disabled={!file || loading || (needsPhysicianSelection && !selectedPhysicianId)}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            !file || loading
+            !file || loading || (needsPhysicianSelection && !selectedPhysicianId)
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
@@ -512,6 +507,21 @@ export default function ImportPage() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// Backwards-compatible wrapper (used by old /import route during transition)
+export default function ImportPage() {
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Import Patient Data</h1>
+        <p className="mt-2 text-gray-600">
+          Upload a CSV or Excel file to import patient quality measure data.
+        </p>
+      </div>
+      <ImportTabContent />
     </div>
   );
 }

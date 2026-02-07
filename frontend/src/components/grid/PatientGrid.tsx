@@ -466,6 +466,7 @@ export default function PatientGrid({
     {
       field: 'requestType',
       headerName: 'Request Type',
+      headerTooltip: 'Request Type',
       width: 130,
       pinned: 'left',
       editable: true,
@@ -482,6 +483,7 @@ export default function PatientGrid({
     {
       field: 'memberName',
       headerName: 'Member Name',
+      headerTooltip: 'Member Name',
       width: 180,
       pinned: 'left',
       editable: true,
@@ -489,10 +491,16 @@ export default function PatientGrid({
     {
       field: 'memberDob',
       headerName: 'Member DOB',
+      headerTooltip: 'Member Date of Birth',
       width: 130,
       hide: !showMemberInfo,
       editable: true,
       valueFormatter: (params) => formatDobMasked(params.value),
+      cellRenderer: (params: { value: string | null }) => {
+        const display = formatDobMasked(params.value);
+        if (!display) return '';
+        return `<span aria-label="Date of birth hidden for privacy">${display}</span>`;
+      },
       valueGetter: (params) => {
         // Return YYYY-MM-DD format for editing
         const value = params.data?.memberDob;
@@ -517,6 +525,7 @@ export default function PatientGrid({
     {
       field: 'memberTelephone',
       headerName: 'Member Telephone',
+      headerTooltip: 'Member Telephone',
       width: 140,
       hide: !showMemberInfo,
       editable: true,
@@ -525,6 +534,7 @@ export default function PatientGrid({
     {
       field: 'memberAddress',
       headerName: 'Member Home Address',
+      headerTooltip: 'Member Home Address',
       width: 220,
       hide: !showMemberInfo,
       editable: true,
@@ -532,6 +542,7 @@ export default function PatientGrid({
     {
       field: 'qualityMeasure',
       headerName: 'Quality Measure',
+      headerTooltip: 'Quality Measure',
       width: 200,
       editable: true,
       cellEditor: 'agSelectCellEditor',
@@ -547,6 +558,7 @@ export default function PatientGrid({
     {
       field: 'measureStatus',
       headerName: 'Measure Status',
+      headerTooltip: 'Measure Status',
       width: 220,
       editable: true,
       cellEditor: 'agSelectCellEditor',
@@ -562,6 +574,7 @@ export default function PatientGrid({
     {
       field: 'statusDate',
       headerName: 'Status Date',
+      headerTooltip: 'Status Date',
       width: 140,
       editable: true,
       valueFormatter: (params) => {
@@ -611,6 +624,7 @@ export default function PatientGrid({
     {
       field: 'tracking1',
       headerName: 'Tracking #1',
+      headerTooltip: 'Tracking #1',
       width: 160,
       editable: (params) => {
         // Editable if has dropdown options OR is HgbA1c status
@@ -693,6 +707,7 @@ export default function PatientGrid({
     {
       field: 'tracking2',
       headerName: 'Tracking #2',
+      headerTooltip: 'Tracking #2',
       width: 150,
       editable: (params) => {
         // Editable for HgbA1c statuses (testing interval) and Hypertension call back (BP reading)
@@ -762,12 +777,14 @@ export default function PatientGrid({
     {
       field: 'tracking3',
       headerName: 'Tracking #3',
+      headerTooltip: 'Tracking #3',
       width: 150,
       editable: true, // Placeholder for future use
     },
     {
       field: 'dueDate',
       headerName: 'Due Date',
+      headerTooltip: 'Due Date',
       width: 120,
       editable: false, // Calculated field
       valueFormatter: (params) => formatDate(params.value),
@@ -784,6 +801,7 @@ export default function PatientGrid({
     {
       field: 'timeIntervalDays',
       headerName: 'Time Interval (Days)',
+      headerTooltip: 'Time Interval (Days)',
       width: 150,
       editable: (params) => isTimeIntervalEditable(params.data),
       valueSetter: (params) => {
@@ -803,6 +821,7 @@ export default function PatientGrid({
     {
       field: 'notes',
       headerName: 'Possible Actions Needed & Notes',
+      headerTooltip: 'Possible Actions Needed & Notes',
       width: 300,
       flex: 1,
       editable: true,
@@ -946,7 +965,7 @@ export default function PatientGrid({
         onCellValueChanged={onCellValueChanged}
         onSelectionChanged={onSelectionChanged}
         stopEditingWhenCellsLoseFocus={true}
-        singleClickEdit={true}
+        singleClickEdit={false}
         deltaSort={false}
         postSortRows={postSortRows}
       />

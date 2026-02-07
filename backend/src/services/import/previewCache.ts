@@ -47,6 +47,7 @@ export interface PreviewEntry {
   id: string;
   systemId: string;
   mode: 'replace' | 'merge';
+  fileName?: string;
   diff: DiffResult;
   rows: TransformedRow[];
   validation: ValidationResult;
@@ -87,7 +88,8 @@ export function storePreview(
   warnings: ValidationWarning[] = [],
   reassignments: PatientReassignment[] = [],
   targetOwnerId: number | null = null,
-  ttlMs: number = DEFAULT_TTL_MS
+  ttlMs: number = DEFAULT_TTL_MS,
+  fileName?: string
 ): string {
   const id = generatePreviewId();
   const now = new Date();
@@ -96,6 +98,7 @@ export function storePreview(
     id,
     systemId,
     mode,
+    fileName,
     diff,
     rows,
     validation,
@@ -294,6 +297,7 @@ export function getPreviewSummary(entry: PreviewEntry): {
   previewId: string;
   systemId: string;
   mode: string;
+  fileName?: string;
   summary: DiffResult['summary'];
   totalChanges: number;
   expiresAt: string;
@@ -303,6 +307,7 @@ export function getPreviewSummary(entry: PreviewEntry): {
     previewId: entry.id,
     systemId: entry.systemId,
     mode: entry.mode,
+    fileName: entry.fileName,
     summary: entry.diff.summary,
     totalChanges: entry.diff.changes.length,
     expiresAt: entry.expiresAt.toISOString(),
