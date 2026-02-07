@@ -2979,6 +2979,50 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 32. Patient Management Page
+
+### TC-32.1: Page renders with heading
+**Automation:** Automated - `PatientManagementPage.test.tsx` (2 tests)
+**Steps:** Navigate to `/patient-management`
+**Expected:** "Patient Management" heading and icon visible
+
+### TC-32.2: ADMIN sees both tabs
+**Automation:** Automated - `PatientManagementPage.test.tsx`, `patient-management.spec.ts`
+**Steps:** Login as ADMIN, navigate to `/patient-management`
+**Expected:** Both "Import Patients" and "Reassign Patients" tabs visible
+
+### TC-32.3: Non-ADMIN sees only Import tab
+**Automation:** Automated - `PatientManagementPage.test.tsx`, `patient-management.spec.ts`
+**Steps:** Login as PHYSICIAN/STAFF, navigate to `/patient-management`
+**Expected:** Only "Import Patients" tab visible
+
+### TC-32.4: Tab switching and URL sync
+**Automation:** Automated - `PatientManagementPage.test.tsx` (4 tests)
+**Steps:** Click tabs, verify URL updates and content visibility
+**Expected:** Active tab reflected in URL `?tab=` param, correct content shown/hidden
+
+### TC-32.5: URL param ?tab=reassign for non-ADMIN falls back
+**Automation:** Automated - `PatientManagementPage.test.tsx`, `patient-management.spec.ts`
+**Steps:** As PHYSICIAN, navigate to `/patient-management?tab=reassign`
+**Expected:** Import tab active (fallback), Reassign tab not visible
+
+### TC-32.6: Redirect /import → /patient-management
+**Automation:** Automated - `patient-management.spec.ts`
+**Steps:** Navigate to `/import`
+**Expected:** Redirected to `/patient-management`
+
+### TC-32.7: Redirect /admin/patient-assignment → /patient-management?tab=reassign
+**Automation:** Automated - `patient-management.spec.ts`
+**Steps:** Navigate to `/admin/patient-assignment`
+**Expected:** Redirected to `/patient-management?tab=reassign`
+
+### TC-32.8: Header nav shows "Patient Mgmt" with active highlight
+**Automation:** Automated - `patient-management.spec.ts`
+**Steps:** Navigate to `/patient-management`
+**Expected:** "Patient Mgmt" link visible and highlighted (blue)
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -3005,6 +3049,7 @@ npm run cypress:headed  # Run with browser visible
 | 29. Patient Name Search | 6 | 6 | 0 | 0 | 100% |
 | 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
 | 31. UX Improvements | 8 | 8 | 0 | 0 | 100% |
+| 32. Patient Management Page | 8 | 8 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3024,6 +3069,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 7, 2026 - Added Section 32: Patient Management Page (TC-32.1 to TC-32.8)
 February 6, 2026 - TC-31.1 (Row Numbers) removed — feature removed per user feedback. TC-29.2 updated for word-based search matching.
 February 6, 2026 - Added UX Improvements test cases (TC-31.2 to TC-31.9): status bar, focus-visible, DOB aria-label, password helpers/toggles, import UX
 February 5, 2026 - Added Multi-Select Status Filter test cases (TC-30.1 to TC-30.5)

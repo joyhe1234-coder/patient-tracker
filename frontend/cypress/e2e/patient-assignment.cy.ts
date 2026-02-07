@@ -24,11 +24,11 @@ describe('Patient Assignment', () => {
     it('should navigate to patient assignment page from admin', () => {
       cy.contains('Admin').click();
       cy.contains('Assign Patients').click();
-      cy.url().should('include', '/admin/patient-assignment');
+      cy.url().should('include', '/patient-management');
     });
 
     it('should display unassigned patients list', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.contains('Assign Unassigned Patients').should('be.visible');
       // Wait for data to load
       cy.get('[data-testid="patient-list"], .patient-row, table tbody tr', { timeout: 10000 })
@@ -36,7 +36,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should display list of available physicians', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.get('select').should('exist');
       // Should have physician options
       cy.get('select option').should('have.length.greaterThan', 1);
@@ -45,7 +45,7 @@ describe('Patient Assignment', () => {
 
   describe('Assigning Unassigned Patients', () => {
     it('should assign a single patient to a physician', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000); // Wait for data to load
 
       // Get initial count
@@ -70,7 +70,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should assign multiple patients to a physician', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       cy.get('body').then(($body) => {
@@ -95,7 +95,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should use select all to assign all patients', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       cy.get('body').then(($body) => {
@@ -114,7 +114,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should disable assign button when no patients selected', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       // Ensure no patients are selected
@@ -125,7 +125,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should disable assign button when no physician selected', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       cy.get('body').then(($body) => {
@@ -145,7 +145,7 @@ describe('Patient Assignment', () => {
 
   describe('Patient Count Verification', () => {
     it('should update unassigned count after assignment', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       // Get initial count of unassigned patients
@@ -172,7 +172,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should verify patient appears in physician grid after assignment', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       cy.get('body').then(($body) => {
@@ -220,7 +220,7 @@ describe('Patient Assignment', () => {
     it('should show reassignment warning during import', () => {
       // This would test the import reassignment flow
       // For now, just verify the import page loads
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.contains('Import Patient Data').should('be.visible');
     });
 
@@ -252,7 +252,7 @@ describe('Patient Assignment', () => {
 
   describe('Edge Cases', () => {
     it('should handle no unassigned patients gracefully', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       // Should show empty state or patient list
@@ -268,7 +268,7 @@ describe('Patient Assignment', () => {
     it('should prevent assigning to same physician (no-op)', () => {
       // This is an edge case - a patient already assigned to a physician
       // should not be in the unassigned list
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       // Unassigned patients should not have an owner already
@@ -276,7 +276,7 @@ describe('Patient Assignment', () => {
     });
 
     it('should refresh list after assignment completes', () => {
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       cy.get('body').then(($body) => {
@@ -593,7 +593,7 @@ describe('Staff-Physician Assignment', () => {
 
     it('should verify patient count decreases for unassigned after bulk assign', () => {
       // Step 1: Go to patient assignment page
-      cy.visit('/admin/patient-assignment');
+      cy.visit('/patient-management?tab=reassign');
       cy.wait(1000);
 
       // Check initial unassigned count

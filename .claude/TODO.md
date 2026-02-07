@@ -6,12 +6,16 @@ This document tracks planned features and enhancements for future development.
 
 ## In Progress
 
-### Patient Management Page (Spec In Progress)
+### Patient Management Page (Complete)
 **Spec:** `.claude/specs/patient-management/`
 - [x] Requirements phase — `requirements.md` created and approved
-- [ ] Design phase — `design.md` (pending)
-- [ ] Tasks phase — `tasks.md` (pending)
-- [ ] Implementation — consolidate Import + Patient Assignment into tabbed `/patient-management` page
+- [x] Design phase — `design.md` created and approved
+- [x] Tasks phase — `tasks.md` created and approved (9 tasks)
+- [x] Implementation — consolidated Import + Patient Assignment into tabbed `/patient-management` page
+- [x] Vitest unit tests (18 tests in `PatientManagementPage.test.tsx`)
+- [x] Playwright E2E tests (8 tests in `patient-management.spec.ts`)
+- [x] Cypress tests updated with new URL paths
+- [x] Existing test assertions updated for new routes
 
 ### Phase 3: Adding & Duplicating Rows
 - [x] Add Row functionality with modal (basic patient info only)
@@ -291,6 +295,16 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ## Medium Priority
 
+### Security Audit & Hardening
+**Existing report:** `.claude/specs/hardening/plan.md` (Score: 5.6/10, Target: 8.0/10)
+- [ ] Install Claude Code security audit skill (Security Sentinel or similar) for automated scanning
+- [ ] Run `npm audit` on both frontend and backend
+- [ ] Implement Phase 1: Rate limiting, account lockout, error handlers, timeouts, error boundary, graceful shutdown
+- [ ] Implement Phase 2: JWT httpOnly cookies, refresh tokens, CORS hardening, Helmet CSP, Zod input validation
+- [ ] Implement Phase 3: Structured logging (Winston/Pino), request logging, health check enhancement
+- [ ] Implement Phase 4: DB transactions, automated backups, optimistic locking, CSV export
+- [ ] Implement Phase 5: Cypress in CI, env var validation, migration safety
+
 ### Charting & Stats Analyzer
 - [ ] Dashboard view with summary statistics
 - [ ] Measure completion rates by quality measure
@@ -386,6 +400,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 7, 2026 - Patient Management Page complete: tabbed `/patient-management` page, 18 Vitest + 8 Playwright tests, Cypress tests updated
 February 6, 2026 - Created patient-management spec requirements (consolidate Import + Patient Assignment pages)
 February 6, 2026 - Removed row numbers column (user feedback). Fixed search bug (re-fetch clears search). Added word-based search matching.
 February 6, 2026 - Completed 8 UX quick-wins (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size

@@ -22,7 +22,7 @@ const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
   { id: 'hill', name: 'Hill Healthcare' },
 ];
 
-export default function ImportPage() {
+export function ImportTabContent() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [systemId, setSystemId] = useState<string>('hill');
@@ -171,7 +171,7 @@ export default function ImportPage() {
 
       if (response.data.success) {
         const previewId = response.data.data.previewId;
-        navigate(`/import/preview/${previewId}`);
+        navigate(`/patient-management/preview/${previewId}`);
       } else {
         // Check for validation errors
         const errors = response.data.data?.validation?.errors;
@@ -203,14 +203,7 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Import Patient Data</h1>
-        <p className="mt-2 text-gray-600">
-          Upload a CSV or Excel file to import patient quality measure data.
-        </p>
-      </div>
-
+    <>
       {/* Step 1: Healthcare System */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
@@ -514,6 +507,21 @@ export default function ImportPage() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// Backwards-compatible wrapper (used by old /import route during transition)
+export default function ImportPage() {
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Import Patient Data</h1>
+        <p className="mt-2 text-gray-600">
+          Upload a CSV or Excel file to import patient quality measure data.
+        </p>
+      </div>
+      <ImportTabContent />
     </div>
   );
 }

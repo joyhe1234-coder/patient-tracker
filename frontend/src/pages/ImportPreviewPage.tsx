@@ -183,7 +183,7 @@ export default function ImportPreviewPage() {
         // Ignore cleanup errors
       }
     }
-    navigate('/import');
+    navigate('/patient-management');
   };
 
   const getActionColor = (action: string) => {
@@ -240,7 +240,7 @@ export default function ImportPreviewPage() {
             The preview may have expired or been already processed.
           </p>
           <button
-            onClick={() => navigate('/import')}
+            onClick={() => navigate('/patient-management')}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Start New Import
@@ -324,7 +324,7 @@ export default function ImportPreviewPage() {
           </p>
           <div className="flex justify-center gap-4">
             <button
-              onClick={() => navigate('/import')}
+              onClick={() => navigate('/patient-management')}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
             >
               Import More

@@ -66,14 +66,14 @@ export default function Header() {
                 Patient Grid
               </Link>
               <Link
-                to="/import"
+                to="/patient-management"
                 className={`text-sm font-medium ${
-                  location.pathname.startsWith('/import')
+                  location.pathname.startsWith('/patient-management')
                     ? 'text-blue-600'
                     : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
-                Import
+                Patient Mgmt
               </Link>
               {user?.roles.includes('ADMIN') && (
                 <Link

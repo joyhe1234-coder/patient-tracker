@@ -91,7 +91,7 @@ describe('Header', () => {
       });
 
       render(
-        <MemoryRouter initialEntries={['/import']}>
+        <MemoryRouter initialEntries={['/patient-management']}>
           <Header />
         </MemoryRouter>
       );

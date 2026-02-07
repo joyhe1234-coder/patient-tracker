@@ -120,7 +120,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (317 tests)
+### Frontend Component Tests (335 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
@@ -140,6 +140,7 @@ npm test -- -t "should parse CSV"  # Specific test
 | `ResetPasswordPage.test.tsx` | 18 | Token validation, password form, reset flow, helper text |
 | `ImportPage.test.tsx` | 27 | Import workflow UI, mode selection, file upload, warning icon, max file size |
 | `ImportPreviewPage.test.tsx` | 23 | Preview display, summary cards, changes table |
+| `PatientManagementPage.test.tsx` | 18 | Tab visibility by role, URL param handling, tab switching, content mounting |
 | `MainPage.test.tsx` | 33 | Search filtering logic (word-based matching, AND logic, null handling) |
 | **Store Tests** | | `frontend/src/stores/` |
 | `authStore.test.ts` | 25 | Login/logout, token storage, session persistence |
@@ -154,7 +155,7 @@ npm run test:run          # Single run (CI)
 npm run test:coverage     # With coverage report
 ```
 
-### Playwright E2E Tests (35 passing, 4 skipped)
+### Playwright E2E Tests (43 passing, 4 skipped)
 
 **Location:** `frontend/e2e/*.spec.ts`
 
@@ -165,6 +166,7 @@ npm run test:coverage     # With coverage report
 | `duplicate-member.spec.ts` | 8 (3 skip) | Duplicate Mbr button, row creation |
 | `delete-row.spec.ts` | 10 (4 skip) | Delete confirmation, cancel, backdrop |
 | `auth.spec.ts` | 9 | Login form, credentials, session, logout, protected routes |
+| `patient-management.spec.ts` | 8 | Tab display, navigation, redirects, role-based access |
 
 **Page Object Model:** `frontend/e2e/pages/main-page.ts`, `frontend/e2e/pages/login-page.ts`
 
@@ -647,7 +649,7 @@ describe('Feature Name', () => {
 February 6, 2026 - Row numbers removed, search improvements, test updates
 - Removed row numbers: PatientGrid.test.tsx (-2, now 44), ux-improvements.cy.ts (-5, now 10)
 - Word-based search: MainPage.test.tsx (+5, now 33) - multi-word, any order, partial words
-- Test counts: Vitest 317, Cypress 293, total ~1172
+- Test counts: Vitest 335, Playwright 43, Cypress 293, total ~1198
 
 February 6, 2026 - 8 UX quick-win fixes (batch 2): 18 new Vitest + 10 new Cypress tests
 - NEW: StatusBar.test.tsx (6 tests) - consistent display, locale formatting

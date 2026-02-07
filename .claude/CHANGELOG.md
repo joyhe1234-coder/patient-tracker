@@ -9,6 +9,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.0-snapshot] - Unreleased
 
 ### Added
+- **Patient Management Page — Full Implementation** (Feb 7, 2026)
+  - Created unified `/patient-management` page with tabbed interface (Import + Reassign tabs)
+  - New file: `PatientManagementPage.tsx` — tab bar, URL sync via `?tab=`, role-based visibility
+  - Extracted `ImportTabContent` from `ImportPage.tsx` (named export, thin wrapper preserved)
+  - Extracted `ReassignTabContent` from `PatientAssignmentPage.tsx` (lazy-load via `isActive` prop)
+  - Header nav: "Import" → "Patient Mgmt", path `/import` → `/patient-management`
+  - AdminPage "Assign Patients" button → `/patient-management?tab=reassign`
+  - ImportPreviewPage all navigate calls → `/patient-management`
+  - Route redirects: `/import` → `/patient-management`, `/admin/patient-assignment` → `/patient-management?tab=reassign`, `/import/preview/:id` → `/patient-management/preview/:id`
+  - 18 new Vitest tests: `PatientManagementPage.test.tsx` (tab visibility, URL params, role checks)
+  - 8 new Playwright E2E tests: `patient-management.spec.ts` (navigation, redirects, role behavior)
+  - Updated Cypress tests: `import-flow.cy.ts`, `patient-assignment.cy.ts`, `role-access-control.cy.ts`, `ux-improvements.cy.ts` with new URL paths
+  - Updated existing test assertions: `ImportPage.test.tsx`, `ImportPreviewPage.test.tsx`, `Header.test.tsx`
+  - Test counts: Vitest 317→335, Playwright 35→43
+  - Spec documents: `.claude/specs/patient-management/` (requirements, design, tasks)
+
 - **Patient Management Spec — Requirements Phase** (Feb 6, 2026)
   - Created `.claude/specs/patient-management/requirements.md`
   - Consolidates Import page + Patient Assignment page into unified tabbed page
@@ -28,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated TESTING.md with MCP Playwright as Layer 5
   - Updated WORKFLOW.md with 5-layer pyramid diagram and bug discovery cycle
   - Updated CLAUDE.md Quick Commands with layer numbers and current counts
-  - Test counts: Jest 527 + Vitest 317 + Playwright 35 + Cypress 293 = 1172 automated
+  - Test counts: Jest 527 + Vitest 335 + Playwright 43 + Cypress 293 = 1198 automated
 
 ### Changed
 - **Double-click edit** replaces single-click edit on AG Grid (prevents accidental edits with auto-save) — `PatientGrid.tsx`

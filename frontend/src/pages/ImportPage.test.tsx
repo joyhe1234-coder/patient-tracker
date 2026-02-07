@@ -176,7 +176,7 @@ describe('ImportPage', () => {
 
       // Should navigate to preview page
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/import/preview/test-preview-123');
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/test-preview-123');
       });
     });
 
@@ -202,7 +202,7 @@ describe('ImportPage', () => {
 
       // Should navigate directly
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/import/preview/test-preview-123');
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/test-preview-123');
       });
     });
   });
@@ -324,7 +324,7 @@ describe('ImportPage', () => {
       await userEvent.click(button);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/import/preview/test-preview-123');
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/test-preview-123');
       });
     });
 

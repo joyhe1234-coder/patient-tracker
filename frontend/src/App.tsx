@@ -1,16 +1,21 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import AdminPage from './pages/AdminPage';
-import PatientAssignmentPage from './pages/PatientAssignmentPage';
+import PatientManagementPage from './pages/PatientManagementPage';
 import HillMeasureMapping from './pages/HillMeasureMapping';
 import ImportTestPage from './pages/ImportTestPage';
-import ImportPage from './pages/ImportPage';
 import ImportPreviewPage from './pages/ImportPreviewPage';
 import Header from './components/layout/Header';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+
+// Redirect helper for /import/preview/:previewId → /patient-management/preview/:previewId
+function ImportPreviewRedirect() {
+  const { previewId } = useParams();
+  return <Navigate to={`/patient-management/preview/${previewId}`} replace />;
+}
 
 function App() {
   return (
@@ -35,19 +40,11 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/patient-assignment"
-          element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <div className="min-h-screen bg-gray-50 flex flex-col">
-                <Header />
-                <main className="flex-1 flex flex-col">
-                  <PatientAssignmentPage />
-                </main>
-              </div>
-            </ProtectedRoute>
-          }
-        />
+
+        {/* Redirects for old URLs */}
+        <Route path="/admin/patient-assignment" element={<Navigate to="/patient-management?tab=reassign" replace />} />
+        <Route path="/import" element={<Navigate to="/patient-management" replace />} />
+        <Route path="/import/preview/:previewId" element={<ImportPreviewRedirect />} />
 
         {/* Protected routes (all authenticated users) */}
         <Route
@@ -61,8 +58,8 @@ function App() {
                     <Route path="/" element={<MainPage />} />
                     <Route path="/hill-mapping" element={<HillMeasureMapping />} />
                     <Route path="/import-test" element={<ImportTestPage />} />
-                    <Route path="/import" element={<ImportPage />} />
-                    <Route path="/import/preview/:previewId" element={<ImportPreviewPage />} />
+                    <Route path="/patient-management" element={<PatientManagementPage />} />
+                    <Route path="/patient-management/preview/:previewId" element={<ImportPreviewPage />} />
                   </Routes>
                 </main>
               </div>

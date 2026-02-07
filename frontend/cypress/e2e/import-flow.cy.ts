@@ -4,7 +4,7 @@
 describe('Import Flow', () => {
   beforeEach(() => {
     // Visit the import page
-    cy.visit('/import');
+    cy.visit('/patient-management');
   });
 
   describe('Import Page', () => {
@@ -123,7 +123,7 @@ describe('Import Flow', () => {
       cy.contains('button', 'Preview Import').click();
 
       // Should navigate to preview page (loading state might be too fast to catch)
-      cy.url({ timeout: 10000 }).should('include', '/import/preview/');
+      cy.url({ timeout: 10000 }).should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
     });
   });
@@ -131,10 +131,10 @@ describe('Import Flow', () => {
   describe('Import Preview Page', () => {
     beforeEach(() => {
       // Upload a file and navigate to preview
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
-      cy.url().should('include', '/import/preview/');
+      cy.url().should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
     });
 
@@ -170,7 +170,7 @@ describe('Import Flow', () => {
 
     it('Cancel returns to import page', () => {
       cy.contains('button', 'Cancel').click();
-      cy.url().should('eq', Cypress.config().baseUrl + '/import');
+      cy.url().should('eq', Cypress.config().baseUrl + '/patient-management');
     });
 
     it('Apply Changes button shows record count', () => {
@@ -181,7 +181,7 @@ describe('Import Flow', () => {
   describe('Import Execution', () => {
     beforeEach(() => {
       // Use Replace mode for clean test
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.contains('label', 'Replace All').click();
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
@@ -190,7 +190,7 @@ describe('Import Flow', () => {
       cy.contains('Delete All Existing Data?').should('be.visible');
       cy.contains('button', 'Yes, Delete All').click();
 
-      cy.url().should('include', '/import/preview/');
+      cy.url().should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
     });
 
@@ -228,7 +228,7 @@ describe('Import Flow', () => {
       cy.contains('Import Successful', { timeout: 30000 }).should('be.visible');
 
       cy.contains('button', 'Import More').click();
-      cy.url().should('eq', Cypress.config().baseUrl + '/import');
+      cy.url().should('eq', Cypress.config().baseUrl + '/patient-management');
     });
 
     it('Go to Patient Grid navigates to home', () => {
@@ -242,7 +242,7 @@ describe('Import Flow', () => {
 
   describe('Error Handling', () => {
     it('shows error for invalid file format', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
 
       // Create an invalid CSV (missing required columns - no Patient or DOB)
       cy.get('input[type="file"]').selectFile({
@@ -259,23 +259,23 @@ describe('Import Flow', () => {
 
     it('shows error for expired preview', () => {
       // Navigate directly to a non-existent preview
-      cy.visit('/import/preview/non-existent-preview-id');
+      cy.visit('/patient-management/preview/non-existent-preview-id');
 
       cy.contains('Preview Not Found', { timeout: 10000 }).should('be.visible');
       cy.contains('Start New Import').should('be.visible');
     });
 
     it('Start New Import from error page works', () => {
-      cy.visit('/import/preview/non-existent-preview-id');
+      cy.visit('/patient-management/preview/non-existent-preview-id');
 
       cy.contains('Preview Not Found', { timeout: 10000 }).should('be.visible');
       cy.contains('button', 'Start New Import').click();
 
-      cy.url().should('eq', Cypress.config().baseUrl + '/import');
+      cy.url().should('eq', Cypress.config().baseUrl + '/patient-management');
     });
 
     it('shows error for empty CSV file', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
 
       // Create an empty CSV (only headers, no data)
       cy.get('input[type="file"]').selectFile({
@@ -294,7 +294,7 @@ describe('Import Flow', () => {
   describe('Merge Mode Behavior', () => {
     it('imports data without deleting existing records', () => {
       // First, do a Replace All import to establish baseline
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.contains('label', 'Replace All').click();
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
@@ -315,7 +315,7 @@ describe('Import Flow', () => {
       }, { force: true });
 
       cy.contains('button', 'Preview Import').click();
-      cy.url().should('include', '/import/preview/');
+      cy.url().should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
 
       // In merge mode, should NOT show deletes (or show 0)
@@ -324,7 +324,7 @@ describe('Import Flow', () => {
     });
 
     it('shows mode indicator on preview page', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
@@ -336,10 +336,10 @@ describe('Import Flow', () => {
 
   describe('Preview Page Details', () => {
     beforeEach(() => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
-      cy.url().should('include', '/import/preview/');
+      cy.url().should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
     });
 
@@ -381,11 +381,11 @@ describe('Import Flow', () => {
 
   describe('Import with Warnings', () => {
     it('shows warnings section when file has validation warnings', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import-warnings.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
 
-      cy.url().should('include', '/import/preview/');
+      cy.url().should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
 
       // Should show warnings if any exist
@@ -396,7 +396,7 @@ describe('Import Flow', () => {
   describe('Multiple File Imports', () => {
     it('can import same file twice with different results', () => {
       // First import in Replace mode
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.contains('label', 'Replace All').click();
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
@@ -422,29 +422,29 @@ describe('Import Flow', () => {
 
   describe('Cancel and Navigation', () => {
     it('can cancel at import page and return home', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('a[href="/"]').contains('Cancel').click();
       cy.url().should('eq', Cypress.config().baseUrl + '/');
     });
 
     it('can cancel at preview page and return to import', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
 
       cy.contains('button', 'Cancel').click();
-      cy.url().should('eq', Cypress.config().baseUrl + '/import');
+      cy.url().should('eq', Cypress.config().baseUrl + '/patient-management');
     });
 
     it('browser back works from preview page', () => {
-      cy.visit('/import');
+      cy.visit('/patient-management');
       cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
       cy.contains('button', 'Preview Import').click();
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
 
       cy.go('back');
-      cy.url().should('include', '/import');
+      cy.url().should('include', '/patient-management');
     });
   });
 });

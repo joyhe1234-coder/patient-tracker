@@ -165,14 +165,14 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Returns stats (inserted, updated, deleted, skipped, bothKept)
   - Execute button in Import Test Page preview tab
   - Execution results display with stats and errors
-- [x] 5j: Import UI - Upload page (`/import`)
+- [x] 5j: Import UI - Upload page (now at `/patient-management`, Import tab)
   - Healthcare system selection dropdown
   - Import mode selection with Merge as default (recommended)
   - Replace All warning modal confirms before deleting data
   - Drag-and-drop file upload with validation
   - Detailed validation error display (row numbers, member names, error messages)
   - Routes to preview page on success
-- [x] 5k: Import UI - Preview page (`/import/preview/:previewId`)
+- [x] 5k: Import UI - Preview page (`/patient-management/preview/:previewId`)
   - Summary cards with action counts (INSERT, UPDATE, SKIP, BOTH, DELETE, Warnings)
   - Clickable filter cards for changes table
   - Patient counts (new vs existing)
@@ -185,6 +185,16 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Error display with details
   - Navigation to Patient Grid or Import More
 - [ ] 5m: Mapping UI (/import-mapping)
+- [x] 5n: Patient Management Page — unified tabbed interface
+  - Combined Import + Patient Assignment into `/patient-management`
+  - `PatientManagementPage.tsx` — tab bar with URL sync (`?tab=import|reassign`)
+  - ADMIN sees both tabs; STAFF/PHYSICIAN see only Import tab
+  - `ImportTabContent` extracted from `ImportPage.tsx` (named export)
+  - `ReassignTabContent` extracted from `PatientAssignmentPage.tsx` (lazy-load on first activation)
+  - Both tab contents stay mounted (hidden via `display: none`) for state preservation
+  - Header nav: "Patient Mgmt" link to `/patient-management`
+  - Route redirects: `/import` → `/patient-management`, `/admin/patient-assignment` → `/patient-management?tab=reassign`
+  - 18 Vitest + 8 Playwright E2E tests
 
 ---
 
@@ -638,6 +648,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 7, 2026 - Patient Management Page: tabbed `/patient-management` consolidating Import + Patient Assignment. 18 Vitest + 8 Playwright tests. Total ~1198 tests (Vitest 335, Playwright 43, Cypress 293, Jest 527).
 February 6, 2026 - Removed row numbers column (user feedback), fixed search bug (data re-fetch clears search), added word-based search matching. Total ~1172 tests (Vitest 317, Cypress 293).
 February 6, 2026 - 8 UX quick-win fixes (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size. 18 new Vitest + 10 new Cypress tests.
 February 6, 2026 - MCP Playwright visual review (4 phases, 3 bugs fixed, 24 UX suggestions), 5 quick-win UX fixes (double-click edit, header tooltips, import button disable, filename display, autocomplete). Total ~1141 tests.

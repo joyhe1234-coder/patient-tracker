@@ -76,7 +76,7 @@ describe('Import Page UX Improvements', () => {
     cy.get('input[type="password"]').type(adminPassword);
     cy.get('button[type="submit"]').click();
     cy.url().should('not.include', '/login', { timeout: 10000 });
-    cy.visit('/import');
+    cy.visit('/patient-management');
     cy.wait(500);
   });
 
