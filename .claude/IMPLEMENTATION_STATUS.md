@@ -409,6 +409,10 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Password hashing with bcrypt
   - Token verification middleware
   - Password change endpoint
+- [x] Auto-bootstrap admin user on first startup
+  - `bootstrapAdminUser()` runs at server start, creates ADMIN if none exists
+  - Configurable via `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars
+  - Idempotent: no-op when any ADMIN already exists
 - [x] User management
   - User model with roles (PHYSICIAN, STAFF, ADMIN)
   - Staff-to-Physician assignment model
@@ -634,6 +638,8 @@ cd frontend && npm run dev
 
 ```bash
 docker compose up -d --build
+# Migrations run automatically via docker-entrypoint.sh
+# Admin user created on first startup (admin@clinic.com / changeme123)
 # Access at http://localhost
 ```
 

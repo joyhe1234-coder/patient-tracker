@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Added
+- **Auto-bootstrap admin user on startup** (Feb 8, 2026)
+  - `bootstrapAdminUser()` in `backend/src/index.ts` creates an ADMIN user on first startup if none exists
+  - Configurable via `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars (defaults: `admin@clinic.com` / `changeme123`)
+  - Idempotent: no-op if any ADMIN user already exists — never modifies existing users
+  - Works on all deployment targets: Docker, Render, local network
+- **Docker entrypoint with auto-migration** (Feb 8, 2026)
+  - New `backend/docker-entrypoint.sh` runs `prisma migrate deploy` before starting the app
+  - Dockerfile changed from `CMD` to `ENTRYPOINT` using the new script
+  - Fixed Prisma engine permissions for non-root `nodejs` user (`chown -R nodejs:nodejs /app`)
+  - Fresh `docker-compose up` now works out of the box: migrations + admin user + app start
+- **Configurable Vite proxy target** (Feb 8, 2026)
+  - `frontend/vite.config.ts` proxy target now reads `PROXY_API_TARGET` env var (falls back to `http://localhost:3000`)
+  - Enables running Vite dev server inside Docker containers on the same network as the backend
+
 ### Changed
 - **Numbered JH workflow commands** (Feb 8, 2026)
   - Renamed `/jh-requirements` → `/jh-1-requirements`, `/jh-design` → `/jh-2-design`, etc. (1-7 sequence)

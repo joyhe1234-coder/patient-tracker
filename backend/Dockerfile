@@ -34,11 +34,16 @@ COPY --from=builder /app/public ./public
 # Create config directory (will be mounted as volume)
 RUN mkdir -p /app/config
 
-# Create non-root user
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# Create non-root user and fix Prisma engine permissions
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
 USER nodejs
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
