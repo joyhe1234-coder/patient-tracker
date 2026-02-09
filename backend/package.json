@@ -20,7 +20,8 @@
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:cli": "tsx scripts/test-transform.ts",
     "reset-password": "tsx scripts/resetPassword.ts",
-    "cleanup-audit-log": "tsx scripts/cleanupAuditLog.ts"
+    "cleanup-audit-log": "tsx scripts/cleanupAuditLog.ts",
+    "seed:200": "npx tsx prisma/seed-200.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

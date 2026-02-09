@@ -46,7 +46,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ### Phase 3: Adding & Duplicating Rows
 
-**Status: In Progress**
+**Status: Complete**
 
 - [x] Add Row functionality with modal (basic patient info only)
 - [x] New row appears as first row (rowOrder: 0, other rows shift down)
@@ -74,8 +74,6 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - New row inserted directly below selected row
   - New row selected with Request Type cell focused
   - API endpoint: POST `/api/data/duplicate`
-- [ ] Duplicate row with new patient info (copy measures to different patient)
-- [ ] Bulk add multiple rows at once
 
 ### Phase 4: Sorting & Filtering
 

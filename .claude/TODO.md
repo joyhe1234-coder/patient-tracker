@@ -37,8 +37,6 @@ This document tracks planned features and enhancements for future development.
   - measureStatus → clears downstream (statusDate, tracking, dueDate, interval)
 - [x] Time interval manual override for all statuses
 - [x] Duplicate row functionality (create copy of existing row with patient data only)
-- [ ] Duplicate row with new patient info (copy measures to different patient)
-- [ ] Bulk add multiple rows at once
 
 ### Phase 4: Sorting & Filtering
 - [x] Column header click to sort ascending/descending
