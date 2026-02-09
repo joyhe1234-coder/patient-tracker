@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Changed
+- **Numbered JH workflow commands** (Feb 8, 2026)
+  - Renamed `/jh-requirements` → `/jh-1-requirements`, `/jh-design` → `/jh-2-design`, etc. (1-7 sequence)
+  - Makes execution order explicit: requirements → design → tasks → test-audit → security-audit → code-review → deploy-validate
+  - Updated all cross-references in CLAUDE.md, spec-create.md
+- **Added dedicated agent definitions** (Feb 8, 2026)
+  - 7 new agent files in `.claude/agents/`: requirements-planner, architecture-designer, task-planner, code-reviewer, security-auditor, test-orchestrator, deployment-validator
+  - Refactored `spec-create.md` and `spec-steering-setup.md` to delegate to phase agents
+
 ### Added
 - **Patient Management Page — Full Implementation** (Feb 7, 2026)
   - Created unified `/patient-management` page with tabbed interface (Import + Reassign tabs)

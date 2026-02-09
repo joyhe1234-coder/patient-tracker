@@ -654,6 +654,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 8, 2026 - Numbered JH workflow commands (jh-1 through jh-7), added 7 dedicated agent definitions, refactored spec-create/spec-steering-setup.
 February 7, 2026 - Chronic DX attestation color cascade: BUG-4/5/7 fixes, 6 Cypress E2E + 8 Vitest tests, row-colors requirements rewrite. Total ~1204 tests (Vitest 343, Playwright 43, Cypress 299, Jest 527).
 February 7, 2026 - Patient Management Page: tabbed `/patient-management` consolidating Import + Patient Assignment. 18 Vitest + 8 Playwright tests.
 February 6, 2026 - Removed row numbers column (user feedback), fixed search bug (data re-fetch clears search), added word-based search matching. Total ~1172 tests (Vitest 317, Cypress 293).

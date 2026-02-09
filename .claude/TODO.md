@@ -53,6 +53,10 @@ This document tracks planned features and enhancements for future development.
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
 - [x] Quick search/filter by patient name
+- [ ] **Column-level filtering** (e.g., filter by Quality Measure, Request Type, Physician)
+  - Design needed: dropdown/multi-select filter per column header? Separate filter panel? AG Grid built-in column filters?
+  - Priority use case: filter grid to show only rows for a specific Quality Measure
+  - Should combine with existing status color filter (AND logic)
 - [ ] Advanced filter builder (multiple conditions)
 
 ### Phase 5: CSV Import (v3.0.0)

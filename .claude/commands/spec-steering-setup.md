@@ -105,7 +105,12 @@ You are helping set up steering documents that will guide all future spec develo
 
 ## Next Steps
 After steering documents are created, they will automatically be referenced during:
-- `/spec-create` - Align requirements with product vision
-- `/spec-design` - Follow established tech patterns
-- `/spec-tasks` - Use correct file organization
-- `/spec-execute` - Implement following all conventions
+- `/jh-requirements` — Align requirements with product vision
+- `/jh-design` — Follow established tech patterns
+- `/jh-tasks` — Use correct file organization
+- `/spec-create` — Thin orchestrator that runs all 3 phases above sequentially
+- `/spec-execute` — Implement following all conventions
+- `/jh-test-audit` — Validate test coverage against requirements
+- `/jh-security-audit` — Check security against tech constraints
+- `/jh-code-review` — Review code against project conventions
+- `/jh-deploy-validate` — Pre-deployment readiness check
