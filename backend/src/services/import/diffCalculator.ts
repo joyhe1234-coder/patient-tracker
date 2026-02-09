@@ -577,9 +577,19 @@ export async function detectReassignments(
   });
 
   // Find reassignments - patients whose owner would change
+  // Deduplicate by patient (a patient can have multiple rows for different quality measures)
   const reassignments: PatientReassignment[] = [];
+  const seenPatients = new Set<string>();
 
   for (const patient of existingPatients) {
+    const patientKey = `${patient.memberName}|${patient.memberDob.toISOString().split('T')[0]}`;
+
+    // Skip if we've already processed this unique patient
+    if (seenPatients.has(patientKey)) {
+      continue;
+    }
+    seenPatients.add(patientKey);
+
     // Skip if owner would not change
     if (patient.ownerId === targetOwnerId) {
       continue;

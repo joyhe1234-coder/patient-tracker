@@ -188,6 +188,38 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
+## Confirmed Bugs — Fixed
+
+### BUG-4: ~~Chronic DX rows don't turn GREEN when "Attestation sent"~~ FIXED
+- Fixed in `PatientGrid.tsx`: added `isChronicDxAttestationSent()` helper; green rule includes it, orange rule excludes it
+- Fixed in `StatusFilterBar.tsx`: same logic in `getRowStatusColor()`
+- 8 new tests (4 PatientGrid + 4 StatusFilterBar)
+
+### BUG-5: ~~Chronic DX rows never show overdue (RED) when attestation not sent~~ FIXED
+- Fixed in `PatientGrid.tsx`: `isRowOverdue()` only excludes orange statuses when `tracking1 === "Attestation sent"`
+- Fixed in `StatusFilterBar.tsx`: same conditional exclusion in `isOverdue()`
+- Covered by same 8 new tests
+
+### BUG-7: ~~Import reassignment count shows rows instead of unique patients~~ FIXED
+- Fixed in `diffCalculator.ts`: `detectReassignments()` now deduplicates `existingPatients` by `memberName|memberDob` before building the reassignment array
+- Root cause: `prisma.patient.findMany` returns all rows (one per quality measure) for each patient; without dedup, a patient with 5 measures counted as 5 reassignments
+
+### BUG-6: Status filter bar counts don't match row colors for overdue/attestation rows
+- **Severity:** Medium
+- **Location:** `StatusFilterBar.tsx` (`getRowStatusColor()`) and filter chip count logic
+- **Issue:** The status filter counts are based on `measureStatus` category, but when a row's actual displayed color differs (due to overdue or attestation logic), the count doesn't match what the user sees. Examples:
+  - `Chronic diagnosis resolved` + `Attestation sent` → displays **GREEN**, but counted as **Orange** (Resolved)
+  - `Chronic diagnosis resolved` + `Attestation not sent` + overdue → displays **RED**, but counted as **Orange** (Resolved)
+  - `Chronic diagnosis invalid` + `Attestation sent` → displays **GREEN**, but counted as **Orange** (Resolved)
+  - `Chronic diagnosis invalid` + `Attestation not sent` + overdue → displays **RED**, but counted as **Orange** (Resolved)
+  - `Scheduled call back - BP not at goal` + overdue → displays **RED**, but counted as **Blue** (In Progress)
+  - `Scheduled call back - BP at goal` + overdue → displays **RED**, but counted as **Blue** (In Progress)
+- **Expected:** Filter chip counts should match the actual displayed row color — overdue rows should count toward Overdue/Red, attestation-sent rows should count toward Green
+- **Root cause:** `getRowStatusColor()` may be returning the correct color, but the filter chip aggregation or the filtering logic groups by status category rather than actual computed color
+- **Fix hint:** Ensure filter bar counts use the same color computation as `rowClassRules` in PatientGrid, so the count reflects the visual color the user sees
+
+---
+
 ## Confirmed Bugs (from UI/UX Reviews, Feb 6, 2026) - ALL FIXED
 
 ### BUG-1: ~~Reset password shows generic error instead of specific message~~ FIXED
@@ -400,6 +432,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 7, 2026 - BUG-4/5 fixed (Chronic DX attestation colors), BUG-7 fixed (import reassignment dedup), BUG-6 logged. 6 new Cypress E2E tests, row-colors requirements rewritten.
 February 7, 2026 - Patient Management Page complete: tabbed `/patient-management` page, 18 Vitest + 8 Playwright tests, Cypress tests updated
 February 6, 2026 - Created patient-management spec requirements (consolidate Import + Patient Assignment pages)
 February 6, 2026 - Removed row numbers column (user feedback). Fixed search bug (re-fetch clears search). Added word-based search matching.

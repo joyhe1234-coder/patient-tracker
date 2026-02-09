@@ -46,6 +46,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Updated CLAUDE.md Quick Commands with layer numbers and current counts
   - Test counts: Jest 527 + Vitest 335 + Playwright 43 + Cypress 293 = 1198 automated
 
+- **Row Color Logic Documentation** (Feb 7, 2026)
+  - Created `.claude/ROW_COLOR_LOGIC.md` — comprehensive reference for all row color rules
+  - Updated `.claude/specs/row-colors/requirements.md` with complete color logic including Chronic DX attestation cascade (AC-9 through AC-12), corrected overdue rules, Hypertension callback statuses, due date calculation details
+
+- **Chronic DX Attestation Color Cascade E2E Tests** (Feb 7, 2026)
+  - 6 new Cypress E2E tests in `cascading-dropdowns.cy.ts` for Chronic DX attestation color scenarios:
+    - `Chronic diagnosis resolved` + `Attestation sent` → GREEN
+    - `Chronic diagnosis resolved` + `Attestation not sent` → ORANGE
+    - `Chronic diagnosis invalid` + `Attestation sent` → GREEN
+    - `Chronic diagnosis invalid` + `Attestation not sent` → ORANGE
+    - `Chronic diagnosis resolved` + `Attestation not sent` + overdue → RED (row-status-overdue)
+    - `Chronic diagnosis resolved` + `Attestation sent` + past date → GREEN (never overdue)
+  - Fixed missing login in `cascading-dropdowns.cy.ts` beforeEach (was causing silent failures)
+  - Cypress cascading-dropdown tests: 30 → 36 passing
+
+### Fixed
+- **BUG-4: Chronic DX rows now turn GREEN when "Attestation sent"** (Feb 7, 2026)
+  - `PatientGrid.tsx`: added `isChronicDxAttestationSent()` helper, green rule includes it, orange rule excludes it
+  - `StatusFilterBar.tsx`: same logic in `getRowStatusColor()` (added `tracking1` to row type)
+  - 4 new Vitest tests in `PatientGrid.test.tsx`, 3 new in `StatusFilterBar.test.tsx`
+- **BUG-5: Chronic DX rows now show overdue RED when attestation not sent and past due** (Feb 7, 2026)
+  - `PatientGrid.tsx`: `isRowOverdue()` only excludes orange statuses when `tracking1 === "Attestation sent"`
+  - `StatusFilterBar.tsx`: same conditional exclusion
+  - 1 new Vitest test in `StatusFilterBar.test.tsx` (overdue orange scenarios)
+- **BUG-7: Import reassignment count shows rows instead of unique patients** (Feb 7, 2026)
+  - `diffCalculator.ts`: `detectReassignments()` now deduplicates by `memberName|memberDob`
+  - Root cause: `prisma.patient.findMany` returns one row per quality measure; 5 measures = 5 "patients"
+  - Fix: Added `seenPatients` Set to skip duplicate patient entries
+  - Test counts: Vitest 335→343
+
 ### Changed
 - **Double-click edit** replaces single-click edit on AG Grid (prevents accidental edits with auto-save) — `PatientGrid.tsx`
 - **Column header tooltips** added to all 14 AG Grid columns (fixes truncated header text) — `PatientGrid.tsx`

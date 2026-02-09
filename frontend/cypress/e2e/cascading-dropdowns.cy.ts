@@ -9,9 +9,16 @@
 
 describe('Cascading Dropdowns', () => {
   // Use the first row (index 0) which is always visible - no virtual scrolling issues
+  const adminEmail = 'admin2@gmail.com';
+  const adminPassword = 'welcome100';
   const testRowIndex = 0;
 
   beforeEach(() => {
+    cy.visit('/login');
+    cy.get('input[type="email"]').type(adminEmail);
+    cy.get('input[type="password"]').type(adminPassword);
+    cy.get('button[type="submit"]').click();
+    cy.url().should('not.include', '/login', { timeout: 10000 });
     cy.visit('/');
     cy.waitForAgGrid();
   });
@@ -238,6 +245,97 @@ describe('Cascading Dropdowns', () => {
 
       cy.get(`[row-index="${testRowIndex}"]`).first()
         .should('have.class', 'row-status-orange');
+    });
+  });
+
+  describe('Chronic DX Attestation Color Cascade', () => {
+    beforeEach(() => {
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Chronic DX');
+      cy.wait(300);
+    });
+
+    it('Chronic diagnosis resolved + Attestation sent → GREEN row', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis resolved');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Attestation sent');
+      cy.wait(500);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-green');
+    });
+
+    it('Chronic diagnosis resolved + Attestation not sent → ORANGE row', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis resolved');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Attestation not sent');
+      cy.wait(500);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-orange');
+    });
+
+    it('Chronic diagnosis invalid + Attestation sent → GREEN row', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis invalid');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Attestation sent');
+      cy.wait(500);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-green');
+    });
+
+    it('Chronic diagnosis invalid + Attestation not sent → ORANGE row', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis invalid');
+      cy.wait(300);
+      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Attestation not sent');
+      cy.wait(500);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-orange');
+    });
+
+    it('Chronic diagnosis resolved + Attestation not sent + overdue → RED row', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis resolved');
+      cy.wait(300);
+
+      // Enter a past status date (30 days ago) so dueDate will be in the past
+      // DueDayRule: "Attestation not sent" → dueDays: 14
+      // dueDate = 30 days ago + 14 = 16 days ago → overdue
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 30);
+      const formattedDate = `${String(pastDate.getMonth() + 1).padStart(2, '0')}/${String(pastDate.getDate()).padStart(2, '0')}/${pastDate.getFullYear()}`;
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
+      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
+      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.wait(1000);
+
+      // Select Attestation not sent → backend calculates dueDate 14 days from past statusDate
+      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Attestation not sent');
+      cy.wait(1000);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-overdue');
+    });
+
+    it('Chronic diagnosis resolved + Attestation sent remains GREEN even with past date', () => {
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Chronic diagnosis resolved');
+      cy.wait(300);
+
+      // Enter a past status date (30 days ago)
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 30);
+      const formattedDate = `${String(pastDate.getMonth() + 1).padStart(2, '0')}/${String(pastDate.getDate()).padStart(2, '0')}/${pastDate.getFullYear()}`;
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
+      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
+      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.wait(1000);
+
+      // Attestation sent → GREEN (no DueDayRule, so no dueDate, can never be overdue)
+      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Attestation sent');
+      cy.wait(1000);
+
+      cy.get(`[row-index="${testRowIndex}"]`).first()
+        .should('have.class', 'row-status-green');
     });
   });
 

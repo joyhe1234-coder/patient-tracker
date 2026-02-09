@@ -223,9 +223,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - **Light Green** (#D4EDDA): Completed, At Goal
   - **Light Blue** (#CCE5FF): Scheduled, Ordered, In Progress
   - **Pale Yellow** (#FFF9E6): Called to schedule, Discussed, Contacted
-  - **Light Orange** (#FFE8CC): Chronic diagnosis resolved/invalid
+  - **Light Orange** (#FFE8CC): Chronic diagnosis resolved/invalid (when Tracking #1 is NOT "Attestation sent")
   - **White** (#FFFFFF): Not Addressed (default)
-  - **Light Red** (#FFCDD2): Overdue (dueDate < today, for pending statuses only)
+  - **Light Red** (#FFCDD2): Overdue (dueDate < today, see overdue rules below)
 - [x] Row colors preserved during row selection and editing (using CSS classes via rowClassRules)
 - [x] Explicit status-to-color mapping (no pattern matching conflicts)
 - [x] Real-time color updates when Measure Status changes
@@ -233,8 +233,13 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [x] Overdue row coloring (light red) when due date has passed
   - Applies to pending statuses (blue, yellow, white) AND completed statuses (green)
   - Completed rows turn red when due date passes (indicates annual renewal needed)
-  - Does not apply to declined or resolved statuses (purple, gray, orange)
+  - Does NOT apply to: purple (declined), gray (N/A)
+  - Conditionally applies to orange: only when Tracking #1 is NOT "Attestation sent"
   - Color priority: duplicate > overdue > status-based
+- [x] Chronic DX attestation color cascade
+  - `Chronic diagnosis resolved/invalid` + `Attestation sent` → **GREEN** (always, never overdue)
+  - `Chronic diagnosis resolved/invalid` + `Attestation not sent` or null → **ORANGE** (if not overdue)
+  - `Chronic diagnosis resolved/invalid` + `Attestation not sent` + overdue → **RED**
 
 ### Phase 8: Business Logic & Calculations (formerly Phase 7)
 
@@ -306,13 +311,13 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (317 tests total)
-  - StatusFilterBar.test.tsx (52 tests - includes getRowStatusColor + search UI + multi-select + accessibility)
+- [x] Phase 4: Component tests (343 tests total)
+  - StatusFilterBar.test.tsx (56 tests - includes getRowStatusColor + search UI + multi-select + accessibility + attestation cascade)
   - StatusBar.test.tsx (6 tests - consistent display format, locale formatting, Connected status)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
-  - PatientGrid.test.tsx (44 tests - column defs, row class rules, headerTooltip, DOB aria-label)
+  - PatientGrid.test.tsx (49 tests - column defs, row class rules, headerTooltip, DOB aria-label, attestation cascade)
   - Header.test.tsx (16 tests - provider dropdown, unassigned patients, change password modal, visibility toggles)
   - LoginPage.test.tsx (17 tests)
   - ForgotPasswordPage.test.tsx (14 tests)
@@ -335,9 +340,10 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [ ] Phase 8: Import Excel E2E tests
 
 ### E2E Testing (Cypress)
-- [x] Phase 6: Cascading dropdowns tests (30 passing)
+- [x] Phase 6: Cascading dropdowns tests (36 passing)
   - cypress/e2e/cascading-dropdowns.cy.ts - Comprehensive cascading dropdown tests
   - Tests include: Request Type selection, AWV/Chronic DX auto-fill, Quality Measure filtering, Measure Status options, Tracking #1 options, row colors, cascading field clearing
+  - Chronic DX attestation color cascade (6 tests): resolved/invalid + sent/not-sent/overdue scenarios
 - [x] Phase 8: Import E2E tests (57 passing)
   - cypress/e2e/import-flow.cy.ts - Complete import workflow tests
   - Import page: system/mode selection, file upload validation
@@ -373,7 +379,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 527 tests passing
-- Total test count: ~1174 automated tests across all frameworks (527 Jest + 314 Vitest + 35 Playwright + 298 Cypress)
+- Total test count: ~1204 automated tests across all frameworks (527 Jest + 343 Vitest + 43 Playwright + 299 Cypress)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -648,7 +654,8 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
-February 7, 2026 - Patient Management Page: tabbed `/patient-management` consolidating Import + Patient Assignment. 18 Vitest + 8 Playwright tests. Total ~1198 tests (Vitest 335, Playwright 43, Cypress 293, Jest 527).
+February 7, 2026 - Chronic DX attestation color cascade: BUG-4/5/7 fixes, 6 Cypress E2E + 8 Vitest tests, row-colors requirements rewrite. Total ~1204 tests (Vitest 343, Playwright 43, Cypress 299, Jest 527).
+February 7, 2026 - Patient Management Page: tabbed `/patient-management` consolidating Import + Patient Assignment. 18 Vitest + 8 Playwright tests.
 February 6, 2026 - Removed row numbers column (user feedback), fixed search bug (data re-fetch clears search), added word-based search matching. Total ~1172 tests (Vitest 317, Cypress 293).
 February 6, 2026 - 8 UX quick-win fixes (batch 2): focus-visible, aria-label DOB, status bar, password helper, password toggles, overflow-x, warning icon, max file size. 18 new Vitest + 10 new Cypress tests.
 February 6, 2026 - MCP Playwright visual review (4 phases, 3 bugs fixed, 24 UX suggestions), 5 quick-win UX fixes (double-click edit, header tooltips, import button disable, filename display, autocomplete). Total ~1141 tests.

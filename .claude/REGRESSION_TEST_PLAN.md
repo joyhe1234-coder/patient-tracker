@@ -319,6 +319,51 @@ This document contains test cases for verifying system functionality. Each test 
 - Due Date recalculates to past date
 - Row immediately turns red (overdue)
 
+### TC-5.2e: Chronic DX Attestation Sent → GREEN
+**Requirement:** AC-9
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Chronic diagnosis resolved + Attestation sent → GREEN"`, `PatientGrid.test.tsx`, `StatusFilterBar.test.tsx`
+**Steps:**
+1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
+2. Set Tracking #1 to "Attestation sent"
+
+**Expected:**
+- Row displays GREEN (not orange)
+- Works for both "resolved" and "invalid" statuses
+
+### TC-5.2f: Chronic DX Attestation Not Sent → ORANGE
+**Requirement:** AC-10
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Chronic diagnosis resolved + Attestation not sent → ORANGE"`, `PatientGrid.test.tsx`
+**Steps:**
+1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
+2. Set Tracking #1 to "Attestation not sent"
+
+**Expected:**
+- Row displays ORANGE
+- Works for both "resolved" and "invalid" statuses
+
+### TC-5.2g: Chronic DX Attestation Not Sent + Overdue → RED
+**Requirement:** AC-11
+**Automation:** Automated - `cascading-dropdowns.cy.ts: overdue attestation test`, `StatusFilterBar.test.tsx`
+**Steps:**
+1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
+2. Set Tracking #1 to "Attestation not sent"
+3. Set Status Date to 30+ days ago (DueDayRule gives 14 days, so dueDate will be in past)
+
+**Expected:**
+- Row displays RED (overdue)
+- DueDayRule: "Attestation not sent" has 14-day interval
+
+### TC-5.2h: Chronic DX Attestation Sent + Past Date → Still GREEN
+**Requirement:** AC-9, AC-12
+**Automation:** Automated - `cascading-dropdowns.cy.ts: "Attestation sent stays GREEN even with past status date"`
+**Steps:**
+1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
+2. Set Tracking #1 to "Attestation sent"
+3. Set Status Date to a date far in the past
+
+**Expected:**
+- Row stays GREEN (attestation sent has no DueDayRule, so no dueDate, never overdue)
+
 ### TC-5.3: Color Preserved During Selection
 **Requirement:** AC-6
 **Automation:** Automated - `sorting-filtering.cy.ts: "Row selection preserves color"`
@@ -1993,7 +2038,7 @@ Cypress tests for AG Grid interactions, import flow, patient assignment, role ac
 
 | File | Description | Tests |
 |------|-------------|-------|
-| `cypress/e2e/cascading-dropdowns.cy.ts` | Cascading dropdown behavior, row colors | 30 |
+| `cypress/e2e/cascading-dropdowns.cy.ts` | Cascading dropdown behavior, row colors, Chronic DX attestation cascade | 36 |
 | `cypress/e2e/import-flow.cy.ts` | Import workflow, preview, execution | 57 |
 | `cypress/e2e/patient-assignment.cy.ts` | Patient/staff assignment, count verification | 32 |
 | `cypress/e2e/role-access-control.cy.ts` | STAFF/PHYSICIAN/ADMIN access restrictions | 31 |

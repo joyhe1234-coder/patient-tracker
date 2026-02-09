@@ -407,7 +407,7 @@ describe('PatientGrid', () => {
       expect(yellowRule({ data: { measureStatus: 'Patient called to schedule AWV' } })).toBe(true);
     });
 
-    it('applies orange status for chronic diagnosis resolved/invalid', () => {
+    it('applies orange status for chronic diagnosis resolved/invalid without attestation', () => {
       render(<PatientGrid rowData={[]} />);
 
       const rowClassRules = capturedGridProps.rowClassRules as Record<string, (params: { data?: Partial<GridRow> }) => boolean>;
@@ -415,6 +415,59 @@ describe('PatientGrid', () => {
 
       expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis resolved' } })).toBe(true);
       expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis invalid' } })).toBe(true);
+      expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation not sent' } })).toBe(true);
+      expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis invalid', tracking1: null } })).toBe(true);
+    });
+
+    it('applies green (not orange) for chronic diagnosis with attestation sent', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const rowClassRules = capturedGridProps.rowClassRules as Record<string, (params: { data?: Partial<GridRow> }) => boolean>;
+      const greenRule = rowClassRules['row-status-green'];
+      const orangeRule = rowClassRules['row-status-orange'];
+
+      // Attestation sent → GREEN
+      expect(greenRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent' } })).toBe(true);
+      expect(greenRule({ data: { measureStatus: 'Chronic diagnosis invalid', tracking1: 'Attestation sent' } })).toBe(true);
+
+      // Should NOT be orange when attestation sent
+      expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent' } })).toBe(false);
+      expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis invalid', tracking1: 'Attestation sent' } })).toBe(false);
+    });
+
+    it('applies overdue (red) for chronic diagnosis without attestation sent when past due', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const rowClassRules = capturedGridProps.rowClassRules as Record<string, (params: { data?: Partial<GridRow> }) => boolean>;
+      const overdueRule = rowClassRules['row-status-overdue'];
+      const orangeRule = rowClassRules['row-status-orange'];
+
+      const pastDueDate = new Date();
+      pastDueDate.setDate(pastDueDate.getDate() - 5);
+      const pastDueDateStr = pastDueDate.toISOString();
+
+      // Attestation NOT sent + overdue → RED
+      expect(overdueRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation not sent', dueDate: pastDueDateStr } })).toBe(true);
+      expect(overdueRule({ data: { measureStatus: 'Chronic diagnosis invalid', tracking1: null, dueDate: pastDueDateStr } })).toBe(true);
+
+      // Orange should be false when overdue
+      expect(orangeRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation not sent', dueDate: pastDueDateStr } })).toBe(false);
+    });
+
+    it('does NOT apply overdue for chronic diagnosis with attestation sent even when past due', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const rowClassRules = capturedGridProps.rowClassRules as Record<string, (params: { data?: Partial<GridRow> }) => boolean>;
+      const overdueRule = rowClassRules['row-status-overdue'];
+      const greenRule = rowClassRules['row-status-green'];
+
+      const pastDueDate = new Date();
+      pastDueDate.setDate(pastDueDate.getDate() - 5);
+      const pastDueDateStr = pastDueDate.toISOString();
+
+      // Attestation sent + past due → still GREEN, NOT red
+      expect(overdueRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent', dueDate: pastDueDateStr } })).toBe(false);
+      expect(greenRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent', dueDate: pastDueDateStr } })).toBe(true);
     });
 
     it('applies white status for unknown/unmatched statuses', () => {

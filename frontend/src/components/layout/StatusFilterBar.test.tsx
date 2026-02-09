@@ -628,8 +628,8 @@ describe('getRowStatusColor', () => {
     });
   });
 
-  describe('orange statuses (Resolved)', () => {
-    it('returns orange for "Chronic diagnosis resolved"', () => {
+  describe('orange statuses (Resolved) — Chronic DX cascading logic', () => {
+    it('returns orange for "Chronic diagnosis resolved" without attestation', () => {
       const result = getRowStatusColor({
         measureStatus: 'Chronic diagnosis resolved',
         isDuplicate: false,
@@ -638,13 +638,43 @@ describe('getRowStatusColor', () => {
       expect(result).toBe('orange');
     });
 
-    it('returns orange for "Chronic diagnosis invalid"', () => {
+    it('returns orange for "Chronic diagnosis invalid" without attestation', () => {
       const result = getRowStatusColor({
         measureStatus: 'Chronic diagnosis invalid',
         isDuplicate: false,
         dueDate: null,
       });
       expect(result).toBe('orange');
+    });
+
+    it('returns orange for "Chronic diagnosis resolved" with "Attestation not sent"', () => {
+      const result = getRowStatusColor({
+        measureStatus: 'Chronic diagnosis resolved',
+        isDuplicate: false,
+        dueDate: null,
+        tracking1: 'Attestation not sent',
+      });
+      expect(result).toBe('orange');
+    });
+
+    it('returns green for "Chronic diagnosis resolved" with "Attestation sent"', () => {
+      const result = getRowStatusColor({
+        measureStatus: 'Chronic diagnosis resolved',
+        isDuplicate: false,
+        dueDate: null,
+        tracking1: 'Attestation sent',
+      });
+      expect(result).toBe('green');
+    });
+
+    it('returns green for "Chronic diagnosis invalid" with "Attestation sent"', () => {
+      const result = getRowStatusColor({
+        measureStatus: 'Chronic diagnosis invalid',
+        isDuplicate: false,
+        dueDate: null,
+        tracking1: 'Attestation sent',
+      });
+      expect(result).toBe('green');
     });
   });
 
@@ -714,13 +744,33 @@ describe('getRowStatusColor', () => {
       expect(result).toBe('purple');
     });
 
-    it('does NOT return red for overdue orange status', () => {
+    it('returns red for overdue Chronic DX without attestation sent', () => {
+      const result = getRowStatusColor({
+        measureStatus: 'Chronic diagnosis resolved',
+        isDuplicate: false,
+        dueDate: getPastDate(5),
+        tracking1: 'Attestation not sent',
+      });
+      expect(result).toBe('red');
+    });
+
+    it('returns red for overdue Chronic DX with no tracking1', () => {
       const result = getRowStatusColor({
         measureStatus: 'Chronic diagnosis resolved',
         isDuplicate: false,
         dueDate: getPastDate(5),
       });
-      expect(result).toBe('orange');
+      expect(result).toBe('red');
+    });
+
+    it('does NOT return red for overdue Chronic DX with attestation sent', () => {
+      const result = getRowStatusColor({
+        measureStatus: 'Chronic diagnosis resolved',
+        isDuplicate: false,
+        dueDate: getPastDate(5),
+        tracking1: 'Attestation sent',
+      });
+      expect(result).toBe('green');
     });
 
     it('returns blue when dueDate is in the future', () => {
