@@ -898,17 +898,28 @@ export default function PatientGrid({
     'Chronic diagnosis invalid',
   ];
 
+  // Helper: check if a Chronic DX row has attestation sent (turns green)
+  const isChronicDxAttestationSent = (data: GridRow | undefined): boolean => {
+    const status = data?.measureStatus || '';
+    return orangeStatuses.includes(status) && data?.tracking1 === 'Attestation sent';
+  };
+
   // Helper function to check if a row is overdue (dueDate < today)
-  // Applies to all statuses EXCEPT declined (purple), N/A (gray), and resolved (orange)
+  // Applies to all statuses EXCEPT declined (purple), N/A (gray),
+  // and Chronic DX with attestation sent (resolved — no follow-up expected)
   // Completed (green) statuses CAN be overdue - indicates need for new annual measure
   const isRowOverdue = (data: GridRow | undefined): boolean => {
     if (!data?.dueDate) return false;
 
-    // Don't show overdue for declined/N/A/resolved statuses
+    // Don't show overdue for declined/N/A statuses
     const status = data.measureStatus || '';
     if (grayStatuses.includes(status) ||
-        purpleStatuses.includes(status) ||
-        orangeStatuses.includes(status)) {
+        purpleStatuses.includes(status)) {
+      return false;
+    }
+
+    // Chronic DX resolved/invalid: only exclude from overdue if attestation sent
+    if (orangeStatuses.includes(status) && data.tracking1 === 'Attestation sent') {
       return false;
     }
 
@@ -930,10 +941,10 @@ export default function PatientGrid({
     'row-status-overdue': (params: RowClassParams<GridRow>) => isRowOverdue(params.data),
     'row-status-gray': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && grayStatuses.includes(params.data?.measureStatus || ''),
     'row-status-purple': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && purpleStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && greenStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (greenStatuses.includes(params.data?.measureStatus || '') || isChronicDxAttestationSent(params.data)),
     'row-status-blue': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && blueStatuses.includes(params.data?.measureStatus || ''),
     'row-status-yellow': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && yellowStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && orangeStatuses.includes(params.data?.measureStatus || ''),
+    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && orangeStatuses.includes(params.data?.measureStatus || '') && !isChronicDxAttestationSent(params.data),
     'row-status-white': (params: RowClassParams<GridRow>) => {
       if (isRowOverdue(params.data)) return false;
       const status = params.data?.measureStatus || '';

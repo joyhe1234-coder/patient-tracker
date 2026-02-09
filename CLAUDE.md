@@ -19,24 +19,32 @@ Before starting any implementation:
 
 **When the user asks to implement a requirement, use the FULL spec-driven workflow with TDD:**
 
-### Option A: Use Spec Workflow (Recommended for New Features)
+### Option A: Use Per-Phase Workflow (Recommended for New Features)
 
 ```bash
 # 1. Set up project steering documents (first time only)
 /spec-steering-setup
 
-# 2. Create detailed specification
-/spec-create feature-name "description"
+# 2. Create specification (per-phase — recommended)
+/jh-1-requirements feature-name "description"   # → requirements.md
+/jh-2-design feature-name                       # → design.md
+/jh-3-tasks feature-name                        # → tasks.md
 
-# 3. Execute with TDD
+# Or use /spec-create feature-name "description" to run all 3 phases sequentially
+
+# 3. Implement with TDD
 /spec-execute 1 feature-name
-```
 
-This will:
-1. Create `requirements.md` with user stories and acceptance criteria
-2. Create `design.md` with technical architecture
-3. Create `tasks.md` with atomic, testable tasks
-4. Execute each task using TDD (Red-Green-Refactor)
+# 4. Quality gates (post-implementation)
+/jh-4-test-audit feature-name     # Run 4-layer test suite + coverage audit
+/jh-5-security-audit               # OWASP + dependency audit
+/jh-6-code-review                  # 4-dimension code review
+/jh-7-deploy-validate              # GO/NO-GO readiness check
+
+# 5. Release
+/commit
+/release
+```
 
 ### Option B: Manual Workflow (For Quick Fixes)
 
@@ -475,7 +483,7 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 | Command | Purpose |
 |---------|---------|
 | `/spec-steering-setup` | Create project context (product.md, tech.md, structure.md) |
-| `/spec-create <name> "desc"` | Create full spec: requirements → design → tasks |
+| `/spec-create <name> "desc"` | Thin orchestrator: delegates to `/jh-1-requirements` → `/jh-2-design` → `/jh-3-tasks` |
 | `/spec-execute <task-id> <name>` | Execute a task with TDD |
 | `/spec-status` | Show spec progress |
 | `/spec-list` | List all specs |
@@ -491,6 +499,8 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 | `/bug-status` | Show bug fix progress |
 
 ### Test Planning Skills
+
+> **User-facing command:** `/jh-4-test-audit` runs the full 4-layer test suite and coordinates these skills.
 
 | Skill | Purpose | Location |
 |-------|---------|----------|
@@ -508,6 +518,18 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 | `tdd-implementer` | Write minimal passing code (GREEN phase) | `.claude/agents/` |
 | `tdd-refactorer` | Improve code quality (REFACTOR phase) | `.claude/agents/` |
 
+### JH Workflow Commands (Per-Phase SDLC)
+
+| # | Command | Purpose |
+|---|---------|---------|
+| 1 | `/jh-1-requirements <name> "desc"` | Requirements (requirements-planner agent) |
+| 2 | `/jh-2-design <name>` | Design (architecture-designer agent) |
+| 3 | `/jh-3-tasks <name>` | Task breakdown (task-planner agent) |
+| 4 | `/jh-4-test-audit [name]` | Test suite + coverage audit (test-orchestrator agent) |
+| 5 | `/jh-5-security-audit [scope]` | OWASP + dependency audit (security-auditor agent) |
+| 6 | `/jh-6-code-review [branch]` | Code review: bugs, security, compliance, perf (code-reviewer agent) |
+| 7 | `/jh-7-deploy-validate` | Pre-deployment GO/NO-GO check (deployment-validator agent) |
+
 ### Release & Version
 
 | Command | Purpose |
@@ -522,56 +544,65 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PHASE 1: REQUIREMENTS                                              │
-│  /spec-create feature-name "description"                            │
+│  PHASE 1: STEERING SETUP (first time only)                          │
+│  /spec-steering-setup                                               │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 2: REQUIREMENTS                                              │
+│  /jh-1-requirements feature-name "description"                      │
+│  (or /spec-create for all-in-one)                                   │
 │                                                                     │
+│  Agent: requirements-planner → spec-requirements-validator          │
 │  Output: .claude/specs/feature-name/requirements.md                 │
-│  • User stories with acceptance criteria                            │
-│  • Edge cases documented                                            │
-│  • UI workflow defined                                              │
-│                                                                     │
 │  → USER REVIEWS & APPROVES                                          │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 2: DESIGN                                                    │
-│  (Auto-created by spec-create)                                      │
+│  PHASE 3: DESIGN                                                    │
+│  /jh-2-design feature-name                                          │
 │                                                                     │
+│  Agent: architecture-designer → spec-design-validator               │
 │  Output: .claude/specs/feature-name/design.md                       │
-│  • Technical architecture                                           │
-│  • API design                                                       │
-│  • Component structure                                              │
-│                                                                     │
 │  → USER REVIEWS & APPROVES                                          │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 3: TASKS                                                     │
-│  (Auto-created by spec-create)                                      │
+│  PHASE 4: TASKS                                                     │
+│  /jh-3-tasks feature-name                                           │
 │                                                                     │
+│  Agent: task-planner → spec-task-validator                          │
 │  Output: .claude/specs/feature-name/tasks.md                        │
-│  • Atomic, testable tasks                                           │
-│  • Dependencies mapped                                              │
-│  • Acceptance criteria per task                                     │
+│  → USER REVIEWS & APPROVES                                          │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 4: IMPLEMENTATION (TDD)                                      │
+│  PHASE 5: IMPLEMENTATION (TDD)                                      │
 │  /spec-execute 1 feature-name                                       │
 │                                                                     │
 │  For each task:                                                     │
 │    RED:    tdd-test-writer → failing test                           │
 │    GREEN:  tdd-implementer → minimal passing code                   │
 │    REFACTOR: tdd-refactorer → improve quality                       │
-│                                                                     │
 │  → TESTS RUN AUTOMATICALLY                                          │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 5: VERIFICATION                                              │
-│  Use ln-630-test-auditor                                            │
+│  PHASE 6: TESTING & QA                                              │
+│  /jh-4-test-audit feature-name                                      │
 │                                                                     │
-│  Checks:                                                            │
-│  • All acceptance criteria have tests                               │
-│  • Coverage meets targets                                           │
-│  • Business logic covered                                           │
-│  • E2E priority verified                                            │
-│                                                                     │
+│  Agent: test-orchestrator (4-layer test suite + coverage audit)     │
 │  → FIX ANY GAPS                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 6: COMMIT & RELEASE                                          │
+│  PHASE 7: SECURITY AUDIT                                            │
+│  /jh-5-security-audit                                               │
+│                                                                     │
+│  Agent: security-auditor (OWASP top 10 + deps + auth review)       │
+│  → FIX CRITICAL/HIGH FINDINGS                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 8: CODE REVIEW                                               │
+│  /jh-6-code-review                                                  │
+│                                                                     │
+│  Agent: code-reviewer (bugs, security, compliance, perf)            │
+│  → ADDRESS REQUEST_CHANGES                                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 9: PRE-DEPLOY VALIDATION                                     │
+│  /jh-7-deploy-validate                                              │
+│                                                                     │
+│  Agent: deployment-validator (GO/NO-GO readiness check)             │
+│  → MUST BE "GO" BEFORE RELEASE                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 10: COMMIT & RELEASE                                         │
 │  /commit                                                            │
 │  /release (when ready)                                              │
 └─────────────────────────────────────────────────────────────────────┘

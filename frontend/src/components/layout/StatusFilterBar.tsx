@@ -147,6 +147,7 @@ export function getRowStatusColor(row: {
   measureStatus: string | null;
   isDuplicate: boolean;
   dueDate: string | null;
+  tracking1?: string | null;
 }): Exclude<StatusColor, 'all'> {
   const grayStatuses = ['No longer applicable', 'Screening unnecessary'];
   const purpleStatuses = ['Patient declined AWV', 'Patient declined', 'Patient declined screening', 'Declined BP control', 'Contraindicated'];
@@ -157,14 +158,21 @@ export function getRowStatusColor(row: {
 
   const status = row.measureStatus || '';
 
-  // Check overdue first
-  // Applies to all statuses EXCEPT declined (purple), N/A (gray), and resolved (orange)
+  // Chronic DX with attestation sent = GREEN (always, regardless of due date)
+  const isChronicDxAttestationSent = orangeStatuses.includes(status) && row.tracking1 === 'Attestation sent';
+
+  // Check overdue
+  // Applies to all statuses EXCEPT declined (purple), N/A (gray),
+  // and Chronic DX with attestation sent (resolved — no follow-up expected)
   // Completed (green) statuses CAN be overdue - indicates need for new annual measure
   const isOverdue = (): boolean => {
     if (!row.dueDate) return false;
-    // Don't show overdue for declined/N/A/resolved statuses
-    if (grayStatuses.includes(status) || purpleStatuses.includes(status) ||
-        orangeStatuses.includes(status)) {
+    // Don't show overdue for declined/N/A statuses
+    if (grayStatuses.includes(status) || purpleStatuses.includes(status)) {
+      return false;
+    }
+    // Chronic DX: only exclude from overdue if attestation sent
+    if (isChronicDxAttestationSent) {
       return false;
     }
     const dueDate = new Date(row.dueDate);
@@ -178,7 +186,7 @@ export function getRowStatusColor(row: {
   if (isOverdue()) return 'red';
   if (grayStatuses.includes(status)) return 'gray';
   if (purpleStatuses.includes(status)) return 'purple';
-  if (greenStatuses.includes(status)) return 'green';
+  if (greenStatuses.includes(status) || isChronicDxAttestationSent) return 'green';
   if (blueStatuses.includes(status)) return 'blue';
   if (yellowStatuses.includes(status)) return 'yellow';
   if (orangeStatuses.includes(status)) return 'orange';
