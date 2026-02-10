@@ -7,12 +7,13 @@
 - Runs on `http://localhost:5173` (dev) or `http://localhost:3000` (backend-served)
 
 ## Test Accounts
-| Role | Email | Password |
-|------|-------|----------|
-| ADMIN | `admin2@gmail.com` | `welcome100` |
-| Primary Admin | `ko037291@gmail.com` | (check with user) |
-| PHYSICIAN | `joyhe1234@gmail.com` | (reset via admin) |
-| STAFF | `staff2@gmail.com` | (reset via admin) |
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| ADMIN (bootstrap) | `admin@clinic.com` | `changeme123` | Auto-created default admin, works reliably |
+| ADMIN | `admin2@gmail.com` | `welcome100` | May not exist if DB was reset |
+| Primary Admin | `ko037291@gmail.com` | (check with user) | |
+| PHYSICIAN | `joyhe1234@gmail.com` | (reset via admin) | |
+| STAFF | `staff2@gmail.com` | (reset via admin) | |
 
 ## Design System Tokens
 - **Primary Blue**: #3B82F6 (buttons, links, active tabs)
@@ -39,14 +40,17 @@
 | 2026-02-06 | Patient Grid | `reviews/patient-grid-2026-02-06.md` | Column truncation, click-to-edit, accessibility gaps |
 | 2026-02-06 | Import Flow (Deep) | `reviews/import-page-2026-02-06.md` | 14 screenshots, 8 findings, mobile table broken |
 | 2026-02-06 | Admin Pages | `reviews/admin-pages-2026-02-06.md` | Audit log needs pagination + filtering |
+| 2026-02-09 | Compact Filter Bar | `reviews/compact-filter-bar-2026-02-09.md` | All(220) count bug, opacity contrast failures, touch targets |
 
 ## Recurring Issues
-1. **Accessibility gaps**: Missing focus indicators, keyboard navigation issues, missing ARIA labels
-2. **Native HTML validation**: Login + auth forms use browser-native validation instead of custom
-3. **No pagination pattern**: Audit log renders all entries at once (needs pagination component)
-4. **Column truncation**: AG Grid headers truncate at narrow widths — needs title tooltips
-5. **Mobile responsiveness**: Preview changes table (7 columns) completely breaks on 375px mobile
-6. **Mobile header**: App title wraps 4 lines on mobile, user menu pushed off-screen
+1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
+2. **Touch targets too small on mobile**: Filter chips 22px tall, search 30px, dropdown 23px. All fail 44px minimum. Add responsive padding on mobile.
+3. **Accessibility gaps**: Missing focus indicators, keyboard navigation issues, missing ARIA labels
+4. **Native HTML validation**: Login + auth forms use browser-native validation instead of custom
+5. **No pagination pattern**: Audit log renders all entries at once (needs pagination component)
+6. **Column truncation**: AG Grid headers truncate at narrow widths — needs title tooltips
+7. **Mobile responsiveness**: Preview changes table (7 columns) completely breaks on 375px mobile
+8. **Mobile header**: App title wraps 4 lines on mobile, user menu pushed off-screen
 
 ## Known Bugs Fixed (Feb 6, 2026)
 - BUG-1: Reset password generic error → reads specific backend error messages now

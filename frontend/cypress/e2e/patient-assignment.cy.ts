@@ -21,10 +21,11 @@ describe('Patient Assignment', () => {
   });
 
   describe('Viewing Unassigned Patients', () => {
-    it('should navigate to patient assignment page from admin', () => {
-      cy.contains('Admin').click();
-      cy.contains('Assign Patients').click();
+    it('should navigate to patient assignment page from patient management', () => {
+      cy.visit('/patient-management');
+      cy.contains('Reassign Patients').click();
       cy.url().should('include', '/patient-management');
+      cy.url().should('include', 'tab=reassign');
     });
 
     it('should display unassigned patients list', () => {

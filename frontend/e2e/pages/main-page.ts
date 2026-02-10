@@ -15,7 +15,7 @@ export class MainPage {
     this.page = page;
     this.grid = page.locator('.ag-theme-alpine');
     this.toolbar = page.locator('.flex.items-center.gap-2.p-2');
-    this.filterBar = page.locator('.flex.items-center.gap-2.px-4.py-2.bg-gray-50');
+    this.filterBar = page.locator('.bg-gray-50.border-b.border-gray-200');
     this.addRowButton = page.locator('button:has-text("Add Row")');
     this.duplicateButton = page.locator('button:has-text("Duplicate Mbr")');
     this.deleteButton = page.locator('button:has-text("Delete Row")');
@@ -190,6 +190,24 @@ export class MainPage {
     const text = await chip.innerText();
     const match = text.match(/\((\d+)\)/);
     return match ? match[1] : '0';
+  }
+
+  async getMeasureDropdown(): Promise<Locator> {
+    return this.filterBar.locator('select[aria-label="Filter by quality measure"]');
+  }
+
+  async selectMeasure(measure: string) {
+    const dropdown = await this.getMeasureDropdown();
+    await dropdown.selectOption(measure);
+  }
+
+  async getSelectedMeasure(): Promise<string> {
+    const dropdown = await this.getMeasureDropdown();
+    return await dropdown.inputValue();
+  }
+
+  async getStatusBarText(): Promise<string> {
+    return await this.statusBar.innerText();
   }
 
   async waitForSave() {

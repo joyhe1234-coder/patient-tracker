@@ -15,9 +15,15 @@ import { StatusColor, getRowStatusColor } from '../components/layout/StatusFilte
 function filterRows(
   rowData: GridRow[],
   activeFilters: StatusColor[],
-  searchText: string
+  searchText: string,
+  selectedMeasure: string = 'All Measures'
 ): GridRow[] {
   let filtered = rowData;
+
+  // Apply quality measure filter
+  if (selectedMeasure !== 'All Measures') {
+    filtered = filtered.filter(row => row.qualityMeasure === selectedMeasure);
+  }
 
   // Apply status color filter
   if (!activeFilters.includes('all') && activeFilters.length > 0) {
@@ -38,6 +44,28 @@ function filterRows(
   }
 
   return filtered;
+}
+
+/**
+ * Replicates the rowCounts logic from MainPage.tsx, scoped by measure.
+ */
+function computeRowCounts(
+  rowData: GridRow[],
+  selectedMeasure: string = 'All Measures'
+): Record<StatusColor, number> {
+  const counts: Record<StatusColor, number> = {
+    all: 0, duplicate: 0, white: 0, yellow: 0, blue: 0,
+    green: 0, purple: 0, orange: 0, gray: 0, red: 0,
+  };
+  const scopedRows = selectedMeasure === 'All Measures'
+    ? rowData
+    : rowData.filter(row => row.qualityMeasure === selectedMeasure);
+  scopedRows.forEach((row) => {
+    if (row.isDuplicate) counts.duplicate++;
+    const color = getRowStatusColor(row);
+    counts[color]++;
+  });
+  return counts;
 }
 
 // Helper to create a minimal GridRow for testing
@@ -65,18 +93,20 @@ function makeRow(overrides: Partial<GridRow> & { id: number; memberName: string 
 }
 
 const sampleRows: GridRow[] = [
-  makeRow({ id: 1, memberName: 'Smith, John', measureStatus: 'AWV completed' }),      // green
-  makeRow({ id: 2, memberName: 'Doe, Jane', measureStatus: 'AWV scheduled' }),         // blue
-  makeRow({ id: 3, memberName: 'Johnson, Bob', measureStatus: null }),                  // white
-  makeRow({ id: 4, memberName: 'Smith, Alice', measureStatus: 'Patient declined AWV' }), // purple
-  makeRow({ id: 5, memberName: 'Brown, Charlie', measureStatus: 'AWV completed', isDuplicate: true }), // green + dup
+  makeRow({ id: 1, memberName: 'Smith, John', measureStatus: 'AWV completed', qualityMeasure: 'Annual Wellness Visit' }),      // green
+  makeRow({ id: 2, memberName: 'Doe, Jane', measureStatus: 'AWV scheduled', qualityMeasure: 'Annual Wellness Visit' }),         // blue
+  makeRow({ id: 3, memberName: 'Johnson, Bob', measureStatus: null }),                  // white, null measure
+  makeRow({ id: 4, memberName: 'Smith, Alice', measureStatus: 'Patient declined AWV', qualityMeasure: 'Annual Wellness Visit' }), // purple
+  makeRow({ id: 5, memberName: 'Brown, Charlie', measureStatus: 'AWV completed', isDuplicate: true, qualityMeasure: 'Annual Wellness Visit' }), // green + dup
+  makeRow({ id: 6, memberName: 'Garcia, Maria', measureStatus: 'Diabetic eye exam scheduled', qualityMeasure: 'Diabetic Eye Exam' }), // blue
+  makeRow({ id: 7, memberName: 'Lee, James', measureStatus: 'Diabetic eye exam completed', qualityMeasure: 'Diabetic Eye Exam' }), // green
 ];
 
 describe('MainPage search filtering logic', () => {
   describe('name search only (no status filter)', () => {
     it('returns all rows when search is empty', () => {
       const result = filterRows(sampleRows, ['all'], '');
-      expect(result).toHaveLength(5);
+      expect(result).toHaveLength(7);
     });
 
     it('filters by name (case-insensitive)', () => {
@@ -95,7 +125,7 @@ describe('MainPage search filtering logic', () => {
       const result = filterRows(sampleRows, ['all'], 'john');
       // "Smith, John" (id:1) and "Johnson, Bob" (id:3)
       expect(result).toHaveLength(2);
-      expect(result.map((r) => r.id)).toEqual([1, 3]);
+      expect(result.map((r) => r.id).sort()).toEqual([1, 3]);
     });
 
     it('returns empty when no names match', () => {
@@ -115,7 +145,7 @@ describe('MainPage search filtering logic', () => {
 
     it('treats whitespace-only search as empty (returns all)', () => {
       const result = filterRows(sampleRows, ['all'], '   ');
-      expect(result).toHaveLength(5);
+      expect(result).toHaveLength(7);
     });
 
     it('trims leading/trailing whitespace from search', () => {
@@ -229,7 +259,7 @@ describe('MainPage search filtering logic', () => {
 
       // Then clear
       const restored = filterRows(sampleRows, ['all'], '');
-      expect(restored).toHaveLength(5);
+      expect(restored).toHaveLength(7);
     });
 
     it('clearing search with active status filter restores status-filtered set', () => {
@@ -239,30 +269,30 @@ describe('MainPage search filtering logic', () => {
 
       // Clear search but keep status filter
       const restored = filterRows(sampleRows, ['green'], '');
-      // Green rows: Smith, John (id:1) and Brown, Charlie (id:5)
-      expect(restored).toHaveLength(2);
+      // Green rows: Smith, John (1), Brown, Charlie (5), Lee, James (7)
+      expect(restored).toHaveLength(3);
     });
   });
 
   describe('multi-select filter (OR logic)', () => {
     it('filters by multiple colors with OR logic', () => {
       const result = filterRows(sampleRows, ['green', 'blue'], '');
-      // green: Smith, John (1), Brown, Charlie (5). blue: Doe, Jane (2)
-      expect(result).toHaveLength(3);
-      expect(result.map((r) => r.id)).toEqual([1, 2, 5]);
+      // green: Smith, John (1), Brown, Charlie (5), Lee, James (7). blue: Doe, Jane (2), Garcia, Maria (6)
+      expect(result).toHaveLength(5);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 5, 6, 7]);
     });
 
     it('filters by three colors with OR logic', () => {
       const result = filterRows(sampleRows, ['green', 'blue', 'purple'], '');
-      // green: 1, 5. blue: 2. purple: 4
-      expect(result).toHaveLength(4);
-      expect(result.map((r) => r.id)).toEqual([1, 2, 4, 5]);
+      // green: 1, 5, 7. blue: 2, 6. purple: 4
+      expect(result).toHaveLength(6);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 4, 5, 6, 7]);
     });
 
     it('single color filter works same as old single-select', () => {
       const result = filterRows(sampleRows, ['green'], '');
-      expect(result).toHaveLength(2);
-      expect(result.map((r) => r.id)).toEqual([1, 5]);
+      expect(result).toHaveLength(3);
+      expect(result.map((r) => r.id)).toEqual([1, 5, 7]);
     });
 
     it('duplicates filter returns only duplicate rows', () => {
@@ -274,7 +304,7 @@ describe('MainPage search filtering logic', () => {
     it('all chips selected shows all rows (equivalent to All)', () => {
       const allColors: StatusColor[] = ['white', 'red', 'blue', 'yellow', 'green', 'purple', 'orange', 'gray'];
       const result = filterRows(sampleRows, allColors, '');
-      expect(result).toHaveLength(5);
+      expect(result).toHaveLength(7);
     });
 
     it('multi-filter + search applies AND logic', () => {
@@ -296,6 +326,105 @@ describe('MainPage search filtering logic', () => {
     });
   });
 
+  describe('quality measure filter', () => {
+    it('filters rows by selected measure', () => {
+      const result = filterRows(sampleRows, ['all'], '', 'Annual Wellness Visit');
+      // AWV rows: 1, 2, 4, 5
+      expect(result).toHaveLength(4);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 4, 5]);
+    });
+
+    it('"All Measures" shows all rows', () => {
+      const result = filterRows(sampleRows, ['all'], '', 'All Measures');
+      expect(result).toHaveLength(7);
+    });
+
+    it('filters by Diabetic Eye Exam measure', () => {
+      const result = filterRows(sampleRows, ['all'], '', 'Diabetic Eye Exam');
+      // Diabetic Eye Exam rows: 6, 7
+      expect(result).toHaveLength(2);
+      expect(result.map((r) => r.id)).toEqual([6, 7]);
+    });
+
+    it('excludes rows with null qualityMeasure when measure is selected', () => {
+      const result = filterRows(sampleRows, ['all'], '', 'Annual Wellness Visit');
+      // Johnson, Bob (id:3) has null qualityMeasure — excluded
+      expect(result.find((r) => r.id === 3)).toBeUndefined();
+    });
+
+    it('measure + color filter applies AND logic', () => {
+      const result = filterRows(sampleRows, ['green'], '', 'Annual Wellness Visit');
+      // AWV green rows: Smith, John (1), Brown, Charlie (5). Lee, James (7) is green but Diabetic Eye Exam.
+      expect(result).toHaveLength(2);
+      expect(result.map((r) => r.id)).toEqual([1, 5]);
+    });
+
+    it('measure + color + search applies triple AND', () => {
+      const result = filterRows(sampleRows, ['green'], 'smith', 'Annual Wellness Visit');
+      // Only Smith, John (1) is AWV + green + "smith"
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('duplicate filter + measure applies AND logic', () => {
+      const result = filterRows(sampleRows, ['duplicate'], '', 'Annual Wellness Visit');
+      // Brown, Charlie (5) is duplicate + AWV
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(5);
+    });
+
+    it('changing measure preserves active color filter', () => {
+      // Blue filter with AWV: only Doe, Jane (2)
+      const awvBlue = filterRows(sampleRows, ['blue'], '', 'Annual Wellness Visit');
+      expect(awvBlue).toHaveLength(1);
+      expect(awvBlue[0].id).toBe(2);
+
+      // Blue filter with Diabetic Eye Exam: only Garcia, Maria (6)
+      const deeBlue = filterRows(sampleRows, ['blue'], '', 'Diabetic Eye Exam');
+      expect(deeBlue).toHaveLength(1);
+      expect(deeBlue[0].id).toBe(6);
+    });
+  });
+
+  describe('measure-scoped rowCounts', () => {
+    it('scopes chip counts to selected measure', () => {
+      const counts = computeRowCounts(sampleRows, 'Annual Wellness Visit');
+      // AWV rows: 1 (green), 2 (blue), 4 (purple), 5 (green+dup)
+      expect(counts.green).toBe(2);  // Smith, John + Brown, Charlie
+      expect(counts.blue).toBe(1);   // Doe, Jane
+      expect(counts.purple).toBe(1); // Smith, Alice
+      expect(counts.duplicate).toBe(1); // Brown, Charlie
+      expect(counts.white).toBe(0);  // Johnson, Bob excluded (null measure)
+    });
+
+    it('"All Measures" counts all rows', () => {
+      const counts = computeRowCounts(sampleRows, 'All Measures');
+      expect(counts.green).toBe(3);
+      expect(counts.blue).toBe(2);
+      expect(counts.white).toBe(1);
+      expect(counts.purple).toBe(1);
+      expect(counts.duplicate).toBe(1);
+    });
+
+    it('Diabetic Eye Exam counts only DEE rows', () => {
+      const counts = computeRowCounts(sampleRows, 'Diabetic Eye Exam');
+      // DEE rows: 6 (blue), 7 (green)
+      expect(counts.green).toBe(1);  // Lee, James
+      expect(counts.blue).toBe(1);   // Garcia, Maria
+      expect(counts.purple).toBe(0);
+      expect(counts.white).toBe(0);
+      expect(counts.duplicate).toBe(0);
+    });
+
+    it('unknown measure returns all zeros', () => {
+      const counts = computeRowCounts(sampleRows, 'Nonexistent Measure');
+      expect(counts.green).toBe(0);
+      expect(counts.blue).toBe(0);
+      expect(counts.white).toBe(0);
+      expect(counts.duplicate).toBe(0);
+    });
+  });
+
   describe('chip counts (rowCounts) independence', () => {
     it('rowCounts are computed from unfiltered rowData', () => {
       // Simulate what MainPage does: rowCounts computed from rowData (not filteredRowData)
@@ -310,8 +439,8 @@ describe('MainPage search filtering logic', () => {
       });
 
       // Counts should reflect ALL rows regardless of search
-      expect(counts.green).toBe(2);  // Smith, John + Brown, Charlie
-      expect(counts.blue).toBe(1);   // Doe, Jane
+      expect(counts.green).toBe(3);  // Smith, John + Brown, Charlie + Lee, James
+      expect(counts.blue).toBe(2);   // Doe, Jane + Garcia, Maria
       expect(counts.white).toBe(1);  // Johnson, Bob
       expect(counts.purple).toBe(1); // Smith, Alice
       expect(counts.duplicate).toBe(1); // Brown, Charlie
@@ -321,7 +450,7 @@ describe('MainPage search filtering logic', () => {
       expect(filtered).toHaveLength(2); // Only 2 rows shown
 
       // But counts are still from full dataset
-      expect(counts.green).toBe(2); // Still 2, not reduced
+      expect(counts.green).toBe(3); // Still 3, not reduced
     });
   });
 });

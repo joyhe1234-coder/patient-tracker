@@ -32,4 +32,22 @@ describe('StatusBar', () => {
     render(<StatusBar rowCount={10} />);
     expect(screen.getByText('Connected')).toBeInTheDocument();
   });
+
+  describe('Filter Summary', () => {
+    it('shows filter summary when provided', () => {
+      render(<StatusBar rowCount={25} totalRowCount={100} filterSummary="Color: In Progress | Measure: Diabetic Eye Exam" />);
+      expect(screen.getByText('Color: In Progress | Measure: Diabetic Eye Exam')).toBeInTheDocument();
+    });
+
+    it('does not show filter summary when undefined', () => {
+      render(<StatusBar rowCount={100} totalRowCount={100} />);
+      // No filter summary element should be present
+      expect(screen.queryByText(/Color:|Measure:/)).not.toBeInTheDocument();
+    });
+
+    it('shows combined summary with pipe separator', () => {
+      render(<StatusBar rowCount={8} totalRowCount={220} filterSummary="Color: Completed | Measure: AWV" />);
+      expect(screen.getByText('Color: Completed | Measure: AWV')).toBeInTheDocument();
+    });
+  });
 });

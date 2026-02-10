@@ -94,6 +94,15 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - Ctrl+F focuses search input, Escape clears and blurs
   - Clear (X) button to reset search
   - Status chip counts reflect full dataset (not affected by search)
+- [x] **Compact Filter Bar with Quality Measure Dropdown** (Feb 9, 2026)
+  - Compact chips (~24px height, single-line, `white-space: nowrap`)
+  - Quality Measure dropdown ("All Measures" default) — filters grid by qualityMeasure field
+  - Combined AND logic: `(chipA OR chipB) AND measureMatch AND searchMatch`
+  - Chip counts scoped by selected measure
+  - Status bar shows active filter summary
+  - All 10 chips fit on single row at 1280px+
+  - Spec: `.claude/specs/compact-filter-bar/`
+  - 482 Vitest tests (was 343, +139 new)
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
 - [ ] Advanced filter builder (multiple conditions)
@@ -309,9 +318,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (343 tests total)
-  - StatusFilterBar.test.tsx (56 tests - includes getRowStatusColor + search UI + multi-select + accessibility + attestation cascade)
-  - StatusBar.test.tsx (6 tests - consistent display format, locale formatting, Connected status)
+- [x] Phase 4: Component tests (482 tests total)
+  - StatusFilterBar.test.tsx (181 tests - compact chips, quality measure dropdown, combined filter logic, getRowStatusColor, row color accuracy, chip count integrity, search UI, multi-select, accessibility, attestation cascade)
+  - StatusBar.test.tsx (7 tests - consistent display format, locale formatting, Connected status, filter summary)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
@@ -322,8 +331,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - ResetPasswordPage.test.tsx (18 tests - includes password helper text)
   - ImportPage.test.tsx (27 tests - includes warning icon, max file size)
   - ImportPreviewPage.test.tsx (23 tests)
-  - MainPage.test.tsx (33 tests - search filtering, word-based search, multi-select filter logic)
+  - MainPage.test.tsx (41 tests - search filtering, word-based search, multi-select filter logic, measure dropdown filtering)
   - authStore.test.ts (25 tests)
+  - PatientManagementPage.test.tsx (18 tests)
 
 ### E2E Testing (Playwright)
 - [x] Phase 2: Setup (playwright.config.ts, Page Object Model)
@@ -365,6 +375,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - cypress/e2e/multi-select-filter.cy.ts - Multi-select toggle, duplicates exclusivity, checkmark visual, search combo
 - [x] UX improvements tests (10 tests)
   - cypress/e2e/ux-improvements.cy.ts - Status bar, filter accessibility, import UX, password toggles
+- [x] Compact filter bar tests
+  - cypress/e2e/compact-filter-bar.cy.ts - Compact chips, measure dropdown, combined filters
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -377,7 +389,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 527 tests passing
-- Total test count: ~1204 automated tests across all frameworks (527 Jest + 343 Vitest + 43 Playwright + 299 Cypress)
+- Total test count: ~1350+ automated tests across all frameworks (527 Jest + 482 Vitest + 43+ Playwright + 299+ Cypress)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
@@ -509,7 +521,7 @@ Complete redesign of patient ownership, viewing, and import assignment.
 - [x] Import Preview: Reassignment warning with confirmation modal
 - [x] Patient Assignment Page: New admin-only page for bulk reassignment (`/admin/patient-assignment`)
 - [x] User Management: "Can Have Patients" toggle for ADMIN users
-- [x] Admin Page: "Assign Patients" button linking to assignment page
+- [x] ~~Admin Page: "Assign Patients" button~~ (removed Feb 9, 2026 — functionality exists as "Reassign Patients" tab on Patient Management page)
 
 **UI Refinements (Phase 12h):**
 - [x] Provider dropdown only visible on Patient Grid page (not Import/Admin pages)
@@ -523,6 +535,46 @@ When importing patients that already belong to another physician:
 - Cancel option to abort import
 
 See `.claude/PATIENT_OWNERSHIP_REQUIREMENTS.md` for detailed specifications.
+
+---
+
+### Deployment Pipeline & Windows Server Support
+
+**Status: Complete**
+
+CI/CD pipeline and on-premise Windows Server deployment tooling.
+
+- [x] GitHub Actions CI/CD pipeline (`.github/workflows/docker-publish.yml`)
+  - Trigger: push tags `v*`
+  - Gate: reuses test.yml via `workflow_call` (tests must pass)
+  - Builds frontend + backend Docker images
+  - Pushes to GHCR (`ghcr.io/joyhe1234-coder/patient-tracker-*`)
+  - Tags: version number + `latest`
+  - Uses GHA build cache for speed
+- [x] Test workflow reuse (`test.yml` updated with `workflow_call` trigger)
+- [x] Docker Compose production config updated for GHCR (`docker-compose.prod.yml`)
+- [x] `.env.example` updated with GHCR registry and VERSION variable
+- [x] Windows install script (`scripts/install-windows.ps1`)
+  - Prerequisite checks (Docker, Linux containers, port 80, RAM, disk)
+  - Downloads config files, generates secrets cryptographically
+  - GHCR authentication, image pull, health check
+  - Restricted `.env` file ACL (Administrators + SYSTEM only)
+- [x] Update script (`scripts/update.ps1`)
+  - Database backup via `pg_dump` (uses `cmd /c` to avoid UTF-16)
+  - Pull new images (aborts if fails, old containers keep running)
+  - Health check with rollback instructions on failure
+- [x] Validation script (`scripts/validate-deployment.ps1`)
+  - 6 checks: containers, DB, API, frontend, Socket.io, disk space
+  - GO/NO-GO verdict
+- [x] Rollback script (`scripts/rollback.ps1`)
+  - Database restore from backup, pull old version, health check
+  - Warns if backup is >24 hours old
+- [x] Windows Server deployment guide (`docs/WINDOWS_SERVER_INSTALL.md`)
+  - Prerequisites, Docker install, initial deployment, updates
+  - Backup/restore, rollback, SSL/TLS, offline deployment
+  - Troubleshooting (IIS port 80, Docker memory, Defender, GHCR token)
+  - Architecture diagram and CI/CD pipeline diagram
+- [x] Documentation cross-references updated (CLAUDE.md, INSTALLATION_GUIDE.md, QUICK_INSTALL.md)
 
 ---
 
@@ -658,6 +710,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 9, 2026 - Compact Filter Bar with Quality Measure Dropdown (482 Vitest tests, +139), BUG-8 fix (chip counts on cell edit), removed Assign Patients button from Admin page, deployment pipeline & Windows Server support.
 February 8, 2026 - Numbered JH workflow commands (jh-1 through jh-7), added 7 dedicated agent definitions, refactored spec-create/spec-steering-setup.
 February 7, 2026 - Chronic DX attestation color cascade: BUG-4/5/7 fixes, 6 Cypress E2E + 8 Vitest tests, row-colors requirements rewrite. Total ~1204 tests (Vitest 343, Playwright 43, Cypress 299, Jest 527).
 February 7, 2026 - Patient Management Page: tabbed `/patient-management` consolidating Import + Patient Assignment. 18 Vitest + 8 Playwright tests.
