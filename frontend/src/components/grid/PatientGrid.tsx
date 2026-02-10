@@ -12,6 +12,11 @@ import {
   getTracking1OptionsForStatus,
   getAutoFillQualityMeasure,
 } from '../../config/dropdownConfig';
+import {
+  GRAY_STATUSES, PURPLE_STATUSES, GREEN_STATUSES,
+  BLUE_STATUSES, YELLOW_STATUSES, ORANGE_STATUSES,
+  isRowOverdue, isChronicDxAttestationSent,
+} from '../../config/statusColors';
 
 // Statuses where interval is controlled by TIME PERIOD dropdown (NOT manually editable)
 // These have dropdowns like "In X Months", "X months", "Call every X wks"
@@ -843,126 +848,27 @@ export default function PatientGrid({
     resizable: true,
   }), []);
 
-  // Status arrays for row class rules
-  const grayStatuses = [
-    'No longer applicable',
-    'Screening unnecessary',
-  ];
-
-  const purpleStatuses = [
-    'Patient declined AWV',
-    'Patient declined',
-    'Patient declined screening',
-    'Declined BP control',
-    'Contraindicated',
-  ];
-
-  const greenStatuses = [
-    'AWV completed',
-    'Diabetic eye exam completed',
-    'Colon cancer screening completed',
-    'Screening test completed',
-    'Screening completed',
-    'GC/Clamydia screening completed',
-    'Urine microalbumin completed',
-    'Blood pressure at goal',
-    'Lab completed',
-    'Vaccination completed',
-    'HgbA1c at goal',
-    'Chronic diagnosis confirmed',
-    'Patient on ACE/ARB',
-  ];
-
-  const blueStatuses = [
-    'AWV scheduled',
-    'Diabetic eye exam scheduled',
-    'Diabetic eye exam referral made',
-    'Colon cancer screening ordered',
-    'Screening test ordered',
-    'Screening appt made',
-    'Test ordered',
-    'Urine microalbumin ordered',
-    'Appointment scheduled',
-    'ACE/ARB prescribed',
-    'Vaccination scheduled',
-    'HgbA1c ordered',
-    'Lab ordered',
-    'Obtaining outside records',
-    'HgbA1c NOT at goal',
-    'Scheduled call back - BP not at goal',
-    'Scheduled call back - BP at goal',
-    'Will call later to schedule',
-  ];
-
-  const yellowStatuses = [
-    'Patient called to schedule AWV',
-    'Diabetic eye exam discussed',
-    'Screening discussed',
-    'Patient contacted for screening',
-    'Vaccination discussed',
-  ];
-
-  const orangeStatuses = [
-    'Chronic diagnosis resolved',
-    'Chronic diagnosis invalid',
-  ];
-
-  // Helper: check if a Chronic DX row has attestation sent (turns green)
-  const isChronicDxAttestationSent = (data: GridRow | undefined): boolean => {
-    const status = data?.measureStatus || '';
-    return orangeStatuses.includes(status) && data?.tracking1 === 'Attestation sent';
-  };
-
-  // Helper function to check if a row is overdue (dueDate < today)
-  // Applies to all statuses EXCEPT declined (purple), N/A (gray),
-  // and Chronic DX with attestation sent (resolved — no follow-up expected)
-  // Completed (green) statuses CAN be overdue - indicates need for new annual measure
-  const isRowOverdue = (data: GridRow | undefined): boolean => {
-    if (!data?.dueDate) return false;
-
-    // Don't show overdue for declined/N/A statuses
-    const status = data.measureStatus || '';
-    if (grayStatuses.includes(status) ||
-        purpleStatuses.includes(status)) {
-      return false;
-    }
-
-    // Chronic DX resolved/invalid: only exclude from overdue if attestation sent
-    if (orangeStatuses.includes(status) && data.tracking1 === 'Attestation sent') {
-      return false;
-    }
-
-    // Compare dueDate with today (using UTC to match date storage)
-    const dueDate = new Date(data.dueDate);
-    const today = new Date();
-    // Set today to UTC midnight for accurate date comparison
-    const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    const dueDateUTC = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate()));
-
-    return dueDateUTC < todayUTC;
-  };
-
   // Row class rules based on Measure Status, duplicate detection, and overdue status
   // Duplicate is ADDITIVE (left stripe via CSS) - can combine with status colors
   // Priority for background: overdue > status-based colors
   const rowClassRules = useMemo(() => ({
     'row-status-duplicate': (params: RowClassParams<GridRow>) => params.data?.isDuplicate === true,
     'row-status-overdue': (params: RowClassParams<GridRow>) => isRowOverdue(params.data),
-    'row-status-gray': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && grayStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-purple': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && purpleStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (greenStatuses.includes(params.data?.measureStatus || '') || isChronicDxAttestationSent(params.data)),
-    'row-status-blue': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && blueStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-yellow': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && yellowStatuses.includes(params.data?.measureStatus || ''),
-    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && orangeStatuses.includes(params.data?.measureStatus || '') && !isChronicDxAttestationSent(params.data),
+    'row-status-gray': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && GRAY_STATUSES.includes(params.data?.measureStatus as any || ''),
+    'row-status-purple': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && PURPLE_STATUSES.includes(params.data?.measureStatus as any || ''),
+    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (GREEN_STATUSES.includes(params.data?.measureStatus as any || '') || isChronicDxAttestationSent(params.data)),
+    'row-status-blue': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && BLUE_STATUSES.includes(params.data?.measureStatus as any || ''),
+    'row-status-yellow': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && YELLOW_STATUSES.includes(params.data?.measureStatus as any || ''),
+    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && ORANGE_STATUSES.includes(params.data?.measureStatus as any || '') && !isChronicDxAttestationSent(params.data),
     'row-status-white': (params: RowClassParams<GridRow>) => {
       if (isRowOverdue(params.data)) return false;
       const status = params.data?.measureStatus || '';
-      return !grayStatuses.includes(status) &&
-             !purpleStatuses.includes(status) &&
-             !greenStatuses.includes(status) &&
-             !blueStatuses.includes(status) &&
-             !yellowStatuses.includes(status) &&
-             !orangeStatuses.includes(status);
+      return !GRAY_STATUSES.includes(status as any) &&
+             !PURPLE_STATUSES.includes(status as any) &&
+             !GREEN_STATUSES.includes(status as any) &&
+             !BLUE_STATUSES.includes(status as any) &&
+             !YELLOW_STATUSES.includes(status as any) &&
+             !ORANGE_STATUSES.includes(status as any);
     },
   }), []);
 

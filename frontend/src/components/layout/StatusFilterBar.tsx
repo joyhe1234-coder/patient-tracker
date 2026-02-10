@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { Check, Search, X } from 'lucide-react';
 
-// Status color categories matching PatientGrid row class rules
-export type StatusColor = 'all' | 'duplicate' | 'white' | 'yellow' | 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'red';
+import { StatusColor, getRowStatusColor } from '../../config/statusColors';
+export type { StatusColor };
+export { getRowStatusColor };
 
 interface StatusFilterBarProps {
   activeFilters: StatusColor[];
@@ -167,55 +168,3 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
   );
 }
 
-// Helper function to determine the status color of a row
-// This matches the logic in PatientGrid.tsx rowClassRules
-export function getRowStatusColor(row: {
-  measureStatus: string | null;
-  isDuplicate: boolean;
-  dueDate: string | null;
-  tracking1?: string | null;
-}): Exclude<StatusColor, 'all'> {
-  const grayStatuses = ['No longer applicable', 'Screening unnecessary'];
-  const purpleStatuses = ['Patient declined AWV', 'Patient declined', 'Patient declined screening', 'Declined BP control', 'Contraindicated'];
-  const greenStatuses = ['AWV completed', 'Diabetic eye exam completed', 'Colon cancer screening completed', 'Screening test completed', 'Screening completed', 'GC/Clamydia screening completed', 'Urine microalbumin completed', 'Blood pressure at goal', 'Lab completed', 'Vaccination completed', 'HgbA1c at goal', 'Chronic diagnosis confirmed', 'Patient on ACE/ARB'];
-  const blueStatuses = ['AWV scheduled', 'Diabetic eye exam scheduled', 'Diabetic eye exam referral made', 'Colon cancer screening ordered', 'Screening test ordered', 'Screening appt made', 'Test ordered', 'Urine microalbumin ordered', 'Appointment scheduled', 'ACE/ARB prescribed', 'Vaccination scheduled', 'HgbA1c ordered', 'Lab ordered', 'Obtaining outside records', 'HgbA1c NOT at goal', 'Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal', 'Will call later to schedule'];
-  const yellowStatuses = ['Patient called to schedule AWV', 'Diabetic eye exam discussed', 'Screening discussed', 'Patient contacted for screening', 'Vaccination discussed'];
-  const orangeStatuses = ['Chronic diagnosis resolved', 'Chronic diagnosis invalid'];
-
-  const status = row.measureStatus || '';
-
-  // Chronic DX with attestation sent = GREEN (always, regardless of due date)
-  const isChronicDxAttestationSent = orangeStatuses.includes(status) && row.tracking1 === 'Attestation sent';
-
-  // Check overdue
-  // Applies to all statuses EXCEPT declined (purple), N/A (gray),
-  // and Chronic DX with attestation sent (resolved — no follow-up expected)
-  // Completed (green) statuses CAN be overdue - indicates need for new annual measure
-  const isOverdue = (): boolean => {
-    if (!row.dueDate) return false;
-    // Don't show overdue for declined/N/A statuses
-    if (grayStatuses.includes(status) || purpleStatuses.includes(status)) {
-      return false;
-    }
-    // Chronic DX: only exclude from overdue if attestation sent
-    if (isChronicDxAttestationSent) {
-      return false;
-    }
-    const dueDate = new Date(row.dueDate);
-    const today = new Date();
-    const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    const dueDateUTC = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate()));
-    return dueDateUTC < todayUTC;
-  };
-
-  // Priority: overdue > status-based colors (duplicate handled separately via isDuplicate flag)
-  if (isOverdue()) return 'red';
-  if (grayStatuses.includes(status)) return 'gray';
-  if (purpleStatuses.includes(status)) return 'purple';
-  if (greenStatuses.includes(status) || isChronicDxAttestationSent) return 'green';
-  if (blueStatuses.includes(status)) return 'blue';
-  if (yellowStatuses.includes(status)) return 'yellow';
-  if (orangeStatuses.includes(status)) return 'orange';
-
-  return 'white'; // Default - Not Addressed
-}

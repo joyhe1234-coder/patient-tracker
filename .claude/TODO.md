@@ -202,6 +202,14 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
+## Open Bugs
+
+### BUG-9: ~~Quality Measure dropdown options not in alphabetical order~~ FIXED
+- Fixed in `MainPage.tsx:40`: Added `.sort()` to `measureOptions` memo
+- Dropdown now lists measures alphabetically (ACE/ARB, Annual Serum K&Cr, Annual Wellness Visit, ...)
+
+---
+
 ## Confirmed Bugs — Fixed
 
 ### BUG-8: ~~Chip counts not updating on cell edits~~ FIXED

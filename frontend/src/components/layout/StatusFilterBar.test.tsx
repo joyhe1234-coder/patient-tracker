@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import StatusFilterBar, { getRowStatusColor, StatusColor } from './StatusFilterBar';
+import StatusFilterBar from './StatusFilterBar';
+import { getRowStatusColor, StatusColor } from '../../config/statusColors';
 import { QUALITY_MEASURE_TO_STATUS } from '../../config/dropdownConfig';
 
 const measureOptions = Object.keys(QUALITY_MEASURE_TO_STATUS);
