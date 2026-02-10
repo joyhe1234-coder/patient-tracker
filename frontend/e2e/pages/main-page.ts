@@ -25,7 +25,18 @@ export class MainPage {
 
   async goto() {
     await this.page.goto('/');
-    await this.grid.waitFor({ state: 'visible', timeout: 10000 });
+
+    // If redirected to login, authenticate first
+    const emailInput = this.page.locator('input[name="email"]');
+    const needsLogin = await emailInput.isVisible({ timeout: 3000 }).catch(() => false);
+    if (needsLogin) {
+      await emailInput.fill('ko037291@gmail.com');
+      await this.page.locator('input[name="password"]').fill('welcome100');
+      await this.page.locator('button[type="submit"]').click();
+      await this.page.waitForURL(/^(?!.*\/login)/, { timeout: 10000 });
+    }
+
+    await this.grid.waitFor({ state: 'visible', timeout: 15000 });
   }
 
   async waitForGridLoad() {

@@ -3,7 +3,8 @@ import { Loader2, Users } from 'lucide-react';
 import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
-import StatusFilterBar, { StatusColor, getRowStatusColor } from '../components/layout/StatusFilterBar';
+import StatusFilterBar from '../components/layout/StatusFilterBar';
+import { StatusColor, getRowStatusColor } from '../config/statusColors';
 import { QUALITY_MEASURE_TO_STATUS } from '../config/dropdownConfig';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
@@ -37,7 +38,7 @@ export default function MainPage() {
 
   // Quality measure filter
   const [selectedMeasure, setSelectedMeasure] = useState<string>('All Measures');
-  const measureOptions = useMemo(() => Object.keys(QUALITY_MEASURE_TO_STATUS), []);
+  const measureOptions = useMemo(() => Object.keys(QUALITY_MEASURE_TO_STATUS).sort(), []);
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {

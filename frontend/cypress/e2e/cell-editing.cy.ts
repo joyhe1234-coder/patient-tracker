@@ -10,7 +10,7 @@
  */
 
 describe('Cell Editing', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
   const testRowIndex = 0;
 

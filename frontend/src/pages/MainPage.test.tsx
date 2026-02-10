@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { GridRow } from '../components/grid/PatientGrid';
-import { StatusColor, getRowStatusColor } from '../components/layout/StatusFilterBar';
+import { StatusColor, getRowStatusColor } from '../config/statusColors';
 
 /**
  * Replicates the exact filteredRowData useMemo logic from MainPage.tsx.

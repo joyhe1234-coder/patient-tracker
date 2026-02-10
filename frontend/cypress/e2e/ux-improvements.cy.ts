@@ -6,7 +6,7 @@
  */
 
 describe('Status Bar Consistency', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('Status Bar Consistency', () => {
 });
 
 describe('Filter Chip Accessibility', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
@@ -67,7 +67,7 @@ describe('Filter Chip Accessibility', () => {
 });
 
 describe('Import Page UX Improvements', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
@@ -93,7 +93,7 @@ describe('Import Page UX Improvements', () => {
 });
 
 describe('Password Visibility Toggles', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
