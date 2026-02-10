@@ -6,7 +6,7 @@
  */
 
 describe('Patient Assignment', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
@@ -380,7 +380,7 @@ describe('Patient Assignment', () => {
  * staff can access the assigned physician's patients.
  */
 describe('Staff-Physician Assignment', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   describe('Admin Managing Staff Assignments', () => {

@@ -186,7 +186,7 @@ export const REQUEST_TYPES = ['AWV', 'Chronic DX', 'Quality', 'Screening'];
 
 // Helper functions
 export function getQualityMeasuresForRequestType(requestType: string): string[] {
-  return REQUEST_TYPE_TO_QUALITY_MEASURE[requestType] || [];
+  return [...(REQUEST_TYPE_TO_QUALITY_MEASURE[requestType] || [])].sort((a, b) => a.localeCompare(b));
 }
 
 export function getMeasureStatusesForQualityMeasure(qualityMeasure: string): string[] {

@@ -5,7 +5,7 @@
  */
 
 describe('Column Sorting', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
@@ -246,7 +246,7 @@ describe('Column Sorting', () => {
 });
 
 describe('Status Filter Bar', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
@@ -604,7 +604,7 @@ describe('Status Filter Bar', () => {
 });
 
 describe('Row Color Verification', () => {
-  const adminEmail = 'admin2@gmail.com';
+  const adminEmail = 'ko037291@gmail.com';
   const adminPassword = 'welcome100';
 
   beforeEach(() => {

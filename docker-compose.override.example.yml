@@ -1,0 +1,13 @@
+# Copy to docker-compose.override.yml for local dev seeding
+# docker-compose.override.yml is gitignored — safe to customize locally
+#
+# Usage:
+#   cp docker-compose.override.example.yml docker-compose.override.yml
+#   docker-compose up --build
+#
+# This seeds 6 test users + ~200 patients on first startup.
+# See backend/src/scripts/seedDev.ts for details.
+services:
+  app:
+    environment:
+      - DEV_SEED=true

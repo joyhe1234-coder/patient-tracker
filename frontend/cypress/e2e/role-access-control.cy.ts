@@ -8,7 +8,7 @@
 describe('Role-Based Access Control', () => {
   // Test credentials - update these based on your seed data
   const adminCredentials = {
-    email: 'admin2@gmail.com',
+    email: 'ko037291@gmail.com',
     password: 'welcome100',
   };
 
