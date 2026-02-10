@@ -362,16 +362,16 @@ Wait 30 seconds for deploy to start, then check both services:
 ```bash
 # Check backend (patient-tracker-api)
 curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
-  "https://api.render.com/v1/services/srv-d5hh4ui4d50c73932ta0/deploys?limit=1"
+  "https://api.render.com/v1/services/srv-d64p1524d50c73ekm41g/deploys?limit=1"
 
 # Check frontend (patient-tracker-frontend)
 curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
-  "https://api.render.com/v1/services/srv-d5hh7a24d50c739344hg/deploys?limit=1"
+  "https://api.render.com/v1/services/srv-d64p1gur433s73edldl0/deploys?limit=1"
 ```
 
 **Service IDs:**
-- Backend API: `srv-d5hh4ui4d50c73932ta0`
-- Frontend: `srv-d5hh7a24d50c739344hg`
+- Backend API: `srv-d64p1524d50c73ekm41g`
+- Frontend: `srv-d64p1gur433s73edldl0`
 
 #### 3c. Interpret Status
 - `"status":"live"` = Deployment successful
@@ -457,8 +457,8 @@ RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.
 ### Service IDs
 | Service | ID | URL |
 |---------|-----|-----|
-| Backend API | `srv-d5hh4ui4d50c73932ta0` | https://patient-tracker-api-feu8.onrender.com |
-| Frontend | `srv-d5hh7a24d50c739344hg` | https://patient-tracker-frontend.onrender.com |
+| Backend API | `srv-d64p1524d50c73ekm41g` | https://patient-tracker-api-cwrh.onrender.com |
+| Frontend | `srv-d64p1gur433s73edldl0` | https://patient-tracker-frontend.onrender.com |
 
 ### Common API Calls
 ```bash
