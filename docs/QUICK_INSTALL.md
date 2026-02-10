@@ -1,5 +1,7 @@
 # Patient Tracker - Quick Install Guide (Docker)
 
+> **Windows Server?** See [`WINDOWS_SERVER_INSTALL.md`](WINDOWS_SERVER_INSTALL.md) instead — includes PowerShell install/update/rollback scripts for on-premise deployment.
+
 This is the fastest way to deploy Patient Tracker. Total time: ~10 minutes.
 
 **No git required. No building required. Just download, configure, and run.**

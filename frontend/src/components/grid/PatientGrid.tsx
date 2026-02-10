@@ -415,10 +415,19 @@ export default function PatientGrid({
         // Ensure row stays selected
         node.setSelected(true);
 
-        // Note: We intentionally don't call onRowUpdated here to prevent
-        // React state update which causes AG Grid to re-render and potentially reorder rows.
-        // The grid already has the updated data via node.setData().
-        // Filter counts may be slightly out of sync until next data reload.
+        // Freeze current row order before React state update to prevent reordering
+        if (!frozenRowOrderRef.current) {
+          const currentOrder: number[] = [];
+          gridApi.forEachNodeAfterFilterAndSort((rowNode) => {
+            if (rowNode.data) {
+              currentOrder.push(rowNode.data.id);
+            }
+          });
+          frozenRowOrderRef.current = currentOrder;
+        }
+
+        // Update React state so filter chip counts stay in sync
+        onRowUpdated?.(updatedData);
 
         onSaveStatusChange?.('saved');
 

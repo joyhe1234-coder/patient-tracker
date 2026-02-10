@@ -66,10 +66,41 @@ cd frontend && npm run cypress:run
 | **AG Grid dropdown selection** | **Cypress** | Better native event handling |
 | AG Grid cell editing | Cypress | Reliable AG Grid interaction |
 | Complex multi-step workflows | Playwright or Cypress | E2E coverage |
-| Visual design, UX patterns, accessibility | MCP Playwright | Browser-based review with screenshots |
+| **ANY UI change (visual review)** | **MCP Playwright** | **MANDATORY** — real browser clicks, screenshots, visual verification |
 | Role-specific UI behavior | MCP Playwright | Tests each role sees correct UI |
 
 **Note:** Playwright has issues committing AG Grid dropdown selections. Use Cypress for any AG Grid dropdown tests.
+
+### MANDATORY: Visual Browser Review (Layer 5)
+
+**Every feature that changes the UI MUST include a visual browser review task.** This is not optional.
+
+The ui-ux-reviewer agent opens a real browser via MCP Playwright, navigates the app, and **exhaustively tests every interactive element and use case**. This catches issues that automated tests miss:
+- Layout/spacing problems
+- Color contrast issues
+- Text overflow or wrapping
+- Responsive behavior at different viewport sizes
+- Visual state mismatches (hover, active, disabled)
+- Interaction bugs only visible in a real browser
+
+**CRITICAL: No cherry-picking.** The visual review must exercise **ALL** use cases, not just a few happy paths. Click every button, try every dropdown option, test every combination of filters, verify every state transition. The goal is to simulate a real user exploring the feature thoroughly.
+
+**When creating task breakdowns (`/jh-3-tasks`)**, always include a final task:
+```
+- [ ] N. Visual browser review using ui-ux-reviewer agent (Layer 5)
+  - Launch ui-ux-reviewer agent to open running app in MCP Playwright browser
+  - EXHAUSTIVELY test every interactive element:
+    - Click EVERY button, tab, chip, toggle in the feature
+    - Try EVERY dropdown option (not just one or two)
+    - Test EVERY combination of interacting controls
+    - Verify EVERY state: default, active, disabled, error, empty, loading
+    - Check ALL edge cases: zero results, max data, long text, null values
+  - Take screenshots at each meaningful state
+  - Verify at standard viewport (1280px+) and narrow viewport
+  - Report any visual or interaction issues found
+```
+
+**When to run:** After all implementation and automated tests pass, before commit.
 
 ---
 

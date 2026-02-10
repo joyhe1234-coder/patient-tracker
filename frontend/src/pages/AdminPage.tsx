@@ -14,7 +14,6 @@ import {
   Shield,
   UserCircle,
   Stethoscope,
-  UserPlus,
 } from 'lucide-react';
 import { api } from '../api/axios';
 import { useAuthStore, UserRole } from '../stores/authStore';
@@ -249,13 +248,6 @@ export default function AdminPage() {
                 Users ({users.length})
               </h2>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate('/patient-management?tab=reassign')}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Assign Patients
-                </button>
                 <button
                   onClick={() => {
                     setEditingUser(null);

@@ -6,6 +6,18 @@ This document tracks planned features and enhancements for future development.
 
 ## In Progress
 
+### Compact Filter Bar with Quality Measure Dropdown (Complete)
+**Spec:** `.claude/specs/compact-filter-bar/`
+- [x] Requirements phase — `requirements.md` created and approved (8 requirements)
+- [x] Design phase — `design.md` created and approved
+- [x] Tasks phase — `tasks.md` created and approved (17 tasks)
+- [x] Implementation — compact chips, quality measure dropdown, combined AND filter logic
+- [x] Vitest unit tests (482 total, +139 new: StatusFilterBar 181, MainPage 41, StatusBar 7)
+- [x] Cypress E2E tests (`compact-filter-bar.cy.ts`)
+- [x] Playwright E2E tests (`compact-filter-bar.spec.ts`)
+- [x] CFB-R8 testing complete (row color accuracy + chip count integrity)
+- [x] 3 bugs found and fixed: BUG-CFB-001, BUG-CFB-002, BUG-CFB-003
+
 ### Patient Management Page (Complete)
 **Spec:** `.claude/specs/patient-management/`
 - [x] Requirements phase — `requirements.md` created and approved
@@ -192,6 +204,10 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ## Confirmed Bugs — Fixed
 
+### BUG-8: ~~Chip counts not updating on cell edits~~ FIXED
+- Fixed in `PatientGrid.tsx`: Added `frozenRowOrderRef` to preserve row order, then call `onRowUpdated` to sync React state
+- Chip counts now update in real-time when cell edits change a row's status color
+
 ### BUG-4: ~~Chronic DX rows don't turn GREEN when "Attestation sent"~~ FIXED
 - Fixed in `PatientGrid.tsx`: added `isChronicDxAttestationSent()` helper; green rule includes it, orange rule excludes it
 - Fixed in `StatusFilterBar.tsx`: same logic in `getRowStatusColor()`
@@ -350,16 +366,17 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] Drill-down from chart to filtered grid view
 
 ### Deployment Strategy
-- [ ] Production environment configuration
-- [ ] CI/CD pipeline setup (GitHub Actions)
-- [ ] Automated testing in pipeline
-- [ ] Database migration strategy
-- [ ] Backup and restore procedures
+- [x] Production environment configuration (docker-compose.prod.yml with GHCR)
+- [x] CI/CD pipeline setup (GitHub Actions: `.github/workflows/docker-publish.yml`)
+- [x] Automated testing in pipeline (test.yml reused via `workflow_call`)
+- [x] Database migration strategy (auto-migration via docker-entrypoint.sh)
+- [x] Backup and restore procedures (update.ps1, rollback.ps1, daily-backup scheduled task)
 - [ ] Monitoring and alerting setup
-- [ ] SSL/TLS certificate management
+- [x] SSL/TLS certificate management (documented in WINDOWS_SERVER_INSTALL.md)
 - [ ] Load balancing considerations
-- [ ] Environment-specific configuration (dev/staging/prod)
-- [ ] Rollback procedures
+- [x] Environment-specific configuration (dev/staging/prod via .env + docker-compose.prod.yml)
+- [x] Rollback procedures (rollback.ps1 with DB restore)
+- [x] Windows Server on-premise deployment (install-windows.ps1, update.ps1, validate-deployment.ps1, rollback.ps1)
 
 ---
 
@@ -434,6 +451,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 9, 2026 - Compact Filter Bar complete (482 Vitest, +139 new), BUG-8 fixed (chip counts on cell edit), removed Assign Patients from Admin, deployment pipeline & Windows Server support
 February 7, 2026 - BUG-4/5 fixed (Chronic DX attestation colors), BUG-7 fixed (import reassignment dedup), BUG-6 logged. 6 new Cypress E2E tests, row-colors requirements rewritten.
 February 7, 2026 - Patient Management Page complete: tabbed `/patient-management` page, 18 Vitest + 8 Playwright tests, Cypress tests updated
 February 6, 2026 - Created patient-management spec requirements (consolidate Import + Patient Assignment pages)

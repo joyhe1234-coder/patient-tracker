@@ -55,6 +55,7 @@ sudo ./scripts/install.sh
 3. [Deployment Options](#deployment-options)
 4. [Option A: Docker Compose (Recommended)](#option-a-docker-compose-recommended)
 5. [Option B: Manual Installation](#option-b-manual-installation)
+6. [Option C: Windows Server](#option-c-windows-server)
 6. [Environment Variables Reference](#environment-variables-reference)
 7. [Initial Setup](#initial-setup)
 8. [SSL/TLS Configuration](#ssltls-configuration)
@@ -129,8 +130,11 @@ sudo ./scripts/install.sh
 
 | Option | Best For | Complexity |
 |--------|----------|------------|
-| **A: Docker Compose** | Most deployments | Low |
-| **B: Manual Installation** | Custom environments, Windows servers | Medium |
+| **A: Docker Compose** | Most deployments (Linux) | Low |
+| **B: Manual Installation** | Custom environments | Medium |
+| **C: Windows Server** | On-premise Windows Server behind VPN | Low |
+
+> **Windows Server?** See the dedicated guide: [`WINDOWS_SERVER_INSTALL.md`](WINDOWS_SERVER_INSTALL.md) with PowerShell scripts for install, update, rollback, and validation.
 
 ---
 

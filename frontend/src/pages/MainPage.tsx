@@ -4,6 +4,7 @@ import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
 import StatusFilterBar, { StatusColor, getRowStatusColor } from '../components/layout/StatusFilterBar';
+import { QUALITY_MEASURE_TO_STATUS } from '../config/dropdownConfig';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import { api } from '../api/axios';
@@ -34,6 +35,10 @@ export default function MainPage() {
   const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Quality measure filter
+  const [selectedMeasure, setSelectedMeasure] = useState<string>('All Measures');
+  const measureOptions = useMemo(() => Object.keys(QUALITY_MEASURE_TO_STATUS), []);
+
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
     if (user?.roles.includes('STAFF') && selectedPhysicianId) {
@@ -46,7 +51,7 @@ export default function MainPage() {
     return '';
   }, [user?.roles, selectedPhysicianId]);
 
-  // Calculate row counts by status color
+  // Calculate row counts by status color, scoped by selected measure
   const rowCounts = useMemo(() => {
     const counts: Record<StatusColor, number> = {
       all: 0,
@@ -61,7 +66,11 @@ export default function MainPage() {
       red: 0,
     };
 
-    rowData.forEach((row) => {
+    const scopedRows = selectedMeasure === 'All Measures'
+      ? rowData
+      : rowData.filter(row => row.qualityMeasure === selectedMeasure);
+
+    scopedRows.forEach((row) => {
       // Count duplicates separately (not mutually exclusive with status colors)
       if (row.isDuplicate) {
         counts.duplicate++;
@@ -72,11 +81,16 @@ export default function MainPage() {
     });
 
     return counts;
-  }, [rowData]);
+  }, [rowData, selectedMeasure]);
 
-  // Filter row data based on active filters and name search
+  // Filter row data based on measure, active color filters, and name search
   const filteredRowData = useMemo(() => {
     let filtered = rowData;
+
+    // Apply quality measure filter
+    if (selectedMeasure !== 'All Measures') {
+      filtered = filtered.filter(row => row.qualityMeasure === selectedMeasure);
+    }
 
     // Apply status color filter
     if (!activeFilters.includes('all') && activeFilters.length > 0) {
@@ -98,7 +112,29 @@ export default function MainPage() {
     }
 
     return filtered;
-  }, [rowData, activeFilters, searchText]);
+  }, [rowData, selectedMeasure, activeFilters, searchText]);
+
+  // Build human-readable filter summary for status bar
+  const STATUS_LABELS: Record<string, string> = {
+    white: 'Not Addressed', red: 'Overdue', blue: 'In Progress',
+    yellow: 'Contacted', green: 'Completed', purple: 'Declined',
+    orange: 'Resolved', gray: 'N/A', duplicate: 'Duplicates',
+  };
+
+  const filterSummary = useMemo(() => {
+    const parts: string[] = [];
+
+    if (!activeFilters.includes('all') && activeFilters.length > 0) {
+      const labels = activeFilters.map(f => STATUS_LABELS[f] || f).join(', ');
+      parts.push(`Color: ${labels}`);
+    }
+
+    if (selectedMeasure !== 'All Measures') {
+      parts.push(`Measure: ${selectedMeasure}`);
+    }
+
+    return parts.length > 0 ? parts.join(' | ') : undefined;
+  }, [activeFilters, selectedMeasure]);
 
   // Ctrl+F / Cmd+F to focus search input
   useEffect(() => {
@@ -354,6 +390,9 @@ export default function MainPage() {
         searchText={searchText}
         onSearchChange={setSearchText}
         searchInputRef={searchInputRef}
+        selectedMeasure={selectedMeasure}
+        onMeasureChange={setSelectedMeasure}
+        measureOptions={measureOptions}
       />
 
       <div className="flex-1 p-4">
@@ -368,7 +407,7 @@ export default function MainPage() {
         />
       </div>
 
-      <StatusBar rowCount={filteredRowData.length} totalRowCount={rowData.length} />
+      <StatusBar rowCount={filteredRowData.length} totalRowCount={rowData.length} filterSummary={filterSummary} />
 
       {/* Add Row Modal */}
       <AddRowModal

@@ -112,6 +112,7 @@ Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
 | UI Pages | **Vitest** | `frontend/src/pages/*.test.tsx` | ANY new or modified page |
 | UI Flows | **Playwright** | `frontend/e2e/*.spec.ts` | User journeys, navigation, modals, buttons |
 | AG Grid Editing | **Cypress** | `frontend/cypress/e2e/*.cy.ts` | Dropdowns, cell editing, row selection, colors |
+| Visual Review | **MCP Playwright** | ui-ux-reviewer agent | **MANDATORY for ANY UI change** — real browser clicks, screenshots, visual verification |
 
 #### 5c. Test Coverage Requirements
 
@@ -140,6 +141,7 @@ Add test cases to `.claude/REGRESSION_TEST_PLAN.md` FIRST:
 [ ] API endpoint tests written and passing (Jest + supertest)
 [ ] Frontend component tests written and passing (Vitest)
 [ ] E2E tests written for user flows (Playwright or Cypress)
+[ ] Visual browser review completed (ui-ux-reviewer agent — MANDATORY for UI changes)
 [ ] All existing tests still pass
 [ ] Test count included in commit message (e.g., "Adds 25 tests")
 ```
@@ -227,7 +229,8 @@ cd backend && npm test                    # Layer 1: Jest (527 tests)
 cd frontend && npm run test:run           # Layer 2: Vitest (296 tests)
 cd frontend && npm run e2e               # Layer 3: Playwright E2E (35 tests)
 cd frontend && npm run cypress:run       # Layer 4: Cypress E2E (283 tests)
-# Layer 5: MCP Playwright visual review (for UI changes — run ui-ux-reviewer agent)
+# Layer 5: MCP Playwright visual review — MANDATORY for ANY UI change
+# Run ui-ux-reviewer agent to open real browser, click through features, take screenshots
 ```
 
 #### 5h. Update Test Documentation
@@ -303,6 +306,7 @@ git commit -m "description"
 |-------|---------|
 | `docs/QUICK_INSTALL.md` | Fast Docker install (for network admins) |
 | `docs/INSTALLATION_GUIDE.md` | Full self-hosted guide (Docker + manual options) |
+| `docs/WINDOWS_SERVER_INSTALL.md` | Windows Server on-premise deployment (PowerShell scripts) |
 | `docs/RENDER_INSTALL.md` | Render.com cloud deployment |
 
 **When making ANY decision that affects installation or deployment, you MUST update ALL applicable guides:**
@@ -420,6 +424,7 @@ Read the following files before starting work:
 ### Development
 - Dev server: `docker-compose up`
 - Build: `cd frontend && npm run build`
+- **Fast local deploy (frontend):** Use `cd frontend && npx vite dev --host` for Vite hot-reload instead of rebuilding the Docker container. This is much faster for testing UI changes.
 
 ### Testing (Run all before commit — 5-layer pyramid)
 - **Layer 1** Backend unit tests: `cd backend && npm test` (527 tests)

@@ -9,6 +9,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.0-snapshot] - Unreleased
 
 ### Added
+- **Compact Filter Bar with Quality Measure Dropdown** (Feb 9, 2026)
+  - Redesigned status filter chips to compact ~24px height (from ~48px), single-line with `white-space: nowrap`
+  - Added Quality Measure dropdown ("All Measures" default) populated from existing dropdown config
+  - Combined AND filter logic: `(chipA OR chipB) AND measureMatch AND searchMatch`
+  - Chip counts scoped by selected measure (e.g., selecting "Annual Wellness Visit" shows counts for only AWV rows)
+  - Status bar shows active filter summary when measure or non-default chips selected
+  - All 10 chips fit on single row at 1280px+ viewport
+  - Preserved existing chip visual treatments: checkmark on selected, filled/outlined states, focus-visible outlines
+  - Spec: `.claude/specs/compact-filter-bar/` (requirements, design, tasks — 17 tasks)
+  - 482 Vitest tests (was 343, +139): StatusFilterBar.test.tsx (181 tests), MainPage.test.tsx, StatusBar.test.tsx updated
+  - New Cypress E2E: `compact-filter-bar.cy.ts`; new Playwright E2E: `compact-filter-bar.spec.ts`
+  - Bugs found and fixed during CFB-R8 testing: BUG-CFB-001 (All chip double-counting), BUG-CFB-002 (zero-count opacity), BUG-CFB-003 (test helper timezone)
+
+- **Deployment Pipeline & Windows Server Support** (Feb 9, 2026)
+  - **CI/CD pipeline:** `.github/workflows/docker-publish.yml` — triggered by `v*` tags, runs tests via `workflow_call`, builds and pushes frontend + backend images to GHCR with version + `latest` tags, uses GHA build cache
+  - **Test workflow reuse:** `.github/workflows/test.yml` updated with `workflow_call` trigger (non-breaking, existing push/PR triggers preserved)
+  - **Windows install script:** `scripts/install-windows.ps1` — prerequisite checks (Docker, Linux containers, port 80, RAM ≥ 4GB, disk ≥ 20GB), downloads config files, generates DB_PASSWORD and JWT_SECRET cryptographically, GHCR auth, pulls images, health check loop, restricted `.env` ACL
+  - **Update script:** `scripts/update.ps1` — shows current vs target version, database backup via `pg_dump` (uses `cmd /c` to avoid PowerShell UTF-16), pulls new images (aborts if fails — old containers keep running), restarts, health check with rollback instructions
+  - **Validation script:** `scripts/validate-deployment.ps1` — 6 checks (containers running, DB healthy, API /health, frontend loads, Socket.io reachable, disk space), PASS/WARN/FAIL per check, GO/NO-GO verdict
+  - **Rollback script:** `scripts/rollback.ps1` — stops app containers, restores DB from backup (warns if >24h old), pulls old version images, restarts, health check
+  - **Windows Server guide:** `docs/WINDOWS_SERVER_INSTALL.md` — prerequisites, Docker install (Desktop + Server Core), automated + manual install, verification, updates, backup/restore (including daily scheduled task + encryption), rollback, SSL/TLS (self-signed + corporate CA), offline/air-gapped deployment (`docker save`/`load`), troubleshooting (IIS port 80, Docker memory via `.wslconfig`, Windows Defender exclusions, GHCR token expiry, volume permissions), architecture + CI/CD diagrams
+
+### Changed
+- **Admin Dashboard: Removed "Assign Patients" button** (Feb 9, 2026)
+  - Button already exists as "Reassign Patients" tab on Patient Management page
+  - Removed unused `UserPlus` icon import from `AdminPage.tsx`
+  - Updated Cypress `patient-assignment.cy.ts` to navigate via Patient Management page
+- **Docker Compose production registry** updated from `your-dockerhub-username` to `ghcr.io/joyhe1234-coder` in `docker-compose.prod.yml`
+- **`.env.example`** updated with GHCR registry default and `VERSION` variable
+- **Documentation cross-references** updated: CLAUDE.md (installation guides table), INSTALLATION_GUIDE.md (Option C: Windows Server), QUICK_INSTALL.md (Windows Server callout)
+
+### Added
 - **Auto-bootstrap admin user on startup** (Feb 8, 2026)
   - `bootstrapAdminUser()` in `backend/src/index.ts` creates an ADMIN user on first startup if none exists
   - Configurable via `ADMIN_EMAIL` and `ADMIN_PASSWORD` env vars (defaults: `admin@clinic.com` / `changeme123`)
@@ -39,7 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Extracted `ImportTabContent` from `ImportPage.tsx` (named export, thin wrapper preserved)
   - Extracted `ReassignTabContent` from `PatientAssignmentPage.tsx` (lazy-load via `isActive` prop)
   - Header nav: "Import" → "Patient Mgmt", path `/import` → `/patient-management`
-  - AdminPage "Assign Patients" button → `/patient-management?tab=reassign`
+  - ~~AdminPage "Assign Patients" button → `/patient-management?tab=reassign`~~ (removed Feb 9, 2026)
   - ImportPreviewPage all navigate calls → `/patient-management`
   - Route redirects: `/import` → `/patient-management`, `/admin/patient-assignment` → `/patient-management?tab=reassign`, `/import/preview/:id` → `/patient-management/preview/:id`
   - 18 new Vitest tests: `PatientManagementPage.test.tsx` (tab visibility, URL params, role checks)
@@ -86,6 +118,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Cypress cascading-dropdown tests: 30 → 36 passing
 
 ### Fixed
+- **BUG-8: Chip counts not updating on cell edits** (Feb 9, 2026)
+  - Root cause: `onCellValueChanged` in `PatientGrid.tsx` intentionally skipped `onRowUpdated` callback to prevent row reordering
+  - Fix: Added `frozenRowOrderRef` to capture row order before calling `onRowUpdated`, preserving row positions during React re-render
+  - Chip counts now update in real-time when cell edits change a row's status color (e.g., making a row overdue)
 - **BUG-4: Chronic DX rows now turn GREEN when "Attestation sent"** (Feb 7, 2026)
   - `PatientGrid.tsx`: added `isChronicDxAttestationSent()` helper, green rule includes it, orange rule excludes it
   - `StatusFilterBar.tsx`: same logic in `getRowStatusColor()` (added `tracking1` to row type)

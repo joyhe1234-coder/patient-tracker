@@ -29,7 +29,7 @@ services:
 
   # Frontend - static files served by nginx
   web:
-    image: ${DOCKER_REGISTRY:-your-dockerhub-username}/patient-tracker-frontend:${VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-ghcr.io/joyhe1234-coder}/patient-tracker-frontend:${VERSION:-latest}
     # To build locally instead, comment above and uncomment below:
     # build:
     #   context: ./frontend
@@ -40,7 +40,7 @@ services:
 
   # Backend API
   app:
-    image: ${DOCKER_REGISTRY:-your-dockerhub-username}/patient-tracker-backend:${VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-ghcr.io/joyhe1234-coder}/patient-tracker-backend:${VERSION:-latest}
     # To build locally instead, comment above and uncomment below:
     # build:
     #   context: ./backend
