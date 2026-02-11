@@ -23,7 +23,7 @@ export interface GridRow {
   hgba1cGoalReachedYear?: boolean;
   hgba1cDeclined?: boolean;
   createdAt?: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 // Configuration types

@@ -823,6 +823,80 @@ npm run build
 
 ---
 
+## Real-Time Features (WebSocket / Socket.IO)
+
+The application uses Socket.IO for real-time collaborative editing (presence indicators, live cell updates, conflict detection). This works automatically in all deployment options with no extra configuration needed.
+
+### How It Works
+
+- Socket.IO runs inside the same backend process on port 3000 — no extra service or port required
+- Nginx proxies `/socket.io/*` requests to the backend (already configured in all nginx configs)
+- WebSocket connections are persistent and bidirectional, enabling instant updates between users
+
+### Scaling Considerations
+
+> **Important: Single-instance only (default).** The current architecture uses in-memory state for presence tracking and active edit indicators. This means:
+
+| Scenario | Works? | Notes |
+|----------|--------|-------|
+| **Single backend container/process** | Yes | Default setup. No changes needed. |
+| **Multiple backend replicas** (load-balanced) | **No** | WebSocket connections are stateful. User A's socket may connect to replica 1 while User B connects to replica 2 — they won't see each other's presence or edits. |
+
+**If you need to scale to multiple backend instances**, you must:
+
+1. **Add a Socket.IO Redis adapter** — this shares socket state across instances:
+   ```bash
+   # Add Redis service to docker-compose
+   redis:
+     image: redis:7-alpine
+     restart: unless-stopped
+
+   # Add to backend environment
+   REDIS_URL=redis://redis:6379
+   ```
+2. **Configure sticky sessions** in your load balancer — WebSocket connections must stay on the same backend instance for their lifetime. In Nginx:
+   ```nginx
+   upstream backend {
+       ip_hash;  # sticky sessions based on client IP
+       server app1:3000;
+       server app2:3000;
+   }
+   ```
+
+**For most deployments (< 50 concurrent users), a single backend instance is sufficient.** The application is designed for 20 concurrent users per physician room.
+
+### Fallback Behavior
+
+If WebSocket connectivity fails (firewall blocking, proxy misconfiguration), the application automatically falls back to HTTP-only mode. All CRUD operations continue to work — only real-time presence indicators and live updates are disabled. The status bar will show "Offline mode" (gray dot) instead of "Connected" (green dot).
+
+### Troubleshooting WebSocket Issues
+
+```bash
+# Test WebSocket connectivity from the server
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  http://localhost:3000/socket.io/?EIO=4&transport=websocket
+
+# Check if Nginx is proxying WebSocket correctly
+# Should see "101 Switching Protocols" in response
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  http://your-domain.com/socket.io/?EIO=4&transport=websocket
+```
+
+**Common issues:**
+- **Firewall blocking WebSocket** — Ensure your network firewall allows WebSocket upgrade on port 80/443
+- **Reverse proxy not passing Upgrade headers** — The Nginx configs included with this project already handle this. If using a different proxy (Apache, HAProxy, AWS ALB), ensure it supports WebSocket pass-through.
+- **Corporate proxy stripping WebSocket** — Socket.IO will automatically fall back to HTTP long-polling, which works through all proxies but is slower
+
+---
+
 ## Security Recommendations
 
 1. **Change default passwords** immediately after installation

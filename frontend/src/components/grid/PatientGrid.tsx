@@ -1,10 +1,15 @@
-import { useMemo, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useCallback, useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams } from 'ag-grid-community';
+import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams, CellEditingStartedEvent, CellEditingStoppedEvent, CellClassParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
 import { useAuthStore } from '../../stores/authStore';
+import { useRealtimeStore } from '../../stores/realtimeStore';
+import { emitEditingStart, emitEditingStop } from '../../services/socketService';
+import { showToast } from '../../utils/toast';
+import ConflictModal, { ConflictField } from '../modals/ConflictModal';
+import type { GridRowPayload, ConflictResponse } from '../../types/socket';
 import {
   REQUEST_TYPES,
   getQualityMeasuresForRequestType,
@@ -49,6 +54,24 @@ const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   return true;
 };
 
+// Field display name mapping for conflict modal
+const FIELD_DISPLAY_NAMES: Record<string, string> = {
+  requestType: 'Request Type',
+  memberName: 'Member Name',
+  memberDob: 'Member DOB',
+  memberTelephone: 'Telephone',
+  memberAddress: 'Address',
+  qualityMeasure: 'Quality Measure',
+  measureStatus: 'Measure Status',
+  statusDate: 'Status Date',
+  tracking1: 'Tracking #1',
+  tracking2: 'Tracking #2',
+  tracking3: 'Tracking #3',
+  dueDate: 'Due Date',
+  timeIntervalDays: 'Time Interval',
+  notes: 'Notes',
+};
+
 export interface GridRow {
   id: number;
   patientId: number;
@@ -69,6 +92,15 @@ export interface GridRow {
   notes: string | null;
   rowOrder: number;
   isDuplicate: boolean;
+  updatedAt?: string;
+}
+
+// Public methods exposed via ref for remote operations
+export interface PatientGridHandle {
+  handleRemoteRowUpdate: (row: GridRowPayload, changedBy: string) => void;
+  handleRemoteRowCreate: (row: GridRowPayload) => void;
+  handleRemoteRowDelete: (rowId: number, changedBy: string) => void;
+  handleDataRefresh: () => void;
 }
 
 interface PatientGridProps {
@@ -81,6 +113,7 @@ interface PatientGridProps {
   showMemberInfo?: boolean;
   newRowId?: number | null;
   onNewRowFocused?: () => void;
+  onDataRefresh?: () => void;
 }
 
 // Date formatter for display - use UTC to avoid timezone shifts
@@ -207,17 +240,32 @@ const showDateFormatError = () => {
   alert('Invalid date format.\n\nAccepted formats:\n• 12/25/2023 or 1/5/2023\n• 12-25-2023 or 1-5-23\n• 2023-12-25\n• 12252023');
 };
 
-export default function PatientGrid({
+const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function PatientGrid({
   rowData,
+  onRowAdded,
+  onRowDeleted,
   onRowUpdated,
   onSaveStatusChange,
   onRowSelected,
   showMemberInfo = false,
   newRowId,
   onNewRowFocused,
-}: PatientGridProps) {
+  onDataRefresh,
+}, ref) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
   const { user, selectedPhysicianId } = useAuthStore();
+  const activeEdits = useRealtimeStore((s) => s.activeEdits);
+
+  // Conflict modal state (Task 44)
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictData, setConflictData] = useState<{
+    patientName: string;
+    changedBy: string;
+    conflicts: ConflictField[];
+    rowId: number;
+    updatePayload: Record<string, unknown>;
+    queryParams: string;
+  } | null>(null);
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
@@ -235,6 +283,109 @@ export default function PatientGrid({
 
   // Ref to track when we're doing a cascading update (to prevent setDataValue from triggering additional API calls)
   const isCascadingUpdateRef = useRef(false);
+
+  // Task 45: Remote row update handler with out-of-order protection
+  const handleRemoteRowUpdate = useCallback((row: GridRowPayload, changedBy: string) => {
+    const gridApi = gridRef.current?.api;
+    if (!gridApi) return;
+
+    const rowNode = gridApi.getRowNode(String(row.id));
+    if (!rowNode || !rowNode.data) return;
+
+    // Out-of-order protection: compare updatedAt timestamps
+    const localUpdatedAt = rowNode.data.updatedAt;
+    if (localUpdatedAt && row.updatedAt) {
+      if (new Date(row.updatedAt) <= new Date(localUpdatedAt)) {
+        // Incoming update is older or same as local — discard
+        return;
+      }
+    }
+
+    // Task 44b: Cascading edit conflict detection
+    // Check if remote update affects a cell the user is currently editing
+    const editingCells = gridApi.getEditingCells();
+    if (editingCells.length > 0) {
+      const editingCell = editingCells[0];
+      if (editingCell.rowIndex !== undefined && editingCell.rowIndex !== null) {
+        const editingNode = gridApi.getDisplayedRowAtIndex(editingCell.rowIndex);
+        if (editingNode && editingNode.data?.id === row.id) {
+          // The remote update is for the same row we're editing
+          const editingField = editingCell.column.getColId();
+          const serverValue = row[editingField as keyof GridRowPayload];
+          const localValue = editingNode.data[editingField as keyof GridRow];
+          if (serverValue !== localValue) {
+            // Stop editing and notify user
+            gridApi.stopEditing(true);
+            showToast(`${changedBy} modified "${FIELD_DISPLAY_NAMES[editingField] || editingField}" while you were editing. Their changes have been applied.`, 'warning');
+          }
+        }
+      }
+    }
+
+    // Update the row data
+    rowNode.setData(row as unknown as GridRow);
+
+    // Flash changed cells to highlight the update
+    gridApi.flashCells({ rowNodes: [rowNode], fadeDelay: 500 });
+
+    // Refresh to update row styling
+    gridApi.refreshCells({ rowNodes: [rowNode], force: true });
+
+    // Update React state
+    onRowUpdated?.(row as unknown as GridRow);
+  }, [onRowUpdated]);
+
+  // Task 46: Remote row create handler
+  const handleRemoteRowCreate = useCallback((row: GridRowPayload) => {
+    const gridApi = gridRef.current?.api;
+    if (!gridApi) return;
+
+    // Check if row already exists (dedup)
+    const existing = gridApi.getRowNode(String(row.id));
+    if (existing) return;
+
+    gridApi.applyTransaction({ add: [row as unknown as GridRow] });
+
+    // Also update parent state
+    onRowAdded?.(row as unknown as GridRow);
+  }, [onRowAdded]);
+
+  // Task 46: Remote row delete handler
+  const handleRemoteRowDelete = useCallback((rowId: number, changedBy: string) => {
+    const gridApi = gridRef.current?.api;
+    if (!gridApi) return;
+
+    const rowNode = gridApi.getRowNode(String(rowId));
+    if (!rowNode) return;
+
+    // If user was editing this row, stop editing
+    const editingCells = gridApi.getEditingCells();
+    if (editingCells.length > 0) {
+      const editingNode = gridApi.getDisplayedRowAtIndex(editingCells[0].rowIndex);
+      if (editingNode && editingNode.data?.id === rowId) {
+        gridApi.stopEditing(true);
+      }
+    }
+
+    gridApi.applyTransaction({ remove: [rowNode.data!] });
+    showToast(`Row deleted by ${changedBy}.`, 'warning');
+
+    // Update parent state
+    onRowDeleted?.(rowId);
+  }, [onRowDeleted]);
+
+  // Task 47: Full data refresh handler
+  const handleDataRefresh = useCallback(() => {
+    onDataRefresh?.();
+  }, [onDataRefresh]);
+
+  // Expose handlers via ref (Task 51 — used by MainPage)
+  useImperativeHandle(ref, () => ({
+    handleRemoteRowUpdate,
+    handleRemoteRowCreate,
+    handleRemoteRowDelete,
+    handleDataRefresh,
+  }), [handleRemoteRowUpdate, handleRemoteRowCreate, handleRemoteRowDelete, handleDataRefresh]);
 
   // Handle new row focus - clear sort and focus Request Type cell
   useEffect(() => {
@@ -293,6 +444,22 @@ export default function PatientGrid({
     }
   }, [onRowSelected]);
 
+  // Task 50: Emit editing:start when user starts editing a cell
+  const onCellEditingStarted = useCallback((event: CellEditingStartedEvent<GridRow>) => {
+    const { data, colDef } = event;
+    if (data && colDef.field) {
+      emitEditingStart(data.id, colDef.field);
+    }
+  }, []);
+
+  // Task 50: Emit editing:stop when user stops editing a cell
+  const onCellEditingStopped = useCallback((event: CellEditingStoppedEvent<GridRow>) => {
+    const { data, colDef } = event;
+    if (data && colDef.field) {
+      emitEditingStop(data.id, colDef.field);
+    }
+  }, []);
+
   // Handle cell value change - auto-save with cascading logic
   const onCellValueChanged = useCallback(async (event: CellValueChangedEvent<GridRow>) => {
     const { data, colDef, newValue, oldValue, node, api: gridApi } = event;
@@ -328,6 +495,9 @@ export default function PatientGrid({
     // Show saving status
     onSaveStatusChange?.('saving');
 
+    // Task 42: Capture expectedVersion before PUT
+    const expectedVersion = data.updatedAt || undefined;
+
     try {
       // Use the processed value from data object for fields with valueSetters
       // This ensures we send the transformed value (e.g., ISO date string) not raw input
@@ -337,7 +507,7 @@ export default function PatientGrid({
       };
 
       // Handle cascading logic - clear all downstream fields when parent changes
-      // Hierarchy: requestType → qualityMeasure → measureStatus → statusDate → tracking1/2/3 → dueDate/timeInterval
+      // Hierarchy: requestType -> qualityMeasure -> measureStatus -> statusDate -> tracking1/2/3 -> dueDate/timeInterval
       // Keep: notes (not cleared on cascade)
 
       // Set flag to prevent setDataValue from triggering additional API calls
@@ -405,6 +575,11 @@ export default function PatientGrid({
         node.setDataValue('timeIntervalDays', null);
       }
 
+      // Task 42: Include expectedVersion in PUT request
+      if (expectedVersion) {
+        updatePayload.expectedVersion = expectedVersion;
+      }
+
       const queryParams = getQueryParams();
       const response = await api.put(`/data/${data.id}${queryParams}`, updatePayload);
 
@@ -443,15 +618,74 @@ export default function PatientGrid({
       }
     } catch (error: unknown) {
       console.error('Failed to save:', error);
+
+      const axiosError = error as {
+        response?: {
+          data?: {
+            error?: { message?: string; code?: string };
+            data?: ConflictResponse['data'];
+          };
+          status?: number;
+        };
+      };
+      const statusCode = axiosError?.response?.status;
+      const errorCode = axiosError?.response?.data?.error?.code;
+
+      // Task 43: Handle 409 VERSION_CONFLICT
+      if (statusCode === 409 && errorCode === 'VERSION_CONFLICT') {
+        const conflictResponseData = axiosError?.response?.data?.data;
+        if (conflictResponseData) {
+          const serverRow = conflictResponseData.serverRow;
+          const changedBy = conflictResponseData.changedBy || 'another user';
+          const conflictFields: ConflictField[] = (conflictResponseData.conflictFields || []).map(
+            (cf: { field: string; serverValue: unknown; clientValue: unknown }) => ({
+              fieldName: FIELD_DISPLAY_NAMES[cf.field] || cf.field,
+              fieldKey: cf.field,
+              baseValue: oldValue != null ? String(oldValue) : null,
+              theirValue: cf.serverValue != null ? String(cf.serverValue) : null,
+              yourValue: cf.clientValue != null ? String(cf.clientValue) : null,
+            })
+          );
+
+          // Store conflict data and open modal
+          const queryParams = getQueryParams();
+          setConflictData({
+            patientName: serverRow?.memberName || data.memberName || 'Unknown',
+            changedBy,
+            conflicts: conflictFields,
+            rowId: data.id,
+            updatePayload: {
+              [colDef.field]: data[colDef.field as keyof GridRow],
+            },
+            queryParams,
+          });
+          setConflictModalOpen(true);
+
+          onSaveStatusChange?.('error');
+          setTimeout(() => {
+            onSaveStatusChange?.('idle');
+          }, 3000);
+        }
+        return;
+      }
+
+      // Task 43: Handle 404 Not Found (row deleted by another user)
+      if (statusCode === 404) {
+        showToast('Row deleted by another user.', 'warning');
+        // Remove the row from the grid
+        gridApi.applyTransaction({ remove: [data] });
+        onRowDeleted?.(data.id);
+        onSaveStatusChange?.('idle');
+        return;
+      }
+
       onSaveStatusChange?.('error');
 
       // Show error message to user
-      const axiosError = error as { response?: { data?: { error?: { message?: string } }, status?: number } };
       const errorMessage = axiosError?.response?.data?.error?.message || 'Failed to save changes.';
-      const statusCode = axiosError?.response?.status;
       alert(errorMessage);
 
-      // For duplicate errors (409), reset to empty instead of reverting
+      // For duplicate errors (409 non-conflict), reset to empty instead of reverting
       if (statusCode === 409 && (colDef.field === 'requestType' || colDef.field === 'qualityMeasure')) {
         event.node.setDataValue(colDef.field, null);
         // Also reset dependent fields
@@ -474,7 +708,95 @@ export default function PatientGrid({
       // Always reset the cascading update flag
       isCascadingUpdateRef.current = false;
     }
-  }, [onRowUpdated, onSaveStatusChange]);
+  }, [onRowUpdated, onRowDeleted, onSaveStatusChange, getQueryParams]);
+
+  // Task 43: Handle "Keep Mine" — retry PUT with forceOverwrite
+  const handleConflictKeepMine = useCallback(async () => {
+    if (!conflictData) return;
+
+    setConflictModalOpen(false);
+    onSaveStatusChange?.('saving');
+
+    try {
+      const forcePayload = {
+        ...conflictData.updatePayload,
+        forceOverwrite: true,
+      };
+      const response = await api.put(
+        `/data/${conflictData.rowId}${conflictData.queryParams}`,
+        forcePayload
+      );
+
+      if (response.data.success) {
+        const gridApi = gridRef.current?.api;
+        if (gridApi) {
+          const rowNode = gridApi.getRowNode(String(conflictData.rowId));
+          if (rowNode) {
+            rowNode.setData(response.data.data);
+            gridApi.refreshCells({ rowNodes: [rowNode], force: true });
+          }
+        }
+        onRowUpdated?.(response.data.data);
+        onSaveStatusChange?.('saved');
+        setTimeout(() => onSaveStatusChange?.('idle'), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to force save:', err);
+      onSaveStatusChange?.('error');
+      showToast('Failed to save your changes.', 'error');
+      setTimeout(() => onSaveStatusChange?.('idle'), 3000);
+    } finally {
+      setConflictData(null);
+    }
+  }, [conflictData, onRowUpdated, onSaveStatusChange]);
+
+  // Task 43: Handle "Keep Theirs" — revert cell to server value
+  const handleConflictKeepTheirs = useCallback(() => {
+    if (!conflictData) return;
+
+    setConflictModalOpen(false);
+
+    // Re-fetch the row from the conflict data's server row and apply it
+    // The server row was included in the 409 response
+    const gridApi = gridRef.current?.api;
+    if (gridApi) {
+      const rowNode = gridApi.getRowNode(String(conflictData.rowId));
+      if (rowNode) {
+        // Revert each conflicting field to server's value
+        for (const conflict of conflictData.conflicts) {
+          const serverValue = conflict.theirValue;
+          rowNode.setDataValue(conflict.fieldKey, serverValue);
+        }
+        gridApi.refreshCells({ rowNodes: [rowNode], force: true });
+      }
+    }
+
+    setConflictData(null);
+    onSaveStatusChange?.('idle');
+  }, [conflictData, onSaveStatusChange]);
+
+  // Handle conflict cancel
+  const handleConflictCancel = useCallback(() => {
+    setConflictModalOpen(false);
+    setConflictData(null);
+    onSaveStatusChange?.('idle');
+  }, [onSaveStatusChange]);
+
+  // Task 49: cellClass callback for edit indicators
+  // Returns class names based on whether another user is editing a cell
+  const getRemoteEditCellClass = useCallback((params: CellClassParams<GridRow>): string | string[] => {
+    if (!params.data || !params.colDef.field) return '';
+    const rowId = params.data.id;
+    const field = params.colDef.field;
+
+    const match = activeEdits.find(
+      (e) => e.rowId === rowId && e.field === field
+    );
+    if (match) {
+      return 'cell-remote-editing';
+    }
+    return '';
+  }, [activeEdits]);
 
   const columnDefs: ColDef<GridRow>[] = useMemo(() => [
     {
@@ -493,6 +815,7 @@ export default function PatientGrid({
         params.data.requestType = params.newValue === '' ? null : params.newValue;
         return true;
       },
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'memberName',
@@ -501,6 +824,7 @@ export default function PatientGrid({
       width: 180,
       pinned: 'left',
       editable: true,
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'memberDob',
@@ -535,6 +859,7 @@ export default function PatientGrid({
         params.data.memberDob = isoDate;
         return true;
       },
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'memberTelephone',
@@ -544,6 +869,7 @@ export default function PatientGrid({
       hide: !showMemberInfo,
       editable: true,
       valueFormatter: (params) => formatPhone(params.value),
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'memberAddress',
@@ -552,6 +878,7 @@ export default function PatientGrid({
       width: 220,
       hide: !showMemberInfo,
       editable: true,
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'qualityMeasure',
@@ -568,6 +895,7 @@ export default function PatientGrid({
         params.data.qualityMeasure = params.newValue === '' ? null : params.newValue;
         return true;
       },
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'measureStatus',
@@ -584,6 +912,7 @@ export default function PatientGrid({
         params.data.measureStatus = params.newValue === '' ? null : params.newValue;
         return true;
       },
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'statusDate',
@@ -598,12 +927,18 @@ export default function PatientGrid({
         }
         return formatDate(params.value);
       },
-      cellClass: (params) => {
+      cellClass: (params: CellClassParams<GridRow>) => {
+        const classes: string[] = [];
         // Gray prompt for cells missing status date
         if (!params.value && params.data?.statusDatePrompt) {
-          return 'cell-prompt';
+          classes.push('cell-prompt');
         }
-        return '';
+        // Remote editing indicator
+        const remoteClass = getRemoteEditCellClass(params);
+        if (remoteClass) {
+          classes.push(...(Array.isArray(remoteClass) ? remoteClass : [remoteClass]));
+        }
+        return classes.length > 0 ? classes.join(' ') : '';
       },
       valueGetter: (params) => {
         const value = params.data?.statusDate;
@@ -697,25 +1032,31 @@ export default function PatientGrid({
         }
         return params.value || '';
       },
-      cellClass: (params) => {
+      cellClass: (params: CellClassParams<GridRow>) => {
+        const classes: string[] = [];
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
         const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
         const isHgba1c = hgba1cStatuses.includes(params.data?.measureStatus || '');
 
         // Dropdown options need prompt when empty
         if (hasOptions && !params.value) {
-          return 'cell-prompt';
+          classes.push('cell-prompt');
         }
         // HgbA1c needs prompt when empty
-        if (isHgba1c && !params.value) {
-          return 'cell-prompt';
+        else if (isHgba1c && !params.value) {
+          classes.push('cell-prompt');
         }
         // Disabled (N/A) - no dropdown options and not HgbA1c
-        if (!hasOptions && !isHgba1c) {
-          return 'cell-disabled';
+        else if (!hasOptions && !isHgba1c) {
+          classes.push('cell-disabled');
         }
-        // All other cells inherit row color (no special styling)
-        return '';
+
+        // Remote editing indicator
+        const remoteClass = getRemoteEditCellClass(params);
+        if (remoteClass) {
+          classes.push(...(Array.isArray(remoteClass) ? remoteClass : [remoteClass]));
+        }
+        return classes.length > 0 ? classes.join(' ') : '';
       },
     },
     {
@@ -770,7 +1111,8 @@ export default function PatientGrid({
         }
         return params.value || '';
       },
-      cellClass: (params) => {
+      cellClass: (params: CellClassParams<GridRow>) => {
+        const classes: string[] = [];
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
         const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
         const status = params.data?.measureStatus || '';
@@ -778,14 +1120,19 @@ export default function PatientGrid({
 
         // Show prompt for empty editable fields
         if (isEditable && !params.value) {
-          return 'cell-prompt';
+          classes.push('cell-prompt');
         }
         // Disabled (N/A) - not editable
-        if (!isEditable) {
-          return 'cell-disabled';
+        else if (!isEditable) {
+          classes.push('cell-disabled');
         }
-        // All other cells inherit row color (no special styling)
-        return '';
+
+        // Remote editing indicator
+        const remoteClass = getRemoteEditCellClass(params);
+        if (remoteClass) {
+          classes.push(...(Array.isArray(remoteClass) ? remoteClass : [remoteClass]));
+        }
+        return classes.length > 0 ? classes.join(' ') : '';
       },
     },
     {
@@ -794,6 +1141,7 @@ export default function PatientGrid({
       headerTooltip: 'Tracking #3',
       width: 150,
       editable: true, // Placeholder for future use
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'dueDate',
@@ -831,6 +1179,7 @@ export default function PatientGrid({
         params.data.timeIntervalDays = parsed;
         return true;
       },
+      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'notes',
@@ -839,8 +1188,9 @@ export default function PatientGrid({
       width: 300,
       flex: 1,
       editable: true,
+      cellClass: getRemoteEditCellClass,
     },
-  ], [showMemberInfo]);
+  ], [showMemberInfo, getRemoteEditCellClass]);
 
   const defaultColDef = useMemo<ColDef>(() => ({
     sortable: true,
@@ -889,12 +1239,27 @@ export default function PatientGrid({
         rowClassRules={rowClassRules}
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
+        onCellEditingStarted={onCellEditingStarted}
+        onCellEditingStopped={onCellEditingStopped}
         onSelectionChanged={onSelectionChanged}
         stopEditingWhenCellsLoseFocus={true}
         singleClickEdit={false}
         deltaSort={false}
         postSortRows={postSortRows}
       />
+
+      {/* Task 44: Conflict Resolution Modal */}
+      <ConflictModal
+        isOpen={conflictModalOpen}
+        patientName={conflictData?.patientName || ''}
+        changedBy={conflictData?.changedBy || ''}
+        conflicts={conflictData?.conflicts || []}
+        onKeepMine={handleConflictKeepMine}
+        onKeepTheirs={handleConflictKeepTheirs}
+        onCancel={handleConflictCancel}
+      />
     </div>
   );
-}
+});
+
+export default PatientGrid;

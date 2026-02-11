@@ -30,6 +30,7 @@ jest.mock('../../config/database.js', () => ({
     patient: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       upsert: jest.fn(),
@@ -48,6 +49,7 @@ jest.mock('../../config/database.js', () => ({
     },
     auditLog: {
       create: jest.fn(),
+      findFirst: jest.fn(),
     },
     editLock: {
       findUnique: jest.fn(),
@@ -64,6 +66,43 @@ jest.mock('../../services/authService.js', () => ({
   verifyToken: mockVerifyToken,
   findUserById: mockFindUserById,
   isStaffAssignedToPhysician: jest.fn(),
+  toAuthUser: (user: any) => ({
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    roles: user.roles,
+    isActive: user.isActive,
+    lastLoginAt: user.lastLoginAt || null,
+  }),
+}));
+
+// Mock versionCheck service
+jest.mock('../../services/versionCheck.js', () => ({
+  checkVersion: jest.fn(),
+  toGridRowPayload: jest.fn(),
+}));
+
+// Mock socketManager
+jest.mock('../../services/socketManager.js', () => ({
+  broadcastToRoom: jest.fn(),
+  getRoomName: jest.fn(),
+}));
+
+// Mock dueDateCalculator
+jest.mock('../../services/dueDateCalculator.js', () => ({
+  calculateDueDate: (jest.fn() as jest.Mock<any>).mockResolvedValue({ dueDate: null, timeIntervalDays: null }),
+}));
+
+// Mock statusDatePromptResolver
+jest.mock('../../services/statusDatePromptResolver.js', () => ({
+  resolveStatusDatePrompt: (jest.fn() as jest.Mock<any>).mockResolvedValue(null),
+  getDefaultDatePrompt: (jest.fn() as jest.Mock<any>).mockReturnValue(null),
+}));
+
+// Mock duplicateDetector
+jest.mock('../../services/duplicateDetector.js', () => ({
+  updateDuplicateFlags: jest.fn(),
+  checkForDuplicate: (jest.fn() as jest.Mock<any>).mockResolvedValue({ isDuplicate: false }),
 }));
 
 // Mock config

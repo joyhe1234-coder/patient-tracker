@@ -12,8 +12,17 @@ import { createServer } from 'http';
 import app from './app.js';
 import { config } from './config/index.js';
 import { prisma } from './config/database.js';
+import { initializeSocketIO, getIO } from './services/socketManager.js';
 
 const server = createServer(app);
+
+// Initialize Socket.IO (non-fatal: HTTP server continues if Socket.IO fails)
+try {
+  initializeSocketIO(server);
+  console.log('Socket.IO initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Socket.IO (HTTP server will continue):', error);
+}
 
 /**
  * Ensure at least one ADMIN user exists on first startup.
@@ -66,6 +75,11 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
+  const io = getIO();
+  if (io) {
+    console.log('Closing Socket.IO connections');
+    io.close();
+  }
   server.close(() => {
     console.log('HTTP server closed');
   });
@@ -75,6 +89,11 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully');
+  const io = getIO();
+  if (io) {
+    console.log('Closing Socket.IO connections');
+    io.close();
+  }
   server.close(() => {
     console.log('HTTP server closed');
   });

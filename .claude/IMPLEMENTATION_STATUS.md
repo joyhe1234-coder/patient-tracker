@@ -8,6 +8,34 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ## Completed Phases
 
+### Real-Time Collaborative Editing (Parallel Editing)
+
+**Status: Complete** (Feb 10, 2026)
+**Spec:** `.claude/specs/parallel-editing/` (requirements, design, tasks — 80 tasks)
+
+- [x] Socket.IO server attached to existing HTTP server (no extra port/process)
+- [x] JWT authentication for WebSocket connections (reuses existing auth)
+- [x] Room-based broadcasting (physician rooms, presence tracking, active edit tracking)
+- [x] Optimistic concurrency control with field-level conflict detection
+- [x] Version check service (`expectedVersion` / `forceOverwrite` on PUT)
+- [x] Socket.IO events emitted from all CRUD routes (create/update/delete/duplicate)
+- [x] Import started/completed events with user notification banner
+- [x] Conflict-override audit logging
+- [x] Frontend socket service, realtime Zustand store, useSocket hook
+- [x] ConflictModal component (3-column comparison, Keep Mine/Theirs/Cancel)
+- [x] StatusBar connection indicator (green/yellow/red/gray) + presence tooltip
+- [x] PatientGrid version tracking, remote update handling, edit indicators, cell flash animation
+- [x] Toast notification utility for cascading edit conflicts and deleted rows
+- [x] Graceful degradation to HTTP-only mode if WebSocket fails
+- [x] Zero database schema changes (leverages existing `updatedAt` field)
+- [x] New dependency: `socket.io-client@^4.7.5`
+
+**Test Coverage:**
+- Layer 1 (Backend Jest): 564 tests, 26/28 suites passing (50 new tests)
+- Layer 2 (Frontend Vitest): 575 tests, 19/19 suites passing (102 new tests)
+- Layer 3 (Playwright E2E): 4 new test specs (connection, conflict, updates, reconnection)
+- Layer 4 (Cypress E2E): 3 new test specs (grid updates, edit indicators, row operations)
+
 ### Phase 1: Project Setup & Database Foundation
 
 **Status: Complete**

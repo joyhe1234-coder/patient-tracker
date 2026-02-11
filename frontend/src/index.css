@@ -140,6 +140,21 @@ html, body, #root {
   z-index: 10;
 }
 
+/* Remote editing indicator — dashed orange border on cells being edited by another user */
+.ag-theme-alpine .cell-remote-editing {
+  border: 2px dashed #f97316 !important;
+}
+
+/* Cell flash animation for remote updates */
+@keyframes cellFlash {
+  0% { background-color: #fef08a; }
+  100% { background-color: transparent; }
+}
+
+.ag-theme-alpine .cell-remote-updated {
+  animation: cellFlash 1.5s ease-out;
+}
+
 /* Ensure cell editor input has visible text (dark on light background) */
 .ag-theme-alpine .ag-cell-edit-wrapper input,
 .ag-theme-alpine .ag-cell-editor input {

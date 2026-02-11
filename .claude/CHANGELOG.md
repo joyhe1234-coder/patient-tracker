@@ -9,6 +9,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.0-snapshot] - Unreleased
 
 ### Added
+- **Real-Time Collaborative Editing with Socket.IO** (Feb 10, 2026)
+  - Multiple users can edit patient data simultaneously with live updates via WebSocket
+  - **Presence awareness**: see who else is viewing the same physician's data (StatusBar indicator with hover tooltip)
+  - **Active edit indicators**: dashed orange border on cells being edited by other users
+  - **Optimistic concurrency control**: field-level conflict detection using existing `updatedAt` timestamp
+  - **Conflict resolution dialog**: ConflictModal with 3-column comparison (Original/Theirs/Yours) and Keep Mine/Keep Theirs/Cancel actions
+  - **Live row sync**: row:updated, row:created, row:deleted events broadcast to all users in the same physician room
+  - **Import awareness**: yellow banner when bulk import is in progress, auto-refresh on completion
+  - **Connection status indicator**: green/yellow/red/gray dot in StatusBar with auto-reconnection (exponential backoff)
+  - **Graceful degradation**: falls back to HTTP-only mode if WebSocket connectivity fails
+  - **Zero database changes**: leverages existing `updatedAt` field on PatientMeasure
+  - New backend files: `socketManager.ts`, `socketAuth.ts`, `versionCheck.ts`, `socketIdMiddleware.ts`, `types/socket.ts`
+  - New frontend files: `socketService.ts`, `realtimeStore.ts`, `useSocket.ts`, `ConflictModal.tsx`, `types/socket.ts`, `utils/toast.ts`
+  - Modified: `index.ts`, `data.routes.ts`, `import.routes.ts`, `PatientGrid.tsx`, `MainPage.tsx`, `StatusBar.tsx`, `axios.ts`, `index.css`
+  - New dependency: `socket.io-client@^4.7.5`
+  - Backend tests: 564 passing (50 new tests across 5 test files)
+  - Frontend tests: 575 passing (102 new tests across 8 test files)
+  - E2E tests: 4 Playwright specs + 3 Cypress specs for parallel editing scenarios
+  - Spec: `.claude/specs/parallel-editing/` (requirements, design, tasks — 80 tasks)
+  - Docker scaling docs: WebSocket/Socket.IO section in INSTALLATION_GUIDE.md (single instance vs multi-replica, Redis adapter, sticky sessions)
+
+### Fixed
+- **Presence count now excludes current user** — shows "1 other online" instead of "2 others online" when 2 users are on the same physician
+- **Backend test ESM mock pattern** — converted new test files to `jest.unstable_mockModule()` + `await import()` for proper ESM compatibility; reverted incorrectly modified existing tests
+- **Docker entrypoint CRLF line endings** — fixed `docker-entrypoint.sh` to LF for Alpine Linux compatibility
+
 - **Compact Filter Bar with Quality Measure Dropdown** (Feb 9, 2026)
   - Redesigned status filter chips to compact ~24px height (from ~48px), single-line with `white-space: nowrap`
   - Added Quality Measure dropdown ("All Measures" default) populated from existing dropdown config

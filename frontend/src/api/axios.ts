@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSocket } from '../services/socketService';
 
 // Use environment variable for API URL in production, fallback to /api for local dev
 const getApiBaseUrl = () => {
@@ -37,13 +38,20 @@ api.interceptors.response.use(
   }
 );
 
-// Request interceptor for auth token (will be used in Phase 8)
+// Request interceptor for auth token and Socket ID
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Include Socket.IO ID so backend can exclude originating socket from broadcasts
+    const socket = getSocket();
+    if (socket?.id) {
+      config.headers['X-Socket-ID'] = socket.id;
+    }
+
     return config;
   },
   (error) => {
