@@ -26,13 +26,16 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] StatusBar connection indicator (green/yellow/red/gray) + presence tooltip
 - [x] PatientGrid version tracking, remote update handling, edit indicators, cell flash animation
 - [x] Toast notification utility for cascading edit conflicts and deleted rows
+- [x] API error message extraction utility (`getApiErrorMessage`) for user-friendly error toasts
+- [x] Replaced `alert()` with `showToast()` for non-disruptive error feedback in PatientGrid
+- [x] Added toast notifications to silent catch blocks in MainPage (create/duplicate/delete row)
 - [x] Graceful degradation to HTTP-only mode if WebSocket fails
 - [x] Zero database schema changes (leverages existing `updatedAt` field)
 - [x] New dependency: `socket.io-client@^4.7.5`
 
 **Test Coverage:**
 - Layer 1 (Backend Jest): 564 tests, 26/28 suites passing (50 new tests)
-- Layer 2 (Frontend Vitest): 575 tests, 19/19 suites passing (102 new tests)
+- Layer 2 (Frontend Vitest): 708 tests, 25/25 suites passing (includes apiError utility tests)
 - Layer 3 (Playwright E2E): 4 new test specs (connection, conflict, updates, reconnection)
 - Layer 4 (Cypress E2E): 3 new test specs (grid updates, edit indicators, row operations)
 
@@ -738,6 +741,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 11, 2026 - API error handling UX: getApiErrorMessage utility, replaced alert() with showToast(), added toast to MainPage catch blocks. 8 new Vitest tests. Total: 708 Vitest.
 February 9, 2026 - Compact Filter Bar with Quality Measure Dropdown (482 Vitest tests, +139), BUG-8 fix (chip counts on cell edit), removed Assign Patients button from Admin page, deployment pipeline & Windows Server support.
 February 8, 2026 - Numbered JH workflow commands (jh-1 through jh-7), added 7 dedicated agent definitions, refactored spec-create/spec-steering-setup.
 February 7, 2026 - Chronic DX attestation color cascade: BUG-4/5/7 fixes, 6 Cypress E2E + 8 Vitest tests, row-colors requirements rewrite. Total ~1204 tests (Vitest 343, Playwright 43, Cypress 299, Jest 527).

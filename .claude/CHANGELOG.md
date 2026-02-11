@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Changed
+- **API Error Handling UX Improvement** (Feb 11, 2026)
+  - Created `frontend/src/utils/apiError.ts` — `getApiErrorMessage()` extracts user-friendly messages from Axios error responses, matching backend `{ error: { message } }` shape
+  - **MainPage.tsx**: Added toast notifications to 3 silent catch blocks (create row, duplicate row, delete row); load error now shows backend message instead of hardcoded string
+  - **PatientGrid.tsx**: Replaced blocking `alert()` with non-disruptive `showToast()` for cell edit errors; force save error now extracts backend message via `getApiErrorMessage()`
+  - 8 new Vitest tests in `frontend/src/utils/__tests__/apiError.test.ts` (Axios errors, plain objects, fallbacks, null/undefined)
+  - Total Vitest tests: 708 (was 700, +8)
+
 ### Added
 - **Real-Time Collaborative Editing with Socket.IO** (Feb 10, 2026)
   - Multiple users can edit patient data simultaneously with live updates via WebSocket

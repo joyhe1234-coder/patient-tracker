@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams, CellEditingStartedEvent, CellEditingStoppedEvent, CellClassParams } from 'ag-grid-community';
+import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams, CellEditingStartedEvent, CellEditingStoppedEvent, CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useRealtimeStore } from '../../stores/realtimeStore';
 import { emitEditingStart, emitEditingStop } from '../../services/socketService';
 import { showToast } from '../../utils/toast';
+import { getApiErrorMessage } from '../../utils/apiError';
 import ConflictModal, { ConflictField } from '../modals/ConflictModal';
 import type { GridRowPayload, ConflictResponse } from '../../types/socket';
 import {
@@ -683,7 +684,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
 
       // Show error message to user
       const errorMessage = axiosError?.response?.data?.error?.message || 'Failed to save changes.';
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
 
       // For duplicate errors (409 non-conflict), reset to empty instead of reverting
       if (statusCode === 409 && (colDef.field === 'requestType' || colDef.field === 'qualityMeasure')) {
@@ -743,7 +744,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     } catch (err) {
       console.error('Failed to force save:', err);
       onSaveStatusChange?.('error');
-      showToast('Failed to save your changes.', 'error');
+      showToast(getApiErrorMessage(err, 'Failed to save your changes.'), 'error');
       setTimeout(() => onSaveStatusChange?.('idle'), 3000);
     } finally {
       setConflictData(null);
@@ -798,6 +799,76 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     return '';
   }, [activeEdits]);
 
+  // Determine if a cell should behave as a dropdown (show arrow + single-click open)
+  const isDropdownCell = useCallback((field: string, data: GridRow | undefined): boolean => {
+    // Always-dropdown columns
+    if (field === 'requestType' || field === 'qualityMeasure' || field === 'measureStatus') {
+      return true;
+    }
+    // tracking1: dropdown when options exist for the current status
+    if (field === 'tracking1') {
+      return !!getTracking1OptionsForStatus(data?.measureStatus || '');
+    }
+    // tracking2: dropdown only for HgbA1c statuses (BP statuses use text input)
+    if (field === 'tracking2') {
+      const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+      return hgba1cStatuses.includes(data?.measureStatus || '');
+    }
+    return false;
+  }, []);
+
+  // Cell renderer that wraps dropdown cells with a hover-reveal arrow indicator
+  // Returns JSX for AG Grid React mode
+  const dropdownCellRenderer = useCallback((params: ICellRendererParams<GridRow>) => {
+    const field = params.colDef?.field || '';
+    const data = params.data;
+    const displayValue = params.valueFormatted ?? params.value ?? '';
+
+    // Non-dropdown rows (e.g. tracking1 N/A, tracking2 BP text) — render plain value
+    if (!isDropdownCell(field, data)) {
+      return <>{displayValue}</>;
+    }
+
+    return (
+      <div className="cell-dropdown-wrapper">
+        <span className="cell-dropdown-value">{displayValue}</span>
+        <span className="cell-dropdown-arrow">{'\u25BE'}</span>
+      </div>
+    );
+  }, [isDropdownCell]);
+
+  // Single-click handler for dropdown cells — opens editor programmatically
+  const onCellClicked = useCallback((event: CellClickedEvent<GridRow>) => {
+    const { data, colDef, api: gridApi, rowIndex } = event;
+    const field = colDef.field || '';
+
+    // Only act on dropdown cells
+    if (!isDropdownCell(field, data)) return;
+
+    // Skip if another user is remotely editing this cell
+    if (data) {
+      const isRemote = activeEdits.some(
+        (e) => e.rowId === data.id && e.field === field
+      );
+      if (isRemote) return;
+    }
+
+    // Skip if cell is disabled (N/A)
+    if (field === 'tracking1') {
+      const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
+      const hasOptions = getTracking1OptionsForStatus(data?.measureStatus || '');
+      const isHgba1c = hgba1cStatuses.includes(data?.measureStatus || '');
+      if (!hasOptions && !isHgba1c) return;
+    }
+
+    if (rowIndex !== null && rowIndex !== undefined) {
+      gridApi.startEditingCell({
+        rowIndex,
+        colKey: field,
+      });
+    }
+  }, [isDropdownCell, activeEdits]);
+
   const columnDefs: ColDef<GridRow>[] = useMemo(() => [
     {
       field: 'requestType',
@@ -810,6 +881,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       cellEditorParams: {
         values: ['', ...REQUEST_TYPES], // Empty option first for new rows
       },
+      cellRenderer: dropdownCellRenderer,
       valueGetter: (params) => params.data?.requestType || '', // Convert null to '' for dropdown
       valueSetter: (params) => {
         params.data.requestType = params.newValue === '' ? null : params.newValue;
@@ -890,6 +962,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       cellEditorParams: (params: ICellEditorParams<GridRow>) => ({
         values: ['', ...getQualityMeasuresForRequestType(params.data?.requestType || '')],
       }),
+      cellRenderer: dropdownCellRenderer,
       valueGetter: (params) => params.data?.qualityMeasure || '', // Convert null to '' for dropdown
       valueSetter: (params) => {
         params.data.qualityMeasure = params.newValue === '' ? null : params.newValue;
@@ -907,6 +980,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       cellEditorParams: (params: ICellEditorParams<GridRow>) => ({
         values: ['', ...getMeasureStatusesForQualityMeasure(params.data?.qualityMeasure || '')],
       }),
+      cellRenderer: dropdownCellRenderer,
       valueGetter: (params) => params.data?.measureStatus || '', // Convert null to '' for dropdown
       valueSetter: (params) => {
         params.data.measureStatus = params.newValue === '' ? null : params.newValue;
@@ -981,6 +1055,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
         return !!hasOptions || hgba1cStatuses.includes(params.data?.measureStatus || '');
       },
+      cellRenderer: dropdownCellRenderer,
       cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
         const options = getTracking1OptionsForStatus(params.data?.measureStatus || '');
         if (options) {
@@ -1071,6 +1146,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
         const status = params.data?.measureStatus || '';
         return hgba1cStatuses.includes(status) || bpStatuses.includes(status);
       },
+      cellRenderer: dropdownCellRenderer,
       cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
         // HgbA1c statuses get dropdown for testing interval
         const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
@@ -1239,6 +1315,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
         rowClassRules={rowClassRules}
         onGridReady={onGridReady}
         onCellValueChanged={onCellValueChanged}
+        onCellClicked={onCellClicked}
         onCellEditingStarted={onCellEditingStarted}
         onCellEditingStopped={onCellEditingStopped}
         onSelectionChanged={onSelectionChanged}
