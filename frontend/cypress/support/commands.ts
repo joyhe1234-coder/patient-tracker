@@ -59,26 +59,14 @@ Cypress.Commands.add('getAgGridCellByMemberName', (memberName: string, colId: st
 
 /**
  * Open an AG Grid dropdown cell for editing
+ * Uses single click — AutoOpenSelectEditor opens immediately as a popup
  */
 Cypress.Commands.add('openAgGridDropdown', (rowIndex: number, colId: string) => {
   const cellSelector = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
 
-  // Double-click to enter edit mode
-  cy.get(cellSelector).first().dblclick();
-  cy.wait(200);
-
-  // Click on the dropdown wrapper to open the list (AG Grid needs this extra click)
-  cy.get(cellSelector).first().find('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper, .ag-picker-field-wrapper').first()
-    .click({ force: true });
+  // Single click opens the auto-open dropdown editor
+  cy.get(cellSelector).first().click();
   cy.wait(300);
-
-  // If popup still not visible, try pressing Space or click again
-  cy.get('body').then(($body) => {
-    if ($body.find('.ag-popup').length === 0) {
-      cy.get(cellSelector).first().click();
-      cy.wait(200);
-    }
-  });
 
   // Wait for dropdown popup to appear
   cy.get('.ag-popup', { timeout: 5000 }).should('be.visible');
@@ -88,9 +76,10 @@ Cypress.Commands.add('openAgGridDropdown', (rowIndex: number, colId: string) => 
 
 /**
  * Get all options from the currently open dropdown
+ * Supports both AutoOpenSelectEditor (.auto-open-select-option) and legacy AG Grid selectors
  */
 Cypress.Commands.add('getAgGridDropdownOptions', () => {
-  return cy.get('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]')
+  return cy.get('.ag-popup .auto-open-select-option, .ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]')
     .then(($items) => {
       const options: string[] = [];
       $items.each((_, el) => {
@@ -102,34 +91,22 @@ Cypress.Commands.add('getAgGridDropdownOptions', () => {
 
 /**
  * Select a value from an AG Grid dropdown by row index
+ * Uses single click — AutoOpenSelectEditor opens immediately as a popup
  */
 Cypress.Commands.add('selectAgGridDropdown', (rowIndex: number, colId: string, value: string) => {
   const cellSelector = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
 
-  // Double-click to enter edit mode
-  cy.get(cellSelector).first().dblclick();
-  cy.wait(200);
-
-  // Click on the dropdown wrapper to open the list (AG Grid needs this extra click)
-  cy.get(cellSelector).first().find('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper, .ag-picker-field-wrapper').first()
-    .click({ force: true });
+  // Single click opens the auto-open dropdown editor
+  cy.get(cellSelector).first().click();
   cy.wait(300);
-
-  // If popup still not visible, try clicking the cell again
-  cy.get('body').then(($body) => {
-    if ($body.find('.ag-popup').length === 0) {
-      cy.get(cellSelector).first().click();
-      cy.wait(200);
-    }
-  });
 
   // Wait for popup to be visible and have items
   cy.get('.ag-popup', { timeout: 5000 }).should('be.visible');
-  cy.get('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"]', { timeout: 3000 })
+  cy.get('.ag-popup .auto-open-select-option, .ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"]', { timeout: 3000 })
     .should('have.length.greaterThan', 0);
 
   // Find and click the option with matching text
-  cy.get('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"]')
+  cy.get('.ag-popup .auto-open-select-option, .ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"]')
     .contains(value)
     .click({ force: true });
 

@@ -145,6 +145,29 @@ This document contains test cases for verifying system functionality. Each test 
 - No arrow on disabled (N/A) cells
 - Single click on arrow opens the dropdown editor
 
+### TC-2.7: Auto-Open Dropdown Editor (Single-Click)
+**Requirement:** Cell editing UX — dropdown cells open immediately on single click
+**Automation:** Automated - `AutoOpenSelectEditor.test.tsx` (22 tests), `hover-reveal-dropdown.cy.ts` (popup assertions), `PatientGrid.test.tsx` (3 updated assertions)
+**Steps:**
+1. Single-click on a dropdown cell (Request Type, Quality Measure, Measure Status, Tracking #1, Tracking #2)
+2. Observe popup appearance
+3. Use keyboard (ArrowUp/Down, Enter, Escape, Tab) to navigate options
+4. Type characters for type-ahead filtering
+5. Click an option with the mouse
+6. Open dropdown and observe checkmark on currently-selected value
+7. Select `(clear)` option and observe styling
+
+**Expected:**
+- Dropdown popup opens immediately on single click (no double-click required)
+- Popup renders as `.ag-popup .auto-open-select-editor`
+- Keyboard ArrowDown/ArrowUp highlights next/previous option
+- Enter confirms selection; Escape cancels without changing value
+- Tab confirms selection and moves to next cell
+- Type-ahead highlights first matching option
+- Checkmark icon displayed next to currently-selected value
+- `(clear)` option displayed in gray italic text at top of list
+- Selecting `(clear)` sets cell value to empty string
+
 ---
 
 ## 3. Sorting Behavior
@@ -3091,7 +3114,7 @@ npm run cypress:headed  # Run with browser visible
 | Section | Total TCs | Automated | Partial | Manual | Coverage |
 |---------|-----------|-----------|---------|--------|----------|
 | 1. Data Loading | 3 | 2 | 1 | 0 | 83% |
-| 2. Cell Editing | 6 | 1 | 2 | 3 | 33% |
+| 2. Cell Editing | 7 | 2 | 2 | 3 | 43% |
 | 3. Sorting | 4 | 1 | 0 | 3 | 25% |
 | 4. Status Filter | 5 | 5 | 0 | 0 | 100% |
 | 5. Row Colors | 7 | 3 | 1 | 3 | 50% |
@@ -3130,6 +3153,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 11, 2026 - Added TC-2.7: Auto-Open Dropdown Editor (single-click opens popup, keyboard nav, type-ahead, checkmark, clear option). Cell Editing coverage: 7 TCs, 43% automated.
 February 7, 2026 - Added Section 32: Patient Management Page (TC-32.1 to TC-32.8)
 February 6, 2026 - TC-31.1 (Row Numbers) removed — feature removed per user feedback. TC-29.2 updated for word-based search matching.
 February 6, 2026 - Added UX Improvements test cases (TC-31.2 to TC-31.9): status bar, focus-visible, DOB aria-label, password helpers/toggles, import UX

@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Changed
+- **Auto-open dropdown editor** (Feb 11, 2026)
+  - All dropdown cells (Request Type, Quality Measure, Measure Status, Tracking #1, Tracking #2) now open immediately on single click instead of requiring activate-then-expand
+  - Custom `AutoOpenSelectEditor` replaces `agSelectCellEditor` — renders as popup with keyboard navigation, type-ahead, and mouse selection
+  - Checkmark indicator next to currently-selected value for visual clarity
+  - `(clear)` option styled with gray italic text to differentiate from regular options
+  - Updated Cypress commands (`selectAgGridDropdown`, `openAgGridDropdown`, `getAgGridDropdownOptions`) for new single-click + popup structure
+  - Updated hover-reveal dropdown Cypress tests for new `.ag-popup .auto-open-select-editor` selectors
+  - 22 new Vitest tests in `AutoOpenSelectEditor.test.tsx` (rendering, AG Grid interface, keyboard nav, mouse interaction, focus, edge cases)
+  - 3 existing PatientGrid tests updated (`agSelectCellEditor` → `AutoOpenSelectEditor` + `cellEditorPopup: true`)
+  - Total Vitest tests: 730 (was 708, +22)
+
 ### Added
 - **Test Audit: +244 Tests, 13 Pre-Existing Failures Fixed, 3 Bugs Fixed** (Feb 11, 2026)
   - **Route happy-path tests rewritten (84 tests):** All 5 route files (`admin`, `auth`, `data`, `import`, `users`) rewritten with `jest.unstable_mockModule` + dynamic imports for proper ESM mocking

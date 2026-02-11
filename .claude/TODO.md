@@ -466,7 +466,7 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 ## Test Coverage Improvement
 
 **Audit Report:** [TEST_AUDIT_REPORT.md](./TEST_AUDIT_REPORT.md) (February 10, 2026)
-**Current:** 1,736 tests (679 Jest + 708 Vitest + 43 Playwright + 306 Cypress)
+**Current:** 1,758 tests (679 Jest + 730 Vitest + 43 Playwright + 306 Cypress)
 **Added Feb 10-11, 2026:** +244 new tests (116 Jest + 115 Vitest + 13 Cypress), fixed 13 pre-existing failures, 3 bugs fixed
 
 ### Priority 1: Critical Gaps (Zero Coverage)
@@ -533,6 +533,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor. 22 new Vitest, 3 updated PatientGrid tests. Cypress commands updated. Total: 1,758 tests (679 Jest + 730 Vitest + 43 Playwright + 306 Cypress).
 February 11, 2026 - Test audit committed: +244 tests, 13 pre-existing failures fixed, 3 bugs fixed. Hover-reveal dropdown CSS. Slash commands refactored to background Task agents. Total: 1,736 tests (679 Jest + 708 Vitest + 43 Playwright + 306 Cypress).
 February 11, 2026 - API error handling UX: getApiErrorMessage utility, replaced alert() with showToast(), added toast to MainPage catch blocks. 8 new Vitest tests. Total: 708 Vitest.
 February 10, 2026 - Route happy-path tests: All 5 route files rewritten with jest.unstable_mockModule (ESM fix). 84 new route tests + 19 middleware tests. errorHandler + upload middleware fully covered. Total: 679 Jest + 700 Vitest = 1,379 unit tests, 0 failures.

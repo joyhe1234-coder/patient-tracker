@@ -79,6 +79,7 @@ vi.mock('../../config/dropdownConfig', () => ({
 
 // Import the component after mocks are set up
 import PatientGrid, { GridRow } from './PatientGrid';
+import AutoOpenSelectEditor from './AutoOpenSelectEditor';
 
 // Helper to create a mock GridRow
 const createMockRow = (overrides: Partial<GridRow> = {}): GridRow => ({
@@ -184,31 +185,34 @@ describe('PatientGrid', () => {
       expect(memberNameCol?.pinned).toBe('left');
     });
 
-    it('requestType uses agSelectCellEditor', () => {
+    it('requestType uses AutoOpenSelectEditor with cellEditorPopup', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: string }[];
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: unknown; cellEditorPopup?: boolean }[];
       const requestTypeCol = columnDefs.find((col) => col.field === 'requestType');
 
-      expect(requestTypeCol?.cellEditor).toBe('agSelectCellEditor');
+      expect(requestTypeCol?.cellEditor).toBe(AutoOpenSelectEditor);
+      expect(requestTypeCol?.cellEditorPopup).toBe(true);
     });
 
-    it('qualityMeasure uses agSelectCellEditor', () => {
+    it('qualityMeasure uses AutoOpenSelectEditor with cellEditorPopup', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: string }[];
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: unknown; cellEditorPopup?: boolean }[];
       const qualityMeasureCol = columnDefs.find((col) => col.field === 'qualityMeasure');
 
-      expect(qualityMeasureCol?.cellEditor).toBe('agSelectCellEditor');
+      expect(qualityMeasureCol?.cellEditor).toBe(AutoOpenSelectEditor);
+      expect(qualityMeasureCol?.cellEditorPopup).toBe(true);
     });
 
-    it('measureStatus uses agSelectCellEditor', () => {
+    it('measureStatus uses AutoOpenSelectEditor with cellEditorPopup', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: string }[];
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: unknown; cellEditorPopup?: boolean }[];
       const measureStatusCol = columnDefs.find((col) => col.field === 'measureStatus');
 
-      expect(measureStatusCol?.cellEditor).toBe('agSelectCellEditor');
+      expect(measureStatusCol?.cellEditor).toBe(AutoOpenSelectEditor);
+      expect(measureStatusCol?.cellEditorPopup).toBe(true);
     });
 
     it('dueDate column is NOT editable (calculated field)', () => {

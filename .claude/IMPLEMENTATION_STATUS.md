@@ -134,6 +134,14 @@ This document tracks the implementation progress of the Patient Quality Measure 
   - All 10 chips fit on single row at 1280px+
   - Spec: `.claude/specs/compact-filter-bar/`
   - 482 Vitest tests (was 343, +139 new)
+- [x] **Auto-open dropdown editor** (Feb 11, 2026)
+  - Custom `AutoOpenSelectEditor` replaces `agSelectCellEditor` on all 5 dropdown columns
+  - Single click opens dropdown immediately as a popup (no double-click → expand dance)
+  - Keyboard navigation (ArrowUp/Down, Enter, Escape, Tab), type-ahead search
+  - Checkmark next to current value, gray italic `(clear)` option
+  - Hover-reveal arrow still works (cell renderer unchanged)
+  - 22 new Vitest tests in `AutoOpenSelectEditor.test.tsx`
+  - Cypress commands and hover-reveal tests updated for new popup structure
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
 - [ ] Advanced filter builder (multiple conditions)
@@ -349,13 +357,14 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (708 tests total)
+- [x] Phase 4: Component tests (730 tests total)
   - StatusFilterBar.test.tsx (181 tests - compact chips, quality measure dropdown, combined filter logic, getRowStatusColor, row color accuracy, chip count integrity, search UI, multi-select, accessibility, attestation cascade)
   - StatusBar.test.tsx (7 tests - consistent display format, locale formatting, Connected status, filter summary)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
   - ConfirmModal.test.tsx (11 tests)
-  - PatientGrid.test.tsx (49 tests - column defs, row class rules, headerTooltip, DOB aria-label, attestation cascade)
+  - PatientGrid.test.tsx (49 tests - column defs, row class rules, headerTooltip, DOB aria-label, attestation cascade, AutoOpenSelectEditor assertions)
+  - AutoOpenSelectEditor.test.tsx (22 tests - rendering, AG Grid interface, keyboard navigation, mouse interaction, focus, edge cases)
   - Header.test.tsx (16 tests - provider dropdown, unassigned patients, change password modal, visibility toggles)
   - LoginPage.test.tsx (17 tests)
   - ForgotPasswordPage.test.tsx (14 tests)
@@ -427,7 +436,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 679 tests passing (was 527; +84 rewritten route tests, +14 config.routes, +19 middleware, +30 dueDateCalculator, +5 import test fixes)
-- Total test count: ~1,736 automated tests across all frameworks (679 Jest + 708 Vitest + 43 Playwright + 306 Cypress)
+- Total test count: ~1,758 automated tests across all frameworks (679 Jest + 730 Vitest + 43 Playwright + 306 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
   - auth.routes.test.ts - 29 tests (login, registration, password reset, JWT)
@@ -761,6 +770,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor on all 5 dropdown columns. Single-click opens popup. Checkmark + (clear) styling. 22 new Vitest tests, 3 updated PatientGrid tests, Cypress commands updated. Total: 679 Jest + 730 Vitest + 43 Playwright + 306 Cypress = 1,758.
 February 11, 2026 - Test audit: +244 tests (84 route rewrites, 19 middleware, 14 config.routes, 45 dropdownConfig, 29 statusColors, 12 AdminPage, 20 PatientAssignmentPage, 9 ProtectedRoute, 13 hover-reveal Cypress, 30 dueDateCalculator). Fixed 13 pre-existing failures. 3 bugs fixed. Hover-reveal dropdown CSS. Slash commands refactored to background agents. Total: 679 Jest + 708 Vitest + 43 Playwright + 306 Cypress = 1,736.
 February 11, 2026 - API error handling UX: getApiErrorMessage utility, replaced alert() with showToast(), added toast to MainPage catch blocks. 8 new Vitest tests. Total: 708 Vitest.
 February 9, 2026 - Compact Filter Bar with Quality Measure Dropdown (482 Vitest tests, +139), BUG-8 fix (chip counts on cell edit), removed Assign Patients button from Admin page, deployment pipeline & Windows Server support.

@@ -32,6 +32,7 @@
 - **Filter chips**: Button role with pressed state, border matches color, opacity 50% when inactive
 - **Status bar**: Footer bar showing "Showing X of Y rows"
 - **Pinned columns**: AG Grid pins Request Type + Member Name on left
+- **Dropdown cells**: AutoOpenSelectEditor popup with hover-reveal blue arrow, checkmark on selected, (clear) in gray italic at top. Single-click opens. Keyboard: Arrow keys, Enter, Escape, type-ahead.
 
 ## Review History
 | Date | Phase | Report | Key Findings |
@@ -41,6 +42,7 @@
 | 2026-02-06 | Import Flow (Deep) | `reviews/import-page-2026-02-06.md` | 14 screenshots, 8 findings, mobile table broken |
 | 2026-02-06 | Admin Pages | `reviews/admin-pages-2026-02-06.md` | Audit log needs pagination + filtering |
 | 2026-02-09 | Compact Filter Bar | `reviews/compact-filter-bar-2026-02-09.md` | All(220) count bug, opacity contrast failures, touch targets |
+| 2026-02-11 | Auto-Open Dropdown | `reviews/auto-open-dropdown-2026-02-11.md` | 16 tests PASS, (clear) contrast fail, missing ARIA roles |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.

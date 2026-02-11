@@ -67,10 +67,8 @@ describe('Hover-Reveal Dropdown', () => {
       cy.getAgGridCell(testRowIndex, 'requestType').click();
       cy.wait(300);
 
-      // Cell should be in edit mode
-      cy.getAgGridCell(testRowIndex, 'requestType')
-        .find('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper')
-        .should('exist');
+      // Popup should appear with auto-open-select-editor
+      cy.get('.ag-popup .auto-open-select-editor').should('exist');
     });
 
     it('should open qualityMeasure dropdown on single click', () => {
@@ -81,9 +79,8 @@ describe('Hover-Reveal Dropdown', () => {
       cy.getAgGridCell(testRowIndex, 'qualityMeasure').click();
       cy.wait(300);
 
-      cy.getAgGridCell(testRowIndex, 'qualityMeasure')
-        .find('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper')
-        .should('exist');
+      // Popup should appear with auto-open-select-editor
+      cy.get('.ag-popup .auto-open-select-editor').should('exist');
     });
 
     it('should open measureStatus dropdown on single click', () => {
@@ -93,9 +90,8 @@ describe('Hover-Reveal Dropdown', () => {
       cy.getAgGridCell(testRowIndex, 'measureStatus').click();
       cy.wait(300);
 
-      cy.getAgGridCell(testRowIndex, 'measureStatus')
-        .find('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper')
-        .should('exist');
+      // Popup should appear with auto-open-select-editor
+      cy.get('.ag-popup .auto-open-select-editor').should('exist');
     });
   });
 
