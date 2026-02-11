@@ -268,6 +268,18 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
+## API Error Handling UX (Feb 10, 2026)
+
+### Graceful API Failure Messages
+- [x] **Toast notifications for API failures** (Feb 11, 2026) — Created `getApiErrorMessage()` utility to extract backend error messages from Axios responses. Replaced `alert()` with `showToast()` in PatientGrid. Added toast notifications to silent catch blocks in MainPage (create/duplicate/delete row). Load error now shows backend message. 8 new Vitest tests.
+  - **Remaining (future work):**
+    - Inline field-level errors for validation failures (400s)
+    - Retry logic with exponential backoff for network errors
+    - Import page error message improvements
+    - Admin operations error message improvements
+
+---
+
 ## Grid Feature Requests (Feb 6, 2026)
 
 ### Duplicate Row UX Improvements
@@ -451,6 +463,68 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
+## Test Coverage Improvement
+
+**Audit Report:** [TEST_AUDIT_REPORT.md](./TEST_AUDIT_REPORT.md) (February 10, 2026)
+**Current:** 1,758 tests (679 Jest + 730 Vitest + 43 Playwright + 306 Cypress)
+**Added Feb 10-11, 2026:** +244 new tests (116 Jest + 115 Vitest + 13 Cypress), fixed 13 pre-existing failures, 3 bugs fixed
+
+### Priority 1: Critical Gaps (Zero Coverage)
+
+- [x] **AdminPage.tsx** (Vitest) — 12 tests: rendering, tabs, user list, role badges, error/loading states. *(Feb 10, 2026)*
+- [x] **dropdownConfig.ts** (Vitest) — 45 tests: all mappings, helper functions, auto-fill, cascade chain integrity. *(Feb 10, 2026)*
+- [x] **config.routes.ts** (Jest) — 14 tests: all 7 endpoints, auth middleware, error handling. *(Feb 10, 2026)*
+- [x] **Route happy-path tests** (Jest) — All 5 route files rewritten with `jest.unstable_mockModule` for ESM-compatible mocking. 84 new tests: data.routes (24), admin.routes (30), auth.routes (29), users.routes (15), import.routes (28). *(Feb 10, 2026)*
+
+### Priority 2: High-Value Gaps
+
+- [x] **PatientAssignmentPage.tsx** (Vitest) — 20 tests: wrapper, lazy-load, patient list, select all, bulk assign, error/success/empty states. *(Feb 10, 2026)*
+- [x] **ProtectedRoute.tsx** (Vitest) — 9 tests: loading, unauthenticated redirect, role-based access, token verification. *(Feb 10, 2026)*
+- [x] **statusColors.ts** (Vitest) — 29 tests: all status arrays, isChronicDxAttestationSent, isRowOverdue (time-mocked), getRowStatusColor priority ordering. *(Feb 10, 2026)*
+- [x] **Hover-reveal dropdown feature** (Cypress) — 13 tests: arrow visibility, single-click opens dropdown, text cells unaffected, disabled cells hidden, styling. *(Feb 10, 2026)*
+
+### Priority 3: Medium Gaps
+
+- [ ] **Fix 4 skipped Playwright tests** — 3 delete tests + 1 duplicate test disabled, reducing core CRUD E2E coverage.
+- [x] **errorHandler.ts + upload.ts middleware** (Jest) — 19 tests: errorHandler (status codes, error codes, stack traces, createError factory), upload (CSV/XLSX/XLS accept, PDF/TXT/JSON reject, missing file). *(Feb 10, 2026)*
+- [ ] **Due date edge cases** (Jest) — Month boundaries (Jan 31 + 1 month), leap years, year boundaries, DST transitions. Est. 8-12 tests.
+- [ ] **PatientGrid onCellValueChanged** (Vitest) — Complex cascading auto-save handler only tested via E2E. Mock gridApi and test each cascade path + error handling. Est. 15-20 tests.
+- [ ] **Tracking #2 BP text input** (Cypress) — Only HgbA1c dropdown tested; BP free-text entry not tested.
+- [ ] **Status Date prompt verification** (Cypress) — Prompt text changes per status not visually verified.
+- [ ] **Due Date display for non-HgbA1c** (Cypress) — AWV completed + statusDate -> verify dueDate = +365 days.
+- [ ] **Sort freeze during edit** (Cypress) — Sort indicator clearing on edit not E2E tested.
+- [x] **~~Fix useSocket.test.ts failure~~** — Fixed: added `getState()` mock (BUG-TEST-002).
+
+### Priority 4: Nice-to-Have
+
+- [ ] **HillMeasureMapping.tsx** (Vitest) — Measure config page + CSV export.
+- [ ] **DuplicateWarningModal.tsx** (Vitest) — Simple modal.
+- [ ] **health.routes.ts** (Jest) — Health check endpoint.
+- [ ] **socketIdMiddleware.ts** (Jest) — Header extraction.
+- [ ] **DOB masking verification** (Cypress) — "###" display + aria-label.
+- [ ] **Phone formatting display** (Cypress) — (555) 123-4567 format.
+- [ ] **Keyboard navigation** (Playwright) — Tab, Enter, Escape, arrow keys in grid.
+- [ ] **Multi-browser/viewport** (Playwright) — Responsive checks for mobile/tablet.
+
+### Bugs Found During Testing (Feb 10, 2026) — ALL FIXED
+
+- **BUG-TEST-001** ~~(Low): `shouldAutoFillQualityMeasure()` returns `undefined` instead of `false`~~ **FIXED**: Changed to `!!measures && measures.length === 1` for explicit boolean return.
+- **BUG-TEST-002** ~~(Pre-existing): `useSocket.test.ts` `wires onPresenceUpdate` fails~~ **FIXED**: Added `getState()` mock to `useAuthStore` in `beforeEach`.
+- **BUG-TEST-003** ~~(Pre-existing): 15 backend Jest suites fail to compile (`import.meta.url`)~~ **FIXED**: Replaced with `path.resolve(process.cwd(), '../test-data')` in validator/integration tests. Rewrote config.routes to use `jest.unstable_mockModule`. Added graceful DATABASE_URL skip to mergeLogic. Added Prisma mock to dueDateCalculator.
+
+### Review Checklist
+
+When addressing gaps, review each use case against the feature requirements:
+
+- [ ] Review `REGRESSION_TEST_PLAN.md` for any test cases marked "Manual" that could be automated
+- [ ] Cross-check `IMPLEMENTATION_STATUS.md` features against test coverage — every completed feature should have tests
+- [ ] Verify all 13 quality measures have at least basic E2E dropdown test coverage
+- [ ] Verify all 8 row colors have E2E verification tests
+- [ ] Verify every API endpoint has at least one happy-path + one error test
+- [ ] Run coverage reports: `cd backend && npm test -- --coverage` and `cd frontend && npm run test:run -- --coverage`
+
+---
+
 ## Completed
 
 See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed features.
@@ -459,6 +533,12 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor. 22 new Vitest, 3 updated PatientGrid tests. Cypress commands updated. Total: 1,758 tests (679 Jest + 730 Vitest + 43 Playwright + 306 Cypress).
+February 11, 2026 - Test audit committed: +244 tests, 13 pre-existing failures fixed, 3 bugs fixed. Hover-reveal dropdown CSS. Slash commands refactored to background Task agents. Total: 1,736 tests (679 Jest + 708 Vitest + 43 Playwright + 306 Cypress).
+February 11, 2026 - API error handling UX: getApiErrorMessage utility, replaced alert() with showToast(), added toast to MainPage catch blocks. 8 new Vitest tests. Total: 708 Vitest.
+February 10, 2026 - Route happy-path tests: All 5 route files rewritten with jest.unstable_mockModule (ESM fix). 84 new route tests + 19 middleware tests. errorHandler + upload middleware fully covered. Total: 679 Jest + 700 Vitest = 1,379 unit tests, 0 failures.
+February 10, 2026 - Fixed all 13 pre-existing backend test failures: mergeLogic (12 tests, graceful DB skip + import.meta.url fix), dueDateCalculator (1→31 tests, Prisma mock + 6 new Priority 3/4 tests). config.routes rewritten with jest.unstable_mockModule (ESM fix). 3 bugs fixed (BUG-TEST-001/002/003).
+February 10, 2026 - High-priority test coverage: +142 new tests (dropdownConfig 45, statusColors 29, ProtectedRoute 9, config.routes 14, AdminPage 12, PatientAssignmentPage 20, hover-reveal Cypress 13). 3 bugs logged.
 February 9, 2026 - Compact Filter Bar complete (482 Vitest, +139 new), BUG-8 fixed (chip counts on cell edit), removed Assign Patients from Admin, deployment pipeline & Windows Server support
 February 7, 2026 - BUG-4/5 fixed (Chronic DX attestation colors), BUG-7 fixed (import reassignment dedup), BUG-6 logged. 6 new Cypress E2E tests, row-colors requirements rewritten.
 February 7, 2026 - Patient Management Page complete: tabbed `/patient-management` page, 18 Vitest + 8 Playwright tests, Cypress tests updated

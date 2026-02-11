@@ -11,14 +11,9 @@ import { validateRows } from '../validator.js';
 import { generateErrorReport, getCondensedReport } from '../errorReporter.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-// ESM-compatible __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Path to test data files
-const testDataDir = path.join(__dirname, '../../../../../test-data');
+// Path to test data files (process.cwd() is backend/, test-data is at project root)
+const testDataDir = path.resolve(process.cwd(), '../test-data');
 const systemId = 'hill';
 
 /**

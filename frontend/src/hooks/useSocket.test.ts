@@ -63,13 +63,20 @@ describe('useSocket', () => {
     authStoreState = { token: 'test-token', selectedPhysicianId: 5 };
 
     // Set up useAuthStore to return different values based on selector
-    vi.mocked(useAuthStore).mockImplementation((selector: any) => {
+    const mockAuthStore = vi.mocked(useAuthStore) as any;
+    mockAuthStore.mockImplementation((selector: any) => {
       const state = {
         token: authStoreState.token,
         selectedPhysicianId: authStoreState.selectedPhysicianId,
         logout: mockLogout,
+        user: { id: 99, displayName: 'Current User' },
       };
       return selector(state);
+    });
+
+    // Attach getState() for non-selector Zustand access (used in onPresenceUpdate)
+    mockAuthStore.getState = vi.fn().mockReturnValue({
+      user: { id: 99, displayName: 'Current User' },
     });
 
     // Set up useRealtimeStore to return action functions

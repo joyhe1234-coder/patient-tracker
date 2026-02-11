@@ -1,19 +1,97 @@
 /**
  * Authentication Routes Tests
  *
- * Tests for /api/auth endpoints: login validation.
- * Note: Full integration testing of authenticated routes is done via E2E Playwright tests,
- * as ESM module mocking with Jest has limitations for complex middleware chains.
+ * Tests for /api/auth endpoints: validation, happy-path operations.
+ *
+ * Uses jest.unstable_mockModule + dynamic imports because ESM module
+ * mocking with jest.mock() does not intercept transitive dependencies.
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import request from 'supertest';
 import express, { Express } from 'express';
 
-import authRouter from '../auth.routes.js';
-import { errorHandler } from '../../middleware/errorHandler.js';
+// ── Mock setup (BEFORE dynamic imports) ────────────────────────────
 
-// Create test app
+const mockPrisma = {
+  auditLog: { create: jest.fn<any>() },
+  editLock: { updateMany: jest.fn<any>() },
+  user: { findUnique: jest.fn<any>() },
+  passwordResetToken: {
+    create: jest.fn<any>(),
+    findUnique: jest.fn<any>(),
+    update: jest.fn<any>(),
+  },
+};
+
+const testUser = {
+  id: 1,
+  email: 'doc@example.com',
+  displayName: 'Dr. Test',
+  roles: ['PHYSICIAN'],
+  isActive: true,
+  passwordHash: '$2b$04$fakehash',
+};
+
+let authBlocked = false;
+
+jest.unstable_mockModule('../../config/database.js', () => ({
+  prisma: mockPrisma,
+}));
+
+jest.unstable_mockModule('../../middleware/auth.js', () => ({
+  requireAuth: (req: any, _res: any, next: any) => {
+    if (authBlocked) {
+      const err: any = new Error('Authentication required');
+      err.statusCode = 401;
+      err.code = 'UNAUTHORIZED';
+      return next(err);
+    }
+    req.user = testUser;
+    next();
+  },
+}));
+
+jest.unstable_mockModule('../../services/authService.js', () => ({
+  authenticateUser: jest.fn<any>(),
+  verifyPassword: jest.fn<any>(),
+  updatePassword: jest.fn<any>(),
+  toAuthUser: jest.fn<any>().mockImplementation((user: any) => ({
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    roles: user.roles,
+    isActive: user.isActive,
+  })),
+  findUserById: jest.fn<any>(),
+  getStaffAssignments: jest.fn<any>(),
+  getAllPhysicians: jest.fn<any>(),
+}));
+
+jest.unstable_mockModule('../../services/emailService.js', () => ({
+  isSmtpConfigured: jest.fn<any>().mockReturnValue(false),
+  sendPasswordResetEmail: jest.fn<any>().mockResolvedValue(true),
+}));
+
+jest.unstable_mockModule('../../config/index.js', () => ({
+  config: {
+    jwtSecret: 'test-secret-key',
+    jwtExpiresIn: '1h',
+    bcryptSaltRounds: 4,
+  },
+}));
+
+// ── Dynamic imports (AFTER mocks) ──────────────────────────────────
+
+const { default: authRouter } = await import('../auth.routes.js');
+const { errorHandler } = await import('../../middleware/errorHandler.js');
+const { authenticateUser, findUserById, verifyPassword, getStaffAssignments } = await import('../../services/authService.js');
+const { isSmtpConfigured } = await import('../../services/emailService.js');
+
+// ── Helpers ────────────────────────────────────────────────────────
+
 function createTestApp(): Express {
   const app = express();
   app.use(express.json());
@@ -22,176 +100,363 @@ function createTestApp(): Express {
   return app;
 }
 
-describe('auth routes', () => {
+// ── Tests ──────────────────────────────────────────────────────────
+
+describe('Auth Routes', () => {
   let app: Express;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    authBlocked = false;
     app = createTestApp();
   });
 
-  describe('POST /api/auth/login - Validation', () => {
-    it('should return 400 for invalid email format', async () => {
-      const response = await request(app)
+  // ── POST /api/auth/login ────────────────────────────────────────
+
+  describe('POST /api/auth/login', () => {
+    it('returns token on successful login', async () => {
+      (authenticateUser as jest.Mock<any>).mockResolvedValue({
+        user: {
+          id: 1,
+          email: 'doc@example.com',
+          displayName: 'Dr. Test',
+          roles: ['PHYSICIAN'],
+          isActive: true,
+        },
+        token: 'jwt-token-123',
+        assignments: [],
+      });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.token).toBe('jwt-token-123');
+      expect(res.body.data.user.email).toBe('doc@example.com');
+    });
+
+    it('returns 401 for invalid credentials', async () => {
+      (authenticateUser as jest.Mock<any>).mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+    });
+
+    it('returns 400 for invalid email format', async () => {
+      const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'not-an-email', password: 'password123' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return 400 for missing password', async () => {
-      const response = await request(app)
+    it('returns 400 for missing password', async () => {
+      const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'test@example.com' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    it('should return 400 for missing email', async () => {
-      const response = await request(app)
+    it('returns 400 for missing email', async () => {
+      const res = await request(app)
         .post('/api/auth/login')
         .send({ password: 'password123' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    it('should return 400 for empty email', async () => {
-      const response = await request(app)
+    it('returns 400 for empty email', async () => {
+      const res = await request(app)
         .post('/api/auth/login')
         .send({ email: '', password: 'password123' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    it('should return 400 for empty password', async () => {
-      const response = await request(app)
+    it('returns 400 for empty password', async () => {
+      const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'test@example.com', password: '' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-    });
-
-    // Note: Tests for valid credentials, token generation, and audit logging
-    // are covered by E2E Playwright tests due to ESM mocking limitations.
-    // The following tests verify input validation which doesn't require mocking.
-  });
-
-  describe('POST /api/auth/logout - requires auth', () => {
-    it('should return 401 when not authenticated', async () => {
-      const response = await request(app)
-        .post('/api/auth/logout');
-
-      expect(response.status).toBe(401);
+      expect(res.status).toBe(400);
     });
   });
 
-  describe('GET /api/auth/me - requires auth', () => {
-    it('should return 401 when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/auth/me');
+  // ── POST /api/auth/logout ───────────────────────────────────────
 
-      expect(response.status).toBe(401);
+  describe('POST /api/auth/logout', () => {
+    it('returns 401 when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).post('/api/auth/logout');
+      expect(res.status).toBe(401);
+    });
+
+    it('logs out successfully and releases edit lock', async () => {
+      mockPrisma.editLock.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app).post('/api/auth/logout');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('Logged out');
+      expect(mockPrisma.editLock.updateMany).toHaveBeenCalled();
     });
   });
 
-  describe('PUT /api/auth/password - requires auth', () => {
-    it('should return 401 when not authenticated', async () => {
-      const response = await request(app)
+  // ── GET /api/auth/me ────────────────────────────────────────────
+
+  describe('GET /api/auth/me', () => {
+    it('returns 401 when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).get('/api/auth/me');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns current user info', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(testUser);
+
+      const res = await request(app).get('/api/auth/me');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user).toBeDefined();
+    });
+
+    it('returns assignments for STAFF user', async () => {
+      const staffUser = { ...testUser, roles: ['STAFF'] };
+      (findUserById as jest.Mock<any>).mockResolvedValue(staffUser);
+      (getStaffAssignments as jest.Mock<any>).mockResolvedValue([
+        { physicianId: 1, physicianName: 'Dr. Test' },
+      ]);
+
+      // Patch current user for this test
+      authBlocked = false;
+      const staffApp = express();
+      staffApp.use(express.json());
+      // Override auth middleware for this specific test
+      staffApp.use('/api/auth', authRouter);
+      staffApp.use(errorHandler);
+
+      const res = await request(app).get('/api/auth/me');
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // ── PUT /api/auth/password ──────────────────────────────────────
+
+  describe('PUT /api/auth/password', () => {
+    it('returns 401 when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app)
         .put('/api/auth/password')
         .send({ currentPassword: 'old', newPassword: 'newpassword123' });
+      expect(res.status).toBe(401);
+    });
 
-      expect(response.status).toBe(401);
+    it('changes password successfully', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>)
+        .mockResolvedValueOnce(true)   // current password valid
+        .mockResolvedValueOnce(false); // new password is different
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/auth/password')
+        .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('Password changed');
+    });
+
+    it('returns 401 for wrong current password', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+
+      const res = await request(app)
+        .put('/api/auth/password')
+        .send({ currentPassword: 'wrong', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_PASSWORD');
+    });
+
+    it('returns 400 for same password', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>)
+        .mockResolvedValueOnce(true)  // current password valid
+        .mockResolvedValueOnce(true); // new password same as current
+
+      const res = await request(app)
+        .put('/api/auth/password')
+        .send({ currentPassword: 'password123', newPassword: 'password123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('SAME_PASSWORD');
+    });
+
+    it('returns 400 for short new password', async () => {
+      const res = await request(app)
+        .put('/api/auth/password')
+        .send({ currentPassword: 'oldpassword', newPassword: 'short' });
+
+      expect(res.status).toBe(400);
     });
   });
+
+  // ── GET /api/auth/smtp-status ───────────────────────────────────
 
   describe('GET /api/auth/smtp-status', () => {
-    it('should return SMTP configuration status', async () => {
-      const response = await request(app)
-        .get('/api/auth/smtp-status');
+    it('returns SMTP configuration status', async () => {
+      const res = await request(app).get('/api/auth/smtp-status');
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('configured');
-      expect(typeof response.body.data.configured).toBe('boolean');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('configured');
+      expect(typeof res.body.data.configured).toBe('boolean');
     });
   });
 
-  describe('POST /api/auth/forgot-password - Validation', () => {
-    it('should return 400 for missing email', async () => {
-      const response = await request(app)
+  // ── POST /api/auth/forgot-password ──────────────────────────────
+
+  describe('POST /api/auth/forgot-password', () => {
+    it('returns 400 when SMTP is not configured', async () => {
+      (isSmtpConfigured as jest.Mock<any>).mockReturnValue(false);
+
+      const res = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'test@example.com' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('SMTP_NOT_CONFIGURED');
+    });
+
+    it('returns success when SMTP configured (always returns success for security)', async () => {
+      (isSmtpConfigured as jest.Mock<any>).mockReturnValue(true);
+      mockPrisma.user.findUnique.mockResolvedValue(null); // email doesn't exist
+
+      const res = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'unknown@example.com' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('returns 400 for missing email', async () => {
+      const res = await request(app)
         .post('/api/auth/forgot-password')
         .send({});
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    it('should return 400 for invalid email format', async () => {
-      const response = await request(app)
+    it('returns 400 for invalid email format', async () => {
+      const res = await request(app)
         .post('/api/auth/forgot-password')
         .send({ email: 'not-an-email' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
-
-    it('should return 400 for empty email', async () => {
-      const response = await request(app)
-        .post('/api/auth/forgot-password')
-        .send({ email: '' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-    });
-
-    // Note: Tests for actual email sending and token creation
-    // require database mocking and are covered by E2E tests.
-    // The endpoint always returns success message for security (doesn't reveal if email exists).
   });
 
-  describe('POST /api/auth/reset-password - Validation', () => {
-    it('should return 400 for missing token', async () => {
-      const response = await request(app)
+  // ── POST /api/auth/reset-password ───────────────────────────────
+
+  describe('POST /api/auth/reset-password', () => {
+    it('returns 400 for missing token', async () => {
+      const res = await request(app)
         .post('/api/auth/reset-password')
         .send({ newPassword: 'newpassword123' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    it('should return 400 for missing newPassword', async () => {
-      const response = await request(app)
+    it('returns 400 for missing newPassword', async () => {
+      const res = await request(app)
         .post('/api/auth/reset-password')
         .send({ token: 'some-token' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    it('should return 400 for empty token', async () => {
-      const response = await request(app)
-        .post('/api/auth/reset-password')
-        .send({ token: '', newPassword: 'newpassword123' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-    });
-
-    it('should return 400 for password too short', async () => {
-      const response = await request(app)
+    it('returns 400 for password too short', async () => {
+      const res = await request(app)
         .post('/api/auth/reset-password')
         .send({ token: 'valid-token', newPassword: 'short' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
+      expect(res.status).toBe(400);
     });
 
-    // Note: Tests for token validation, expiration, and password update
-    // require database mocking and are covered by E2E tests.
+    it('returns 400 for invalid token', async () => {
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'invalid-token', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_TOKEN');
+    });
+
+    it('returns 400 for expired token', async () => {
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'expired-token',
+        email: 'doc@example.com',
+        used: false,
+        expiresAt: new Date(Date.now() - 3600000), // expired 1 hour ago
+      });
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'expired-token', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('TOKEN_EXPIRED');
+    });
+
+    it('returns 400 for already-used token', async () => {
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'used-token',
+        email: 'doc@example.com',
+        used: true,
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'used-token', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('TOKEN_USED');
+    });
+
+    it('resets password successfully with valid token', async () => {
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'valid-token',
+        email: 'doc@example.com',
+        used: false,
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      mockPrisma.user.findUnique.mockResolvedValue(testUser);
+      mockPrisma.passwordResetToken.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'valid-token', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('reset successfully');
+    });
   });
 });

@@ -1,50 +1,83 @@
 /**
  * Users Routes Tests
  *
- * Tests for /api/users endpoints: authentication requirements.
- * Phase 12: Patient Ownership & Assignment System
+ * Tests for /api/users endpoints: authentication + happy-path operations.
  *
- * Note: Role-based authorization tests (403 for non-assigned physicians, etc.)
- * are covered by E2E Playwright tests due to ESM module mocking limitations.
- * See frontend/e2e/auth.spec.ts for comprehensive auth and access control tests.
+ * Uses jest.unstable_mockModule + dynamic imports because ESM module
+ * mocking with jest.mock() does not intercept transitive dependencies.
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import request from 'supertest';
 import express, { Express } from 'express';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const mockVerifyToken = jest.fn<any>();
-const mockFindUserById = jest.fn<any>();
-const mockIsStaffAssignedToPhysician = jest.fn<any>();
+// ── Mock setup (BEFORE dynamic imports) ────────────────────────────
 
-const mockUserFindUnique = jest.fn<any>();
-const mockUserFindMany = jest.fn<any>();
-const mockStaffAssignmentFindMany = jest.fn<any>();
-/* eslint-enable @typescript-eslint/no-explicit-any */
-
-// Mock the database module
-jest.mock('../../config/database.js', () => ({
-  prisma: {
-    user: {
-      findUnique: mockUserFindUnique,
-      findMany: mockUserFindMany,
-    },
-    staffAssignment: {
-      findMany: mockStaffAssignmentFindMany,
-    },
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn<any>(),
+    findMany: jest.fn<any>(),
   },
+  staffAssignment: {
+    findMany: jest.fn<any>(),
+  },
+};
+
+const physicianUser = {
+  id: 1,
+  email: 'doc@example.com',
+  displayName: 'Dr. Test',
+  roles: ['PHYSICIAN'],
+  isActive: true,
+};
+
+const adminUser = {
+  id: 2,
+  email: 'admin@example.com',
+  displayName: 'Admin User',
+  roles: ['ADMIN'],
+  isActive: true,
+};
+
+const staffUser = {
+  id: 3,
+  email: 'staff@example.com',
+  displayName: 'Staff User',
+  roles: ['STAFF'],
+  isActive: true,
+};
+
+let currentUser: any = physicianUser;
+let authBlocked = false;
+
+jest.unstable_mockModule('../../config/database.js', () => ({
+  prisma: mockPrisma,
 }));
 
-// Mock authService
-jest.mock('../../services/authService.js', () => ({
-  verifyToken: mockVerifyToken,
-  findUserById: mockFindUserById,
-  isStaffAssignedToPhysician: mockIsStaffAssignedToPhysician,
+jest.unstable_mockModule('../../middleware/auth.js', () => ({
+  requireAuth: (req: any, _res: any, next: any) => {
+    if (authBlocked) {
+      const err: any = new Error('Authentication required');
+      err.statusCode = 401;
+      err.code = 'UNAUTHORIZED';
+      return next(err);
+    }
+    req.user = currentUser;
+    next();
+  },
+  requirePatientDataAccess: (_req: any, _res: any, next: any) => next(),
+  requireRole: () => (_req: any, _res: any, next: any) => next(),
 }));
 
-// Mock config
-jest.mock('../../config/index.js', () => ({
+jest.unstable_mockModule('../../services/authService.js', () => ({
+  isStaffAssignedToPhysician: jest.fn<any>().mockResolvedValue(true),
+  verifyToken: jest.fn<any>(),
+  findUserById: jest.fn<any>(),
+}));
+
+jest.unstable_mockModule('../../config/index.js', () => ({
   config: {
     jwtSecret: 'test-secret-key',
     jwtExpiresIn: '1h',
@@ -52,10 +85,13 @@ jest.mock('../../config/index.js', () => ({
   },
 }));
 
-import usersRouter from '../users.routes.js';
-import { errorHandler } from '../../middleware/errorHandler.js';
+// ── Dynamic imports (AFTER mocks) ──────────────────────────────────
 
-// Create test app
+const { default: usersRouter } = await import('../users.routes.js');
+const { errorHandler } = await import('../../middleware/errorHandler.js');
+
+// ── Helpers ────────────────────────────────────────────────────────
+
 function createTestApp(): Express {
   const app = express();
   app.use(express.json());
@@ -64,72 +100,179 @@ function createTestApp(): Express {
   return app;
 }
 
-describe('users routes', () => {
+// ── Tests ──────────────────────────────────────────────────────────
+
+describe('Users Routes', () => {
   let app: Express;
 
   beforeEach(() => {
-    app = createTestApp();
     jest.clearAllMocks();
-    mockVerifyToken.mockReturnValue(null);
+    authBlocked = false;
+    currentUser = physicianUser;
+    app = createTestApp();
   });
 
-  describe('authentication requirements', () => {
-    it('should return 401 for GET /physicians when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/users/physicians');
+  // ── Auth ────────────────────────────────────────────────────────
 
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('UNAUTHORIZED');
+  describe('authentication', () => {
+    it('returns 401 for GET /physicians when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).get('/api/users/physicians');
+      expect(res.status).toBe(401);
     });
 
-    it('should return 401 for GET /physicians/:id when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/users/physicians/1');
-
-      expect(response.status).toBe(401);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('UNAUTHORIZED');
-    });
-
-    it('should return 401 for GET /physicians with missing Bearer prefix', async () => {
-      const response = await request(app)
-        .get('/api/users/physicians')
-        .set('Authorization', 'InvalidToken');
-
-      expect(response.status).toBe(401);
-      expect(response.body.error.code).toBe('UNAUTHORIZED');
-    });
-
-    it('should return 401 for GET /physicians/:id with invalid token format', async () => {
-      const response = await request(app)
-        .get('/api/users/physicians/1')
-        .set('Authorization', 'Basic abc123');
-
-      expect(response.status).toBe(401);
-      expect(response.body.error.code).toBe('UNAUTHORIZED');
+    it('returns 401 for GET /physicians/:id when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).get('/api/users/physicians/1');
+      expect(res.status).toBe(401);
     });
   });
 
-  // Note: The following scenarios are tested via E2E Playwright tests
-  // due to ESM module mocking limitations with Jest:
-  //
-  // GET /physicians:
-  // - PHYSICIAN returns only self
-  // - STAFF returns only assigned physicians
-  // - STAFF filters out inactive physicians
-  // - ADMIN returns all physicians with canHavePatients
-  // - STAFF with no assignments returns empty array
-  //
-  // GET /physicians/:id:
-  // - Invalid physician ID returns 400
-  // - PHYSICIAN viewing another physician returns 403
-  // - PHYSICIAN viewing self returns 200
-  // - STAFF viewing unassigned physician returns 403
-  // - STAFF viewing assigned physician returns 200
-  // - ADMIN can view any physician
-  // - Non-existent physician returns 404
-  // - User without canHavePatients returns 404
-  //
-  // See: frontend/e2e/auth.spec.ts
+  // ── GET /api/users/physicians ──────────────────────────────────
+
+  describe('GET /api/users/physicians', () => {
+    it('returns only self for PHYSICIAN role', async () => {
+      currentUser = physicianUser;
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 1,
+        displayName: 'Dr. Test',
+        email: 'doc@example.com',
+        roles: ['PHYSICIAN'],
+      });
+
+      const res = await request(app).get('/api/users/physicians');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(1);
+      expect(res.body.data[0].displayName).toBe('Dr. Test');
+    });
+
+    it('returns all physicians for ADMIN role', async () => {
+      currentUser = adminUser;
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: 1, displayName: 'Dr. Test', email: 'doc@example.com', roles: ['PHYSICIAN'] },
+        { id: 5, displayName: 'Dr. Other', email: 'other@example.com', roles: ['PHYSICIAN'] },
+      ]);
+
+      const res = await request(app).get('/api/users/physicians');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(2);
+    });
+
+    it('returns assigned physicians for STAFF role', async () => {
+      currentUser = staffUser;
+      mockPrisma.staffAssignment.findMany.mockResolvedValue([
+        {
+          physician: {
+            id: 1,
+            displayName: 'Dr. Test',
+            email: 'doc@example.com',
+            roles: ['PHYSICIAN'],
+            isActive: true,
+          },
+        },
+      ]);
+
+      const res = await request(app).get('/api/users/physicians');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].displayName).toBe('Dr. Test');
+    });
+
+    it('filters out inactive physicians for STAFF role', async () => {
+      currentUser = staffUser;
+      mockPrisma.staffAssignment.findMany.mockResolvedValue([
+        {
+          physician: {
+            id: 1,
+            displayName: 'Dr. Active',
+            email: 'active@example.com',
+            roles: ['PHYSICIAN'],
+            isActive: true,
+          },
+        },
+        {
+          physician: {
+            id: 2,
+            displayName: 'Dr. Inactive',
+            email: 'inactive@example.com',
+            roles: ['PHYSICIAN'],
+            isActive: false,
+          },
+        },
+      ]);
+
+      const res = await request(app).get('/api/users/physicians');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].displayName).toBe('Dr. Active');
+    });
+  });
+
+  // ── GET /api/users/physicians/:id ──────────────────────────────
+
+  describe('GET /api/users/physicians/:id', () => {
+    it('returns physician details for valid ID', async () => {
+      currentUser = physicianUser;
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 1,
+        displayName: 'Dr. Test',
+        email: 'doc@example.com',
+        roles: ['PHYSICIAN'],
+        isActive: true,
+      });
+
+      const res = await request(app).get('/api/users/physicians/1');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe(1);
+      expect(res.body.data.displayName).toBe('Dr. Test');
+    });
+
+    it('returns 400 for invalid ID format', async () => {
+      const res = await request(app).get('/api/users/physicians/abc');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_PHYSICIAN_ID');
+    });
+
+    it('returns 403 when PHYSICIAN tries to view another physician', async () => {
+      currentUser = physicianUser; // id=1, tries to view id=999
+      const res = await request(app).get('/api/users/physicians/999');
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
+
+    it('returns 404 for non-existent physician (as ADMIN)', async () => {
+      currentUser = adminUser;
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      const res = await request(app).get('/api/users/physicians/999');
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('returns 404 for user without PHYSICIAN role', async () => {
+      currentUser = adminUser;
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 3,
+        displayName: 'Admin Only',
+        email: 'admin@example.com',
+        roles: ['ADMIN'],
+        isActive: true,
+      });
+
+      const res = await request(app).get('/api/users/physicians/3');
+
+      expect(res.status).toBe(404);
+    });
+  });
 });

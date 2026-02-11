@@ -1,50 +1,65 @@
 ---
-allowed-tools: Bash(*), Read, Glob, Grep
+allowed-tools: Task
 description: Pre-deployment GO/NO-GO readiness check
 ---
 
-# JH Deploy Validate Command
+# JH Deploy Validate Command (Background Agent)
 
-Run a comprehensive pre-deployment validation to determine GO/NO-GO readiness.
+**IMPORTANT:** Do NOT execute these steps yourself. Launch a background Task agent.
 
-## Usage
+Use the Task tool with:
+- `subagent_type`: `"deployment-validator"`
+- `run_in_background`: `true`
+- `description`: `"Pre-deploy GO/NO-GO check"`
+- `prompt`: the workflow below
+
+Tell the user: "Deploy validation running in background. I'll notify you when it's done — you can keep working."
+
+---
+
+## Workflow prompt to pass to the background agent:
+
 ```
-/jh-7-deploy-validate
-```
+Perform pre-deployment validation for the patient-tracker project.
+Working directory: C:\Users\joyxh\projects\patient-tracker
 
-## Workflow
+Run ALL checks (use /c/Users/joyxh/projects/patient-tracker paths for bash):
 
-### Step 1: Invoke deployment-validator Agent
+1. Git state:
+   - git status (clean working tree?)
+   - git branch --show-current (on develop?)
+   - git log origin/develop..HEAD (anything unpushed?)
 
-Use the Task tool to launch the `deployment-validator` agent:
+2. Test gate (all 4 layers — ALL must pass):
+   - cd /c/Users/joyxh/projects/patient-tracker/backend && npm test
+   - cd /c/Users/joyxh/projects/patient-tracker/frontend && npx vitest run
+   - cd /c/Users/joyxh/projects/patient-tracker/frontend && npm run e2e
+   - cd /c/Users/joyxh/projects/patient-tracker/frontend && npm run cypress:run
 
-```
-Launch the deployment-validator agent with this prompt:
+3. Build gate:
+   - cd /c/Users/joyxh/projects/patient-tracker/frontend && npm run build
+   - cd /c/Users/joyxh/projects/patient-tracker/backend && npx tsc --noEmit
 
-"Perform pre-deployment validation for the patient-tracker project.
-Working directory: {project-root}
+4. Documentation consistency:
+   - Read .claude/CHANGELOG.md, .claude/IMPLEMENTATION_STATUS.md, .claude/TODO.md
+   - Cross-check for contradictions or missing items
 
-Run all checks:
-1. Git state (clean tree, correct branch, sync status)
-2. Test gate (all 4 layers)
-3. Build gate (frontend build, backend type check)
-4. Documentation consistency (CHANGELOG vs IMPLEMENTATION_STATUS vs TODO)
-5. Environment check (.env.example, secrets)
+5. Environment check:
+   - Verify .env.example exists and is up to date
+   - Check no secrets are committed in source
 
-Produce the GO/NO-GO verdict with full checks table."
-```
-
-### Step 2: Present Results
-
-Display the deployment validation report to the user, highlighting:
-- **GO/NO-GO verdict**
+Produce the GO/NO-GO verdict with:
+- Checks table (CHECK | STATUS | DETAILS)
 - Blocking issues (if any)
 - Warnings
-- Readiness for `/release`
+- Final verdict: GO or NO-GO
+- If GO: "Ready for /release"
+- If NO-GO: list what must be fixed first
 
-## Rules
-- This is a READ-ONLY validation — no files are modified
+Rules:
+- READ-ONLY validation — no files are modified
 - Test failure = BLOCKING (no exceptions)
 - Build failure = BLOCKING (no exceptions)
 - Doc mismatch = WARNING
 - Clear GO/NO-GO verdict required
+```

@@ -200,7 +200,7 @@ export function getTracking1OptionsForStatus(measureStatus: string): string[] | 
 // Check if Request Type has single Quality Measure (auto-fill)
 export function shouldAutoFillQualityMeasure(requestType: string): boolean {
   const measures = REQUEST_TYPE_TO_QUALITY_MEASURE[requestType];
-  return measures && measures.length === 1;
+  return !!measures && measures.length === 1;
 }
 
 // Get auto-fill value for Quality Measure

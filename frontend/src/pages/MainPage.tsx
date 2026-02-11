@@ -9,6 +9,8 @@ import { QUALITY_MEASURE_TO_STATUS } from '../config/dropdownConfig';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import { api } from '../api/axios';
+import { getApiErrorMessage } from '../utils/apiError';
+import { showToast } from '../utils/toast';
 import { useAuthStore } from '../stores/authStore';
 import { useSocket } from '../hooks/useSocket';
 import { useRealtimeStore } from '../stores/realtimeStore';
@@ -179,7 +181,7 @@ export default function MainPage() {
       hasLoadedOnce.current = true;
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError('Failed to load patient data. Please try again.');
+      setError(getApiErrorMessage(err, 'Failed to load patient data. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -258,6 +260,7 @@ export default function MainPage() {
     } catch (err) {
       console.error('Failed to add row:', err);
       setSaveStatus('error');
+      showToast(getApiErrorMessage(err, 'Failed to create row'), 'error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
@@ -307,6 +310,7 @@ export default function MainPage() {
     } catch (err) {
       console.error('Failed to duplicate row:', err);
       setSaveStatus('error');
+      showToast(getApiErrorMessage(err, 'Failed to duplicate row'), 'error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
@@ -329,6 +333,7 @@ export default function MainPage() {
     } catch (err) {
       console.error('Failed to delete row:', err);
       setSaveStatus('error');
+      showToast(getApiErrorMessage(err, 'Failed to delete row'), 'error');
       setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };

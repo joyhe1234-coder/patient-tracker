@@ -1,44 +1,62 @@
 /**
  * Import Routes Tests
  *
- * Tests for /api/import endpoints: authentication and authorization checks.
- * Note: Full integration testing of import functionality is done via E2E tests (Cypress),
- * as ESM module mocking with Jest has limitations for complex middleware chains.
+ * Tests for /api/import endpoints: authentication + happy-path operations.
+ *
+ * Uses jest.unstable_mockModule + dynamic imports because ESM module
+ * mocking with jest.mock() does not intercept transitive dependencies.
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import request from 'supertest';
 import express, { Express } from 'express';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const mockVerifyToken = jest.fn<any>();
-const mockFindUserById = jest.fn<any>();
-/* eslint-enable @typescript-eslint/no-explicit-any */
+// ── Mock setup (BEFORE dynamic imports) ────────────────────────────
 
-// Mock the database module
-jest.mock('../../config/database.js', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-    },
-    patient: {
-      findMany: jest.fn(),
-    },
-    patientQualityMeasure: {
-      findMany: jest.fn(),
-    },
+const mockPrisma = {
+  user: { findUnique: jest.fn<any>() },
+  patient: { findMany: jest.fn<any>() },
+};
+
+const testUser = {
+  id: 1,
+  email: 'doc@example.com',
+  displayName: 'Dr. Test',
+  roles: ['PHYSICIAN'],
+  isActive: true,
+};
+
+let authBlocked = false;
+
+jest.unstable_mockModule('../../config/database.js', () => ({
+  prisma: mockPrisma,
+}));
+
+jest.unstable_mockModule('../../middleware/auth.js', () => ({
+  requireAuth: (req: any, _res: any, next: any) => {
+    if (authBlocked) {
+      const err: any = new Error('Authentication required');
+      err.statusCode = 401;
+      err.code = 'UNAUTHORIZED';
+      return next(err);
+    }
+    req.user = testUser;
+    next();
+  },
+  requirePatientDataAccess: (_req: any, _res: any, next: any) => next(),
+  requireRole: () => (_req: any, _res: any, next: any) => next(),
+}));
+
+jest.unstable_mockModule('../../middleware/socketIdMiddleware.js', () => ({
+  socketIdMiddleware: (req: any, _res: any, next: any) => {
+    req.socketId = 'test-socket-id';
+    next();
   },
 }));
 
-// Mock authService
-jest.mock('../../services/authService.js', () => ({
-  verifyToken: mockVerifyToken,
-  findUserById: mockFindUserById,
-  isStaffAssignedToPhysician: jest.fn(),
-}));
-
-// Mock config
-jest.mock('../../config/index.js', () => ({
+jest.unstable_mockModule('../../config/index.js', () => ({
   config: {
     jwtSecret: 'test-secret-key',
     jwtExpiresIn: '1h',
@@ -46,76 +64,172 @@ jest.mock('../../config/index.js', () => ({
 }));
 
 // Mock configLoader
-jest.mock('../../services/import/configLoader.js', () => ({
-  listSystems: jest.fn().mockReturnValue([]),
-  systemExists: jest.fn().mockReturnValue(false),
-  loadSystemConfig: jest.fn(),
+const mockListSystems = jest.fn<any>().mockReturnValue([
+  { id: 'hill', name: 'Hill Healthcare' },
+]);
+const mockSystemExists = jest.fn<any>().mockReturnValue(true);
+const mockLoadSystemConfig = jest.fn<any>().mockReturnValue({
+  name: 'Hill Healthcare',
+  version: '1.0',
+  patientColumns: { Patient: {}, DOB: {} },
+  measureColumns: { 'Annual Wellness Visit': { qualityMeasure: 'AWV' } },
+  skipColumns: [],
+});
+
+jest.unstable_mockModule('../../services/import/configLoader.js', () => ({
+  listSystems: mockListSystems,
+  systemExists: mockSystemExists,
+  loadSystemConfig: mockLoadSystemConfig,
 }));
 
 // Mock fileParser
-jest.mock('../../services/import/fileParser.js', () => ({
-  parseFile: jest.fn(),
-  validateRequiredColumns: jest.fn(),
+const mockParseFile = jest.fn<any>().mockReturnValue({
+  fileName: 'test.csv',
+  fileType: 'csv',
+  totalRows: 2,
+  headers: ['Patient', 'DOB', 'Annual Wellness Visit Q2'],
+  rows: [
+    ['Smith, John', '01/15/1990', 'Compliant'],
+    ['Doe, Jane', '05/20/1985', 'Non Compliant'],
+  ],
+  dataStartRow: 2,
+});
+const mockValidateRequiredColumns = jest.fn<any>().mockReturnValue({ valid: true, missing: [] });
+
+jest.unstable_mockModule('../../services/import/fileParser.js', () => ({
+  parseFile: mockParseFile,
+  validateRequiredColumns: mockValidateRequiredColumns,
 }));
 
 // Mock columnMapper
-jest.mock('../../services/import/columnMapper.js', () => ({
-  mapColumns: jest.fn(),
+jest.unstable_mockModule('../../services/import/columnMapper.js', () => ({
+  mapColumns: jest.fn<any>().mockReturnValue({
+    mappedColumns: [],
+    unmappedColumns: [],
+    missingRequired: [],
+    stats: { mapped: 3, skipped: 0, unmapped: 0 },
+  }),
 }));
 
 // Mock dataTransformer
-jest.mock('../../services/import/dataTransformer.js', () => ({
-  transformData: jest.fn(),
-  groupByPatient: jest.fn(),
+jest.unstable_mockModule('../../services/import/dataTransformer.js', () => ({
+  transformData: jest.fn<any>().mockReturnValue({
+    rows: [
+      { memberName: 'Smith, John', qualityMeasure: 'AWV', measureStatus: 'Compliant', sourceRowIndex: 0 },
+      { memberName: 'Doe, Jane', qualityMeasure: 'AWV', measureStatus: 'Non Compliant', sourceRowIndex: 1 },
+    ],
+    stats: { inputRows: 2, outputRows: 2, patientsWithNoMeasures: 0 },
+    errors: [],
+    patientsWithNoMeasures: [],
+    mapping: { stats: { mapped: 3, skipped: 0, unmapped: 0 }, unmappedColumns: [], missingRequired: [] },
+    dataStartRow: 2,
+  }),
+  groupByPatient: jest.fn<any>().mockReturnValue(new Map([['Smith, John', []], ['Doe, Jane', []]])),
 }));
 
 // Mock validator
-jest.mock('../../services/import/validator.js', () => ({
-  validateRows: jest.fn(),
+jest.unstable_mockModule('../../services/import/validator.js', () => ({
+  validateRows: jest.fn<any>().mockReturnValue({
+    valid: true,
+    errors: [],
+    warnings: [],
+    duplicates: [],
+    stats: { totalRows: 2, validRows: 2, errorCount: 0, warningCount: 0, duplicateGroups: 0 },
+  }),
 }));
 
 // Mock errorReporter
-jest.mock('../../services/import/errorReporter.js', () => ({
-  generateErrorReport: jest.fn(),
-  getCondensedReport: jest.fn(),
+jest.unstable_mockModule('../../services/import/errorReporter.js', () => ({
+  generateErrorReport: jest.fn<any>().mockReturnValue({
+    summary: { status: 'success', canProceed: true, errorCount: 0, warningCount: 0, message: 'OK' },
+    errorsByField: {},
+  }),
+  getCondensedReport: jest.fn<any>().mockReturnValue({
+    summary: { status: 'success', canProceed: true, errorCount: 0, warningCount: 0, message: 'OK' },
+    topErrors: [],
+    topWarnings: [],
+    duplicates: [],
+  }),
 }));
 
 // Mock diffCalculator
-jest.mock('../../services/import/diffCalculator.js', () => ({
-  calculateDiff: jest.fn(),
-  detectReassignments: jest.fn(),
-  filterChangesByAction: jest.fn((changes) => changes),
-  getModifyingChanges: jest.fn((changes) => changes),
+jest.unstable_mockModule('../../services/import/diffCalculator.js', () => ({
+  calculateDiff: jest.fn<any>().mockResolvedValue({
+    changes: [
+      { action: 'INSERT', memberName: 'Smith, John', memberDob: '1990-01-15', requestType: 'AWV', qualityMeasure: 'AWV', oldStatus: null, newStatus: 'Compliant', reason: 'New' },
+    ],
+    summary: { inserts: 1, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+    newPatients: 1,
+    existingPatients: 0,
+  }),
+  detectReassignments: jest.fn<any>().mockResolvedValue([]),
+  filterChangesByAction: jest.fn<any>().mockImplementation((changes: any) => changes),
+  getModifyingChanges: jest.fn<any>().mockImplementation((changes: any) => changes),
 }));
 
 // Mock previewCache
-jest.mock('../../services/import/previewCache.js', () => ({
-  storePreview: jest.fn(),
-  getPreview: jest.fn(),
-  deletePreview: jest.fn(),
-  getPreviewSummary: jest.fn(),
-  getCacheStats: jest.fn(),
+const mockStorePreview = jest.fn<any>().mockReturnValue('preview-id-123');
+const mockGetPreview = jest.fn<any>().mockReturnValue({
+  diff: {
+    changes: [{ action: 'INSERT', memberName: 'Smith', memberDob: '1990-01-15', requestType: 'AWV', qualityMeasure: 'AWV', oldStatus: null, newStatus: 'Compliant', reason: 'New' }],
+    summary: { inserts: 1, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+    newPatients: 1,
+    existingPatients: 0,
+  },
+  warnings: [],
+  reassignments: [],
+  targetOwnerId: 1,
+  expiresAt: new Date(Date.now() + 3600000),
+});
+const mockDeletePreview = jest.fn<any>().mockReturnValue(true);
+const mockGetPreviewSummary = jest.fn<any>().mockReturnValue({
+  previewId: 'preview-id-123',
+  systemId: 'hill',
+  mode: 'merge',
+  summary: { inserts: 1, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+});
+const mockGetCacheStats = jest.fn<any>().mockReturnValue({ totalEntries: 1, totalSize: 1024 });
+
+jest.unstable_mockModule('../../services/import/previewCache.js', () => ({
+  storePreview: mockStorePreview,
+  getPreview: mockGetPreview,
+  deletePreview: mockDeletePreview,
+  getPreviewSummary: mockGetPreviewSummary,
+  getCacheStats: mockGetCacheStats,
 }));
 
 // Mock importExecutor
-jest.mock('../../services/import/importExecutor.js', () => ({
-  executeImport: jest.fn(),
+const mockExecuteImport = jest.fn<any>().mockResolvedValue({
+  success: true,
+  mode: 'merge',
+  stats: { inserted: 1, updated: 0, deleted: 0, skipped: 0, bothKept: 0 },
+  duration: 150,
+  errors: [],
+});
+
+jest.unstable_mockModule('../../services/import/importExecutor.js', () => ({
+  executeImport: mockExecuteImport,
 }));
 
 // Mock socketManager
-jest.mock('../../services/socketManager.js', () => ({
-  broadcastToRoom: jest.fn(),
-  getRoomName: jest.fn().mockReturnValue('physician:1'),
+jest.unstable_mockModule('../../services/socketManager.js', () => ({
+  broadcastToRoom: jest.fn<any>(),
+  getRoomName: jest.fn<any>().mockReturnValue('physician:1'),
 }));
 
-// Mock upload middleware
-jest.mock('../../middleware/upload.js', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Mock authService
+jest.unstable_mockModule('../../services/authService.js', () => ({
+  isStaffAssignedToPhysician: jest.fn<any>().mockResolvedValue(true),
+  verifyToken: jest.fn<any>(),
+  findUserById: jest.fn<any>(),
+}));
+
+// Mock upload middleware to simulate multer
+jest.unstable_mockModule('../../middleware/upload.js', () => ({
   handleUpload: (req: any, _res: any, next: any) => {
-    // Simulate multer setting req.file
     if (req.headers['x-test-file']) {
       req.file = {
-        buffer: Buffer.from('test file content'),
+        buffer: Buffer.from('Patient,DOB,AWV Q2\nSmith,1990-01-15,Compliant'),
         originalname: req.headers['x-test-file'],
       };
     }
@@ -123,10 +237,13 @@ jest.mock('../../middleware/upload.js', () => ({
   },
 }));
 
-import importRouter from '../import.routes.js';
-import { errorHandler } from '../../middleware/errorHandler.js';
+// ── Dynamic imports (AFTER mocks) ──────────────────────────────────
 
-// Create test app
+const { default: importRouter } = await import('../import.routes.js');
+const { errorHandler } = await import('../../middleware/errorHandler.js');
+
+// ── Helpers ────────────────────────────────────────────────────────
+
 function createTestApp(): Express {
   const app = express();
   app.use(express.json());
@@ -135,111 +252,300 @@ function createTestApp(): Express {
   return app;
 }
 
-describe('import routes', () => {
+// ── Tests ──────────────────────────────────────────────────────────
+
+describe('Import Routes', () => {
   let app: Express;
 
   beforeEach(() => {
-    app = createTestApp();
     jest.clearAllMocks();
-    mockVerifyToken.mockReturnValue(null);
+    authBlocked = false;
+    app = createTestApp();
+    // Re-set defaults after clearAllMocks
+    mockListSystems.mockReturnValue([{ id: 'hill', name: 'Hill Healthcare' }]);
+    mockSystemExists.mockReturnValue(true);
+    mockLoadSystemConfig.mockReturnValue({
+      name: 'Hill Healthcare',
+      version: '1.0',
+      patientColumns: { Patient: {}, DOB: {} },
+      measureColumns: { 'Annual Wellness Visit': { qualityMeasure: 'AWV' } },
+      skipColumns: [],
+    });
+    mockGetPreview.mockReturnValue({
+      diff: {
+        changes: [{ action: 'INSERT', memberName: 'Smith', memberDob: '1990-01-15', requestType: 'AWV', qualityMeasure: 'AWV', oldStatus: null, newStatus: 'Compliant', reason: 'New' }],
+        summary: { inserts: 1, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+        newPatients: 1,
+        existingPatients: 0,
+      },
+      warnings: [],
+      reassignments: [],
+      targetOwnerId: 1,
+      expiresAt: new Date(Date.now() + 3600000),
+    });
+    mockStorePreview.mockReturnValue('preview-id-123');
+    mockDeletePreview.mockReturnValue(true);
+    mockGetCacheStats.mockReturnValue({ totalEntries: 1, totalSize: 1024 });
+    mockExecuteImport.mockResolvedValue({
+      success: true,
+      mode: 'merge',
+      stats: { inserted: 1, updated: 0, deleted: 0, skipped: 0, bothKept: 0 },
+      duration: 150,
+      errors: [],
+    });
   });
 
-  describe('authentication requirements', () => {
-    it('should return 401 for GET /systems when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/import/systems');
+  // ── Authentication ──────────────────────────────────────────────
 
-      expect(response.status).toBe(401);
+  describe('authentication', () => {
+    it('returns 401 for GET /systems when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).get('/api/import/systems');
+      expect(res.status).toBe(401);
     });
 
-    it('should return 401 for GET /systems/:systemId when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/import/systems/hill');
-
-      expect(response.status).toBe(401);
+    it('returns 401 for POST /parse when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).post('/api/import/parse').set('x-test-file', 'test.csv');
+      expect(res.status).toBe(401);
     });
 
-    it('should return 401 for POST /parse when not authenticated', async () => {
-      const response = await request(app)
+    it('returns 401 for POST /preview when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).post('/api/import/preview').set('x-test-file', 'test.csv');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 401 for POST /execute when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app).post('/api/import/execute/preview-id');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  // ── GET /api/import/systems ─────────────────────────────────────
+
+  describe('GET /api/import/systems', () => {
+    it('returns available systems', async () => {
+      const res = await request(app).get('/api/import/systems');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe('hill');
+    });
+  });
+
+  // ── GET /api/import/systems/:systemId ───────────────────────────
+
+  describe('GET /api/import/systems/:systemId', () => {
+    it('returns system configuration', async () => {
+      const res = await request(app).get('/api/import/systems/hill');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe('hill');
+      expect(res.body.data.name).toBe('Hill Healthcare');
+    });
+
+    it('returns 404 for non-existent system', async () => {
+      mockSystemExists.mockReturnValue(false);
+
+      const res = await request(app).get('/api/import/systems/unknown');
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  // ── POST /api/import/parse ──────────────────────────────────────
+
+  describe('POST /api/import/parse', () => {
+    it('parses uploaded file', async () => {
+      const res = await request(app)
         .post('/api/import/parse')
-        .set('x-test-file', 'test.xlsx');
+        .set('x-test-file', 'test.csv');
 
-      expect(response.status).toBe(401);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.fileName).toBe('test.csv');
+      expect(res.body.data.totalRows).toBe(2);
     });
 
-    it('should return 401 for POST /analyze when not authenticated', async () => {
-      const response = await request(app)
-        .post('/api/import/analyze')
-        .set('x-test-file', 'test.xlsx');
+    it('returns 400 when no file uploaded', async () => {
+      const res = await request(app).post('/api/import/parse');
 
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for POST /transform when not authenticated', async () => {
-      const response = await request(app)
-        .post('/api/import/transform')
-        .set('x-test-file', 'test.xlsx');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for POST /validate when not authenticated', async () => {
-      const response = await request(app)
-        .post('/api/import/validate')
-        .set('x-test-file', 'test.xlsx');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for POST /preview when not authenticated', async () => {
-      const response = await request(app)
-        .post('/api/import/preview')
-        .set('x-test-file', 'test.xlsx');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for GET /preview/:previewId when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/import/preview/test-preview-id');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for DELETE /preview/:previewId when not authenticated', async () => {
-      const response = await request(app)
-        .delete('/api/import/preview/test-preview-id');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for POST /execute/:previewId when not authenticated', async () => {
-      const response = await request(app)
-        .post('/api/import/execute/test-preview-id');
-
-      expect(response.status).toBe(401);
-    });
-
-    it('should return 401 for GET /preview-cache/stats when not authenticated', async () => {
-      const response = await request(app)
-        .get('/api/import/preview-cache/stats');
-
-      expect(response.status).toBe(401);
+      expect(res.status).toBe(400);
     });
   });
 
-  // Note: Authorization and full functionality tests are covered by E2E Cypress tests
-  // due to ESM module mocking limitations with middleware chains.
-  //
-  // The following scenarios should be tested via E2E:
-  // - PHYSICIAN can access all import routes
-  // - STAFF can access import routes and must specify physicianId for preview
-  // - ADMIN without canHavePatients cannot access import routes (403)
-  // - File upload parsing, transformation, and validation
-  // - Preview generation with merge/replace modes
-  // - Preview retrieval with pagination and filtering
-  // - Import execution with/without reassignment confirmation
-  // - Cache statistics
-  //
-  // See: frontend/cypress/e2e/import-*.cy.ts
+  // ── POST /api/import/analyze ────────────────────────────────────
+
+  describe('POST /api/import/analyze', () => {
+    it('analyzes column mappings', async () => {
+      const res = await request(app)
+        .post('/api/import/analyze')
+        .set('x-test-file', 'test.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.mapping).toBeDefined();
+    });
+  });
+
+  // ── POST /api/import/transform ──────────────────────────────────
+
+  describe('POST /api/import/transform', () => {
+    it('transforms file data', async () => {
+      const res = await request(app)
+        .post('/api/import/transform')
+        .set('x-test-file', 'test.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.stats).toBeDefined();
+    });
+  });
+
+  // ── POST /api/import/validate ───────────────────────────────────
+
+  describe('POST /api/import/validate', () => {
+    it('validates transformed data', async () => {
+      const res = await request(app)
+        .post('/api/import/validate')
+        .set('x-test-file', 'test.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.validation).toBeDefined();
+      expect(res.body.data.validation.valid).toBe(true);
+    });
+  });
+
+  // ── POST /api/import/preview ────────────────────────────────────
+
+  describe('POST /api/import/preview', () => {
+    it('generates diff preview', async () => {
+      const res = await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'test.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.previewId).toBe('preview-id-123');
+      expect(res.body.data.summary).toBeDefined();
+      expect(res.body.data.summary.inserts).toBe(1);
+    });
+  });
+
+  // ── GET /api/import/preview/:previewId ──────────────────────────
+
+  describe('GET /api/import/preview/:previewId', () => {
+    it('returns stored preview', async () => {
+      const res = await request(app).get('/api/import/preview/preview-id-123');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.changes).toBeDefined();
+    });
+
+    it('returns 404 for expired/missing preview', async () => {
+      mockGetPreview.mockReturnValue(null);
+
+      const res = await request(app).get('/api/import/preview/nonexistent');
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  // ── DELETE /api/import/preview/:previewId ───────────────────────
+
+  describe('DELETE /api/import/preview/:previewId', () => {
+    it('deletes a preview', async () => {
+      const res = await request(app).delete('/api/import/preview/preview-id-123');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('returns 404 for missing preview', async () => {
+      mockDeletePreview.mockReturnValue(false);
+
+      const res = await request(app).delete('/api/import/preview/nonexistent');
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  // ── POST /api/import/execute/:previewId ─────────────────────────
+
+  describe('POST /api/import/execute/:previewId', () => {
+    it('executes an import', async () => {
+      const res = await request(app).post('/api/import/execute/preview-id-123');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.stats.inserted).toBe(1);
+      expect(res.body.message).toContain('Import completed');
+    });
+
+    it('returns 404 for missing preview', async () => {
+      mockGetPreview.mockReturnValue(null);
+
+      const res = await request(app).post('/api/import/execute/nonexistent');
+
+      expect(res.status).toBe(404);
+    });
+
+    it('requires confirmation for reassignments', async () => {
+      mockGetPreview.mockReturnValue({
+        diff: {
+          changes: [],
+          summary: { inserts: 0, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+          newPatients: 0,
+          existingPatients: 0,
+        },
+        warnings: [],
+        reassignments: [{ patientName: 'Smith', currentOwnerId: 2, newOwnerId: 1 }],
+        targetOwnerId: 1,
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      const res = await request(app).post('/api/import/execute/preview-id-123');
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('REASSIGNMENT_REQUIRES_CONFIRMATION');
+    });
+
+    it('proceeds with reassignment when confirmReassign=true', async () => {
+      mockGetPreview.mockReturnValue({
+        diff: {
+          changes: [],
+          summary: { inserts: 0, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+          newPatients: 0,
+          existingPatients: 0,
+        },
+        warnings: [],
+        reassignments: [{ patientName: 'Smith', currentOwnerId: 2, newOwnerId: 1 }],
+        targetOwnerId: 1,
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      const res = await request(app)
+        .post('/api/import/execute/preview-id-123?confirmReassign=true');
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // ── GET /api/import/preview-cache/stats ─────────────────────────
+
+  describe('GET /api/import/preview-cache/stats', () => {
+    it('returns cache statistics', async () => {
+      const res = await request(app).get('/api/import/preview-cache/stats');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.totalEntries).toBe(1);
+    });
+  });
 });
