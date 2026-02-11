@@ -1,54 +1,52 @@
 ---
-allowed-tools: Bash(git:*), Read, Glob, Grep
+allowed-tools: Task
 description: 4-dimension code review (bugs, security, compliance, performance)
 ---
 
-# JH Code Review Command
+# JH Code Review Command (Background Agent)
 
-Perform a rigorous 4-dimension code review of current changes.
+**IMPORTANT:** Do NOT execute these steps yourself. Launch a background Task agent.
 
-## Usage
-```
-/jh-6-code-review [branch]
-```
+Use the Task tool with:
+- `subagent_type`: `"code-reviewer"`
+- `run_in_background`: `true`
+- `description`: `"4-dimension code review"`
+- `prompt`: the workflow below, with $ARGUMENTS as the diff source
 
-**Options:**
-- `staged` — Review only staged changes (`git diff --staged`)
-- `<branch-name>` — Review changes between branch and HEAD (`git diff <branch>...HEAD`)
-- (no argument) — Review all uncommitted changes (`git diff`)
+Tell the user: "Code review running in background. I'll notify you when it's done — you can keep working."
 
-## Workflow
+---
 
-### Step 1: Invoke code-reviewer Agent
-
-Use the Task tool to launch the `code-reviewer` agent:
+## Workflow prompt to pass to the background agent:
 
 ```
-Launch the code-reviewer agent with this prompt:
+Perform a 4-dimension code review.
+Working directory: C:\Users\joyxh\projects\patient-tracker
+Diff source: $ARGUMENTS
 
-"Perform a 4-dimension code review.
-Working directory: {project-root}
-Diff source: {branch or 'staged' or 'all uncommitted'}
+Diff source options:
+- "staged" — Review only staged changes (git diff --staged)
+- "<branch-name>" — Review changes between branch and HEAD (git diff <branch>...HEAD)
+- empty/no argument — Review all uncommitted changes (git diff)
 
 Review across all 4 dimensions:
-1. Bugs & Correctness
-2. Logic & Security
-3. CLAUDE.md Compliance
-4. Performance
+1. Bugs & Correctness — logic errors, off-by-one, null handling, race conditions
+2. Logic & Security — injection, auth bypass, data exposure, OWASP issues
+3. CLAUDE.md Compliance — read C:\Users\joyxh\projects\patient-tracker\CLAUDE.md and verify changes follow project conventions
+4. Performance — N+1 queries, unnecessary re-renders, memory leaks, large payloads
 
-Validate each finding by reading surrounding context. Produce the full review report with verdict."
-```
+For each finding:
+- Validate by reading surrounding context (no false positives)
+- Include file:line reference
+- Rate severity (CRITICAL / HIGH / MEDIUM / LOW)
 
-### Step 2: Present Results
-
-Display the code review report to the user, highlighting:
-- Verdict (APPROVE / REQUEST_CHANGES / COMMENT)
-- Critical findings
+Produce the full review report with:
+- Verdict: APPROVE / REQUEST_CHANGES / COMMENT
+- Findings table with severity, dimension, description, file:line
 - CLAUDE.md compliance status
-- Suggestions for improvement
 
-## Rules
-- This is a READ-ONLY review — no files are modified
+Rules:
+- READ-ONLY review — no files are modified
 - HIGH SIGNAL ONLY — no style nitpicks
-- Every finding is validated against surrounding context
-- Includes file:line references
+- Every finding validated against surrounding context
+```

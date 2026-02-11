@@ -1,112 +1,120 @@
 ---
-allowed-tools: Bash(git:*), Read, Edit, Glob, Grep, mcp__render__*
+allowed-tools: Task
 description: Release workflow - commit, push, merge to main, and verify Render deployment
 ---
 
-# Release Workflow
+# Release Workflow (Background Agent)
 
-This skill performs a complete release cycle: commit changes, push develop, merge to main, push main, and verify deployment on Render.
+**IMPORTANT:** Do NOT execute these steps yourself. Instead, launch a background Task agent to handle the entire release workflow autonomously.
+
+Use the Task tool with:
+- `subagent_type`: `"general-purpose"`
+- `run_in_background`: `true`
+- `description`: `"Release to production"`
+- `prompt`: the full workflow below (copy it verbatim into the prompt field), prepended with the project path `C:\Users\joyxh\projects\patient-tracker` and any user arguments: $ARGUMENTS
+
+Tell the user: "Release running in background. I'll notify you when it's done — you can keep working."
+
+---
+
+## Workflow prompt to pass to the background agent:
+
+```
+Working directory: C:\Users\joyxh\projects\patient-tracker
+
+Perform a full release: commit, push develop, merge to main, push main, verify Render deployment. Follow ALL steps.
 
 ## Step 1: Analyze Changes
 
-Run these commands to understand what changed:
-- `git status` to see all changed files
-- `git diff --staged` to see staged changes
-- `git diff` to see unstaged changes
+Run bash commands (use /c/Users/joyxh/projects/patient-tracker paths):
+- `git status`
+- `git diff --staged` and `git diff`
+- `git log --oneline -5`
 
 ## Step 2: Update Documentation
 
-Read and update each of these files based on the code changes:
+Read and update these files based on code changes:
 
 ### `.claude/CHANGELOG.md`
-- Add new entry at the top with today's date
-- Describe what changed (Added/Changed/Fixed/Removed)
-- Keep entries concise but informative
-- This is the PRIMARY source of truth for what changed
+- Add entry at top with today's date (Added/Changed/Fixed/Removed)
+- This is the PRIMARY source of truth
 
 ### `.claude/IMPLEMENTATION_STATUS.md`
-- Add new features/components that were implemented
-- Update status of existing items (e.g., "In Progress" → "Complete")
-- Note any changes to existing functionality
-- Update the "Last Updated" date
+- Add new features, update statuses, update "Last Updated"
 
 ### `.claude/TODO.md`
-- Mark completed tasks as done
-- Add any new tasks discovered
-- Update priorities if needed
-- Update the "Last Updated" date
+- Mark completed tasks, update "Last Updated"
 
 ### `.claude/REGRESSION_TEST_PLAN.md`
-- Add test cases for new functionality
-- Update existing test cases if behavior changed
-- Mark tests as needed/completed
+- Add/update test cases for changed functionality
 
 ## Step 3: Reconcile Documentation
 
-**IMPORTANT:** Cross-check all documentation files to ensure consistency:
-
-1. **CHANGELOG → IMPLEMENTATION_STATUS**: Every feature in CHANGELOG should be reflected in IMPLEMENTATION_STATUS
-2. **CHANGELOG → TODO**: Completed features should be marked [x] in TODO
-3. **CHANGELOG → REGRESSION_TEST_PLAN**: New/changed features should have corresponding test cases
-4. **Check for contradictions**: If one doc says "NOT editable" and another says "editable", fix it
-5. **Check for missing items**: If TODO has an item marked complete, it should be in IMPLEMENTATION_STATUS
+Cross-check for consistency:
+1. CHANGELOG → IMPLEMENTATION_STATUS
+2. CHANGELOG → TODO
+3. CHANGELOG → REGRESSION_TEST_PLAN
+4. Check for contradictions and missing items
 
 ## Step 4: Stage and Commit on Develop
 
-1. Stage all documentation updates: `git add .claude/*.md`
-2. Stage code changes if not already staged: `git add -A`
-3. Create a descriptive commit message summarizing all changes
-4. Execute the commit
+1. Stage docs: `git add .claude/*.md`
+2. Stage code if not staged
+3. Commit with descriptive message + Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+4. Use HEREDOC for commit message
 
-## Step 5: Push Develop to Remote
+## Step 5: Push Develop
 
-1. Push the develop branch to remote: `git push origin develop`
-2. Confirm the push succeeded
+1. `git push origin develop`
+2. Confirm push succeeded
 
-## Step 6: Merge Develop into Main
+## Step 6: Merge to Main
 
-1. Switch to main branch: `git checkout main`
-2. Pull latest main (if any): `git pull origin main`
-3. Merge develop into main: `git merge develop`
-4. Resolve any conflicts if necessary
+1. `git checkout main`
+2. `git pull origin main`
+3. `git merge develop --no-edit`
+4. Resolve conflicts if any
 
-## Step 7: Push Main to Remote
+## Step 7: Push Main
 
-1. Push the main branch to remote: `git push origin main`
-2. Confirm the push succeeded
+1. `git push origin main`
+2. Confirm push succeeded
 
-## Step 8: Switch Back to Develop
+## Step 8: Return to Develop
 
-1. Switch back to develop branch: `git checkout develop`
-2. Confirm you're on develop: `git branch --show-current`
+1. `git checkout develop`
+2. Confirm: `git branch --show-current`
 
 ## Step 9: Verify Render Deployment
 
-Use Render MCP to monitor deployment status:
+Decrypt the Render API key:
+```bash
+RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.claude/render-api-key.gpg 2>/dev/null)
+```
 
-1. Wait 30-60 seconds for Render to detect the push and start deployment
-2. Use Render MCP to list recent deploys for the services:
-   - `patient-tracker-api` (backend)
-   - `patient-tracker-frontend` (frontend)
-3. Check deployment status:
-   - If "live" or "succeeded" → deployment successful
-   - If "build_failed" or "deploy_failed" → fetch logs to diagnose
-   - If "building" or "deploying" → wait and check again
-4. If deployment failed:
-   - Use Render MCP to fetch deployment logs
-   - Report the error to the user
-   - Suggest fixes based on the error
+Wait 30 seconds, then check both services:
 
-## Step 10: Confirm
+Backend (srv-d64p1524d50c73ekm41g):
+```bash
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/srv-d64p1524d50c73ekm41g/deploys?limit=1"
+```
 
-Show the user:
-- Summary of documentation updates made
-- Any reconciliation fixes applied
-- The commit message used
-- Confirmation that develop was pushed
-- Confirmation that main was updated and pushed
+Frontend (srv-d64p1gur433s73edldl0):
+```bash
+curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/srv-d64p1gur433s73edldl0/deploys?limit=1"
+```
+
+If status is "build_in_progress" or "update_in_progress", wait 30s and check again (up to 5 retries).
+If "build_failed", report the error.
+
+## Step 10: Output Summary
+
+Report:
+- Documentation updates made
+- Commit message used
+- Develop push status
+- Main merge and push status
 - Current branch (should be develop)
-- Result of `git log -1` on both branches
-- **Render deployment status** for both frontend and backend services
-
-$ARGUMENTS
+- `git log -1` result
+- Render deployment status for BOTH services (backend + frontend)
+```

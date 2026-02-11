@@ -34,10 +34,10 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] New dependency: `socket.io-client@^4.7.5`
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 564 tests, 26/28 suites passing (50 new tests)
+- Layer 1 (Backend Jest): 679 tests, all suites passing (includes rewritten route tests, middleware tests, config routes)
 - Layer 2 (Frontend Vitest): 708 tests, 25/25 suites passing (includes apiError utility tests)
 - Layer 3 (Playwright E2E): 4 new test specs (connection, conflict, updates, reconnection)
-- Layer 4 (Cypress E2E): 3 new test specs (grid updates, edit indicators, row operations)
+- Layer 4 (Cypress E2E): 3 new test specs (grid updates, edit indicators, row operations) + hover-reveal dropdown (13 tests)
 
 ### Phase 1: Project Setup & Database Foundation
 
@@ -349,7 +349,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
-- [x] Phase 4: Component tests (482 tests total)
+- [x] Phase 4: Component tests (708 tests total)
   - StatusFilterBar.test.tsx (181 tests - compact chips, quality measure dropdown, combined filter logic, getRowStatusColor, row color accuracy, chip count integrity, search UI, multi-select, accessibility, attestation cascade)
   - StatusBar.test.tsx (7 tests - consistent display format, locale formatting, Connected status, filter summary)
   - Toolbar.test.tsx (15 tests)
@@ -365,6 +365,11 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - MainPage.test.tsx (41 tests - search filtering, word-based search, multi-select filter logic, measure dropdown filtering)
   - authStore.test.ts (25 tests)
   - PatientManagementPage.test.tsx (18 tests)
+  - dropdownConfig.test.ts (45 tests - all mappings, helper functions, auto-fill, cascade chain integrity)
+  - statusColors.test.ts (29 tests - status arrays, attestation sent, overdue, priority ordering)
+  - ProtectedRoute.test.tsx (9 tests - loading, redirect, role-based access, token verification)
+  - AdminPage.test.tsx (12 tests - rendering, tabs, user list, role badges, error/loading states)
+  - PatientAssignmentPage.test.tsx (20 tests - wrapper, lazy-load, patient list, bulk assign, error/success/empty states)
 
 ### E2E Testing (Playwright)
 - [x] Phase 2: Setup (playwright.config.ts, Page Object Model)
@@ -408,6 +413,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - cypress/e2e/ux-improvements.cy.ts - Status bar, filter accessibility, import UX, password toggles
 - [x] Compact filter bar tests
   - cypress/e2e/compact-filter-bar.cy.ts - Compact chips, measure dropdown, combined filters
+- [x] Hover-reveal dropdown tests (13 tests)
+  - cypress/e2e/hover-reveal-dropdown.cy.ts - Arrow visibility, single-click opens dropdown, disabled cells hidden, styling
 
 ### Test Data Management
 - [x] Phase 7: Test isolation and data management
@@ -419,14 +426,27 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 527 tests passing
-- Total test count: ~1350+ automated tests across all frameworks (527 Jest + 482 Vitest + 43+ Playwright + 299+ Cypress)
+- [x] 679 tests passing (was 527; +84 rewritten route tests, +14 config.routes, +19 middleware, +30 dueDateCalculator, +5 import test fixes)
+- Total test count: ~1,736 automated tests across all frameworks (679 Jest + 708 Vitest + 43 Playwright + 306 Cypress)
+- [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
+  - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
+  - auth.routes.test.ts - 29 tests (login, registration, password reset, JWT)
+  - data.routes.test.ts - 24 tests (CRUD, duplicate check, physician filtering)
+  - import.routes.test.ts - 28 tests (preview, execute, parse, auth)
+  - users.routes.test.ts - 15 tests (physician endpoints, auth)
+  - config.routes.test.ts - 14 tests (all 7 config endpoints, auth, errors)
+- [x] Middleware tests:
+  - errorHandler.test.ts - 12 tests (status codes, error codes, stack traces, createError factory)
+  - upload.test.ts - 7 tests (CSV/XLSX/XLS accept, PDF/TXT/JSON reject, missing file)
+- [x] Service tests:
+  - dueDateCalculator.test.ts - 31 tests (Prisma mock, edge cases, month boundaries)
 - [x] Import services tests:
   - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
   - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
-  - mergeLogic.test.ts - 12 integration tests (seeded DB required for UPDATE/SKIP scenarios)
+  - mergeLogic.test.ts - 12 integration tests (graceful DB skip, `import.meta.url` fix)
   - previewCache.test.ts - 17 tests (cache TTL, cleanup)
-  - validator.test.ts - validation error handling
+  - validator.test.ts - validation error handling (`import.meta.url` fix)
+  - integration.test.ts - integration tests (`import.meta.url` fix)
   - importExecutor.test.ts - 16 tests (replace/merge mode execution)
 
 ---
@@ -741,6 +761,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 11, 2026 - Test audit: +244 tests (84 route rewrites, 19 middleware, 14 config.routes, 45 dropdownConfig, 29 statusColors, 12 AdminPage, 20 PatientAssignmentPage, 9 ProtectedRoute, 13 hover-reveal Cypress, 30 dueDateCalculator). Fixed 13 pre-existing failures. 3 bugs fixed. Hover-reveal dropdown CSS. Slash commands refactored to background agents. Total: 679 Jest + 708 Vitest + 43 Playwright + 306 Cypress = 1,736.
 February 11, 2026 - API error handling UX: getApiErrorMessage utility, replaced alert() with showToast(), added toast to MainPage catch blocks. 8 new Vitest tests. Total: 708 Vitest.
 February 9, 2026 - Compact Filter Bar with Quality Measure Dropdown (482 Vitest tests, +139), BUG-8 fix (chip counts on cell edit), removed Assign Patients button from Admin page, deployment pipeline & Windows Server support.
 February 8, 2026 - Numbered JH workflow commands (jh-1 through jh-7), added 7 dedicated agent definitions, refactored spec-create/spec-steering-setup.

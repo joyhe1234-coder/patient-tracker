@@ -1,50 +1,51 @@
 ---
-allowed-tools: Bash(*), Read, Glob, Grep
+allowed-tools: Task
 description: OWASP top 10 + dependency audit + auth review
 ---
 
-# JH Security Audit Command
+# JH Security Audit Command (Background Agent)
 
-Perform a comprehensive security audit of the codebase.
+**IMPORTANT:** Do NOT execute these steps yourself. Launch a background Task agent.
 
-## Usage
-```
-/jh-5-security-audit [scope]
-```
+Use the Task tool with:
+- `subagent_type`: `"security-auditor"`
+- `run_in_background`: `true`
+- `description`: `"Security audit"`
+- `prompt`: the workflow below, with $ARGUMENTS as the scope (or "full" if no argument)
 
-**Scope options:**
-- `auth` — Focus on authentication and authorization
-- `api` — Focus on API endpoints and input validation
-- `frontend` — Focus on frontend security (XSS, CSRF)
-- `deps` — Focus on dependency vulnerabilities
-- (no scope) — Full codebase audit
+Tell the user: "Security audit running in background. I'll notify you when it's done — you can keep working."
 
-## Workflow
+---
 
-### Step 1: Invoke security-auditor Agent
-
-Use the Task tool to launch the `security-auditor` agent:
+## Workflow prompt to pass to the background agent:
 
 ```
-Launch the security-auditor agent with this prompt:
+Perform a security audit of the codebase.
+Working directory: C:\Users\joyxh\projects\patient-tracker
+Scope: $ARGUMENTS
 
-"Perform a security audit of the codebase.
-Working directory: {project-root}
-Scope: {scope or 'full'}
+Scope options:
+- "auth" — Focus on authentication and authorization
+- "api" — Focus on API endpoints and input validation
+- "frontend" — Focus on frontend security (XSS, CSRF)
+- "deps" — Focus on dependency vulnerabilities
+- "full" or empty — Full codebase audit
 
-Run dependency audit, OWASP Top 10 static analysis, auth & session review, input validation review, and environment check. Produce the full findings report with severity ratings."
-```
+Run these checks:
+1. Dependency audit: cd /c/Users/joyxh/projects/patient-tracker/backend && npm audit; cd /c/Users/joyxh/projects/patient-tracker/frontend && npm audit
+2. OWASP Top 10 static analysis (read source files for injection, XSS, CSRF, auth issues)
+3. Auth & session review (JWT handling, password storage, token expiry)
+4. Input validation review (API endpoints, user input sanitization)
+5. Environment check (secrets in code, .env handling)
 
-### Step 2: Present Results
-
-Display the security audit report to the user, highlighting:
+Produce the full findings report with:
 - Overall risk rating
-- Critical and high-severity findings
-- Dependency vulnerabilities
+- Severity per finding (CRITICAL / HIGH / MEDIUM / LOW)
+- File:line references
 - Priority remediation steps
 
-## Rules
-- This is a READ-ONLY audit — no files are modified
+Rules:
+- READ-ONLY audit — no files are modified
 - Secret values are NEVER exposed in the report
-- All findings include file:line references
 - Findings are validated to minimize false positives
+```

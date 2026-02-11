@@ -129,6 +129,22 @@ This document contains test cases for verifying system functionality. Each test 
 - Error popup appears: "Invalid date format"
 - Cell reverts to previous value
 
+### TC-2.6: Hover-Reveal Dropdown Arrow
+**Requirement:** Cell editing UX — visual affordance for dropdown cells
+**Automation:** Automated - `hover-reveal-dropdown.cy.ts` (13 tests)
+**Steps:**
+1. Hover over a dropdown cell (Request Type, Quality Measure, Measure Status, Tracking #1/#2)
+2. Observe arrow indicator appearance
+3. Hover over a non-dropdown cell (Notes, Member Name)
+4. Hover over a disabled (N/A) cell
+
+**Expected:**
+- Blue arrow appears on hover for dropdown cells
+- Arrow hidden by default (not visible without hover)
+- No arrow on non-dropdown cells
+- No arrow on disabled (N/A) cells
+- Single click on arrow opens the dropdown editor
+
 ---
 
 ## 3. Sorting Behavior
@@ -3075,7 +3091,7 @@ npm run cypress:headed  # Run with browser visible
 | Section | Total TCs | Automated | Partial | Manual | Coverage |
 |---------|-----------|-----------|---------|--------|----------|
 | 1. Data Loading | 3 | 2 | 1 | 0 | 83% |
-| 2. Cell Editing | 5 | 0 | 2 | 3 | 20% |
+| 2. Cell Editing | 6 | 1 | 2 | 3 | 33% |
 | 3. Sorting | 4 | 1 | 0 | 3 | 25% |
 | 4. Status Filter | 5 | 5 | 0 | 0 | 100% |
 | 5. Row Colors | 7 | 3 | 1 | 3 | 50% |

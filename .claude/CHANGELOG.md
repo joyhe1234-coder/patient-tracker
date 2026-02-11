@@ -8,7 +8,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Added
+- **Test Audit: +244 Tests, 13 Pre-Existing Failures Fixed, 3 Bugs Fixed** (Feb 11, 2026)
+  - **Route happy-path tests rewritten (84 tests):** All 5 route files (`admin`, `auth`, `data`, `import`, `users`) rewritten with `jest.unstable_mockModule` + dynamic imports for proper ESM mocking
+  - **New config.routes tests (14 tests):** All 7 config endpoints with auth middleware and error handling
+  - **New middleware tests (19 tests):** `errorHandler.test.ts` (status codes, error codes, stack traces, createError factory) + `upload.test.ts` (CSV/XLSX/XLS accept, PDF/TXT/JSON reject, missing file)
+  - **New component tests:** `AdminPage.test.tsx` (12), `PatientAssignmentPage.test.tsx` (20), `ProtectedRoute.test.tsx` (9), `dropdownConfig.test.ts` (45), `statusColors.test.ts` (29)
+  - **New Cypress E2E:** `hover-reveal-dropdown.cy.ts` (13 tests) — arrow visibility, single-click opens dropdown, disabled cells hidden
+  - **Expanded dueDateCalculator.test.ts:** 1 to 31 tests (added Prisma mock + new Priority 3/4 edge cases)
+  - **Fixed 13 pre-existing backend failures:** mergeLogic (12 tests: graceful DB skip + `import.meta.url` fix), dueDateCalculator (Prisma mock), config.routes ESM rewrite
+  - **3 bugs fixed:** BUG-TEST-001 (`shouldAutoFillQualityMeasure` returns explicit boolean), BUG-TEST-002 (useSocket.test `getState()` mock), BUG-TEST-003 (`import.meta.url` in tests)
+  - Test audit report: `.claude/TEST_AUDIT_REPORT.md`
+  - Total: 679 Jest + 708 Vitest + 43 Playwright + 306 Cypress = 1,736 automated tests
+
+- **Hover-Reveal Dropdown Arrow UI** (Feb 11, 2026)
+  - Dropdown cells (Request Type, Quality Measure, Measure Status, Tracking #1/#2) show a blue arrow indicator on hover
+  - Arrow hidden by default, appears on `ag-cell:hover`
+  - Disabled (N/A) cells and remotely-edited cells hide the arrow
+  - White arrow variant for dark prompt cells
+  - CSS-only implementation in `index.css` (`.cell-dropdown-wrapper`, `.cell-dropdown-arrow`)
+
 ### Changed
+- **Slash commands refactored to background Task agents** (Feb 11, 2026)
+  - `/commit`, `/release`, `/jh-4-test-audit`, `/jh-5-security-audit`, `/jh-6-code-review`, `/jh-7-deploy-validate` now launch background Task agents instead of running inline
+  - Enables user to continue working while commands run autonomously
+  - All commands use `run_in_background: true` with `subagent_type` matching their purpose
+
 - **API Error Handling UX Improvement** (Feb 11, 2026)
   - Created `frontend/src/utils/apiError.ts` — `getApiErrorMessage()` extracts user-friendly messages from Axios error responses, matching backend `{ error: { message } }` shape
   - **MainPage.tsx**: Added toast notifications to 3 silent catch blocks (create row, duplicate row, delete row); load error now shows backend message instead of hardcoded string
