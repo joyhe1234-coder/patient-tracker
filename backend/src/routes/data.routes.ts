@@ -6,12 +6,16 @@ import { isStaffAssignedToPhysician } from '../services/authService.js';
 import { calculateDueDate } from '../services/dueDateCalculator.js';
 import { updateDuplicateFlags, checkForDuplicate } from '../services/duplicateDetector.js';
 import { resolveStatusDatePrompt, getDefaultDatePrompt } from '../services/statusDatePromptResolver.js';
+import { socketIdMiddleware } from '../middleware/socketIdMiddleware.js';
+import { checkVersion, toGridRowPayload } from '../services/versionCheck.js';
+import { broadcastToRoom, getRoomName } from '../services/socketManager.js';
 
 const router = Router();
 
 // All data routes require authentication and patient data access (PHYSICIAN or STAFF)
 router.use(requireAuth);
 router.use(requirePatientDataAccess);
+router.use(socketIdMiddleware);
 
 /**
  * Result of getPatientOwnerFilter - contains ownerId or special flag for unassigned
@@ -272,6 +276,15 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       include: { patient: true },
     });
 
+    // Emit row:created event via Socket.IO
+    try {
+      const room = getRoomName(ownerId ?? 'unassigned');
+      const rowPayload = toGridRowPayload(updatedMeasure!);
+      broadcastToRoom(room, 'row:created', { row: rowPayload, changedBy: req.user!.displayName }, req.socketId);
+    } catch {
+      // Socket.IO broadcast failure is non-fatal
+    }
+
     // Return flattened data
     res.status(201).json({
       success: true,
@@ -307,6 +320,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+    const { expectedVersion, forceOverwrite } = updateData;
 
     // Get the owner ID the user has access to
     const ownerId = await getPatientOwnerId(req);
@@ -335,22 +349,53 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       'hgba1cGoal', 'hgba1cGoalReachedYear', 'hgba1cDeclined',
     ];
 
+    // Fields that are NOT data fields (should not be included in version check)
+    const metaFields = ['expectedVersion', 'forceOverwrite'];
+
     const patientUpdate: Record<string, unknown> = {};
     const measureUpdate: Record<string, unknown> = {};
+    const incomingChangedFields: string[] = [];
 
     for (const [key, value] of Object.entries(updateData)) {
+      if (metaFields.includes(key)) continue;
       if (patientFields.includes(key)) {
         if (key === 'memberDob' && value) {
           patientUpdate[key] = new Date(value as string);
         } else {
           patientUpdate[key] = value;
         }
+        incomingChangedFields.push(key);
       } else if (measureFields.includes(key)) {
         if ((key === 'statusDate' || key === 'dueDate') && value) {
           measureUpdate[key] = new Date(value as string);
         } else {
           measureUpdate[key] = value;
         }
+        incomingChangedFields.push(key);
+      }
+    }
+
+    // Optimistic concurrency control: version check
+    if (expectedVersion && forceOverwrite !== true) {
+      const conflict = await checkVersion(
+        parseInt(id, 10),
+        expectedVersion,
+        incomingChangedFields,
+      );
+
+      if (conflict.hasConflict) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            code: 'VERSION_CONFLICT',
+            message: 'This record was modified by another user since you last loaded it.',
+          },
+          data: {
+            serverRow: conflict.serverRow,
+            conflictFields: conflict.conflictFields,
+            changedBy: conflict.changedBy,
+          },
+        });
       }
     }
 
@@ -512,6 +557,56 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       include: { patient: true },
     });
 
+    // Task 20: Add conflict-override metadata to audit log when forceOverwrite is used
+    if (forceOverwrite === true) {
+      try {
+        // Query the AuditLog for the most recent change to identify the overwritten user
+        const recentLog = await prisma.auditLog.findFirst({
+          where: {
+            entity: 'patient_measure',
+            entityId: parseInt(id, 10),
+            action: 'UPDATE',
+          },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: { select: { displayName: true, email: true } },
+          },
+        });
+
+        await prisma.auditLog.create({
+          data: {
+            userId: req.user!.id,
+            userEmail: req.user!.email,
+            action: 'UPDATE',
+            entity: 'patient_measure',
+            entityId: parseInt(id, 10),
+            changes: {
+              fields: incomingChangedFields.map((field) => ({
+                field,
+                old: null,
+                new: updateData[field] ?? null,
+              })),
+              conflictOverride: true,
+              overwrittenUserId: recentLog?.userId ?? null,
+              overwrittenUserEmail: recentLog?.userEmail ?? recentLog?.user?.email ?? null,
+            },
+            ipAddress: req.ip || req.socket?.remoteAddress,
+          },
+        });
+      } catch {
+        // Audit log failure is non-fatal
+      }
+    }
+
+    // Emit row:updated event via Socket.IO to the physician room
+    try {
+      const room = getRoomName(existing.patient.ownerId ?? 'unassigned');
+      const rowPayload = toGridRowPayload(finalMeasure!);
+      broadcastToRoom(room, 'row:updated', { row: rowPayload, changedBy: req.user!.displayName }, req.socketId);
+    } catch {
+      // Socket.IO broadcast failure is non-fatal
+    }
+
     // Return flattened data
     res.json({
       success: true,
@@ -538,6 +633,7 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
         hgba1cGoal: finalMeasure!.hgba1cGoal,
         hgba1cGoalReachedYear: finalMeasure!.hgba1cGoalReachedYear,
         hgba1cDeclined: finalMeasure!.hgba1cDeclined,
+        updatedAt: finalMeasure!.updatedAt,
       },
     });
   } catch (error) {
@@ -668,6 +764,15 @@ router.post('/duplicate', async (req: Request, res: Response, next: NextFunction
       include: { patient: true },
     });
 
+    // Emit row:created event via Socket.IO
+    try {
+      const room = getRoomName(ownerId ?? 'unassigned');
+      const rowPayload = toGridRowPayload(newMeasure);
+      broadcastToRoom(room, 'row:created', { row: rowPayload, changedBy: req.user!.displayName }, req.socketId);
+    } catch {
+      // Socket.IO broadcast failure is non-fatal
+    }
+
     // 5. Return flattened data (same format as create)
     res.status(201).json({
       success: true,
@@ -729,6 +834,14 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 
     // Update duplicate flags for remaining measures for this patient
     await updateDuplicateFlags(patientId);
+
+    // Emit row:deleted event via Socket.IO
+    try {
+      const room = getRoomName(existing.patient.ownerId ?? 'unassigned');
+      broadcastToRoom(room, 'row:deleted', { rowId: parseInt(id, 10), changedBy: req.user!.displayName }, req.socketId);
+    } catch {
+      // Socket.IO broadcast failure is non-fatal
+    }
 
     res.json({
       success: true,

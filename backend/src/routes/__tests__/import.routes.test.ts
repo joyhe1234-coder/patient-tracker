@@ -102,6 +102,12 @@ jest.mock('../../services/import/importExecutor.js', () => ({
   executeImport: jest.fn(),
 }));
 
+// Mock socketManager
+jest.mock('../../services/socketManager.js', () => ({
+  broadcastToRoom: jest.fn(),
+  getRoomName: jest.fn().mockReturnValue('physician:1'),
+}));
+
 // Mock upload middleware
 jest.mock('../../middleware/upload.js', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

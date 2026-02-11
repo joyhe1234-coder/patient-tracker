@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Loader2, Users } from 'lucide-react';
-import PatientGrid, { GridRow } from '../components/grid/PatientGrid';
+import PatientGrid, { GridRow, PatientGridHandle } from '../components/grid/PatientGrid';
 import StatusBar from '../components/layout/StatusBar';
 import Toolbar from '../components/layout/Toolbar';
 import StatusFilterBar from '../components/layout/StatusFilterBar';
@@ -10,9 +10,14 @@ import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import { api } from '../api/axios';
 import { useAuthStore } from '../stores/authStore';
+import { useSocket } from '../hooks/useSocket';
+import { useRealtimeStore } from '../stores/realtimeStore';
+import type { GridRowPayload } from '../types/socket';
 
 export default function MainPage() {
   const { user, selectedPhysicianId, assignments } = useAuthStore();
+  const importInProgress = useRealtimeStore((s) => s.importInProgress);
+  const importedBy = useRealtimeStore((s) => s.importedBy);
 
   const [rowData, setRowData] = useState<GridRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +26,9 @@ export default function MainPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [newRowId, setNewRowId] = useState<number | null>(null);
+
+  // Ref to PatientGrid for remote operations
+  const gridHandleRef = useRef<PatientGridHandle>(null);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -183,6 +191,52 @@ export default function MainPage() {
       prev.map((row) => (row.id === updatedRow.id ? updatedRow : row))
     );
   }, []);
+
+  // Handle row added (from remote create)
+  const handleRowAdded = useCallback((newRow: GridRow) => {
+    setRowData((prev) => {
+      // Dedup: don't add if already exists
+      if (prev.some(r => r.id === newRow.id)) return prev;
+      return [newRow, ...prev];
+    });
+  }, []);
+
+  // Handle row deleted (from remote or local delete)
+  const handleRowDeleted = useCallback((id: number) => {
+    setRowData((prev) => prev.filter((row) => row.id !== id));
+    if (selectedRowId === id) {
+      setSelectedRowId(null);
+    }
+  }, [selectedRowId]);
+
+  // Task 51: Socket callbacks for remote operations
+  const handleSocketRowUpdated = useCallback((row: GridRowPayload, changedBy: string) => {
+    gridHandleRef.current?.handleRemoteRowUpdate(row, changedBy);
+  }, []);
+
+  const handleSocketRowCreated = useCallback((row: GridRowPayload) => {
+    gridHandleRef.current?.handleRemoteRowCreate(row);
+    // Also update React state
+    handleRowAdded(row as unknown as GridRow);
+  }, [handleRowAdded]);
+
+  const handleSocketRowDeleted = useCallback((rowId: number, changedBy: string) => {
+    gridHandleRef.current?.handleRemoteRowDelete(rowId, changedBy);
+    // Also update React state
+    handleRowDeleted(rowId);
+  }, [handleRowDeleted]);
+
+  const handleSocketDataRefresh = useCallback(() => {
+    loadData();
+  }, []);
+
+  // Task 51: Integrate useSocket
+  useSocket({
+    onRowUpdated: handleSocketRowUpdated,
+    onRowCreated: handleSocketRowCreated,
+    onRowDeleted: handleSocketRowDeleted,
+    onDataRefresh: handleSocketDataRefresh,
+  });
 
   // Create row (called after duplicate check passes or user confirms)
   const createRow = async (data: NewRowData) => {
@@ -373,6 +427,19 @@ export default function MainPage() {
 
   return (
     <div className="flex-1 flex flex-col">
+      {/* Task 52: Import in-progress banner */}
+      {importInProgress && (
+        <div
+          className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800 flex items-center gap-2"
+          data-testid="import-banner"
+        >
+          <Loader2 className="w-4 h-4 animate-spin text-yellow-600" />
+          <span>
+            A data import is in progress{importedBy ? ` (started by ${importedBy})` : ''}. You can continue working -- the grid will update automatically when complete.
+          </span>
+        </div>
+      )}
+
       <Toolbar
         onAddRow={() => setShowAddModal(true)}
         onDuplicateRow={handleDuplicateRow}
@@ -398,13 +465,17 @@ export default function MainPage() {
 
       <div className="flex-1 p-4">
         <PatientGrid
+          ref={gridHandleRef}
           rowData={filteredRowData}
+          onRowAdded={handleRowAdded}
+          onRowDeleted={handleRowDeleted}
           onRowUpdated={handleRowUpdated}
           onSaveStatusChange={setSaveStatus}
           onRowSelected={handleRowSelected}
           showMemberInfo={showMemberInfo}
           newRowId={newRowId}
           onNewRowFocused={handleNewRowFocused}
+          onDataRefresh={loadData}
         />
       </div>
 

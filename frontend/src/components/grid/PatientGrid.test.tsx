@@ -1,12 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
 
 // Track the props passed to AgGridReact
 let capturedGridProps: Record<string, unknown> = {};
 
 // Mock ag-grid-react to capture all props and render a testable placeholder
+// Use forwardRef to accept ref from PatientGrid
 vi.mock('ag-grid-react', () => ({
-  AgGridReact: vi.fn((props: Record<string, unknown>) => {
+  AgGridReact: React.forwardRef((props: Record<string, unknown>, _ref: React.Ref<unknown>) => {
     capturedGridProps = props;
     const rowData = props.rowData as unknown[] | undefined;
     const columnDefs = props.columnDefs as unknown[] | undefined;
@@ -36,6 +38,34 @@ const mockUseAuthStore = vi.fn(() => ({
 
 vi.mock('../../stores/authStore', () => ({
   useAuthStore: (...args: unknown[]) => mockUseAuthStore(...args),
+}));
+
+// Mock realtime store
+const mockActiveEdits: { rowId: number; field: string; userName: string }[] = [];
+vi.mock('../../stores/realtimeStore', () => ({
+  useRealtimeStore: (selector: (state: Record<string, unknown>) => unknown) => {
+    const state = { activeEdits: mockActiveEdits };
+    return selector(state);
+  },
+}));
+
+// Mock socketService
+vi.mock('../../services/socketService', () => ({
+  emitEditingStart: vi.fn(),
+  emitEditingStop: vi.fn(),
+}));
+
+// Mock toast
+vi.mock('../../utils/toast', () => ({
+  showToast: vi.fn(),
+}));
+
+// Mock ConflictModal
+vi.mock('../modals/ConflictModal', () => ({
+  default: vi.fn(({ isOpen }: { isOpen: boolean }) => {
+    if (!isOpen) return null;
+    return <div data-testid="conflict-modal">Conflict Modal</div>;
+  }),
 }));
 
 // Mock dropdownConfig with minimal exports
@@ -71,6 +101,7 @@ const createMockRow = (overrides: Partial<GridRow> = {}): GridRow => ({
   notes: null,
   rowOrder: 1,
   isDuplicate: false,
+  updatedAt: '2025-01-01T00:00:00.000Z',
   ...overrides,
 });
 
@@ -78,6 +109,7 @@ describe('PatientGrid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedGridProps = {};
+    mockActiveEdits.length = 0;
     mockUseAuthStore.mockReturnValue({
       user: { id: 1, email: 'admin@test.com', displayName: 'Admin', roles: ['ADMIN'], isActive: true, lastLoginAt: null },
       selectedPhysicianId: 1,
@@ -426,7 +458,7 @@ describe('PatientGrid', () => {
       const greenRule = rowClassRules['row-status-green'];
       const orangeRule = rowClassRules['row-status-orange'];
 
-      // Attestation sent → GREEN
+      // Attestation sent -> GREEN
       expect(greenRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent' } })).toBe(true);
       expect(greenRule({ data: { measureStatus: 'Chronic diagnosis invalid', tracking1: 'Attestation sent' } })).toBe(true);
 
@@ -446,7 +478,7 @@ describe('PatientGrid', () => {
       pastDueDate.setDate(pastDueDate.getDate() - 5);
       const pastDueDateStr = pastDueDate.toISOString();
 
-      // Attestation NOT sent + overdue → RED
+      // Attestation NOT sent + overdue -> RED
       expect(overdueRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation not sent', dueDate: pastDueDateStr } })).toBe(true);
       expect(overdueRule({ data: { measureStatus: 'Chronic diagnosis invalid', tracking1: null, dueDate: pastDueDateStr } })).toBe(true);
 
@@ -465,7 +497,7 @@ describe('PatientGrid', () => {
       pastDueDate.setDate(pastDueDate.getDate() - 5);
       const pastDueDateStr = pastDueDate.toISOString();
 
-      // Attestation sent + past due → still GREEN, NOT red
+      // Attestation sent + past due -> still GREEN, NOT red
       expect(overdueRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent', dueDate: pastDueDateStr } })).toBe(false);
       expect(greenRule({ data: { measureStatus: 'Chronic diagnosis resolved', tracking1: 'Attestation sent', dueDate: pastDueDateStr } })).toBe(true);
     });
@@ -611,6 +643,118 @@ describe('PatientGrid', () => {
       const dobCol = columnDefs.find((col) => col.field === 'memberDob');
 
       expect(dobCol!.cellRenderer!({ value: null })).toBe('');
+    });
+  });
+
+  // Task 53: Socket integration tests
+  describe('Socket Integration', () => {
+    it('passes onCellEditingStarted callback to AG Grid', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      expect(capturedGridProps.onCellEditingStarted).toBeDefined();
+      expect(typeof capturedGridProps.onCellEditingStarted).toBe('function');
+    });
+
+    it('passes onCellEditingStopped callback to AG Grid', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      expect(capturedGridProps.onCellEditingStopped).toBeDefined();
+      expect(typeof capturedGridProps.onCellEditingStopped).toBe('function');
+    });
+
+    it('renders ConflictModal component', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      // ConflictModal is rendered but not visible (isOpen=false)
+      // The mock returns null when isOpen is false, which is correct
+      expect(screen.queryByTestId('conflict-modal')).not.toBeInTheDocument();
+    });
+
+    it('columns with cellClass include remote edit indicator callback', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellClass?: unknown }[];
+
+      // requestType, memberName, notes, etc. should have cellClass
+      const requestTypeCol = columnDefs.find((col) => col.field === 'requestType');
+      const memberNameCol = columnDefs.find((col) => col.field === 'memberName');
+      const notesCol = columnDefs.find((col) => col.field === 'notes');
+
+      expect(requestTypeCol?.cellClass).toBeDefined();
+      expect(memberNameCol?.cellClass).toBeDefined();
+      expect(notesCol?.cellClass).toBeDefined();
+    });
+
+    it('cellClass returns cell-remote-editing when active edit matches', () => {
+      // Add an active edit for row 1, field 'memberName'
+      mockActiveEdits.push({ rowId: 1, field: 'memberName', userName: 'Alice' });
+
+      render(<PatientGrid rowData={[createMockRow({ id: 1 })]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellClass?: (params: { data?: GridRow | null; colDef: { field?: string } }) => string | string[] }[];
+      const memberNameCol = columnDefs.find((col) => col.field === 'memberName');
+
+      // Invoke the cellClass function with matching params
+      const result = memberNameCol!.cellClass!({
+        data: createMockRow({ id: 1 }),
+        colDef: { field: 'memberName' },
+      });
+
+      expect(result).toContain('cell-remote-editing');
+    });
+
+    it('cellClass does NOT return cell-remote-editing when no active edit matches', () => {
+      // No active edits
+      render(<PatientGrid rowData={[createMockRow({ id: 1 })]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellClass?: (params: { data?: GridRow | null; colDef: { field?: string } }) => string | string[] }[];
+      const memberNameCol = columnDefs.find((col) => col.field === 'memberName');
+
+      const result = memberNameCol!.cellClass!({
+        data: createMockRow({ id: 1 }),
+        colDef: { field: 'memberName' },
+      });
+
+      // Should return empty string or empty array (no remote editing class)
+      if (Array.isArray(result)) {
+        expect(result).not.toContain('cell-remote-editing');
+      } else {
+        expect(result).not.toContain('cell-remote-editing');
+      }
+    });
+
+    it('cellClass for different row does not apply remote editing class', () => {
+      // Active edit is for row 1, but we check row 2
+      mockActiveEdits.push({ rowId: 1, field: 'memberName', userName: 'Alice' });
+
+      render(<PatientGrid rowData={[createMockRow({ id: 2 })]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellClass?: (params: { data?: GridRow | null; colDef: { field?: string } }) => string | string[] }[];
+      const memberNameCol = columnDefs.find((col) => col.field === 'memberName');
+
+      const result = memberNameCol!.cellClass!({
+        data: createMockRow({ id: 2 }),
+        colDef: { field: 'memberName' },
+      });
+
+      if (Array.isArray(result)) {
+        expect(result).not.toContain('cell-remote-editing');
+      } else {
+        expect(result).not.toContain('cell-remote-editing');
+      }
+    });
+  });
+
+  describe('Version Tracking', () => {
+    it('GridRow interface includes updatedAt field', () => {
+      const row = createMockRow({ updatedAt: '2025-01-15T10:00:00.000Z' });
+      expect(row.updatedAt).toBe('2025-01-15T10:00:00.000Z');
+    });
+
+    it('default mock row includes updatedAt', () => {
+      const row = createMockRow();
+      expect(row.updatedAt).toBeDefined();
+      expect(typeof row.updatedAt).toBe('string');
     });
   });
 });

@@ -6,6 +6,18 @@ This document tracks planned features and enhancements for future development.
 
 ## In Progress
 
+### Real-Time Collaborative Editing / Parallel Editing (Complete)
+**Spec:** `.claude/specs/parallel-editing/`
+- [x] Requirements phase — `requirements.md` created (11 requirements, 91 acceptance criteria)
+- [x] Design phase — `design.md` created (Socket.IO architecture, version checking, conflict resolution)
+- [x] Tasks phase — `tasks.md` created (80 atomic tasks across 7 phases)
+- [x] Phase 1-2: Backend infrastructure + API integration (Socket.IO server, auth, version check, route events)
+- [x] Phase 3-4: Frontend infrastructure + UI (socket service, store, hook, ConflictModal, StatusBar)
+- [x] Phase 5: PatientGrid + MainPage integration (version tracking, conflict handling, remote updates, edit indicators)
+- [x] Phase 6: E2E tests (4 Playwright + 3 Cypress specs)
+- [x] Phase 7: Documentation updates (CHANGELOG, IMPLEMENTATION_STATUS, install guides, test docs)
+- [x] Docker scaling documentation (single vs multi-instance, Redis adapter, sticky sessions)
+
 ### Compact Filter Bar with Quality Measure Dropdown (Complete)
 **Spec:** `.claude/specs/compact-filter-bar/`
 - [x] Requirements phase — `requirements.md` created and approved (8 requirements)
@@ -177,12 +189,6 @@ This document tracks planned features and enhancements for future development.
 - [x] Add "Can Have Patients" toggle in user edit form
 - [x] Show toggle only for ADMIN users
 - [x] PHYSICIAN always shows as enabled (non-editable info text)
-
-#### Phase 12h: Concurrent Editing (TBD)
-- [ ] Handle multiple users editing same physician's patients simultaneously
-- [ ] Conflict detection strategy (optimistic locking, real-time sync, etc.)
-- [ ] Conflict resolution UX
-- **Status:** Placeholder - requirements to be discussed
 
 ---
 
@@ -395,12 +401,6 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] "Goal Reached for Year" checkbox
 - [ ] "Patient Declined" checkbox
 - [ ] Special color logic (GREEN/ORANGE/RED/GRAY) based on goal vs actual
-
-### Phase 10: View-Only Mode & Edit Locking
-- [ ] View-only mode for non-editors
-- [ ] Single-editor locking system
-- [ ] Lock status indicator
-- [ ] Force-release lock (admin only)
 
 ### Phase 11: Authentication & Multi-Physician Support (**COMPLETED**)
 - [x] Login page for editors

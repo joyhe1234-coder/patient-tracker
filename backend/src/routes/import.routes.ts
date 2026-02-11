@@ -12,12 +12,15 @@ import { createError } from '../middleware/errorHandler.js';
 import { handleUpload } from '../middleware/upload.js';
 import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
 import { isStaffAssignedToPhysician } from '../services/authService.js';
+import { socketIdMiddleware } from '../middleware/socketIdMiddleware.js';
+import { broadcastToRoom, getRoomName } from '../services/socketManager.js';
 
 const router = Router();
 
 // Import routes require authentication and patient data access (PHYSICIAN or STAFF)
 router.use(requireAuth);
 router.use(requirePatientDataAccess);
+router.use(socketIdMiddleware);
 
 /**
  * GET /api/import/systems
@@ -580,8 +583,33 @@ router.post('/execute/:previewId', async (req: Request, res: Response, next: Nex
     // Use the targetOwnerId from the preview (determined during preview creation)
     const ownerId = preview.targetOwnerId;
 
+    // Emit import:started event via Socket.IO
+    try {
+      const room = getRoomName(ownerId ?? 'unassigned');
+      broadcastToRoom(room, 'import:started', { importedBy: req.user!.displayName });
+    } catch {
+      // Socket.IO broadcast failure is non-fatal
+    }
+
     // Execute the import with ownerId
     const result = await executeImport(previewId, ownerId);
+
+    // Emit import:completed event via Socket.IO
+    try {
+      const room = getRoomName(ownerId ?? 'unassigned');
+      broadcastToRoom(room, 'import:completed', {
+        importedBy: req.user!.displayName,
+        stats: {
+          inserted: result.stats.inserted,
+          updated: result.stats.updated,
+          deleted: result.stats.deleted,
+          skipped: result.stats.skipped,
+          bothKept: result.stats.bothKept,
+        },
+      });
+    } catch {
+      // Socket.IO broadcast failure is non-fatal
+    }
 
     res.json({
       success: result.success,
