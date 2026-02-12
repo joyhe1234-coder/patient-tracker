@@ -94,19 +94,34 @@ This document contains test cases for verifying system functionality. Each test 
 
 ### TC-2.3: Cell Editing - Date Fields
 **Requirement:** AC-6, AC-7
-**Automation:** Manual - date field editing not automated
+**Automation:** Automated - `date-prepopulate.cy.ts` (manual edit tests), `DateCellEditor.test.tsx` (8 tests), `StatusDateRenderer.test.tsx` (13 tests)
 **Steps:**
-1. Click on Status Date cell
+1. Double-click on Status Date cell
 2. Enter date in format: 1/15/2026
-3. Press Tab
+3. Press Tab or Enter
 
 **Expected:**
-- Date is accepted and displays as 01/15/2026
+- DateCellEditor opens as inline text input
+- Date is accepted and displays as 1/15/2026
 - Due Date recalculates based on status rules
+
+### TC-2.3a: Status Date "Today" Button
+**Requirement:** Date prepopulate Option A
+**Automation:** Automated - `date-prepopulate.cy.ts` (~36 tests), `StatusDateRenderer.test.tsx` (Today button click tests)
+**Steps:**
+1. Find an empty statusDate cell with prompt text (e.g., "Date Ordered")
+2. Hover over the cell
+3. Click the "Today" button that appears on hover
+
+**Expected:**
+- Empty cells show striped prompt text with pencil icon
+- "Today" button appears on cell hover
+- Clicking "Today" stamps today's date (M/D/YYYY) without entering edit mode
+- Date is saved via valueSetter pipeline (same as manual entry)
 
 ### TC-2.4: Date Input Flexibility
 **Requirement:** AC-6
-**Automation:** Manual - date format flexibility not E2E tested (backend dateParser.ts has unit tests)
+**Automation:** Partial - `date-prepopulate.cy.ts` (manual date entry), backend dateParser.ts has unit tests
 **Steps:**
 1. Try entering dates in various formats:
    - M/D/YY → 1/5/26
@@ -121,7 +136,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-8
 **Automation:** Manual - invalid date handling not E2E tested
 **Steps:**
-1. Click on Status Date cell
+1. Double-click on Status Date cell
 2. Enter invalid text: "abc"
 3. Press Tab
 

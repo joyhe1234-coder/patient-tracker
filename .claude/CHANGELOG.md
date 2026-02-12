@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Added
+- **Date Prepopulate — Option A "Today" Button** (Feb 11, 2026)
+  - New `StatusDateRenderer` for statusDate column: empty cells show striped prompt text (e.g., "Date Ordered") with a hover-reveal "Today" button; filled cells show formatted date
+  - Clicking "Today" stamps today's date in display format (M/D/YYYY) via `node.setDataValue`, going through the existing `valueSetter` pipeline — no edit mode needed
+  - New `DateCellEditor` replaces default AG Grid editor: simple inline text input, focuses on mount, no prepopulation
+  - Cell-prompt stripe pattern redesigned: diagonal stripes (`repeating-linear-gradient -45deg`) replace solid dark gray background, allowing row color to show through
+  - Prompt text color changed from white (#FFFFFF) to dark gray (#4B5563) for better contrast on colored rows
+  - Dropdown arrow on prompt cells changed from white to standard blue (#2196F3) to match new transparent background
+  - Edit-mode overrides: stripes and italic hidden when statusDate cell is actively being edited
+  - 8 new Vitest tests in `DateCellEditor.test.tsx` (rendering, AG Grid interface, focus, accessibility)
+  - 13 new Vitest tests in `StatusDateRenderer.test.tsx` (filled cell, empty cell with prompt, Today button click, empty without prompt, different prompt texts)
+  - 1 new PatientGrid test for statusDate column editor/renderer assertion
+  - ~36 new Cypress E2E tests in `date-prepopulate.cy.ts` (Today button, manual edit, escape cancel, filled cells, prompt display)
+  - Spec: `.claude/specs/date-prepopulate/` (requirements, design, tasks)
+  - Visual review: `.claude/agent-memory/ui-ux-reviewer/reviews/date-prepopulate-2026-02-11.md` and `option-a-today-button-2026-02-11.md`
+  - Total Vitest tests: ~752 (was 730, +22)
+  - Total Cypress tests: ~342 (was 306, +36)
+
 ### Changed
 - **Auto-open dropdown editor** (Feb 11, 2026)
   - All dropdown cells (Request Type, Quality Measure, Measure Status, Tracking #1, Tracking #2) now open immediately on single click instead of requiring activate-then-expand
