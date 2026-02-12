@@ -11,7 +11,7 @@
 |------|-------|----------|-------|
 | ADMIN (bootstrap) | `admin@clinic.com` | `changeme123` | Auto-created default admin, works reliably |
 | ADMIN | `admin2@gmail.com` | `welcome100` | May not exist if DB was reset |
-| Primary Admin | `ko037291@gmail.com` | (check with user) | |
+| Primary Admin | `ko037291@gmail.com` | `welcome100` | ADMIN + PHYSICIAN dual role |
 | PHYSICIAN | `joyhe1234@gmail.com` | (reset via admin) | |
 | STAFF | `staff2@gmail.com` | (reset via admin) | |
 
@@ -33,6 +33,8 @@
 - **Status bar**: Footer bar showing "Showing X of Y rows"
 - **Pinned columns**: AG Grid pins Request Type + Member Name on left
 - **Dropdown cells**: AutoOpenSelectEditor popup with hover-reveal blue arrow, checkmark on selected, (clear) in gray italic at top. Single-click opens. Keyboard: Arrow keys, Enter, Escape, type-ahead.
+- **Date cells (Option A)**: StatusDateRenderer shows striped prompt + hover "Today" button for empty cells, plain date for filled. DateCellEditor is a simple inline text input (double-click to edit, no prepopulation). Today button calls setDataValue with ISO string. BUG: ISO datetime with time component not recognized by parseAndValidateDate.
+- **Cell-prompt/cell-disabled stripes**: Same diagonal stripe pattern (repeating-linear-gradient -45deg, 4px transparent, 4px rgba(0,0,0,0.06)), transparent bg lets row color show through. Gray italic text #6B7280.
 
 ## Review History
 | Date | Phase | Report | Key Findings |
@@ -43,6 +45,8 @@
 | 2026-02-06 | Admin Pages | `reviews/admin-pages-2026-02-06.md` | Audit log needs pagination + filtering |
 | 2026-02-09 | Compact Filter Bar | `reviews/compact-filter-bar-2026-02-09.md` | All(220) count bug, opacity contrast failures, touch targets |
 | 2026-02-11 | Auto-Open Dropdown | `reviews/auto-open-dropdown-2026-02-11.md` | 16 tests PASS, (clear) contrast fail, missing ARIA roles |
+| 2026-02-11 | Date Prepopulate | `reviews/date-prepopulate-2026-02-11.md` | 7/7 tests PASS, missing aria-label, 5px alignment shift |
+| 2026-02-11 | Option A Today Btn | `reviews/option-a-today-button-2026-02-11.md` | BUG: Today click broken (ISO parse), button 45px tall, 6/8 prompt contrast fails |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -53,6 +57,9 @@
 6. **Column truncation**: AG Grid headers truncate at narrow widths — needs title tooltips
 7. **Mobile responsiveness**: Preview changes table (7 columns) completely breaks on 375px mobile
 8. **Mobile header**: App title wraps 4 lines on mobile, user menu pushed off-screen
+
+9. **Prompt text #6B7280 fails AA on colored rows**: Only passes on white (4.83) and yellow (4.59). Fails on blue (3.73), green (3.90), purple (3.58), orange (4.07), gray (4.06), overdue (3.43). Fix: use #4B5563.
+10. **setDataValue + valueSetter mismatch**: When calling node.setDataValue() from a renderer, the value goes through the column's valueSetter. If the valueSetter expects display-format input (e.g., "2/11/2026") but receives ISO datetime ("2026-02-11T12:00:00.000Z"), parsing fails.
 
 ## Known Bugs Fixed (Feb 6, 2026)
 - BUG-1: Reset password generic error → reads specific backend error messages now

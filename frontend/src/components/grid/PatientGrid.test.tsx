@@ -80,6 +80,8 @@ vi.mock('../../config/dropdownConfig', () => ({
 // Import the component after mocks are set up
 import PatientGrid, { GridRow } from './PatientGrid';
 import AutoOpenSelectEditor from './AutoOpenSelectEditor';
+import DateCellEditor from './DateCellEditor';
+import StatusDateRenderer from './StatusDateRenderer';
 
 // Helper to create a mock GridRow
 const createMockRow = (overrides: Partial<GridRow> = {}): GridRow => ({
@@ -213,6 +215,16 @@ describe('PatientGrid', () => {
 
       expect(measureStatusCol?.cellEditor).toBe(AutoOpenSelectEditor);
       expect(measureStatusCol?.cellEditorPopup).toBe(true);
+    });
+
+    it('statusDate uses DateCellEditor and StatusDateRenderer', () => {
+      render(<PatientGrid rowData={[]} />);
+
+      const columnDefs = capturedGridProps.columnDefs as { field: string; cellEditor?: unknown; cellRenderer?: unknown }[];
+      const statusDateCol = columnDefs.find((col) => col.field === 'statusDate');
+
+      expect(statusDateCol?.cellEditor).toBe(DateCellEditor);
+      expect(statusDateCol?.cellRenderer).toBe(StatusDateRenderer);
     });
 
     it('dueDate column is NOT editable (calculated field)', () => {

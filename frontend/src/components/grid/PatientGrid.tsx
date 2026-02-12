@@ -10,6 +10,8 @@ import { emitEditingStart, emitEditingStop } from '../../services/socketService'
 import { showToast } from '../../utils/toast';
 import { getApiErrorMessage } from '../../utils/apiError';
 import AutoOpenSelectEditor from './AutoOpenSelectEditor';
+import DateCellEditor from './DateCellEditor';
+import StatusDateRenderer from './StatusDateRenderer';
 import ConflictModal, { ConflictField } from '../modals/ConflictModal';
 import type { GridRowPayload, ConflictResponse } from '../../types/socket';
 import {
@@ -998,8 +1000,10 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       headerTooltip: 'Status Date',
       width: 140,
       editable: true,
+      cellEditor: DateCellEditor,
+      cellRenderer: StatusDateRenderer,
       valueFormatter: (params) => {
-        // Show prompt text if no date and prompt exists
+        // Used for clipboard/export; renderer handles display
         if (!params.value && params.data?.statusDatePrompt) {
           return params.data.statusDatePrompt;
         }
