@@ -8,6 +8,32 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ## Completed Phases
 
+### Code Quality Refactor (10 Phases)
+
+**Status: Complete** (Feb 12, 2026)
+**Spec:** `.claude/specs/code-quality-refactor/` (requirements, design, tasks — 163 tasks across 10 phases)
+
+- [x] **Phase 1 — Duplicate Code:** Extracted `dateFormatter.ts`, `dateParser.ts`; consolidated status arrays into `statusColors.ts`; extracted `cascadingFields.ts`
+- [x] **Phase 2 — Database:** N+1 query fixes, compound indexes migration, transaction wrapping, version check simplification
+- [x] **Phase 3 — Large File Decomposition:** PatientGrid (1351→~800 lines via hooks/utils), AdminPage (917→~450 lines via modals), data.routes (855→~200 lines via handlers), ImportPreviewPage decomposition
+- [x] **Phase 4 — Async Safety:** setTimeout→requestAnimationFrame, useEffect cleanup, stale closure fixes
+- [x] **Phase 5 — TypeScript:** Extracted `grid.ts` types, typed AG Grid handlers, replaced magic strings with constants
+- [x] **Phase 6 — Logging:** Structured `logger.ts` (backend + frontend) replacing console.log calls
+- [x] **Phase 7 — CSS Quality:** Reduced !important declarations, extracted inline styles, standardized cell styling
+- [x] **Phase 8 — Security:** Input length validation, sensitive data scrubbing in error handler, rate limiting on auth
+- [x] **Phase 9 — Performance:** Grid callbacks verified memoized; bundle 1,551KB JS (411KB gzip); AG Grid dominant
+- [x] **Phase 10 — Test Quality:** 82.97% backend coverage (701 tests), 65.72% frontend coverage (856 tests), AG Grid mock audit
+
+**Bug Fixes:**
+- DOB column raw HTML rendering (`<span aria-l...` → proper masked dates)
+- Compound indexes migration PascalCase → snake_case table names
+- Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
+
+**Test Coverage:**
+- Layer 1 (Backend Jest): 701 tests passing
+- Layer 2 (Frontend Vitest): 856 tests passing
+- Visual test plan v2.1: 427 test cases documented
+
 ### Real-Time Collaborative Editing (Parallel Editing)
 
 **Status: Complete** (Feb 10, 2026)

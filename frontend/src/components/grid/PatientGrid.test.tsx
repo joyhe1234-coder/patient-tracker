@@ -639,26 +639,25 @@ describe('PatientGrid', () => {
   });
 
   describe('DOB Column', () => {
-    it('has cellRenderer that wraps masked value with aria-label', () => {
+    it('has valueFormatter that masks DOB value for privacy', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field?: string; cellRenderer?: (params: { value: string | null }) => string }[];
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; valueFormatter?: (params: { value: string | null }) => string }[];
       const dobCol = columnDefs.find((col) => col.field === 'memberDob');
 
-      expect(dobCol?.cellRenderer).toBeDefined();
+      expect(dobCol?.valueFormatter).toBeDefined();
 
-      const result = dobCol!.cellRenderer!({ value: '2000-01-15' });
-      expect(result).toContain('aria-label="Date of birth hidden for privacy"');
-      expect(result).toContain('###');
+      const result = dobCol!.valueFormatter!({ value: '2000-01-15' });
+      expect(result).toBe('###');
     });
 
-    it('DOB cellRenderer returns empty string for null value', () => {
+    it('DOB valueFormatter returns empty string for null value', () => {
       render(<PatientGrid rowData={[]} />);
 
-      const columnDefs = capturedGridProps.columnDefs as { field?: string; cellRenderer?: (params: { value: string | null }) => string }[];
+      const columnDefs = capturedGridProps.columnDefs as { field?: string; valueFormatter?: (params: { value: string | null }) => string }[];
       const dobCol = columnDefs.find((col) => col.field === 'memberDob');
 
-      expect(dobCol!.cellRenderer!({ value: null })).toBe('');
+      expect(dobCol!.valueFormatter!({ value: null })).toBe('');
     });
   });
 

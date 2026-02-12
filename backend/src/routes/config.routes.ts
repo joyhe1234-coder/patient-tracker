@@ -1,8 +1,20 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database.js';
 import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
+import { createError } from '../middleware/errorHandler.js';
 
 const router = Router();
+
+/**
+ * Validate that a URL parameter is present and non-empty after trimming.
+ * Returns the trimmed value or throws a 400 error.
+ */
+function validateRequiredParam(value: string | undefined, name: string): string {
+  if (!value || !value.trim()) {
+    throw createError(`Parameter '${name}' is required and cannot be empty`, 400, 'VALIDATION_ERROR');
+  }
+  return value.trim();
+}
 
 // Config routes require authentication and patient data access (PHYSICIAN or STAFF)
 // Config data is needed for dropdowns in the patient grid
@@ -66,7 +78,7 @@ router.get('/request-types', async (_req: Request, res: Response, next: NextFunc
 // GET /api/config/quality-measures/:requestTypeCode
 router.get('/quality-measures/:requestTypeCode', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { requestTypeCode } = req.params;
+    const requestTypeCode = validateRequiredParam(req.params.requestTypeCode, 'requestTypeCode');
 
     const requestType = await prisma.requestType.findUnique({
       where: { code: requestTypeCode },
@@ -96,7 +108,7 @@ router.get('/quality-measures/:requestTypeCode', async (req: Request, res: Respo
 // GET /api/config/measure-statuses/:qualityMeasureCode
 router.get('/measure-statuses/:qualityMeasureCode', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { qualityMeasureCode } = req.params;
+    const qualityMeasureCode = validateRequiredParam(req.params.qualityMeasureCode, 'qualityMeasureCode');
 
     const qualityMeasure = await prisma.qualityMeasure.findFirst({
       where: { code: qualityMeasureCode },
@@ -126,7 +138,7 @@ router.get('/measure-statuses/:qualityMeasureCode', async (req: Request, res: Re
 // GET /api/config/tracking-options/:measureStatusCode
 router.get('/tracking-options/:measureStatusCode', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { measureStatusCode } = req.params;
+    const measureStatusCode = validateRequiredParam(req.params.measureStatusCode, 'measureStatusCode');
 
     const measureStatus = await prisma.measureStatus.findFirst({
       where: { code: measureStatusCode },

@@ -40,6 +40,7 @@ Before starting any implementation:
 /jh-5-security-audit               # OWASP + dependency audit
 /jh-6-code-review                  # 4-dimension code review
 /jh-7-deploy-validate              # GO/NO-GO readiness check
+/jh-8-code-quality-scan            # Code quality scan (duplicates, maintainability, DB, etc.)
 
 # 5. Release
 /commit
@@ -334,29 +335,53 @@ git commit -m "description"
 
 ### Step 1: Verify Clean State
 ```bash
-git status  # Should show clean working tree
-git branch  # Should be on develop
+git branch --show-current  # MUST be develop — STOP if on main
+git status                 # Check for uncommitted changes
 ```
 
-### Step 2: Push and Merge
+### Step 2: Run Tests (GATE)
 ```bash
-git push origin develop           # Push develop to remote
-git checkout main                 # Switch to main
-git pull origin main              # Get latest main
+cd backend && npm test              # Backend tests must pass
+cd frontend && npm run test:run     # Frontend tests must pass
+```
+**If ANY test fails, STOP — do NOT proceed to commit or push.**
+
+### Step 3: Build Verification (GATE)
+```bash
+cd frontend && npm run build        # Frontend must compile
+cd backend && npx tsc --noEmit      # Backend must type-check
+```
+**If EITHER build fails, STOP — do NOT proceed.**
+
+### Step 4: Update & Reconcile Documentation
+- Update CHANGELOG.md (source of truth), IMPLEMENTATION_STATUS.md, TODO.md, REGRESSION_TEST_PLAN.md
+- Cross-check for consistency between all docs
+
+### Step 5: Commit & Push Develop
+```bash
+git add .claude/*.md [code files]
+git commit -m "descriptive message"
+git push origin develop
+```
+
+### Step 6: Merge to Main & Push
+```bash
+git checkout main
+git pull origin main
 git merge develop --no-edit       # Merge develop into main
 git push origin main              # Push main to remote
 git checkout develop              # Return to develop
 ```
 
-### Step 3: Monitor Render Deployment
+### Step 7: Monitor Render Deployment
 After pushing to main, Render auto-deploys. **You MUST monitor the deployment:**
 
-#### 3a. Decrypt the Render API Key
+#### 7a. Decrypt the Render API Key
 ```bash
 RENDER_API_KEY=$(gpg --decrypt --batch --passphrase "patient-tracker-render" ~/.claude/render-api-key.gpg 2>/dev/null)
 ```
 
-#### 3b. Check Deployment Status
+#### 7b. Check Deployment Status
 Wait 30 seconds for deploy to start, then check both services:
 
 ```bash
@@ -373,12 +398,12 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
 - Backend API: `srv-d64p1524d50c73ekm41g`
 - Frontend: `srv-d64p1gur433s73edldl0`
 
-#### 3c. Interpret Status
+#### 7c. Interpret Status
 - `"status":"live"` = Deployment successful
 - `"status":"build_in_progress"` or `"status":"update_in_progress"` = Still deploying, wait and check again
 - `"status":"build_failed"` = Build failed, investigate
 
-#### 3d. If Deployment Fails
+#### 7d. If Deployment Fails
 1. **Try to build locally** to reproduce the error:
    ```bash
    cd frontend && npm run build  # or cd backend && npm run build
@@ -390,9 +415,20 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
    ```
 3. **Fix the issue**, commit, and re-release
 
-#### 3e. Confirm to User
-Report deployment status for BOTH services:
-- Service name and status (live/failed)
+### Step 8: Post-Deploy Health Check
+After both services show "live", verify they are actually responding:
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://patient-tracker-api-cwrh.onrender.com/api/health
+curl -s -o /dev/null -w "%{http_code}" https://patient-tracker-frontend.onrender.com/
+```
+Expected: HTTP 200 for both.
+
+#### 8a. Confirm to User
+Report:
+- Test results (backend X passed, frontend X passed)
+- Build verification (pass/fail)
+- Deployment status for BOTH services (live/failed)
+- Post-deploy health check (200/fail)
 - Deploy ID and timestamp
 - If failed, include error details and fix applied
 
@@ -534,6 +570,7 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 | 5 | `/jh-5-security-audit [scope]` | OWASP + dependency audit (security-auditor agent) |
 | 6 | `/jh-6-code-review [branch]` | Code review: bugs, security, compliance, perf (code-reviewer agent) |
 | 7 | `/jh-7-deploy-validate` | Pre-deployment GO/NO-GO check (deployment-validator agent) |
+| 8 | `/jh-8-code-quality-scan [scope]` | Code quality scan: duplicates, maintainability, DB, types, security (4 parallel agents) |
 
 ### Release & Version
 
@@ -601,14 +638,29 @@ curl -s -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/se
 │  Agent: code-reviewer (bugs, security, compliance, perf)            │
 │  → ADDRESS REQUEST_CHANGES                                           │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 9: PRE-DEPLOY VALIDATION                                     │
+│  PHASE 9: CODE QUALITY SCAN (periodic)                              │
+│  /jh-8-code-quality-scan                                            │
+│                                                                     │
+│  4 parallel agents: duplicates, maintainability, types, DB/perf     │
+│  Output: .claude/CODE_QUALITY_REPORT.md                             │
+│  → FIX CRITICAL/HIGH FINDINGS                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  PHASE 10: PRE-DEPLOY VALIDATION                                    │
 │  /jh-7-deploy-validate                                              │
 │                                                                     │
 │  Agent: deployment-validator (GO/NO-GO readiness check)             │
 │  → MUST BE "GO" BEFORE RELEASE                                       │
 ├─────────────────────────────────────────────────────────────────────┤
-│  PHASE 10: COMMIT & RELEASE                                         │
-│  /commit                                                            │
-│  /release (when ready)                                              │
+│  PHASE 11: RELEASE                                                   │
+│  /release                                                           │
+│                                                                     │
+│  GATES (automated inside /release):                                 │
+│    1. Branch check (must be develop)                                │
+│    2. Backend tests pass                                            │
+│    3. Frontend tests pass                                           │
+│    4. Frontend build succeeds                                       │
+│    5. Backend type-check succeeds                                   │
+│  Then: commit → push develop → merge main → push main               │
+│  Then: verify Render deploy → post-deploy health check              │
 └─────────────────────────────────────────────────────────────────────┘
 ```

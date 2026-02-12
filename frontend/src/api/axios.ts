@@ -1,5 +1,20 @@
 import axios from 'axios';
 import { getSocket } from '../services/socketService';
+import { logger } from '../utils/logger';
+
+/**
+ * Sanitize data before logging to prevent sensitive values from appearing in logs.
+ * Creates a shallow copy — the original data is never modified.
+ */
+function sanitizeForLogging(data: unknown): unknown {
+  if (!data || typeof data !== 'object') return data;
+  const sanitized = { ...data } as Record<string, unknown>;
+  const sensitiveKeys = ['password', 'token', 'secret', 'authorization', 'Authorization'];
+  for (const key of sensitiveKeys) {
+    if (key in sanitized) sanitized[key] = '***';
+  }
+  return sanitized;
+}
 
 // Use environment variable for API URL in production, fallback to /api for local dev
 const getApiBaseUrl = () => {
@@ -26,13 +41,17 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       // Server responded with error status
-      console.error('API Error:', error.response.data);
+      logger.error('API Error:', {
+        url: error.config?.url,
+        status: error.response.status,
+        data: sanitizeForLogging(error.response.data),
+      });
     } else if (error.request) {
       // Request made but no response received
-      console.error('Network Error:', error.message);
+      logger.error('Network Error:', error.message);
     } else {
       // Something else happened
-      console.error('Error:', error.message);
+      logger.error('Error:', error.message);
     }
     return Promise.reject(error);
   }

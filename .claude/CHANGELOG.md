@@ -8,7 +8,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [4.5.0-snapshot] - Unreleased
 
+### Fixed
+- **DOB column raw HTML bug** (Feb 12, 2026)
+  - Member DOB column showed raw `<span aria-l...` instead of masked dates when Member Info toggled ON
+  - Root cause: redundant `cellRenderer` returning HTML string; AG Grid rendered it as text
+  - Fix: removed `cellRenderer`, rely on existing `valueFormatter` for display
+- **Compound indexes migration** (Feb 12, 2026)
+  - Fixed PascalCase table names (`"PatientMeasure"`) → snake_case (`"patient_measures"`) in migration SQL to match Prisma `@@map()` directives
+
 ### Added
+- **Code Quality Refactor Phases 1-8** (Feb 12, 2026)
+  - **Phase 1 (Duplicate Code):** Extracted `dateFormatter.ts`, `dateParser.ts`, consolidated status arrays into `statusColors.ts`, extracted `cascadingFields.ts` from PatientGrid
+  - **Phase 2 (Database):** Fixed N+1 queries with `include` clauses, added compound indexes migration, transaction wrapping for multi-table operations, simplified version check queries
+  - **Phase 3 (Large File Decomposition):** PatientGrid 1351→~800 lines (extracted hooks: `useGridCellUpdate`, `useGridColumns`, `useGridKeyboard`, `useGridOperations`, `useGridRowStyling`; utils: `cascadingFields`, `cellEditors`, `columnDefinitions`, `valueHandlers`), AdminPage 917→~450 lines (extracted `UserModal`, `ResetPasswordModal`), data.routes 855→~200 lines (extracted `dataHandlers.ts`, `importHandlers.ts`), ImportPreviewPage decomposed into `ImportPreview` components
+  - **Phase 4 (Async Safety):** Replaced `setTimeout` with `requestAnimationFrame` or AG Grid API timing, added `useEffect` cleanup for async operations, fixed stale closure patterns
+  - **Phase 5 (TypeScript):** Extracted `grid.ts` types, typed AG Grid event handlers, replaced magic strings with constants in `dropdownConfig.ts`
+  - **Phase 6 (Logging):** Added structured `logger.ts` (backend + frontend) replacing `console.log` calls with level-based logging
+  - **Phase 7 (CSS Quality):** Reduced `!important` declarations, extracted inline styles to CSS classes, standardized cell styling patterns
+  - **Phase 8 (Security):** Input length validation on API routes, sensitive data scrubbing in error handler, rate limiting on auth endpoints
+
+- **Code Quality Refactor Phase 9-10: Performance & Test Quality Audit** (Feb 12, 2026)
+  - **Phase 9 (Performance):** Grid re-render analysis confirms all callbacks properly memoized (useMemo/useCallback with complete dependency arrays). No changes needed.
+  - **Phase 9 (Bundle):** Vite build produces 1,551 KB JS (411 KB gzip). AG Grid Community is dominant factor (~600KB). No tree-shaking failures found. No barrel imports from large libraries.
+  - **Phase 10 (Backend Coverage):** 82.97% line coverage across 701 tests. Only `diffCalculator.ts` (57.25%) is below 70% threshold.
+  - **Phase 10 (Frontend Coverage):** 65.72% line coverage across 856 tests. `PatientGrid.tsx` (16.71%) is low but covered by 283+ Cypress E2E tests. `ResetPasswordModal.tsx` and `UserModal.tsx` (0%) are untested admin modals.
+  - **Phase 10 (AG Grid Mocks):** `agGridMocks.ts` verified with 9 factory functions, used in 6 test files.
+  - **Phase 10 (Cypress cy.wait):** 420 hardcoded cy.wait() calls across 15 files. ~171 of the 500ms waits are candidates for cy.intercept replacement. Not modified (too risky without interactive testing).
+  - Documentation: Updated `.claude/TESTING.md` with coverage tables, bundle analysis, and cy.wait findings.
+
 - **Date Prepopulate — Option A "Today" Button** (Feb 11, 2026)
   - New `StatusDateRenderer` for statusDate column: empty cells show striped prompt text (e.g., "Date Ordered") with a hover-reveal "Today" button; filled cells show formatted date
   - Clicking "Today" stamps today's date in display format (M/D/YYYY) via `node.setDataValue`, going through the existing `valueSetter` pipeline — no edit mode needed

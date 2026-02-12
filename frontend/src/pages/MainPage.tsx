@@ -9,12 +9,14 @@ import { QUALITY_MEASURE_TO_STATUS } from '../config/dropdownConfig';
 import ConfirmModal from '../components/modals/ConfirmModal';
 import AddRowModal, { NewRowData } from '../components/modals/AddRowModal';
 import { api } from '../api/axios';
+import { logger } from '../utils/logger';
 import { getApiErrorMessage } from '../utils/apiError';
 import { showToast } from '../utils/toast';
 import { useAuthStore } from '../stores/authStore';
 import { useSocket } from '../hooks/useSocket';
 import { useRealtimeStore } from '../stores/realtimeStore';
 import type { GridRowPayload } from '../types/socket';
+import type { SaveStatus } from '../types/grid';
 
 export default function MainPage() {
   const { user, selectedPhysicianId, assignments } = useAuthStore();
@@ -25,12 +27,15 @@ export default function MainPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnce = useRef(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
   const [newRowId, setNewRowId] = useState<number | null>(null);
 
   // Ref to PatientGrid for remote operations
   const gridHandleRef = useRef<PatientGridHandle>(null);
+
+  // Timer ref for save status reset
+  const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -161,10 +166,19 @@ export default function MainPage() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Load data when component mounts or when selectedPhysicianId changes (for STAFF)
+  // Cleanup timeout on unmount
   useEffect(() => {
-    loadData();
-  }, [selectedPhysicianId]);
+    return () => {
+      clearTimeout(saveStatusTimerRef.current);
+    };
+  }, []);
+
+  // Load data when component mounts or when selectedPhysicianId/role changes
+  useEffect(() => {
+    loadData().catch((err) => {
+      showToast(getApiErrorMessage(err, 'Failed to load data'), 'error');
+    });
+  }, [selectedPhysicianId, getQueryParams]);
 
   const loadData = async () => {
     try {
@@ -176,11 +190,11 @@ export default function MainPage() {
       setError(null);
       const queryParams = getQueryParams();
       const response = await api.get(`/data${queryParams}`);
-      console.log('Loaded data:', response.data);
+      logger.info('Loaded data:', response.data);
       setRowData(response.data.data || []);
       hasLoadedOnce.current = true;
     } catch (err) {
-      console.error('Failed to load data:', err);
+      logger.error('Failed to load data:', err);
       setError(getApiErrorMessage(err, 'Failed to load patient data. Please try again.'));
     } finally {
       setLoading(false);
@@ -229,7 +243,9 @@ export default function MainPage() {
   }, [handleRowDeleted]);
 
   const handleSocketDataRefresh = useCallback(() => {
-    loadData();
+    loadData().catch((err) => {
+      showToast(getApiErrorMessage(err, 'Failed to refresh data'), 'error');
+    });
   }, []);
 
   // Task 51: Integrate useSocket
@@ -255,13 +271,15 @@ export default function MainPage() {
         setSaveStatus('saved');
         // Set newRowId to trigger focus on Request Type cell
         setNewRowId(response.data.data.id);
-        setTimeout(() => setSaveStatus('idle'), 2000);
+        clearTimeout(saveStatusTimerRef.current);
+        saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
       }
     } catch (err) {
-      console.error('Failed to add row:', err);
+      logger.error('Failed to add row:', err);
       setSaveStatus('error');
       showToast(getApiErrorMessage(err, 'Failed to create row'), 'error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 
@@ -275,7 +293,7 @@ export default function MainPage() {
       await createRow(data);
       return true;
     } catch (err) {
-      console.error('Failed to add row:', err);
+      logger.error('Failed to add row:', err);
       return false;
     }
   };
@@ -305,13 +323,15 @@ export default function MainPage() {
         // Focus the new row
         setNewRowId(newRow.id);
         setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
+        clearTimeout(saveStatusTimerRef.current);
+        saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
       }
     } catch (err) {
-      console.error('Failed to duplicate row:', err);
+      logger.error('Failed to duplicate row:', err);
       setSaveStatus('error');
       showToast(getApiErrorMessage(err, 'Failed to duplicate row'), 'error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 
@@ -328,13 +348,15 @@ export default function MainPage() {
         setSelectedRowId(null);
         setShowDeleteModal(false);
         setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
+        clearTimeout(saveStatusTimerRef.current);
+        saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
       }
     } catch (err) {
-      console.error('Failed to delete row:', err);
+      logger.error('Failed to delete row:', err);
       setSaveStatus('error');
       showToast(getApiErrorMessage(err, 'Failed to delete row'), 'error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 

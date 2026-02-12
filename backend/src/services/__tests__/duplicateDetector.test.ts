@@ -383,44 +383,41 @@ describe('duplicateDetector', () => {
       mockFindMany.mockResolvedValue([
         { id: 1, requestType: null, qualityMeasure: 'Annual Wellness Visit' },
       ]);
-      mockUpdate.mockResolvedValue({});
+      mockUpdateMany.mockResolvedValue({ count: 1 });
 
       await updateDuplicateFlags(100);
 
-      // Null requestType rows are individually updated to isDuplicate: false
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 1 },
+      // Null requestType rows are batch-updated to isDuplicate: false
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
         data: { isDuplicate: false },
       });
-      // Should NOT be passed to updateMany
-      expect(mockUpdateMany).not.toHaveBeenCalled();
     });
 
     it('should set isDuplicate=false for rows with null qualityMeasure', async () => {
       mockFindMany.mockResolvedValue([
         { id: 1, requestType: 'AWV', qualityMeasure: null },
       ]);
-      mockUpdate.mockResolvedValue({});
+      mockUpdateMany.mockResolvedValue({ count: 1 });
 
       await updateDuplicateFlags(100);
 
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 1 },
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
         data: { isDuplicate: false },
       });
-      expect(mockUpdateMany).not.toHaveBeenCalled();
     });
 
     it('should set isDuplicate=false for rows with empty requestType', async () => {
       mockFindMany.mockResolvedValue([
         { id: 1, requestType: '', qualityMeasure: 'Annual Wellness Visit' },
       ]);
-      mockUpdate.mockResolvedValue({});
+      mockUpdateMany.mockResolvedValue({ count: 1 });
 
       await updateDuplicateFlags(100);
 
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 1 },
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
         data: { isDuplicate: false },
       });
     });
@@ -429,12 +426,12 @@ describe('duplicateDetector', () => {
       mockFindMany.mockResolvedValue([
         { id: 1, requestType: 'AWV', qualityMeasure: '' },
       ]);
-      mockUpdate.mockResolvedValue({});
+      mockUpdateMany.mockResolvedValue({ count: 1 });
 
       await updateDuplicateFlags(100);
 
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 1 },
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
         data: { isDuplicate: false },
       });
     });
@@ -445,14 +442,13 @@ describe('duplicateDetector', () => {
         { id: 2, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
         { id: 3, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
       ]);
-      mockUpdate.mockResolvedValue({});
       mockUpdateMany.mockResolvedValue({ count: 2 });
 
       await updateDuplicateFlags(100);
 
-      // Null row updated individually
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 1 },
+      // Null row batch-updated to not-duplicate
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
         data: { isDuplicate: false },
       });
       // Valid pair marked as duplicate via updateMany
@@ -520,22 +516,18 @@ describe('duplicateDetector', () => {
         { id: 2, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
         { id: 3, patientId: 100, requestType: 'Screening', qualityMeasure: 'Colon Cancer' },
       ]);
-      mockUpdate.mockResolvedValue({});
+      mockUpdateMany.mockResolvedValue({ count: 2 });
 
       await syncAllDuplicateFlags();
 
-      // Duplicates
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 1 },
+      // Duplicates batch-updated
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1, 2] } },
         data: { isDuplicate: true },
       });
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 2 },
-        data: { isDuplicate: true },
-      });
-      // Non-duplicate
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 3 },
+      // Non-duplicate batch-updated
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [3] } },
         data: { isDuplicate: false },
       });
     });
@@ -546,6 +538,7 @@ describe('duplicateDetector', () => {
       await syncAllDuplicateFlags();
 
       expect(mockUpdate).not.toHaveBeenCalled();
+      expect(mockUpdateMany).not.toHaveBeenCalled();
     });
   });
 });

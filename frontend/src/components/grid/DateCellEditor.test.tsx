@@ -2,25 +2,13 @@ import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React, { createRef } from 'react';
 import DateCellEditor from './DateCellEditor';
+import { createCellEditorParams } from '../../test-utils/agGridMocks';
 
-const createEditorProps = (overrides: Record<string, unknown> = {}) => ({
-  value: '',
-  eventKey: null,
-  charPress: null,
-  column: {} as any,
-  colDef: {} as any,
-  node: {} as any,
-  data: {} as any,
-  rowIndex: 0,
-  api: {} as any,
-  cellStartedEdit: true,
-  onKeyDown: vi.fn(),
-  stopEditing: vi.fn(),
-  eGridCell: document.createElement('div'),
-  parseValue: vi.fn(),
-  formatValue: vi.fn(),
-  ...overrides,
-});
+const createEditorProps = (overrides: Record<string, unknown> = {}) =>
+  createCellEditorParams({
+    value: '',
+    ...overrides,
+  });
 
 describe('DateCellEditor', () => {
   beforeEach(() => {
@@ -30,7 +18,7 @@ describe('DateCellEditor', () => {
   describe('Rendering', () => {
     it('renders an input element', () => {
       const props = createEditorProps();
-      render(<DateCellEditor {...(props as any)} />);
+      render(<DateCellEditor {...props} />);
 
       const input = document.querySelector('.date-cell-editor');
       expect(input).toBeInTheDocument();
@@ -39,7 +27,7 @@ describe('DateCellEditor', () => {
 
     it('shows existing date value', () => {
       const props = createEditorProps({ value: '1/15/2026' });
-      render(<DateCellEditor {...(props as any)} />);
+      render(<DateCellEditor {...props} />);
 
       const input = document.querySelector('.date-cell-editor') as HTMLInputElement;
       expect(input.value).toBe('1/15/2026');
@@ -47,7 +35,7 @@ describe('DateCellEditor', () => {
 
     it('shows empty string when value is empty', () => {
       const props = createEditorProps({ value: '' });
-      render(<DateCellEditor {...(props as any)} />);
+      render(<DateCellEditor {...props} />);
 
       const input = document.querySelector('.date-cell-editor') as HTMLInputElement;
       expect(input.value).toBe('');
@@ -55,7 +43,7 @@ describe('DateCellEditor', () => {
 
     it('shows empty string when value is null', () => {
       const props = createEditorProps({ value: null });
-      render(<DateCellEditor {...(props as any)} />);
+      render(<DateCellEditor {...props} />);
 
       const input = document.querySelector('.date-cell-editor') as HTMLInputElement;
       expect(input.value).toBe('');
@@ -63,7 +51,7 @@ describe('DateCellEditor', () => {
 
     it('has aria-label for accessibility', () => {
       const props = createEditorProps();
-      render(<DateCellEditor {...(props as any)} />);
+      render(<DateCellEditor {...props} />);
 
       const input = document.querySelector('.date-cell-editor');
       expect(input?.getAttribute('aria-label')).toBe('Status Date');
@@ -74,7 +62,7 @@ describe('DateCellEditor', () => {
     it('getValue() returns current input value', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ value: '1/15/2026' });
-      render(<DateCellEditor ref={ref} {...(props as any)} />);
+      render(<DateCellEditor ref={ref} {...props} />);
 
       expect(ref.current.getValue()).toBe('1/15/2026');
     });
@@ -82,7 +70,7 @@ describe('DateCellEditor', () => {
     it('isPopup() returns false (inline editor)', () => {
       const ref = createRef<any>();
       const props = createEditorProps();
-      render(<DateCellEditor ref={ref} {...(props as any)} />);
+      render(<DateCellEditor ref={ref} {...props} />);
 
       expect(ref.current.isPopup()).toBe(false);
     });
@@ -90,7 +78,7 @@ describe('DateCellEditor', () => {
     it('isCancelAfterEnd() returns false', () => {
       const ref = createRef<any>();
       const props = createEditorProps();
-      render(<DateCellEditor ref={ref} {...(props as any)} />);
+      render(<DateCellEditor ref={ref} {...props} />);
 
       expect(ref.current.isCancelAfterEnd()).toBe(false);
     });
@@ -99,7 +87,7 @@ describe('DateCellEditor', () => {
   describe('Focus', () => {
     it('input receives focus on mount', () => {
       const props = createEditorProps();
-      render(<DateCellEditor {...(props as any)} />);
+      render(<DateCellEditor {...props} />);
 
       const input = document.querySelector('.date-cell-editor');
       expect(input).toBe(document.activeElement);

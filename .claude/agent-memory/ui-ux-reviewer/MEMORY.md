@@ -47,6 +47,9 @@
 | 2026-02-11 | Auto-Open Dropdown | `reviews/auto-open-dropdown-2026-02-11.md` | 16 tests PASS, (clear) contrast fail, missing ARIA roles |
 | 2026-02-11 | Date Prepopulate | `reviews/date-prepopulate-2026-02-11.md` | 7/7 tests PASS, missing aria-label, 5px alignment shift |
 | 2026-02-11 | Option A Today Btn | `reviews/option-a-today-button-2026-02-11.md` | BUG: Today click broken (ISO parse), button 45px tall, 6/8 prompt contrast fails |
+| 2026-02-12 | PatientGrid Refactor | `reviews/patientgrid-refactor-2026-02-12.md` | PASS - zero regressions. Extracted cascadingFields, useGridCellUpdate, useRemoteEditClass |
+| 2026-02-12 | AdminPage Refactor | `reviews/admin-decomposition-refactor-2026-02-12.md` | PASS - zero regressions. Extracted UserModal, ResetPasswordModal |
+| 2026-02-12 | CSS Quality Refactor | `reviews/css-quality-refactor-2026-02-12.md` | PASS - zero regressions. !important removed from 3 classes, inline styles replaced with CSS class |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -60,6 +63,37 @@
 
 9. **Prompt text #6B7280 fails AA on colored rows**: Only passes on white (4.83) and yellow (4.59). Fails on blue (3.73), green (3.90), purple (3.58), orange (4.07), gray (4.06), overdue (3.43). Fix: use #4B5563.
 10. **setDataValue + valueSetter mismatch**: When calling node.setDataValue() from a renderer, the value goes through the column's valueSetter. If the valueSetter expects display-format input (e.g., "2/11/2026") but receives ISO datetime ("2026-02-11T12:00:00.000Z"), parsing fails.
+
+## PatientGrid Component Structure (post-refactor Feb 12)
+```
+frontend/src/components/grid/
+  PatientGrid.tsx             # Main component (uses hooks + utils)
+  AutoOpenSelectEditor.tsx    # Dropdown cell editor
+  DateCellEditor.tsx          # Date cell editor
+  StatusDateRenderer.tsx      # Status date cell renderer
+  hooks/
+    useGridCellUpdate.ts      # onCellValueChanged handler (save, cascade, conflict)
+    useRemoteEditClass.ts     # Remote edit CSS class for collaborative editing
+  utils/
+    cascadingFields.ts        # requestType -> QM -> status cascading clears
+```
+
+## AdminPage Component Structure (post-refactor Feb 12)
+```
+frontend/src/pages/AdminPage.tsx           # Parent: tabs, users table, audit log (499 lines)
+frontend/src/components/modals/
+  UserModal.tsx                            # Create/Edit user modal (304 lines)
+  ResetPasswordModal.tsx                   # Reset password modal (128 lines)
+```
+- UserModal exports: AdminUser, Physician interfaces
+- ResetPasswordModal has unused `userEmail` prop (dead code)
+- AdminPage.tsx line 270: React key warning on `<>` fragment (pre-existing, not from refactor)
+
+## CSS Architecture Notes (post-refactor Feb 12)
+- **!important required**: Row status colors, selected row outline, cell focus, cell editing, stripe overlay, cell-disabled/cell-prompt text color, remote editing border, cell editor input colors -- all need `!important` to override AG Grid inline styles
+- **!important NOT required**: Cell validation classes (`cell-invalid`, `cell-warning`, `cell-required-empty`) can use `.ag-theme-alpine .ag-cell.cell-xxx` specificity instead
+- **Grid container**: `.patient-grid-container` class replaces inline `style={{ width: '100%', height: 'calc(100vh - 200px)' }}`
+- **Tab visibility**: `.tab-visible`/`.tab-hidden` utility classes for tab panel toggling
 
 ## Known Bugs Fixed (Feb 6, 2026)
 - BUG-1: Reset password generic error → reads specific backend error messages now

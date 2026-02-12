@@ -129,13 +129,16 @@ describe('errorHandler', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
-  it('logs error to console', () => {
+  it('logs error to console via logger', () => {
     const err = new Error('test log');
     const res = createMockRes();
 
     errorHandler(err as AppError, createMockReq(), res, mockNext);
 
-    expect(consoleSpy).toHaveBeenCalledWith('Error:', err);
+    // Logger wraps console.error — verify it was called with structured message
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    const firstArg = consoleSpy.mock.calls[0][0] as string;
+    expect(firstArg).toContain('Unhandled error');
   });
 });
 

@@ -92,7 +92,7 @@ describe('PatientManagementPage', () => {
 
       // Import tab content should be visible
       const importContent = screen.getByTestId('import-tab-content');
-      expect(importContent.closest('div[style]')).toHaveStyle('display: block');
+      expect(importContent.closest('.tab-visible')).toBeTruthy();
     });
 
     it('Import tab is styled as active by default', () => {
@@ -110,10 +110,10 @@ describe('PatientManagementPage', () => {
       fireEvent.click(screen.getByText('Reassign Patients'));
 
       const reassignContent = screen.getByTestId('reassign-tab-content');
-      expect(reassignContent.closest('div[style]')).toHaveStyle('display: block');
+      expect(reassignContent.closest('.tab-visible')).toBeTruthy();
 
       const importContent = screen.getByTestId('import-tab-content');
-      expect(importContent.closest('div[style]')).toHaveStyle('display: none');
+      expect(importContent.closest('.tab-hidden')).toBeTruthy();
     });
 
     it('clicking "Import Patients" tab after switching shows import content', () => {
@@ -125,7 +125,7 @@ describe('PatientManagementPage', () => {
       fireEvent.click(screen.getByText('Import Patients'));
 
       const importContent = screen.getByTestId('import-tab-content');
-      expect(importContent.closest('div[style]')).toHaveStyle('display: block');
+      expect(importContent.closest('.tab-visible')).toBeTruthy();
     });
 
     it('passes isActive=true to ReassignTabContent when Reassign tab is active', () => {
@@ -153,7 +153,7 @@ describe('PatientManagementPage', () => {
       expect(reassignTab).toHaveClass('border-b-2', 'border-blue-600');
 
       const reassignContent = screen.getByTestId('reassign-tab-content');
-      expect(reassignContent.closest('div[style]')).toHaveStyle('display: block');
+      expect(reassignContent.closest('.tab-visible')).toBeTruthy();
     });
 
     it('?tab=reassign falls back to Import for STAFF', () => {

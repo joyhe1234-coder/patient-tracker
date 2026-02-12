@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { logger } from '../utils/logger.js';
 
 interface EmailOptions {
   to: string;
@@ -45,7 +46,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   const transport = getTransporter();
 
   if (!transport) {
-    console.warn('SMTP not configured, cannot send email');
+    logger.warn('SMTP not configured, cannot send email');
     return false;
   }
 
@@ -59,7 +60,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    console.error('Failed to send email:', error);
+    logger.error('Failed to send email', { error: String(error) });
     return false;
   }
 }

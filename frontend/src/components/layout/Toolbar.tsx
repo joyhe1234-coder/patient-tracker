@@ -1,4 +1,5 @@
 import { Plus, Trash2, Loader2, Check, AlertCircle, Eye, EyeOff, Copy } from 'lucide-react';
+import type { SaveStatus } from '../../types/grid';
 
 interface ToolbarProps {
   onAddRow: () => void;
@@ -6,7 +7,7 @@ interface ToolbarProps {
   canDuplicate: boolean;
   onDeleteRow: () => void;
   canDelete: boolean;
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  saveStatus: SaveStatus;
   showMemberInfo: boolean;
   onToggleMemberInfo: () => void;
 }
@@ -80,7 +81,7 @@ export default function Toolbar({
   );
 }
 
-function SaveStatusIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
+function SaveStatusIndicator({ status }: { status: SaveStatus }) {
   if (status === 'idle') {
     return null;
   }

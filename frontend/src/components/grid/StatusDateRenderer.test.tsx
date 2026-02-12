@@ -2,24 +2,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import StatusDateRenderer from './StatusDateRenderer';
+import { createCellRendererParams, createMockRowNode } from '../../test-utils/agGridMocks';
 
-const createRendererParams = (overrides: Record<string, unknown> = {}) => ({
-  value: null as string | null,
-  data: { statusDatePrompt: 'Date Ordered', statusDate: null } as any,
-  node: { setDataValue: vi.fn() } as any,
-  column: {} as any,
-  colDef: {} as any,
-  api: {} as any,
-  rowIndex: 0,
-  getValue: vi.fn(),
-  setValue: vi.fn(),
-  formatValue: vi.fn(),
-  refreshCell: vi.fn(),
-  eGridCell: document.createElement('div'),
-  eParentOfValue: document.createElement('div'),
-  registerRowDragger: vi.fn(),
-  ...overrides,
-});
+const createRendererProps = (overrides: Record<string, unknown> = {}) =>
+  createCellRendererParams({
+    value: null as string | null,
+    data: { statusDatePrompt: 'Date Ordered', statusDate: null },
+    node: createMockRowNode({ setDataValue: vi.fn() }),
+    ...overrides,
+  });
 
 describe('StatusDateRenderer', () => {
   beforeEach(() => {
@@ -28,22 +19,22 @@ describe('StatusDateRenderer', () => {
 
   describe('Filled Cell', () => {
     it('shows formatted date for filled cells', () => {
-      const params = createRendererParams({ value: '2026-01-15T12:00:00.000Z' });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: '2026-01-15T12:00:00.000Z' });
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.getByText('1/15/2026')).toBeInTheDocument();
     });
 
     it('does not show Today button for filled cells', () => {
-      const params = createRendererParams({ value: '2026-01-15T12:00:00.000Z' });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: '2026-01-15T12:00:00.000Z' });
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.queryByText('Today')).not.toBeInTheDocument();
     });
 
     it('does not show prompt text for filled cells', () => {
-      const params = createRendererParams({ value: '2026-01-15T12:00:00.000Z' });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: '2026-01-15T12:00:00.000Z' });
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.queryByText('Date Ordered')).not.toBeInTheDocument();
     });
@@ -51,38 +42,38 @@ describe('StatusDateRenderer', () => {
 
   describe('Empty Cell with Prompt', () => {
     it('shows prompt text for empty cells', () => {
-      const params = createRendererParams({ value: null });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: null });
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.getByText('Date Ordered')).toBeInTheDocument();
     });
 
     it('shows Today button for empty cells', () => {
-      const params = createRendererParams({ value: null });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: null });
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.getByText('Today')).toBeInTheDocument();
     });
 
     it('prompt text has correct CSS class', () => {
-      const params = createRendererParams({ value: null });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: null });
+      render(<StatusDateRenderer {...params} />);
 
       const prompt = screen.getByText('Date Ordered');
       expect(prompt.className).toContain('status-date-prompt');
     });
 
     it('Today button has correct CSS class', () => {
-      const params = createRendererParams({ value: null });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: null });
+      render(<StatusDateRenderer {...params} />);
 
       const btn = screen.getByText('Today');
       expect(btn.className).toContain('status-date-today-btn');
     });
 
     it('renders the wrapper div', () => {
-      const params = createRendererParams({ value: null });
-      render(<StatusDateRenderer {...(params as any)} />);
+      const params = createRendererProps({ value: null });
+      render(<StatusDateRenderer {...params} />);
 
       const wrapper = document.querySelector('.status-date-renderer');
       expect(wrapper).toBeInTheDocument();
@@ -92,11 +83,11 @@ describe('StatusDateRenderer', () => {
   describe('Today Button Click', () => {
     it('calls node.setDataValue with display-format date on click', () => {
       const setDataValue = vi.fn();
-      const params = createRendererParams({
+      const params = createRendererProps({
         value: null,
-        node: { setDataValue },
+        node: createMockRowNode({ setDataValue }),
       });
-      render(<StatusDateRenderer {...(params as any)} />);
+      render(<StatusDateRenderer {...params} />);
 
       fireEvent.click(screen.getByText('Today'));
 
@@ -107,11 +98,11 @@ describe('StatusDateRenderer', () => {
 
     it('sets today\'s date (not a hardcoded date)', () => {
       const setDataValue = vi.fn();
-      const params = createRendererParams({
+      const params = createRendererProps({
         value: null,
-        node: { setDataValue },
+        node: createMockRowNode({ setDataValue }),
       });
-      render(<StatusDateRenderer {...(params as any)} />);
+      render(<StatusDateRenderer {...params} />);
 
       fireEvent.click(screen.getByText('Today'));
 
@@ -123,11 +114,11 @@ describe('StatusDateRenderer', () => {
 
   describe('Empty Cell without Prompt', () => {
     it('renders nothing when no prompt text', () => {
-      const params = createRendererParams({
+      const params = createRendererProps({
         value: null,
         data: { statusDatePrompt: null, statusDate: null },
       });
-      const { container } = render(<StatusDateRenderer {...(params as any)} />);
+      const { container } = render(<StatusDateRenderer {...params} />);
 
       expect(container.innerHTML).toBe('');
     });
@@ -135,21 +126,21 @@ describe('StatusDateRenderer', () => {
 
   describe('Different Prompt Texts', () => {
     it('shows "Date Completed" prompt', () => {
-      const params = createRendererParams({
+      const params = createRendererProps({
         value: null,
         data: { statusDatePrompt: 'Date Completed', statusDate: null },
       });
-      render(<StatusDateRenderer {...(params as any)} />);
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.getByText('Date Completed')).toBeInTheDocument();
     });
 
     it('shows "Date Declined" prompt', () => {
-      const params = createRendererParams({
+      const params = createRendererProps({
         value: null,
         data: { statusDatePrompt: 'Date Declined', statusDate: null },
       });
-      render(<StatusDateRenderer {...(params as any)} />);
+      render(<StatusDateRenderer {...params} />);
 
       expect(screen.getByText('Date Declined')).toBeInTheDocument();
     });

@@ -192,6 +192,14 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(autoCloseTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,7 +227,8 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
       const { api } = await import('../../api/axios');
       await api.put('/auth/password', { currentPassword, newPassword });
       setSuccess(true);
-      setTimeout(onClose, 2000);
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = setTimeout(onClose, 2000);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: { message?: string } } } };
       setError(error.response?.data?.error?.message || 'Failed to change password');

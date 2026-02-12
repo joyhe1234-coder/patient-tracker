@@ -2,31 +2,18 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { createRef } from 'react';
 import AutoOpenSelectEditor from './AutoOpenSelectEditor';
+import { createCellEditorParams } from '../../test-utils/agGridMocks';
 
 // Mock scrollIntoView (not available in jsdom)
 Element.prototype.scrollIntoView = vi.fn();
 
-// Mock ICellEditorParams fields
-const createEditorProps = (overrides: Record<string, unknown> = {}) => ({
-  value: 'AWV',
-  values: ['', 'AWV', 'Chronic DX', 'Quality', 'Screening'],
-  // ICellEditorParams required fields (not used by component but required by type)
-  eventKey: null,
-  charPress: null,
-  column: {} as any,
-  colDef: {} as any,
-  node: {} as any,
-  data: {} as any,
-  rowIndex: 0,
-  api: {} as any,
-  cellStartedEdit: true,
-  onKeyDown: vi.fn(),
-  stopEditing: vi.fn(),
-  eGridCell: document.createElement('div'),
-  parseValue: vi.fn(),
-  formatValue: vi.fn(),
-  ...overrides,
-});
+// Factory for AutoOpenSelectEditor props (extends ICellEditorParams with `values`)
+const createEditorProps = (overrides: Record<string, unknown> = {}) =>
+  createCellEditorParams({
+    value: 'AWV',
+    values: ['', 'AWV', 'Chronic DX', 'Quality', 'Screening'],
+    ...overrides,
+  });
 
 describe('AutoOpenSelectEditor', () => {
   let stopEditing: ReturnType<typeof vi.fn>;
@@ -44,7 +31,7 @@ describe('AutoOpenSelectEditor', () => {
   describe('Rendering', () => {
     it('renders all provided option values', () => {
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       expect(screen.getByText('AWV')).toBeInTheDocument();
       expect(screen.getByText('Chronic DX')).toBeInTheDocument();
@@ -54,14 +41,14 @@ describe('AutoOpenSelectEditor', () => {
 
     it('displays empty string as "(clear)"', () => {
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       expect(screen.getByText('(clear)')).toBeInTheDocument();
     });
 
     it('highlights the current value on mount', () => {
       const props = createEditorProps({ stopEditing, value: 'Quality' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       // The option matching the current value should have the 'highlighted' class
       const qualityOption = screen.getByText('Quality').closest('.auto-open-select-option');
@@ -70,7 +57,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('shows checkmark next to the current value', () => {
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const checkmark = document.querySelector('.check-mark');
       expect(checkmark).toBeInTheDocument();
@@ -78,7 +65,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('applies selected class to the current value', () => {
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const awvOption = screen.getByText('AWV').closest('.auto-open-select-option');
       expect(awvOption?.className).toContain('selected');
@@ -86,7 +73,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('applies clear-option class to the empty string option', () => {
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const clearOption = screen.getByText('(clear)').closest('.auto-open-select-option');
       expect(clearOption?.className).toContain('clear-option');
@@ -97,7 +84,7 @@ describe('AutoOpenSelectEditor', () => {
     it('getValue() returns selected value', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor ref={ref} {...(props as any)} />);
+      render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       expect(ref.current.getValue()).toBe('AWV');
     });
@@ -105,7 +92,7 @@ describe('AutoOpenSelectEditor', () => {
     it('isPopup() returns true', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor ref={ref} {...(props as any)} />);
+      render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       expect(ref.current.isPopup()).toBe(true);
     });
@@ -113,7 +100,7 @@ describe('AutoOpenSelectEditor', () => {
     it('isCancelAfterEnd() returns false', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor ref={ref} {...(props as any)} />);
+      render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       expect(ref.current.isCancelAfterEnd()).toBe(false);
     });
@@ -122,7 +109,7 @@ describe('AutoOpenSelectEditor', () => {
   describe('Keyboard Navigation', () => {
     it('ArrowDown moves highlight to next option', () => {
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'ArrowDown' });
@@ -134,7 +121,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('ArrowUp moves highlight to previous option', () => {
       const props = createEditorProps({ stopEditing, value: 'Quality' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'ArrowUp' });
@@ -146,7 +133,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('ArrowDown stops at last option (no wrap)', () => {
       const props = createEditorProps({ stopEditing, value: 'Screening' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'ArrowDown' });
@@ -158,7 +145,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('ArrowUp stops at first option (no wrap)', () => {
       const props = createEditorProps({ stopEditing, value: '' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'ArrowUp' });
@@ -171,7 +158,7 @@ describe('AutoOpenSelectEditor', () => {
     it('Enter selects highlighted option and calls stopEditing', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor ref={ref} {...(props as any)} />);
+      render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
 
@@ -189,7 +176,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('Escape calls stopEditing(true) to cancel', () => {
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'Escape' });
@@ -200,7 +187,7 @@ describe('AutoOpenSelectEditor', () => {
     it('Tab selects highlighted option and calls stopEditing', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor ref={ref} {...(props as any)} />);
+      render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'Tab' });
@@ -213,7 +200,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('type-ahead: pressing "q" jumps to first option starting with "q"', () => {
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
       fireEvent.keyDown(container, { key: 'q' });
@@ -227,7 +214,7 @@ describe('AutoOpenSelectEditor', () => {
     it('mouseDown on option selects it and calls stopEditing', () => {
       const ref = createRef<any>();
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor ref={ref} {...(props as any)} />);
+      render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       const screeningOption = screen.getByText('Screening');
       fireEvent.mouseDown(screeningOption);
@@ -240,7 +227,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('mouseEnter on option highlights it', () => {
       const props = createEditorProps({ stopEditing, value: 'AWV' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const qualityOption = screen.getByText('Quality').closest('.auto-open-select-option')!;
       fireEvent.mouseEnter(qualityOption);
@@ -252,7 +239,7 @@ describe('AutoOpenSelectEditor', () => {
   describe('Focus', () => {
     it('focuses the list container on mount', () => {
       const props = createEditorProps({ stopEditing });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor');
       expect(container).toBe(document.activeElement);
@@ -262,7 +249,7 @@ describe('AutoOpenSelectEditor', () => {
   describe('Edge Cases', () => {
     it('handles value not in options list (defaults to index 0)', () => {
       const props = createEditorProps({ stopEditing, value: 'Unknown' });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       // Should default to index 0 (clear option)
       const clearOption = screen.getByText('(clear)').closest('.auto-open-select-option');
@@ -271,7 +258,7 @@ describe('AutoOpenSelectEditor', () => {
 
     it('handles null/undefined value', () => {
       const props = createEditorProps({ stopEditing, value: null });
-      render(<AutoOpenSelectEditor {...(props as any)} />);
+      render(<AutoOpenSelectEditor {...props} />);
 
       // Should render without error
       expect(screen.getByText('AWV')).toBeInTheDocument();

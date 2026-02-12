@@ -38,6 +38,8 @@ const mockPrisma = {
     findMany: jest.fn<any>(),
     count: jest.fn<any>(),
   },
+  // $transaction passes itself (mockPrisma) as the tx argument to the callback
+  $transaction: jest.fn<any>().mockImplementation((fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)),
 };
 
 const adminUser = {
