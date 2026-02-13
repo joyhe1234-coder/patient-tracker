@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [4.5.0-snapshot] - Unreleased
+## [4.5.0] - 2026-02-12
 
 ### Fixed
 - **DOB column raw HTML bug** (Feb 12, 2026)
