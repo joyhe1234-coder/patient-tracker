@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import { createServer } from 'http';
 import app from './app.js';
 import { config } from './config/index.js';
+import { validateEnv } from './config/validateEnv.js';
 import { prisma } from './config/database.js';
 import { initializeSocketIO, getIO } from './services/socketManager.js';
 import { logger } from './utils/logger.js';
@@ -54,6 +55,9 @@ async function bootstrapAdminUser() {
 }
 
 async function startServer() {
+  // Validate environment BEFORE anything else (REQ-SEC-04, REQ-SEC-05)
+  validateEnv();
+
   try {
     // Test database connection
     await prisma.$connect();

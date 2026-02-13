@@ -3122,6 +3122,62 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 33. Security Hardening — Env Var Validation (REQ-SEC-04, REQ-SEC-05)
+
+**Requirement Spec:** `.claude/specs/security-hardening/requirements.md`
+
+### TC-33.1: Production — Missing JWT_SECRET Crashes
+**Requirement:** REQ-SEC-04 AC-1
+**Automation:** Automated - `validateEnv.test.ts: "should error when JWT_SECRET is missing in production"`
+**Expected:** `process.exit(1)` called, error includes "JWT_SECRET environment variable is required"
+
+### TC-33.2: Production — Default JWT_SECRET Crashes
+**Requirement:** REQ-SEC-04 AC-2
+**Automation:** Automated - `validateEnv.test.ts: "should error when JWT_SECRET is the default development value"`
+**Expected:** `process.exit(1)` called, error includes "must not use the default"
+
+### TC-33.3: Production — Short JWT_SECRET Crashes
+**Requirement:** REQ-SEC-04 AC-3
+**Automation:** Automated - `validateEnv.test.ts: "should error when JWT_SECRET is shorter than 32 characters"`
+**Expected:** `process.exit(1)` called, error includes "at least 32 characters"
+
+### TC-33.4: Development — Missing JWT_SECRET Warns Only
+**Requirement:** REQ-SEC-04 AC-4
+**Automation:** Automated - `validateEnv.test.ts: "should log a warning when JWT_SECRET is not set in development"`
+**Expected:** `valid: true`, no `process.exit`, warning logged
+
+### TC-33.5: Production — Missing SMTP_HOST Crashes
+**Requirement:** REQ-SEC-05 AC-1
+**Automation:** Automated - `validateEnv.test.ts: "should error when SMTP_HOST is missing"`
+**Expected:** `process.exit(1)` called
+
+### TC-33.6: Production — Default ADMIN_EMAIL Crashes
+**Requirement:** REQ-SEC-05 AC-3
+**Automation:** Automated - `validateEnv.test.ts: "should error when ADMIN_EMAIL is the default value"`
+**Expected:** `process.exit(1)` called
+
+### TC-33.7: Production — Default ADMIN_PASSWORD Crashes
+**Requirement:** REQ-SEC-05 AC-4
+**Automation:** Automated - `validateEnv.test.ts: "should error when ADMIN_PASSWORD is the default value"`
+**Expected:** `process.exit(1)` called
+
+### TC-33.8: Production — All Valid Passes
+**Requirement:** REQ-SEC-05 AC-5
+**Automation:** Automated - `validateEnv.test.ts: "should return valid: true with no errors when all env vars are correctly set"`
+**Expected:** `valid: true`, no errors, no warnings, config summary logged
+
+### TC-33.9: Production — Multiple Errors Reported
+**Requirement:** REQ-SEC-05 AC-2
+**Automation:** Automated - `validateEnv.test.ts: "should report all errors when multiple env vars are invalid"`
+**Expected:** All 4 errors reported before exit
+
+### TC-33.10: Config Summary Does Not Reveal Secrets
+**Requirement:** REQ-SEC-05 AC-5
+**Automation:** Automated - `validateEnv.test.ts: "should not reveal secret values in the configuration summary"`
+**Expected:** JWT secret logged as length only, SMTP_HOST as "(set)", admin email as "(custom)"
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -3149,6 +3205,7 @@ npm run cypress:headed  # Run with browser visible
 | 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
 | 31. UX Improvements | 8 | 8 | 0 | 0 | 100% |
 | 32. Patient Management Page | 8 | 8 | 0 | 0 | 100% |
+| 33. Security: Env Validation | 10 | 10 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3168,6 +3225,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 12, 2026 - Added Section 33: Security Hardening Env Var Validation (TC-33.1 to TC-33.10, all automated). 10 test cases, 100% automated.
 February 11, 2026 - Added TC-2.7: Auto-Open Dropdown Editor (single-click opens popup, keyboard nav, type-ahead, checkmark, clear option). Cell Editing coverage: 7 TCs, 43% automated.
 February 7, 2026 - Added Section 32: Patient Management Page (TC-32.1 to TC-32.8)
 February 6, 2026 - TC-31.1 (Row Numbers) removed — feature removed per user feedback. TC-29.2 updated for word-based search matching.

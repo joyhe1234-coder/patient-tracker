@@ -30,9 +30,28 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 701 tests passing
+- Layer 1 (Backend Jest): 726 tests passing
 - Layer 2 (Frontend Vitest): 856 tests passing
 - Visual test plan v2.1: 427 test cases documented
+
+### Security Hardening — Phase 1: Env Var Validation (REQ-SEC-04, REQ-SEC-05)
+
+**Status: Complete** (Feb 12, 2026)
+**Spec:** `.claude/specs/security-hardening/` (requirements, design, tasks)
+
+- [x] `validateEnv()` function in `backend/src/config/validateEnv.ts`
+- [x] Production: crash on missing/default/weak JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD
+- [x] Development: warn-only for same issues
+- [x] Config summary logged without revealing secrets
+- [x] Integrated into `startServer()` in `backend/src/index.ts` (before DB connect)
+- [x] 25 Jest tests with ESM-compatible mocking (`jest.unstable_mockModule`)
+
+**Remaining Security Hardening (Not Yet Implemented):**
+- [ ] REQ-SEC-02: CORS Origin Whitelist
+- [ ] REQ-SEC-03: Rate Limiting
+- [ ] REQ-SEC-06: Account Lockout
+- [ ] REQ-SEC-07: Move JWT to httpOnly Cookie
+- [ ] REQ-SEC-10: Failed Login Audit Logging
 
 ### Real-Time Collaborative Editing (Parallel Editing)
 
@@ -471,8 +490,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 701 tests passing (was 679; +22 from code quality refactor phase 10)
-- Total test count: ~1,942 automated tests across all frameworks (701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress)
+- [x] 726 tests passing (was 701; +25 from security hardening validateEnv)
+- Total test count: ~1,967 automated tests across all frameworks (726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
   - auth.routes.test.ts - 29 tests (login, registration, password reset, JWT)
@@ -806,6 +825,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 12, 2026 - Security hardening phase 1: validateEnv() startup validation for JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD. 26 new Jest tests. All tests passing: 726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,967 automated tests.
 February 12, 2026 - Release 4.5.0: 10-phase code quality refactor, visual test plan v2.1 (232 tests executed, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt replaces dark gray bg. Hover-reveal "Today" button. 22 new Vitest + ~36 new Cypress tests. Total: 679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress = ~1,816.
 February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor on all 5 dropdown columns. Single-click opens popup. Checkmark + (clear) styling. 22 new Vitest tests, 3 updated PatientGrid tests, Cypress commands updated. Total: 679 Jest + 730 Vitest + 43 Playwright + 306 Cypress = 1,758.

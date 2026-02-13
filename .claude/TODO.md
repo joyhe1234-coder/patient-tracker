@@ -387,15 +387,25 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ## Medium Priority
 
-### Security Audit & Hardening
-**Existing report:** `.claude/specs/hardening/plan.md` (Score: 5.6/10, Target: 8.0/10)
-- [ ] Install Claude Code security audit skill (Security Sentinel or similar) for automated scanning
-- [ ] Run `npm audit` on both frontend and backend
-- [ ] Implement Phase 1: Rate limiting, account lockout, error handlers, timeouts, error boundary, graceful shutdown
-- [ ] Implement Phase 2: JWT httpOnly cookies, refresh tokens, CORS hardening, Helmet CSP, Zod input validation
-- [ ] Implement Phase 3: Structured logging (Winston/Pino), request logging, health check enhancement
-- [ ] Implement Phase 4: DB transactions, automated backups, optimistic locking, CSV export
-- [ ] Implement Phase 5: Cypress in CI, env var validation, migration safety
+### Security Hardening (In Spec Process)
+**Spec:** `.claude/specs/security-hardening/requirements.md`
+**Status:** Phase 1 complete (env var validation), remaining items pending
+
+#### Included (7 items):
+- [ ] REQ-SEC-02: CORS Origin Whitelist (require `CORS_ORIGIN` env var in production)
+- [ ] REQ-SEC-03: Rate Limiting (20 login/15min, 10 import/min, 100 global/min)
+- [x] REQ-SEC-04: JWT Secret Validation (32 char min, crash on missing/default) -- **Done Feb 12, 2026**
+- [x] REQ-SEC-05: Env Var Validation at Startup (4 required vars: JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD) -- **Done Feb 12, 2026**
+- [ ] REQ-SEC-06: Account Lockout (5 attempts, temp password via email, forced pw change)
+- [ ] REQ-SEC-07: Move JWT to httpOnly Cookie (sameSite strict, same-origin Docker)
+- [ ] REQ-SEC-10: Failed Login Audit Logging (3-month retention)
+
+#### Deferred (5 items):
+- [ ] REQ-SEC-01: HTTPS/TLS Enforcement (no cert info available)
+- [ ] REQ-SEC-08: Content-Security-Policy (deferred by user)
+- [ ] REQ-SEC-09: Refresh Token Mechanism (8hr JWT sufficient)
+- [ ] REQ-SEC-11: Hide DB Port in Docker (deferred by user)
+- [ ] REQ-SEC-12: Field-Level Encryption for PHI (deferred by user)
 
 ### Charting & Stats Analyzer
 - [ ] Dashboard view with summary statistics

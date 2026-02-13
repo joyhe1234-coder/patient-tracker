@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.5.1-snapshot] - 2026-02-12
+
+### Added
+- **Security Hardening: Env Var Validation at Startup (REQ-SEC-04, REQ-SEC-05)** (Feb 12, 2026)
+  - New `validateEnv()` function in `backend/src/config/validateEnv.ts`
+  - **Production mode:** crashes with `process.exit(1)` if JWT_SECRET is missing/default/<32 chars, SMTP_HOST is missing, ADMIN_EMAIL is missing/default, or ADMIN_PASSWORD is missing/default
+  - **Development mode:** logs warnings for same issues but allows startup
+  - Config summary logged on success (masks secrets, shows lengths/presence only)
+  - Called at the very start of `startServer()` in `backend/src/index.ts`, before DB connect
+  - 25 new Jest unit tests in `backend/src/config/__tests__/validateEnv.test.ts` (uses `jest.unstable_mockModule` for ESM-compatible mocking)
+  - Security hardening spec created: `.claude/specs/security-hardening/` (requirements.md, design.md, tasks.md)
+  - Total: 726 Jest + 856 Vitest = 1,582 unit tests
+
 ## [4.5.0] - 2026-02-12
 
 ### Fixed
