@@ -156,8 +156,8 @@ Row colors are applied via CSS classes on `[row-index="N"]` elements:
 | ID | Status | Fields to Fill | Expected Due Date | Expected Row Color | Filter Chip |
 |----|--------|---------------|-------------------|-------------------|-------------|
 | QM-1.1 | Not Addressed | (none needed) | None | White | Not Addressed |
-| QM-1.2 | Patient called to schedule AWV | Status Date: 1/1/2026 | 1/8/2026 (7 days) | Overdue (Red) — past due | Overdue + In Progress |
-| QM-1.2b | Patient called to schedule AWV | Status Date: today | Today + 7 days | Blue (In Progress) | In Progress |
+| QM-1.2 | Patient called to schedule AWV | Status Date: 1/1/2026 | 1/8/2026 (7 days) | Overdue (Red) — past due (note: if row is duplicate, duplicate class also present) | Overdue + Contacted |
+| QM-1.2b | Patient called to schedule AWV | Status Date: today | Today + 7 days | Yellow (Contacted) | Contacted |
 | QM-1.2c | Patient called to schedule AWV | Status Date: today, manually change interval to 30 | Today + 30 days | Blue (In Progress) | In Progress |
 | QM-1.3 | AWV scheduled | Status Date: today | Tomorrow (1 day) | Blue (In Progress) | In Progress |
 | QM-1.4 | AWV completed | Status Date: today | Today + 365 days | Green (Completed) | Completed |
