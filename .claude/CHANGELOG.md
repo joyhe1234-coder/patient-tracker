@@ -6,9 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [4.5.1-snapshot] - 2026-02-12
+## [4.5.1-snapshot] - 2026-02-13
 
 ### Added
+- **Security Hardening: Failed Login Audit Logging (REQ-SEC-10)** (Feb 13, 2026)
+  - **Backend:** Refactored `POST /login` handler to use granular auth steps (`findUserByEmail`, `verifyPassword`, `generateToken`, `updateLastLogin`) instead of monolithic `authenticateUser()`, enabling per-failure-reason audit logging
+  - **Failed login audit logging:** `LOGIN_FAILED` audit log entries created for invalid credentials (user not found or wrong password) and deactivated accounts, with reason codes (`INVALID_CREDENTIALS`, `ACCOUNT_DEACTIVATED`), client IP address, and user email
+  - **Fire-and-forget audit:** `logFailedLogin()` helper uses `.catch()` to silently ignore audit log write failures so they never block the login response
+  - **Security:** Audit log entries never log the attempted password (REQ-SEC-10 AC-5)
+  - **AuditLog schema comment** updated with new action types: `LOGIN_FAILED`, `ACCOUNT_LOCKED`, `SEND_TEMP_PASSWORD`
+  - **Admin panel (frontend):** `AdminPage.tsx` updated to display `LOGIN_FAILED` entries with orange badge and `ACCOUNT_LOCKED` entries with red badge; `formatSecurityDetails()` renders reason, email, and IP address inline
+  - **AuditLogEntry interface** extended with `userEmail`, `ipAddress`, and typed `details` field
+  - 8 new Jest tests for failed login audit logging (audit log creation, reason codes, no-password-leak, IP address, audit failure resilience)
+  - 2 new Jest tests for login edge cases (deactivated account, split invalid-credentials scenarios)
+  - 5 new Vitest tests for admin panel LOGIN_FAILED/ACCOUNT_LOCKED display (orange badge, red badge, reason/email/IP, combined details)
+  - Total: 741 Jest + 861 Vitest = 1,602 unit tests
+
+- **Email Service: Integration Tests + Dev TLS** (Feb 13, 2026)
+  - New `emailService.integration.test.ts` — 6 Ethereal SMTP integration tests (real network, no mocking): SMTP detection, password-reset email, admin-reset notification, preview URL, unconfigured fallback, bad-host error
+  - `emailService.ts`: added `tls: { rejectUnauthorized: false }` for non-production SMTP (Ethereal/dev), plus `_resetTransporterForTesting()` and `_getTransporterForTesting()` test helpers (production-guarded)
+  - Security hardening spec updates: clarified temp password UX (inside user edit dialog, fallback to on-screen display when SMTP unconfigured), forced password change as modal overlay, 3-attempt warning links to `/forgot-password`
+
 - **Security Hardening: Env Var Validation at Startup (REQ-SEC-04, REQ-SEC-05)** (Feb 12, 2026)
   - New `validateEnv()` function in `backend/src/config/validateEnv.ts`
   - **Production mode:** crashes with `process.exit(1)` if JWT_SECRET is missing/default/<32 chars, SMTP_HOST is missing, ADMIN_EMAIL is missing/default, or ADMIN_PASSWORD is missing/default

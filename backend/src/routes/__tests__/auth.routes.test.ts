@@ -65,7 +65,10 @@ jest.unstable_mockModule('../../services/authService.js', () => ({
     roles: user.roles,
     isActive: user.isActive,
   })),
+  findUserByEmail: jest.fn<any>(),
   findUserById: jest.fn<any>(),
+  generateToken: jest.fn<any>(),
+  updateLastLogin: jest.fn<any>(),
   getStaffAssignments: jest.fn<any>(),
   getAllPhysicians: jest.fn<any>(),
 }));
@@ -87,7 +90,7 @@ jest.unstable_mockModule('../../config/index.js', () => ({
 
 const { default: authRouter } = await import('../auth.routes.js');
 const { errorHandler } = await import('../../middleware/errorHandler.js');
-const { authenticateUser, findUserById, verifyPassword, getStaffAssignments } = await import('../../services/authService.js');
+const { authenticateUser, findUserByEmail, findUserById, verifyPassword, generateToken, updateLastLogin, getStaffAssignments } = await import('../../services/authService.js');
 const { isSmtpConfigured } = await import('../../services/emailService.js');
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -115,17 +118,10 @@ describe('Auth Routes', () => {
 
   describe('POST /api/auth/login', () => {
     it('returns token on successful login', async () => {
-      (authenticateUser as jest.Mock<any>).mockResolvedValue({
-        user: {
-          id: 1,
-          email: 'doc@example.com',
-          displayName: 'Dr. Test',
-          roles: ['PHYSICIAN'],
-          isActive: true,
-        },
-        token: 'jwt-token-123',
-        assignments: [],
-      });
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('jwt-token-123');
       mockPrisma.auditLog.create.mockResolvedValue({});
 
       const res = await request(app)
@@ -138,12 +134,39 @@ describe('Auth Routes', () => {
       expect(res.body.data.user.email).toBe('doc@example.com');
     });
 
-    it('returns 401 for invalid credentials', async () => {
-      (authenticateUser as jest.Mock<any>).mockResolvedValue(null);
+    it('returns 401 for invalid credentials (user not found)', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(null);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'unknown@example.com', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+    });
+
+    it('returns 401 for invalid credentials (wrong password)', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      mockPrisma.auditLog.create.mockResolvedValue({});
 
       const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+    });
+
+    it('returns 401 for deactivated account', async () => {
+      const deactivatedUser = { ...testUser, isActive: false };
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(deactivatedUser);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
 
       expect(res.status).toBe(401);
       expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
@@ -188,6 +211,164 @@ describe('Auth Routes', () => {
         .send({ email: 'test@example.com', password: '' });
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  // ── Failed Login Audit Logging (REQ-SEC-10) ──────────────────────
+
+  describe('Failed login audit logging', () => {
+    it('creates LOGIN_FAILED audit log for invalid email (user not found)', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(null);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'unknown@example.com', password: 'wrongpassword' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          userEmail: 'unknown@example.com',
+          userId: null,
+          entity: 'user',
+          entityId: null,
+        }),
+      });
+    });
+
+    it('creates LOGIN_FAILED audit log for invalid password (wrong password)', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          userEmail: 'doc@example.com',
+          userId: testUser.id,
+          entity: 'user',
+          entityId: testUser.id,
+        }),
+      });
+    });
+
+    it('creates LOGIN_FAILED audit log for deactivated account', async () => {
+      const deactivatedUser = { ...testUser, isActive: false };
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(deactivatedUser);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          userEmail: 'doc@example.com',
+          userId: deactivatedUser.id,
+          details: { reason: 'ACCOUNT_DEACTIVATED' },
+        }),
+      });
+    });
+
+    it('does not log attempted password in audit log', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'super-secret-password' });
+
+      const callArgs = mockPrisma.auditLog.create.mock.calls[0][0] as any;
+      const dataStr = JSON.stringify(callArgs);
+
+      expect(dataStr).not.toContain('super-secret-password');
+      expect(callArgs.data).not.toHaveProperty('password');
+      expect(callArgs.data.details).not.toHaveProperty('password');
+    });
+
+    it('includes reason in audit log details JSON', async () => {
+      // Test INVALID_CREDENTIALS reason for user not found
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(null);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'nobody@example.com', password: 'password123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          details: { reason: 'INVALID_CREDENTIALS' },
+        }),
+      });
+
+      // Test INVALID_CREDENTIALS reason for wrong password
+      jest.clearAllMocks();
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          details: { reason: 'INVALID_CREDENTIALS' },
+        }),
+      });
+
+      // Test ACCOUNT_DEACTIVATED reason
+      jest.clearAllMocks();
+      const deactivatedUser = { ...testUser, isActive: false };
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(deactivatedUser);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          details: { reason: 'ACCOUNT_DEACTIVATED' },
+        }),
+      });
+    });
+
+    it('includes IP address in audit log entry', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(null);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'unknown@example.com', password: 'password123' });
+
+      const callArgs = mockPrisma.auditLog.create.mock.calls[0][0] as any;
+      // supertest sets req.ip / req.socket.remoteAddress; ipAddress should be present
+      expect(callArgs.data).toHaveProperty('ipAddress');
+      // ipAddress should be a string or null, never undefined
+      expect(callArgs.data.ipAddress === null || typeof callArgs.data.ipAddress === 'string').toBe(true);
+    });
+
+    it('audit log failure does not block login response', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(null);
+      // Make audit log creation throw an error
+      mockPrisma.auditLog.create.mockRejectedValue(new Error('Database connection lost'));
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'unknown@example.com', password: 'wrongpassword' });
+
+      // Login should still return 401 (not 500) even though audit log failed
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+      // Verify the audit log create was attempted
+      expect(mockPrisma.auditLog.create).toHaveBeenCalled();
     });
   });
 

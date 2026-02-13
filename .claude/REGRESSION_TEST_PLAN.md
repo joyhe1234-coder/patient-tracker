@@ -2374,14 +2374,44 @@ npm run cypress:headed  # Run with browser visible
 
 ### TC-26.18: Admin - Audit Log Viewer
 **Requirement:** See admin-dashboard spec AC-9, AC-10, AC-11
-**Automation:** Manual - audit log display not automated
+**Automation:** Partial - `AdminPage.test.tsx` (5 tests for LOGIN_FAILED/ACCOUNT_LOCKED display), remaining audit log views manual
 **Steps:**
 1. As ADMIN, navigate to Audit Log section
 2. View recent entries
 
 **Expected:**
-- Shows recent audit entries (LOGIN, LOGOUT, PASSWORD_CHANGE, user CRUD)
+- Shows recent audit entries (LOGIN, LOGIN_FAILED, LOGOUT, PASSWORD_CHANGE, user CRUD)
+- LOGIN_FAILED entries show orange badge, reason, email, and IP address
+- ACCOUNT_LOCKED entries show red badge with reason
 - Entries include timestamp, user, action, details
+
+### TC-26.18a: Failed Login Audit Logging - Backend
+**Requirement:** REQ-SEC-10 (AC 1-5)
+**Automation:** Automated - `auth.routes.test.ts: "Failed login audit logging"` (8 tests)
+**Steps:**
+1. Attempt login with invalid email
+2. Attempt login with valid email but wrong password
+3. Attempt login with deactivated account
+
+**Expected:**
+- LOGIN_FAILED audit log created for each scenario
+- Reason field contains: INVALID_CREDENTIALS or ACCOUNT_DEACTIVATED
+- userEmail field populated (even for unknown users)
+- IP address captured
+- Attempted password NEVER stored in audit log
+- Audit log write failure does not return 500 (login still returns 401)
+
+### TC-26.18b: Failed Login Audit Display - Admin Panel
+**Requirement:** REQ-SEC-10 (AC 6-7)
+**Automation:** Automated - `AdminPage.test.tsx` (5 tests: orange badge, reason display, email/IP display, red ACCOUNT_LOCKED badge, combined details)
+**Steps:**
+1. As ADMIN, navigate to Audit Log
+2. View LOGIN_FAILED and ACCOUNT_LOCKED entries
+
+**Expected:**
+- LOGIN_FAILED entries have orange badge (bg-orange-100 text-orange-800)
+- ACCOUNT_LOCKED entries have red badge (bg-red-100 text-red-800)
+- Details column shows: "Reason: X | Email: Y | IP: Z"
 
 ### TC-26.19: Protected Routes - No Token
 **Requirement:** AC-8

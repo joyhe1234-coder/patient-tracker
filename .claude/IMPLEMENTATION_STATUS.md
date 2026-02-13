@@ -46,12 +46,29 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Integrated into `startServer()` in `backend/src/index.ts` (before DB connect)
 - [x] 25 Jest tests with ESM-compatible mocking (`jest.unstable_mockModule`)
 
+### Security Hardening — Phase 2: Failed Login Audit Logging (REQ-SEC-10)
+
+**Status: Complete** (Feb 13, 2026)
+**Spec:** `.claude/specs/security-hardening/` (requirements, design, tasks — tasks 18-20)
+
+- [x] Refactored `POST /login` to granular auth steps (findUserByEmail, verifyPassword, generateToken, updateLastLogin)
+- [x] `logFailedLogin()` fire-and-forget helper creates `LOGIN_FAILED` audit entries with reason, email, IP
+- [x] Three failure reasons logged: `INVALID_CREDENTIALS` (user not found), `INVALID_CREDENTIALS` (wrong password), `ACCOUNT_DEACTIVATED`
+- [x] Attempted password NEVER logged in audit entries (REQ-SEC-10 AC-5)
+- [x] Audit log failure does not block login response (silent `.catch()`)
+- [x] AuditLog schema comment updated with new action types
+- [x] Admin panel: `LOGIN_FAILED` orange badge, `ACCOUNT_LOCKED` red badge, `formatSecurityDetails()` for reason/email/IP
+- [x] AuditLogEntry interface extended with `userEmail`, `ipAddress`, typed `details`
+- [x] Email service: Ethereal integration tests + dev TLS support + test helpers
+- [x] 10 new Jest tests (8 audit logging + 2 login edge cases)
+- [x] 5 new Vitest tests (admin panel LOGIN_FAILED/ACCOUNT_LOCKED display)
+- [x] 6 new Jest integration tests (Ethereal SMTP)
+
 **Remaining Security Hardening (Not Yet Implemented):**
 - [ ] REQ-SEC-02: CORS Origin Whitelist
 - [ ] REQ-SEC-03: Rate Limiting
 - [ ] REQ-SEC-06: Account Lockout
 - [ ] REQ-SEC-07: Move JWT to httpOnly Cookie
-- [ ] REQ-SEC-10: Failed Login Audit Logging
 
 ### Real-Time Collaborative Editing (Parallel Editing)
 
@@ -430,7 +447,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - dropdownConfig.test.ts (45 tests - all mappings, helper functions, auto-fill, cascade chain integrity)
   - statusColors.test.ts (29 tests - status arrays, attestation sent, overdue, priority ordering)
   - ProtectedRoute.test.tsx (9 tests - loading, redirect, role-based access, token verification)
-  - AdminPage.test.tsx (12 tests - rendering, tabs, user list, role badges, error/loading states)
+  - AdminPage.test.tsx (18 tests - rendering, tabs, user list, role badges, error/loading states, LOGIN_FAILED/ACCOUNT_LOCKED audit display)
   - PatientAssignmentPage.test.tsx (20 tests - wrapper, lazy-load, patient list, bulk assign, error/success/empty states)
 
 ### E2E Testing (Playwright)
@@ -490,11 +507,11 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 726 tests passing (was 701; +25 from security hardening validateEnv)
-- Total test count: ~1,967 automated tests across all frameworks (726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress)
+- [x] 741 tests passing (was 726; +15 from failed login audit logging + email integration tests)
+- Total test count: ~1,987 automated tests across all frameworks (741 Jest + 861 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
-  - auth.routes.test.ts - 29 tests (login, registration, password reset, JWT)
+  - auth.routes.test.ts - 39 tests (login, registration, password reset, JWT, failed login audit logging)
   - data.routes.test.ts - 24 tests (CRUD, duplicate check, physician filtering)
   - import.routes.test.ts - 28 tests (preview, execute, parse, auth)
   - users.routes.test.ts - 15 tests (physician endpoints, auth)
@@ -825,6 +842,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP. Admin panel orange/red badges. Email service Ethereal integration tests. 15 new Jest + 5 new Vitest tests. All tests passing: 741 Jest + 861 Vitest + 43 Playwright + ~342 Cypress = ~1,987 automated tests.
 February 12, 2026 - Security hardening phase 1: validateEnv() startup validation for JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD. 26 new Jest tests. All tests passing: 726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,967 automated tests.
 February 12, 2026 - Release 4.5.0: 10-phase code quality refactor, visual test plan v2.1 (232 tests executed, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt replaces dark gray bg. Hover-reveal "Today" button. 22 new Vitest + ~36 new Cypress tests. Total: 679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress = ~1,816.

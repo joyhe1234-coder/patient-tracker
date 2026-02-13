@@ -11,12 +11,14 @@ import ResetPasswordModal from '../components/modals/ResetPasswordModal';
 interface AuditLogEntry {
   id: number;
   userId: number | null;
+  userEmail: string | null;
   userDisplayName: string;
   action: string;
   entity: string | null;
   entityId: number | null;
   changes: object | null;
-  details: object | null;
+  details: Record<string, unknown> | null;
+  ipAddress: string | null;
   createdAt: string;
 }
 
@@ -165,6 +167,17 @@ export default function AdminPage() {
   const formatTimestamp = (date: string | null) => {
     if (!date) return 'Never';
     return new Date(date).toLocaleString();
+  };
+
+  const formatSecurityDetails = (entry: AuditLogEntry) => {
+    const parts: string[] = [];
+    if (entry.details && typeof entry.details === 'object') {
+      const reason = (entry.details as Record<string, unknown>).reason;
+      if (reason) parts.push(`Reason: ${String(reason)}`);
+    }
+    if (entry.userEmail) parts.push(`Email: ${entry.userEmail}`);
+    if (entry.ipAddress) parts.push(`IP: ${entry.ipAddress}`);
+    return parts.length > 0 ? parts.join(' | ') : '-';
   };
 
   if (!user?.roles.includes('ADMIN')) {
@@ -443,6 +456,10 @@ export default function AdminPage() {
                               ? 'bg-red-100 text-red-800'
                               : entry.action === 'LOGIN'
                               ? 'bg-purple-100 text-purple-800'
+                              : entry.action === 'LOGIN_FAILED'
+                              ? 'bg-orange-100 text-orange-800'
+                              : entry.action === 'ACCOUNT_LOCKED'
+                              ? 'bg-red-100 text-red-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >
@@ -453,7 +470,9 @@ export default function AdminPage() {
                         {entry.entity} {entry.entityId ? `#${entry.entityId}` : ''}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {entry.changes
+                        {entry.action === 'LOGIN_FAILED' || entry.action === 'ACCOUNT_LOCKED'
+                          ? formatSecurityDetails(entry)
+                          : entry.changes
                           ? JSON.stringify(entry.changes).substring(0, 50) + '...'
                           : entry.details
                           ? JSON.stringify(entry.details).substring(0, 50) + '...'

@@ -249,7 +249,7 @@ model AuditLog {
   userId    Int?     @map("user_id")
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   userEmail String?  @map("user_email") // Kept for when user is deleted
-  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI'
+  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOCK', 'UNLOCK', 'ACCOUNT_LOCKED', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI', 'SEND_TEMP_PASSWORD'
   entity    String?  // 'patient_measure', 'patient', 'user', etc.
   entityId  Int?     @map("entity_id")
   changes   Json?    // Field-level changes: { fields: [{ field, old, new }] }

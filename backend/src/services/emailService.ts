@@ -35,10 +35,32 @@ function getTransporter(): nodemailer.Transporter | null {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // Allow self-signed certificates for development SMTP services (e.g., Ethereal)
+      ...(process.env.NODE_ENV !== 'production' && {
+        tls: { rejectUnauthorized: false },
+      }),
     });
   }
 
   return transporter;
+}
+
+// ── Test helpers (non-production only) ──────────────────────────────
+
+/** Reset the singleton transporter so the next call to getTransporter() creates a fresh one. */
+export function _resetTransporterForTesting(): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('_resetTransporterForTesting must not be called in production');
+  }
+  transporter = null;
+}
+
+/** Return the current transporter instance (for direct sendMail / getTestMessageUrl). */
+export function _getTransporterForTesting(): nodemailer.Transporter | null {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('_getTransporterForTesting must not be called in production');
+  }
+  return getTransporter();
 }
 
 // Send email

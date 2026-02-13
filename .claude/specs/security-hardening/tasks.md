@@ -248,7 +248,7 @@ Tests all UI changes with real browser.
   - _Requirements: REQ-SEC-10, REQ-SEC-06_
   - _Leverage: `backend/prisma/schema.prisma` existing AuditLog model_
 
-- [ ] 18. Add failed login logging to auth routes login handler
+- [x] 18. Add failed login logging to auth routes login handler
   - **File:** `backend/src/routes/auth.routes.ts`
   - In POST `/login` handler, add failed login audit logging for these scenarios:
     - User not found: `action: 'LOGIN_FAILED'`, `userId: null`, `userEmail: attemptedEmail`, `details: { reason: 'INVALID_CREDENTIALS' }`
@@ -261,7 +261,7 @@ Tests all UI changes with real browser.
   - _Requirements: REQ-SEC-10 (AC 1-5)_
   - _Leverage: `backend/src/routes/auth.routes.ts` existing audit logging for successful login_
 
-- [ ] 19. Create failed login audit logging tests
+- [x] 19. Create failed login audit logging tests
   - **File:** `backend/src/routes/__tests__/auth.routes.test.ts` (modify existing)
   - Add test: "creates LOGIN_FAILED audit log for invalid email"
   - Add test: "creates LOGIN_FAILED audit log for invalid password"
@@ -272,7 +272,7 @@ Tests all UI changes with real browser.
   - _Requirements: REQ-SEC-10 (AC 1-5)_
   - _Leverage: `backend/src/routes/__tests__/auth.routes.test.ts` existing audit log tests_
 
-- [ ] 20. Verify admin panel displays LOGIN_FAILED audit entries
+- [x] 20. Verify admin panel displays LOGIN_FAILED audit entries
   - **File:** `frontend/src/pages/AdminPage.tsx` (audit log section)
   - The audit log display is in AdminPage.tsx, NOT a separate AuditLogTab component
   - Verify existing display shows: action, userEmail, timestamp, details JSON

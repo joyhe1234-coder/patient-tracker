@@ -224,15 +224,15 @@ RATE_LIMIT_LOGIN_WINDOW_MIN=30
 4. WHEN a successful login occurs before reaching the lockout threshold, THEN the failed attempt counter SHALL reset to 0.
 5. WHEN an account is locked, THEN an audit log entry SHALL be created with action `ACCOUNT_LOCKED`, the email, IP address, and timestamp.
 6. WHEN the lockout mechanism tracks attempts, THEN it SHALL use the User database record (new fields: `failedLoginAttempts: Int`, `lockedUntil: DateTime?`) rather than in-memory storage, so lockout persists across server restarts.
-7. IF an admin sends a temporary password for a locked user via the admin panel, THEN:
+7. IF an admin sends a temporary password for any user via the admin panel (inside the user edit dialog), THEN:
    a. A random temporary password SHALL be generated (12 characters, alphanumeric + symbols).
-   b. The temporary password SHALL be emailed to the user's email address via SMTP.
+   b. IF SMTP is configured, the temporary password SHALL be emailed to the user's email address via SMTP. IF SMTP is NOT configured, the temporary password SHALL be displayed on screen to the admin (so they can communicate it to the user manually).
    c. The user's password SHALL be updated to the temporary password (bcrypt hashed).
    d. `failedLoginAttempts` SHALL reset to 0 and `lockedUntil` SHALL be set to null (account unlocked).
    e. `mustChangePassword` SHALL be set to `true`.
-8. WHEN a user with `mustChangePassword: true` logs in successfully, THEN the frontend SHALL redirect to a forced password change screen that blocks all other actions until a new password is set.
-9. WHEN the user sets a new password via the forced change screen, THEN `mustChangePassword` SHALL be set to `false` and the user SHALL be redirected to the main application.
-10. WHEN 3 consecutive failed login attempts occur (before lockout threshold), THEN the login error response SHALL include a warning: `"Having trouble? Reset your password to avoid being locked out."` with a link to the forgot-password flow.
+8. WHEN a user with `mustChangePassword: true` logs in successfully, THEN the frontend SHALL show a modal overlay for forced password change that blocks all other actions until a new password is set.
+9. WHEN the user sets a new password via the forced change overlay, THEN `mustChangePassword` SHALL be set to `false` and the user SHALL be redirected to the login page to log in with their new password.
+10. WHEN 3 consecutive failed login attempts occur (before lockout threshold), THEN the login error response SHALL include a warning: `"Having trouble? Reset your password to avoid being locked out."` with a link to the existing `/forgot-password` page.
 
 #### User Experience Impact
 - Legitimate users who mistype their password 5 times must wait 15 minutes.
@@ -242,6 +242,11 @@ RATE_LIMIT_LOGIN_WINDOW_MIN=30
 #### Open Questions for User
 - ~~Is 5 attempts / 15-minute lockout acceptable?~~ **Decision: Yes, 5 attempts / 15 min.**
 - ~~Should an admin be able to manually unlock accounts?~~ **Decision: Yes, via "Send Temporary Password" button that emails a temp password, unlocks the account, and forces password change on next login.**
+- ~~Where should the Send Temp Password button be?~~ **Decision: Inside the user edit dialog, available for any user (not just locked accounts).**
+- ~~What if SMTP is not configured?~~ **Decision: Show the temp password on screen to the admin.**
+- ~~3-attempt warning link destination?~~ **Decision: Link to existing `/forgot-password` page.**
+- ~~Forced password change: full page or modal?~~ **Decision: Modal overlay.**
+- ~~After forced change: redirect where?~~ **Decision: Redirect to login page.**
 
 #### How to Test
 - Attempt 5 failed logins, verify 6th attempt returns lockout message.

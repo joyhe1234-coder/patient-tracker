@@ -6,7 +6,10 @@ import {
   verifyPassword,
   updatePassword,
   toAuthUser,
+  findUserByEmail,
   findUserById,
+  generateToken,
+  updateLastLogin,
   getStaffAssignments,
   getAllPhysicians,
 } from '../services/authService.js';
@@ -16,6 +19,34 @@ import { prisma } from '../config/database.js';
 import { isSmtpConfigured, sendPasswordResetEmail } from '../services/emailService.js';
 
 const router = Router();
+
+/**
+ * Log a failed login attempt to the audit log (fire-and-forget).
+ * Errors are caught silently so audit logging failures never block the login response.
+ * Never logs the attempted password. (REQ-SEC-10)
+ */
+function logFailedLogin(
+  userId: number | null,
+  userEmail: string,
+  ipAddress: string | undefined,
+  reason: string
+): void {
+  prisma.auditLog
+    .create({
+      data: {
+        userId,
+        userEmail,
+        action: 'LOGIN_FAILED',
+        entity: 'user',
+        entityId: userId,
+        details: { reason },
+        ipAddress: ipAddress || null,
+      },
+    })
+    .catch(() => {
+      // Silently ignore audit log failures to avoid affecting the login flow
+    });
+}
 
 // Validation schemas
 const loginSchema = z.object({
@@ -39,7 +70,8 @@ const resetPasswordSchema = z.object({
 
 /**
  * POST /api/auth/login
- * Authenticate user and return JWT token
+ * Authenticate user and return JWT token.
+ * Logs failed login attempts with specific reasons (REQ-SEC-10).
  */
 router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -50,31 +82,58 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     }
 
     const { email, password } = parseResult.data;
+    const clientIp = req.ip || req.socket.remoteAddress;
 
-    // Authenticate user
-    const result = await authenticateUser(email, password);
-    if (!result) {
+    // 1. Find user by email
+    const user = await findUserByEmail(email.toLowerCase());
+    if (!user) {
+      logFailedLogin(null, email, clientIp, 'INVALID_CREDENTIALS');
       throw createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
     }
 
-    // Log the login
+    // 2. Check if account is deactivated
+    if (!user.isActive) {
+      logFailedLogin(user.id, email, clientIp, 'ACCOUNT_DEACTIVATED');
+      throw createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+    }
+
+    // 3. Verify password
+    const isValidPassword = await verifyPassword(password, user.passwordHash);
+    if (!isValidPassword) {
+      logFailedLogin(user.id, email, clientIp, 'INVALID_CREDENTIALS');
+      throw createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+    }
+
+    // 4. Success - update last login and generate token
+    await updateLastLogin(user.id);
+    const token = generateToken(user);
+
+    // Get staff assignments if user is STAFF, or all physicians if ADMIN
+    let assignments;
+    if (user.roles.includes('STAFF')) {
+      assignments = await getStaffAssignments(user.id);
+    } else if (user.roles.includes('ADMIN')) {
+      assignments = await getAllPhysicians();
+    }
+
+    // Log the successful login
     await prisma.auditLog.create({
       data: {
-        userId: result.user.id,
-        userEmail: result.user.email,
+        userId: user.id,
+        userEmail: user.email,
         action: 'LOGIN',
         entity: 'user',
-        entityId: result.user.id,
-        ipAddress: req.ip || req.socket.remoteAddress,
+        entityId: user.id,
+        ipAddress: clientIp,
       },
     });
 
     res.json({
       success: true,
       data: {
-        user: result.user,
-        token: result.token,
-        assignments: result.assignments,
+        user: toAuthUser(user),
+        token,
+        assignments,
       },
     });
   } catch (error) {
