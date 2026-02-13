@@ -63,11 +63,11 @@ export default function PatientManagementPage() {
       </div>
 
       {/* Tab Content */}
-      <div style={{ display: activeTab === 'import' ? 'block' : 'none' }}>
+      <div className={activeTab === 'import' ? 'tab-visible' : 'tab-hidden'}>
         <ImportTabContent />
       </div>
       {isAdmin && (
-        <div style={{ display: activeTab === 'reassign' ? 'block' : 'none' }}>
+        <div className={activeTab === 'reassign' ? 'tab-visible' : 'tab-hidden'}>
           <ReassignTabContent isActive={activeTab === 'reassign'} />
         </div>
       )}

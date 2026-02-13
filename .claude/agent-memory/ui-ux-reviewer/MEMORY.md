@@ -4,7 +4,7 @@
 - Patient Quality Measure Tracker - healthcare application
 - React + TypeScript + Vite frontend, Express + Prisma backend
 - AG Grid for main data table, Tailwind CSS for styling
-- Runs on `http://localhost:5173` (dev) or `http://localhost:3000` (backend-served)
+- Runs on `http://localhost:5173` (dev), `http://localhost:3000` (backend-served), or `http://localhost` (Docker nginx)
 
 ## Test Accounts
 | Role | Email | Password | Notes |
@@ -12,7 +12,10 @@
 | ADMIN (bootstrap) | `admin@clinic.com` | `changeme123` | Auto-created default admin, works reliably |
 | ADMIN | `admin2@gmail.com` | `welcome100` | May not exist if DB was reset |
 | Primary Admin | `ko037291@gmail.com` | `welcome100` | ADMIN + PHYSICIAN dual role |
+| ADMIN | `admin@gmail.com` | `welcome100` | Used for RBAC testing |
+| PHYSICIAN | `phy1@gmail.com` | `welcome100` | Physician One, 130 patients |
 | PHYSICIAN | `joyhe1234@gmail.com` | (reset via admin) | |
+| STAFF | `staff1@gmail.com` | `welcome100` | Assigned to Physician One + Ko Admin-Phy |
 | STAFF | `staff2@gmail.com` | (reset via admin) | |
 
 ## Design System Tokens
@@ -47,6 +50,14 @@
 | 2026-02-11 | Auto-Open Dropdown | `reviews/auto-open-dropdown-2026-02-11.md` | 16 tests PASS, (clear) contrast fail, missing ARIA roles |
 | 2026-02-11 | Date Prepopulate | `reviews/date-prepopulate-2026-02-11.md` | 7/7 tests PASS, missing aria-label, 5px alignment shift |
 | 2026-02-11 | Option A Today Btn | `reviews/option-a-today-button-2026-02-11.md` | BUG: Today click broken (ISO parse), button 45px tall, 6/8 prompt contrast fails |
+| 2026-02-12 | PatientGrid Refactor | `reviews/patientgrid-refactor-2026-02-12.md` | PASS - zero regressions. Extracted cascadingFields, useGridCellUpdate, useRemoteEditClass |
+| 2026-02-12 | AdminPage Refactor | `reviews/admin-decomposition-refactor-2026-02-12.md` | PASS - zero regressions. Extracted UserModal, ResetPasswordModal |
+| 2026-02-12 | CSS Quality Refactor | `reviews/css-quality-refactor-2026-02-12.md` | PASS - zero regressions. !important removed from 3 classes, inline styles replaced with CSS class |
+| 2026-02-12 | Test Plan v2.1 B+A | `reviews/visual-test-plan-v2-rbac-cellrender-2026-02-12.md` | 37 tests: 35 PASS, 1 DEVIATION (auto-select physician), 1 SKIP (no prompt test data) |
+| 2026-02-12 | Section C QM Matrix | `reviews/section-c-qm-status-matrix-2026-02-12.md` | 65 tests: 62 PASS, 2 DEVIATION (test plan errors), 1 SKIP. All row colors, due dates, TIs correct. |
+| 2026-02-12 | Section C Part 2 | `reviews/section-c-qm-status-matrix-part2-2026-02-12.md` | 53 tests: 52 PASS, 1 DEVIATION. C.9-C.15: ACE/ARB, Vaccination, HgbA1c, Annual Serum, Chronic DX attestation, manual TI, cascading clears. Combined C.1-C.15: 134 tests, 131 PASS, 2 DEVIATION, 1 SKIP, 0 FAIL. |
+| 2026-02-12 | Sections D-G | `reviews/sections-defg-search-sort-filter-overdue-2026-02-12.md` | 53 tests: 52 PASS, 0 DEVIATION, 1 SKIP (SORT-10 notes). Search, sorting, filter chips, overdue edge cases all verified. Combined B-G: 208 tests, 201 PASS, 4 DEVIATION, 3 SKIP, 0 FAIL. |
+| 2026-02-12 | Sections H-K | `reviews/sections-hijk-toast-dup-kbd-hgba1c-2026-02-12.md` | 24 tests: 21 PASS, 10 DEVIATION, 3 SKIP, 0 FAIL. Toast=SaveStatusIndicator not toast, Dup detection correct, Keyboard 8/8, HgbA1c columns not in grid UI. **GRAND TOTAL B-K: 232 tests, 222 PASS, 14 DEVIATION, 6 SKIP, 0 FAIL.** |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -60,6 +71,52 @@
 
 9. **Prompt text #6B7280 fails AA on colored rows**: Only passes on white (4.83) and yellow (4.59). Fails on blue (3.73), green (3.90), purple (3.58), orange (4.07), gray (4.06), overdue (3.43). Fix: use #4B5563.
 10. **setDataValue + valueSetter mismatch**: When calling node.setDataValue() from a renderer, the value goes through the column's valueSetter. If the valueSetter expects display-format input (e.g., "2/11/2026") but receives ISO datetime ("2026-02-11T12:00:00.000Z"), parsing fails.
+
+## PatientGrid Component Structure (post-refactor Feb 12)
+```
+frontend/src/components/grid/
+  PatientGrid.tsx             # Main component (uses hooks + utils)
+  AutoOpenSelectEditor.tsx    # Dropdown cell editor
+  DateCellEditor.tsx          # Date cell editor
+  StatusDateRenderer.tsx      # Status date cell renderer
+  hooks/
+    useGridCellUpdate.ts      # onCellValueChanged handler (save, cascade, conflict)
+    useRemoteEditClass.ts     # Remote edit CSS class for collaborative editing
+  utils/
+    cascadingFields.ts        # requestType -> QM -> status cascading clears
+```
+
+## AdminPage Component Structure (post-refactor Feb 12)
+```
+frontend/src/pages/AdminPage.tsx           # Parent: tabs, users table, audit log (499 lines)
+frontend/src/components/modals/
+  UserModal.tsx                            # Create/Edit user modal (304 lines)
+  ResetPasswordModal.tsx                   # Reset password modal (128 lines)
+```
+- UserModal exports: AdminUser, Physician interfaces
+- ResetPasswordModal has unused `userEmail` prop (dead code)
+- AdminPage.tsx line 270: React key warning on `<>` fragment (pre-existing, not from refactor)
+
+## CSS Architecture Notes (post-refactor Feb 12)
+- **!important required**: Row status colors, selected row outline, cell focus, cell editing, stripe overlay, cell-disabled/cell-prompt text color, remote editing border, cell editor input colors -- all need `!important` to override AG Grid inline styles
+- **!important NOT required**: Cell validation classes (`cell-invalid`, `cell-warning`, `cell-required-empty`) can use `.ag-theme-alpine .ag-cell.cell-xxx` specificity instead
+- **Grid container**: `.patient-grid-container` class replaces inline `style={{ width: '100%', height: 'calc(100vh - 200px)' }}`
+- **Tab visibility**: `.tab-visible`/`.tab-hidden` utility classes for tab panel toggling
+
+## Save Feedback Patterns
+- **Success**: SaveStatusIndicator in toolbar -- "Saving..." (yellow) -> "Saved" (green, 2s auto-dismiss) -> idle
+- **Error**: showToast() DOM overlay (red, 4000ms, top-right, role="alert")
+- **Warning**: showToast() DOM overlay (amber, 4000ms)
+- **Conflict (409)**: Edit Conflict modal with 3-way merge: Original / Their Version / Your Version, buttons: Keep Theirs / Keep Mine / Cancel
+- showToast is NOT called for success feedback -- only errors/warnings
+
+## HgbA1c Field Architecture
+- Database: `hgba1cGoal` (String?), `hgba1cGoalReachedYear` (Boolean), `hgba1cDeclined` (Boolean) in PatientMeasure model
+- Grid: NO dedicated HgbA1c columns. Fields exist in DB but not exposed in UI
+- Tracking #1: Free text "HgbA1c value" for HGBA1C_STATUSES (ordered/at goal/NOT at goal)
+- Tracking #2: Dropdown 1-12 months testing interval for HGBA1C_STATUSES
+- Time Interval: Auto-calculated from Tracking #2 month (locked, not manually editable)
+- Non-HgbA1c rows: Tracking #1 and #2 show "N/A" with disabled striped styling
 
 ## Known Bugs Fixed (Feb 6, 2026)
 - BUG-1: Reset password generic error → reads specific backend error messages now

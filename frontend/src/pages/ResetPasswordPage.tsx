@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useRef, useEffect, FormEvent } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Activity, ArrowLeft } from 'lucide-react';
 import { api } from '../api/axios';
@@ -13,6 +13,14 @@ export function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,7 +47,8 @@ export function ResetPasswordPage() {
       });
       setSuccess(true);
       // Redirect to login after 3 seconds
-      setTimeout(() => {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err: unknown) {

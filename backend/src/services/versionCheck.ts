@@ -145,16 +145,11 @@ export async function checkVersion(
       orderBy: { createdAt: 'desc' },
     });
 
-    for (const log of recentLogs) {
+    // Use flatMap + Set for deduplication instead of nested loops
+    serverChangedFields = [...new Set(recentLogs.flatMap((log) => {
       const changes = log.changes as { fields?: Array<{ field: string }> } | null;
-      if (changes?.fields) {
-        for (const change of changes.fields) {
-          if (!serverChangedFields.includes(change.field)) {
-            serverChangedFields.push(change.field);
-          }
-        }
-      }
-    }
+      return changes?.fields?.map((c) => c.field) ?? [];
+    }))];
   } catch {
     // Non-fatal: if we can't determine fields, treat as full conflict
   }

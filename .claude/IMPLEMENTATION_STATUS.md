@@ -8,6 +8,32 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ## Completed Phases
 
+### Code Quality Refactor (10 Phases)
+
+**Status: Complete** (Feb 12, 2026)
+**Spec:** `.claude/specs/code-quality-refactor/` (requirements, design, tasks — 163 tasks across 10 phases)
+
+- [x] **Phase 1 — Duplicate Code:** Extracted `dateFormatter.ts`, `dateParser.ts`; consolidated status arrays into `statusColors.ts`; extracted `cascadingFields.ts`
+- [x] **Phase 2 — Database:** N+1 query fixes, compound indexes migration, transaction wrapping, version check simplification
+- [x] **Phase 3 — Large File Decomposition:** PatientGrid (1351→~800 lines via hooks/utils), AdminPage (917→~450 lines via modals), data.routes (855→~200 lines via handlers), ImportPreviewPage decomposition
+- [x] **Phase 4 — Async Safety:** setTimeout→requestAnimationFrame, useEffect cleanup, stale closure fixes
+- [x] **Phase 5 — TypeScript:** Extracted `grid.ts` types, typed AG Grid handlers, replaced magic strings with constants
+- [x] **Phase 6 — Logging:** Structured `logger.ts` (backend + frontend) replacing console.log calls
+- [x] **Phase 7 — CSS Quality:** Reduced !important declarations, extracted inline styles, standardized cell styling
+- [x] **Phase 8 — Security:** Input length validation, sensitive data scrubbing in error handler, rate limiting on auth
+- [x] **Phase 9 — Performance:** Grid callbacks verified memoized; bundle 1,551KB JS (411KB gzip); AG Grid dominant
+- [x] **Phase 10 — Test Quality:** 82.97% backend coverage (701 tests), 65.72% frontend coverage (856 tests), AG Grid mock audit
+
+**Bug Fixes:**
+- DOB column raw HTML rendering (`<span aria-l...` → proper masked dates)
+- Compound indexes migration PascalCase → snake_case table names
+- Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
+
+**Test Coverage:**
+- Layer 1 (Backend Jest): 701 tests passing
+- Layer 2 (Frontend Vitest): 856 tests passing
+- Visual test plan v2.1: 427 test cases documented
+
 ### Real-Time Collaborative Editing (Parallel Editing)
 
 **Status: Complete** (Feb 10, 2026)
@@ -445,8 +471,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 679 tests passing (was 527; +84 rewritten route tests, +14 config.routes, +19 middleware, +30 dueDateCalculator, +5 import test fixes)
-- Total test count: ~1,816 automated tests across all frameworks (679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress)
+- [x] 701 tests passing (was 679; +22 from code quality refactor phase 10)
+- Total test count: ~1,942 automated tests across all frameworks (701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
   - auth.routes.test.ts - 29 tests (login, registration, password reset, JWT)
@@ -780,6 +806,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 12, 2026 - Release 4.5.0: 10-phase code quality refactor, visual test plan v2.1 (232 tests executed, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt replaces dark gray bg. Hover-reveal "Today" button. 22 new Vitest + ~36 new Cypress tests. Total: 679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress = ~1,816.
 February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor on all 5 dropdown columns. Single-click opens popup. Checkmark + (clear) styling. 22 new Vitest tests, 3 updated PatientGrid tests, Cypress commands updated. Total: 679 Jest + 730 Vitest + 43 Playwright + 306 Cypress = 1,758.
 February 11, 2026 - Test audit: +244 tests (84 route rewrites, 19 middleware, 14 config.routes, 45 dropdownConfig, 29 statusColors, 12 AdminPage, 20 PatientAssignmentPage, 9 ProtectedRoute, 13 hover-reveal Cypress, 30 dueDateCalculator). Fixed 13 pre-existing failures. 3 bugs fixed. Hover-reveal dropdown CSS. Slash commands refactored to background agents. Total: 679 Jest + 708 Vitest + 43 Playwright + 306 Cypress = 1,736.

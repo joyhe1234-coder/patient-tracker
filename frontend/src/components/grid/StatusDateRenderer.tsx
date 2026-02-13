@@ -1,4 +1,5 @@
 import type { ICellRendererParams } from 'ag-grid-community';
+import { formatDate, formatTodayDisplay } from '../../utils/dateFormatter';
 
 /**
  * Custom cell renderer for the statusDate column.
@@ -9,20 +10,6 @@ import type { ICellRendererParams } from 'ag-grid-community';
  *
  * Filled cells: shows the formatted date as plain text.
  */
-
-const formatDate = (value: string | null): string => {
-  if (!value) return '';
-  const date = new Date(value);
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
-  return `${month}/${day}/${year}`;
-};
-
-const formatTodayDisplay = (): string => {
-  const now = new Date();
-  return `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
-};
 
 const StatusDateRenderer = (params: ICellRendererParams) => {
   const { value, data, node } = params;

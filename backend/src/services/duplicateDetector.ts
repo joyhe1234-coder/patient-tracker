@@ -65,15 +65,12 @@ export async function updateDuplicateFlags(
 
   // Group by (requestType, qualityMeasure) - only non-empty values
   const groups = new Map<string, number[]>();
+  const nullFieldIds: number[] = [];
 
   for (const measure of measures) {
     // Skip rows with null/empty requestType or qualityMeasure
     if (isNullOrEmpty(measure.requestType) || isNullOrEmpty(measure.qualityMeasure)) {
-      // These rows are never duplicates - mark them as not duplicate
-      await prisma.patientMeasure.update({
-        where: { id: measure.id },
-        data: { isDuplicate: false },
-      });
+      nullFieldIds.push(measure.id);
       continue;
     }
 
@@ -81,6 +78,14 @@ export async function updateDuplicateFlags(
     const existing = groups.get(key) || [];
     existing.push(measure.id);
     groups.set(key, existing);
+  }
+
+  // Batch update: all null-field rows marked not-duplicate in one query
+  if (nullFieldIds.length > 0) {
+    await prisma.patientMeasure.updateMany({
+      where: { id: { in: nullFieldIds } },
+      data: { isDuplicate: false },
+    });
   }
 
   // Update duplicate flags for grouped measures
@@ -148,11 +153,29 @@ export async function detectAllDuplicates(): Promise<Map<number, boolean>> {
 export async function syncAllDuplicateFlags(): Promise<void> {
   const duplicateMap = await detectAllDuplicates();
 
-  // Update each measure
+  // Two batch queries instead of N individual queries
+  const trueIds: number[] = [];
+  const falseIds: number[] = [];
+
   for (const [id, isDuplicate] of duplicateMap) {
-    await prisma.patientMeasure.update({
-      where: { id },
-      data: { isDuplicate },
+    if (isDuplicate) {
+      trueIds.push(id);
+    } else {
+      falseIds.push(id);
+    }
+  }
+
+  if (trueIds.length > 0) {
+    await prisma.patientMeasure.updateMany({
+      where: { id: { in: trueIds } },
+      data: { isDuplicate: true },
+    });
+  }
+
+  if (falseIds.length > 0) {
+    await prisma.patientMeasure.updateMany({
+      where: { id: { in: falseIds } },
+      data: { isDuplicate: false },
     });
   }
 }

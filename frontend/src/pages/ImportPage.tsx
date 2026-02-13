@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
+import axios from 'axios';
 import { api } from '../api/axios';
+import { logger } from '../utils/logger';
+import { getApiErrorMessage } from '../utils/apiError';
 import { useAuthStore } from '../stores/authStore';
 
 type ImportMode = 'replace' | 'merge';
@@ -66,7 +69,7 @@ export function ImportTabContent() {
         }
       }
     } catch (err) {
-      console.error('Failed to load physicians:', err);
+      logger.error('Failed to load physicians:', err);
     } finally {
       setLoadingPhysicians(false);
     }
@@ -182,14 +185,15 @@ export function ImportTabContent() {
           setError(response.data.error?.message || 'Failed to process import file');
         }
       }
-    } catch (err: any) {
-      const message = err.response?.data?.error?.message || err.message || 'Failed to process import file';
-      setError(message);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to process import file'));
 
       // Check for validation errors in error response
-      const errors = err.response?.data?.data?.validation?.errors;
-      if (errors && errors.length > 0) {
-        setValidationErrors(errors);
+      if (axios.isAxiosError(err)) {
+        const errors = err.response?.data?.data?.validation?.errors;
+        if (errors && errors.length > 0) {
+          setValidationErrors(errors);
+        }
       }
     } finally {
       setLoading(false);

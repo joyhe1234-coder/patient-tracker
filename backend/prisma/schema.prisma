@@ -112,6 +112,10 @@ model PatientMeasure {
   @@index([measureStatus])
   @@index([dueDate])
   @@index([statusDate])
+  // Compound index for duplicate detection: covers lookups by patient + request type + quality measure
+  @@index([patientId, requestType, qualityMeasure])
+  // Index for filter queries on request type
+  @@index([requestType])
   @@map("patient_measures")
 }
 
@@ -257,6 +261,8 @@ model AuditLog {
   @@index([userId])
   @@index([userEmail])
   @@index([entity, entityId])
+  // Compound index for version check queries: covers lookups by entity + entityId + action + time ordering
+  @@index([entity, entityId, action, createdAt])
   @@map("audit_log")
 }
 

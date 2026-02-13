@@ -321,6 +321,88 @@ describe('Config Routes', () => {
     });
   });
 
+  // ── Input validation ────────────────────────────────────────────
+
+  describe('input validation', () => {
+    describe('GET /api/config/quality-measures/:requestTypeCode', () => {
+      it('returns 400 for whitespace-only requestTypeCode', async () => {
+        const res = await request(app)
+          .get('/api/config/quality-measures/%20%20')
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+        expect(res.body.error.message).toContain('requestTypeCode');
+      });
+
+      it('trims valid requestTypeCode before lookup', async () => {
+        mockPrisma.requestType.findUnique.mockResolvedValue(null);
+
+        const res = await request(app)
+          .get('/api/config/quality-measures/%20Quality%20')
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(res.status).toBe(200);
+        expect(mockPrisma.requestType.findUnique).toHaveBeenCalledWith({
+          where: { code: 'Quality' },
+        });
+      });
+    });
+
+    describe('GET /api/config/measure-statuses/:qualityMeasureCode', () => {
+      it('returns 400 for whitespace-only qualityMeasureCode', async () => {
+        const res = await request(app)
+          .get('/api/config/measure-statuses/%20%20')
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+        expect(res.body.error.message).toContain('qualityMeasureCode');
+      });
+
+      it('trims valid qualityMeasureCode before lookup', async () => {
+        mockPrisma.qualityMeasure.findFirst.mockResolvedValue(null);
+
+        const res = await request(app)
+          .get('/api/config/measure-statuses/%20AWV%20')
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(res.status).toBe(200);
+        expect(mockPrisma.qualityMeasure.findFirst).toHaveBeenCalledWith({
+          where: { code: 'AWV' },
+        });
+      });
+    });
+
+    describe('GET /api/config/tracking-options/:measureStatusCode', () => {
+      it('returns 400 for whitespace-only measureStatusCode', async () => {
+        const res = await request(app)
+          .get('/api/config/tracking-options/%20%20')
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+        expect(res.body.error.message).toContain('measureStatusCode');
+      });
+
+      it('trims valid measureStatusCode before lookup', async () => {
+        mockPrisma.measureStatus.findFirst.mockResolvedValue(null);
+
+        const res = await request(app)
+          .get('/api/config/tracking-options/%20colon_ordered%20')
+          .set('Authorization', 'Bearer valid-token');
+
+        expect(res.status).toBe(200);
+        expect(mockPrisma.measureStatus.findFirst).toHaveBeenCalledWith({
+          where: { code: 'colon_ordered' },
+        });
+      });
+    });
+  });
+
   // ── Error handling ──────────────────────────────────────────────
 
   describe('error handling', () => {

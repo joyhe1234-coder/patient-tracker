@@ -184,6 +184,12 @@ export const STATUS_TO_TRACKING1: Record<string, string[]> = {
 // Request Types list
 export const REQUEST_TYPES = ['AWV', 'Chronic DX', 'Quality', 'Screening'];
 
+/** HgbA1c-related measure statuses (Diabetes Control). Used for tracking field logic. */
+export const HGBA1C_STATUSES = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'] as const;
+
+/** BP-related measure statuses (Hypertension Management call-backs). Used for tracking field logic. */
+export const BP_STATUSES = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'] as const;
+
 // Helper functions
 export function getQualityMeasuresForRequestType(requestType: string): string[] {
   return [...(REQUEST_TYPE_TO_QUALITY_MEASURE[requestType] || [])].sort((a, b) => a.localeCompare(b));

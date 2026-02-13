@@ -1,25 +1,33 @@
 import { useMemo, useCallback, useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, CellValueChangedEvent, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams, CellEditingStartedEvent, CellEditingStoppedEvent, CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community';
+import { ColDef, GridReadyEvent, SelectionChangedEvent, ICellEditorParams, RowClassParams, PostSortRowsParams, CellEditingStartedEvent, CellEditingStoppedEvent, CellClassParams, CellClickedEvent, ICellRendererParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { api } from '../../api/axios';
+import { logger } from '../../utils/logger';
 import { useAuthStore } from '../../stores/authStore';
 import { useRealtimeStore } from '../../stores/realtimeStore';
 import { emitEditingStart, emitEditingStop } from '../../services/socketService';
 import { showToast } from '../../utils/toast';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { formatDate, formatDateForEdit } from '../../utils/dateFormatter';
+import { parseAndValidateDate, showDateFormatError } from '../../utils/dateParser';
 import AutoOpenSelectEditor from './AutoOpenSelectEditor';
 import DateCellEditor from './DateCellEditor';
 import StatusDateRenderer from './StatusDateRenderer';
-import ConflictModal, { ConflictField } from '../modals/ConflictModal';
-import type { GridRowPayload, ConflictResponse } from '../../types/socket';
+import ConflictModal from '../modals/ConflictModal';
+import type { GridRowPayload } from '../../types/socket';
+import type { SaveStatus } from '../../types/grid';
+import { useGridCellUpdate, FIELD_DISPLAY_NAMES } from './hooks/useGridCellUpdate';
+import type { ConflictData } from './hooks/useGridCellUpdate';
+import { useRemoteEditClass } from './hooks/useRemoteEditClass';
 import {
   REQUEST_TYPES,
+  HGBA1C_STATUSES,
+  BP_STATUSES,
   getQualityMeasuresForRequestType,
   getMeasureStatusesForQualityMeasure,
   getTracking1OptionsForStatus,
-  getAutoFillQualityMeasure,
 } from '../../config/dropdownConfig';
 import {
   GRAY_STATUSES, PURPLE_STATUSES, GREEN_STATUSES,
@@ -58,24 +66,6 @@ const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   return true;
 };
 
-// Field display name mapping for conflict modal
-const FIELD_DISPLAY_NAMES: Record<string, string> = {
-  requestType: 'Request Type',
-  memberName: 'Member Name',
-  memberDob: 'Member DOB',
-  memberTelephone: 'Telephone',
-  memberAddress: 'Address',
-  qualityMeasure: 'Quality Measure',
-  measureStatus: 'Measure Status',
-  statusDate: 'Status Date',
-  tracking1: 'Tracking #1',
-  tracking2: 'Tracking #2',
-  tracking3: 'Tracking #3',
-  dueDate: 'Due Date',
-  timeIntervalDays: 'Time Interval',
-  notes: 'Notes',
-};
-
 export interface GridRow {
   id: number;
   patientId: number;
@@ -112,7 +102,7 @@ interface PatientGridProps {
   onRowAdded?: (row: GridRow) => void;
   onRowDeleted?: (id: number) => void;
   onRowUpdated?: (row: GridRow) => void;
-  onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
+  onSaveStatusChange?: (status: SaveStatus) => void;
   onRowSelected?: (id: number | null) => void;
   showMemberInfo?: boolean;
   newRowId?: number | null;
@@ -120,32 +110,10 @@ interface PatientGridProps {
   onDataRefresh?: () => void;
 }
 
-// Date formatter for display - use UTC to avoid timezone shifts
-// Display without leading zeros: 1/5/2023 instead of 01/05/2023
-const formatDate = (value: string | null): string => {
-  if (!value) return '';
-  const date = new Date(value);
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
-  return `${month}/${day}/${year}`;
-};
-
 // DOB formatter - masked for privacy
 const formatDobMasked = (value: string | null): string => {
   if (!value) return '';
   return '###';
-};
-
-// Format date for editing (M/D/YYYY) - use UTC to avoid timezone shifts
-// No leading zeros for easier editing
-const formatDateForEdit = (value: string | null): string => {
-  if (!value) return '';
-  const date = new Date(value);
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
-  return `${month}/${day}/${year}`;
 };
 
 // Phone formatter for display
@@ -156,92 +124,6 @@ const formatPhone = (value: string | null): string => {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
   return value;
-};
-
-// Parse date with flexible format validation - returns ISO string at UTC noon
-// Supports: M/D/YYYY, MM/DD/YYYY, M-D-YYYY, MM-DD-YYYY, M.D.YYYY, YYYY-MM-DD, short year (YY)
-const parseAndValidateDate = (input: string): string | null => {
-  if (!input || !input.trim()) return null;
-
-  const trimmed = input.trim();
-  let m = 0, d = 0, y = 0;
-
-  // Try MM/DD/YYYY or M/D/YYYY or M/D/YY (with slashes)
-  let match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (match) {
-    m = parseInt(match[1]);
-    d = parseInt(match[2]);
-    y = parseInt(match[3]);
-    if (y < 100) y += 2000; // Convert 2-digit year to 4-digit (assumes 2000s)
-  }
-
-  // Try MM-DD-YYYY or M-D-YYYY or M-D-YY (with dashes, US format)
-  if (!match) {
-    match = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-    if (match) {
-      m = parseInt(match[1]);
-      d = parseInt(match[2]);
-      y = parseInt(match[3]);
-      if (y < 100) y += 2000;
-    }
-  }
-
-  // Try MM.DD.YYYY or M.D.YYYY (with dots)
-  if (!match) {
-    match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
-    if (match) {
-      m = parseInt(match[1]);
-      d = parseInt(match[2]);
-      y = parseInt(match[3]);
-      if (y < 100) y += 2000;
-    }
-  }
-
-  // Try YYYY-MM-DD or YYYY/MM/DD (ISO format)
-  if (!match) {
-    match = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-    if (match) {
-      y = parseInt(match[1]);
-      m = parseInt(match[2]);
-      d = parseInt(match[3]);
-    }
-  }
-
-  // Try MMDDYYYY or MDYYYY (no separators, 8 digits)
-  if (!match) {
-    match = trimmed.match(/^(\d{8})$/);
-    if (match) {
-      const digits = match[1];
-      m = parseInt(digits.substring(0, 2));
-      d = parseInt(digits.substring(2, 4));
-      y = parseInt(digits.substring(4, 8));
-    }
-  }
-
-  // If no format matched, return null
-  if (!match) {
-    return null;
-  }
-
-  // Validate date values
-  if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900 || y > 2100) {
-    return null;
-  }
-
-  // Additional validation: check if day is valid for the month
-  const daysInMonth = new Date(y, m, 0).getDate();
-  if (d > daysInMonth) {
-    return null;
-  }
-
-  // Return ISO string at UTC noon to avoid timezone boundary issues
-  const isoString = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00.000Z`;
-  return isoString;
-};
-
-// Show date format error
-const showDateFormatError = () => {
-  alert('Invalid date format.\n\nAccepted formats:\n• 12/25/2023 or 1/5/2023\n• 12-25-2023 or 1-5-23\n• 2023-12-25\n• 12252023');
 };
 
 const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function PatientGrid({
@@ -257,19 +139,20 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
   onDataRefresh,
 }, ref) {
   const gridRef = useRef<AgGridReact<GridRow>>(null);
+  const saveStatusTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const { user, selectedPhysicianId } = useAuthStore();
   const activeEdits = useRealtimeStore((s) => s.activeEdits);
 
   // Conflict modal state (Task 44)
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
-  const [conflictData, setConflictData] = useState<{
-    patientName: string;
-    changedBy: string;
-    conflicts: ConflictField[];
-    rowId: number;
-    updatePayload: Record<string, unknown>;
-    queryParams: string;
-  } | null>(null);
+  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(saveStatusTimerRef.current);
+    };
+  }, []);
 
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
@@ -285,8 +168,21 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
   // Store the frozen row order when sort is cleared during editing
   const frozenRowOrderRef = useRef<number[] | null>(null);
 
-  // Ref to track when we're doing a cascading update (to prevent setDataValue from triggering additional API calls)
-  const isCascadingUpdateRef = useRef(false);
+  // Task 49: Remote edit cell class indicator (extracted to hook)
+  const getRemoteEditCellClass = useRemoteEditClass(activeEdits);
+
+  // Cell value change handler with cascading logic (extracted to hook)
+  const { onCellValueChanged } = useGridCellUpdate({
+    onRowUpdated,
+    onRowDeleted,
+    onSaveStatusChange,
+    getQueryParams,
+    gridRef,
+    frozenRowOrderRef,
+    saveStatusTimerRef,
+    setConflictData,
+    setConflictModalOpen,
+  });
 
   // Task 45: Remote row update handler with out-of-order protection
   const handleRemoteRowUpdate = useCallback((row: GridRowPayload, changedBy: string) => {
@@ -464,256 +360,6 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     }
   }, []);
 
-  // Handle cell value change - auto-save with cascading logic
-  const onCellValueChanged = useCallback(async (event: CellValueChangedEvent<GridRow>) => {
-    const { data, colDef, newValue, oldValue, node, api: gridApi } = event;
-
-    // Don't save if value hasn't changed
-    if (newValue === oldValue) return;
-    if (!data || !colDef.field) return;
-
-    // Skip API calls for cascading updates (triggered by setDataValue)
-    // The main field update already includes all cascading field changes
-    if (isCascadingUpdateRef.current) return;
-
-    // Clear sort indicator on the edited column (if it was sorted)
-    // Capture current row order first, then clear sort - postSortRows will maintain order
-    const columnState = gridApi.getColumnState();
-    const editedColumnState = columnState.find(col => col.colId === colDef.field);
-    if (editedColumnState?.sort) {
-      // Capture current visual row order BEFORE clearing sort
-      const currentOrder: number[] = [];
-      gridApi.forEachNodeAfterFilterAndSort((rowNode) => {
-        if (rowNode.data) {
-          currentOrder.push(rowNode.data.id);
-        }
-      });
-      frozenRowOrderRef.current = currentOrder;
-
-      // Clear the sort - postSortRows callback will maintain the frozen order
-      gridApi.applyColumnState({
-        state: [{ colId: colDef.field, sort: null }],
-      });
-    }
-
-    // Show saving status
-    onSaveStatusChange?.('saving');
-
-    // Task 42: Capture expectedVersion before PUT
-    const expectedVersion = data.updatedAt || undefined;
-
-    try {
-      // Use the processed value from data object for fields with valueSetters
-      // This ensures we send the transformed value (e.g., ISO date string) not raw input
-      const processedValue = data[colDef.field as keyof GridRow];
-      const updatePayload: Record<string, unknown> = {
-        [colDef.field]: processedValue,
-      };
-
-      // Handle cascading logic - clear all downstream fields when parent changes
-      // Hierarchy: requestType -> qualityMeasure -> measureStatus -> statusDate -> tracking1/2/3 -> dueDate/timeInterval
-      // Keep: notes (not cleared on cascade)
-
-      // Set flag to prevent setDataValue from triggering additional API calls
-      isCascadingUpdateRef.current = true;
-
-      if (colDef.field === 'requestType') {
-        // Auto-fill Quality Measure for AWV and Chronic DX
-        const autoFillQM = getAutoFillQualityMeasure(newValue);
-        if (autoFillQM) {
-          updatePayload.qualityMeasure = autoFillQM;
-          node.setDataValue('qualityMeasure', autoFillQM);
-        } else {
-          // Clear Quality Measure (always, not just if invalid)
-          updatePayload.qualityMeasure = null;
-          node.setDataValue('qualityMeasure', null);
-        }
-        // Clear all downstream fields including calculated fields
-        updatePayload.measureStatus = null;
-        updatePayload.statusDate = null;
-        updatePayload.tracking1 = null;
-        updatePayload.tracking2 = null;
-        updatePayload.tracking3 = null;
-        updatePayload.dueDate = null;
-        updatePayload.timeIntervalDays = null;
-        node.setDataValue('measureStatus', null);
-        node.setDataValue('statusDate', null);
-        node.setDataValue('tracking1', null);
-        node.setDataValue('tracking2', null);
-        node.setDataValue('tracking3', null);
-        node.setDataValue('dueDate', null);
-        node.setDataValue('timeIntervalDays', null);
-      }
-
-      if (colDef.field === 'qualityMeasure') {
-        // Clear all downstream fields including calculated fields
-        updatePayload.measureStatus = null;
-        updatePayload.statusDate = null;
-        updatePayload.tracking1 = null;
-        updatePayload.tracking2 = null;
-        updatePayload.tracking3 = null;
-        updatePayload.dueDate = null;
-        updatePayload.timeIntervalDays = null;
-        node.setDataValue('measureStatus', null);
-        node.setDataValue('statusDate', null);
-        node.setDataValue('tracking1', null);
-        node.setDataValue('tracking2', null);
-        node.setDataValue('tracking3', null);
-        node.setDataValue('dueDate', null);
-        node.setDataValue('timeIntervalDays', null);
-      }
-
-      if (colDef.field === 'measureStatus') {
-        // Clear statusDate, tracking fields, and calculated fields
-        updatePayload.statusDate = null;
-        updatePayload.tracking1 = null;
-        updatePayload.tracking2 = null;
-        updatePayload.tracking3 = null;
-        updatePayload.dueDate = null;
-        updatePayload.timeIntervalDays = null;
-        node.setDataValue('statusDate', null);
-        node.setDataValue('tracking1', null);
-        node.setDataValue('tracking2', null);
-        node.setDataValue('tracking3', null);
-        node.setDataValue('dueDate', null);
-        node.setDataValue('timeIntervalDays', null);
-      }
-
-      // Task 42: Include expectedVersion in PUT request
-      if (expectedVersion) {
-        updatePayload.expectedVersion = expectedVersion;
-      }
-
-      const queryParams = getQueryParams();
-      const response = await api.put(`/data/${data.id}${queryParams}`, updatePayload);
-
-      if (response.data.success) {
-        // Update row data directly on the node instead of using applyTransaction
-        // This prevents row reordering
-        const updatedData = response.data.data;
-        node.setData(updatedData);
-
-        // Refresh the row to update styling (row colors)
-        gridApi.refreshCells({ rowNodes: [node], force: true });
-
-        // Ensure row stays selected
-        node.setSelected(true);
-
-        // Freeze current row order before React state update to prevent reordering
-        if (!frozenRowOrderRef.current) {
-          const currentOrder: number[] = [];
-          gridApi.forEachNodeAfterFilterAndSort((rowNode) => {
-            if (rowNode.data) {
-              currentOrder.push(rowNode.data.id);
-            }
-          });
-          frozenRowOrderRef.current = currentOrder;
-        }
-
-        // Update React state so filter chip counts stay in sync
-        onRowUpdated?.(updatedData);
-
-        onSaveStatusChange?.('saved');
-
-        // Reset to idle after 2 seconds
-        setTimeout(() => {
-          onSaveStatusChange?.('idle');
-        }, 2000);
-      }
-    } catch (error: unknown) {
-      console.error('Failed to save:', error);
-
-      const axiosError = error as {
-        response?: {
-          data?: {
-            error?: { message?: string; code?: string };
-            data?: ConflictResponse['data'];
-          };
-          status?: number;
-        };
-      };
-      const statusCode = axiosError?.response?.status;
-      const errorCode = axiosError?.response?.data?.error?.code;
-
-      // Task 43: Handle 409 VERSION_CONFLICT
-      if (statusCode === 409 && errorCode === 'VERSION_CONFLICT') {
-        const conflictResponseData = axiosError?.response?.data?.data;
-        if (conflictResponseData) {
-          const serverRow = conflictResponseData.serverRow;
-          const changedBy = conflictResponseData.changedBy || 'another user';
-          const conflictFields: ConflictField[] = (conflictResponseData.conflictFields || []).map(
-            (cf: { field: string; serverValue: unknown; clientValue: unknown }) => ({
-              fieldName: FIELD_DISPLAY_NAMES[cf.field] || cf.field,
-              fieldKey: cf.field,
-              baseValue: oldValue != null ? String(oldValue) : null,
-              theirValue: cf.serverValue != null ? String(cf.serverValue) : null,
-              yourValue: cf.clientValue != null ? String(cf.clientValue) : null,
-            })
-          );
-
-          // Store conflict data and open modal
-          const queryParams = getQueryParams();
-          setConflictData({
-            patientName: serverRow?.memberName || data.memberName || 'Unknown',
-            changedBy,
-            conflicts: conflictFields,
-            rowId: data.id,
-            updatePayload: {
-              [colDef.field]: data[colDef.field as keyof GridRow],
-            },
-            queryParams,
-          });
-          setConflictModalOpen(true);
-
-          onSaveStatusChange?.('error');
-          setTimeout(() => {
-            onSaveStatusChange?.('idle');
-          }, 3000);
-        }
-        return;
-      }
-
-      // Task 43: Handle 404 Not Found (row deleted by another user)
-      if (statusCode === 404) {
-        showToast('Row deleted by another user.', 'warning');
-        // Remove the row from the grid
-        gridApi.applyTransaction({ remove: [data] });
-        onRowDeleted?.(data.id);
-        onSaveStatusChange?.('idle');
-        return;
-      }
-
-      onSaveStatusChange?.('error');
-
-      // Show error message to user
-      const errorMessage = axiosError?.response?.data?.error?.message || 'Failed to save changes.';
-      showToast(errorMessage, 'error');
-
-      // For duplicate errors (409 non-conflict), reset to empty instead of reverting
-      if (statusCode === 409 && (colDef.field === 'requestType' || colDef.field === 'qualityMeasure')) {
-        event.node.setDataValue(colDef.field, null);
-        // Also reset dependent fields
-        if (colDef.field === 'requestType') {
-          event.node.setDataValue('qualityMeasure', null);
-          event.node.setDataValue('measureStatus', null);
-        } else if (colDef.field === 'qualityMeasure') {
-          event.node.setDataValue('measureStatus', null);
-        }
-      } else {
-        // Revert to old value for other errors
-        event.node.setDataValue(colDef.field, oldValue);
-      }
-
-      // Reset to idle after 3 seconds
-      setTimeout(() => {
-        onSaveStatusChange?.('idle');
-      }, 3000);
-    } finally {
-      // Always reset the cascading update flag
-      isCascadingUpdateRef.current = false;
-    }
-  }, [onRowUpdated, onRowDeleted, onSaveStatusChange, getQueryParams]);
-
   // Task 43: Handle "Keep Mine" — retry PUT with forceOverwrite
   const handleConflictKeepMine = useCallback(async () => {
     if (!conflictData) return;
@@ -742,13 +388,15 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
         }
         onRowUpdated?.(response.data.data);
         onSaveStatusChange?.('saved');
-        setTimeout(() => onSaveStatusChange?.('idle'), 2000);
+        clearTimeout(saveStatusTimerRef.current);
+        saveStatusTimerRef.current = setTimeout(() => onSaveStatusChange?.('idle'), 2000);
       }
     } catch (err) {
-      console.error('Failed to force save:', err);
+      logger.error('Failed to force save:', err);
       onSaveStatusChange?.('error');
       showToast(getApiErrorMessage(err, 'Failed to save your changes.'), 'error');
-      setTimeout(() => onSaveStatusChange?.('idle'), 3000);
+      clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = setTimeout(() => onSaveStatusChange?.('idle'), 3000);
     } finally {
       setConflictData(null);
     }
@@ -786,22 +434,6 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     onSaveStatusChange?.('idle');
   }, [onSaveStatusChange]);
 
-  // Task 49: cellClass callback for edit indicators
-  // Returns class names based on whether another user is editing a cell
-  const getRemoteEditCellClass = useCallback((params: CellClassParams<GridRow>): string | string[] => {
-    if (!params.data || !params.colDef.field) return '';
-    const rowId = params.data.id;
-    const field = params.colDef.field;
-
-    const match = activeEdits.find(
-      (e) => e.rowId === rowId && e.field === field
-    );
-    if (match) {
-      return 'cell-remote-editing';
-    }
-    return '';
-  }, [activeEdits]);
-
   // Determine if a cell should behave as a dropdown (show arrow + single-click open)
   const isDropdownCell = useCallback((field: string, data: GridRow | undefined): boolean => {
     // Always-dropdown columns
@@ -814,8 +446,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     }
     // tracking2: dropdown only for HgbA1c statuses (BP statuses use text input)
     if (field === 'tracking2') {
-      const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-      return hgba1cStatuses.includes(data?.measureStatus || '');
+      return (HGBA1C_STATUSES as readonly string[]).includes(data?.measureStatus || '');
     }
     return false;
   }, []);
@@ -858,9 +489,8 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
 
     // Skip if cell is disabled (N/A)
     if (field === 'tracking1') {
-      const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
       const hasOptions = getTracking1OptionsForStatus(data?.measureStatus || '');
-      const isHgba1c = hgba1cStatuses.includes(data?.measureStatus || '');
+      const isHgba1c = (HGBA1C_STATUSES as readonly string[]).includes(data?.measureStatus || '');
       if (!hasOptions && !isHgba1c) return;
     }
 
@@ -910,11 +540,6 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       hide: !showMemberInfo,
       editable: true,
       valueFormatter: (params) => formatDobMasked(params.value),
-      cellRenderer: (params: { value: string | null }) => {
-        const display = formatDobMasked(params.value);
-        if (!display) return '';
-        return `<span aria-label="Date of birth hidden for privacy">${display}</span>`;
-      },
       valueGetter: (params) => {
         // Return YYYY-MM-DD format for editing
         const value = params.data?.memberDob;
@@ -1013,7 +638,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
         const classes: string[] = [];
         // Gray prompt for cells missing status date
         if (!params.value && params.data?.statusDatePrompt) {
-          classes.push('cell-prompt');
+          classes.push('stripe-overlay', 'cell-prompt');
         }
         // Remote editing indicator
         const remoteClass = getRemoteEditCellClass(params);
@@ -1061,8 +686,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       editable: (params) => {
         // Editable if has dropdown options OR is HgbA1c status
         const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        return !!hasOptions || hgba1cStatuses.includes(params.data?.measureStatus || '');
+        return !!hasOptions || (HGBA1C_STATUSES as readonly string[]).includes(params.data?.measureStatus || '');
       },
       cellRenderer: dropdownCellRenderer,
       cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
@@ -1082,10 +706,9 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
           return params.value || '';
         }
 
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
         const status = params.data.measureStatus || '';
         const hasOptions = getTracking1OptionsForStatus(status);
-        const isHgba1c = hgba1cStatuses.includes(status);
+        const isHgba1c = (HGBA1C_STATUSES as readonly string[]).includes(status);
 
         // If cell has dropdown options, show appropriate prompt when empty
         if (hasOptions) {
@@ -1118,21 +741,20 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       },
       cellClass: (params: CellClassParams<GridRow>) => {
         const classes: string[] = [];
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
         const hasOptions = getTracking1OptionsForStatus(params.data?.measureStatus || '');
-        const isHgba1c = hgba1cStatuses.includes(params.data?.measureStatus || '');
+        const isHgba1c = (HGBA1C_STATUSES as readonly string[]).includes(params.data?.measureStatus || '');
 
         // Dropdown options need prompt when empty
         if (hasOptions && !params.value) {
-          classes.push('cell-prompt');
+          classes.push('stripe-overlay', 'cell-prompt');
         }
         // HgbA1c needs prompt when empty
         else if (isHgba1c && !params.value) {
-          classes.push('cell-prompt');
+          classes.push('stripe-overlay', 'cell-prompt');
         }
         // Disabled (N/A) - no dropdown options and not HgbA1c
         else if (!hasOptions && !isHgba1c) {
-          classes.push('cell-disabled');
+          classes.push('stripe-overlay', 'cell-disabled');
         }
 
         // Remote editing indicator
@@ -1151,16 +773,13 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
       cellEditorPopup: true,
       editable: (params) => {
         // Editable for HgbA1c statuses (testing interval) and Hypertension call back (BP reading)
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
         const status = params.data?.measureStatus || '';
-        return hgba1cStatuses.includes(status) || bpStatuses.includes(status);
+        return (HGBA1C_STATUSES as readonly string[]).includes(status) || (BP_STATUSES as readonly string[]).includes(status);
       },
       cellRenderer: dropdownCellRenderer,
       cellEditorSelector: (params: ICellEditorParams<GridRow>) => {
         // HgbA1c statuses get dropdown for testing interval
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        if (hgba1cStatuses.includes(params.data?.measureStatus || '')) {
+        if ((HGBA1C_STATUSES as readonly string[]).includes(params.data?.measureStatus || '')) {
           return {
             component: AutoOpenSelectEditor,
             params: {
@@ -1178,38 +797,34 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
           return params.value || '';
         }
 
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
         const status = params.data.measureStatus || '';
-        const isEditable = hgba1cStatuses.includes(status) || bpStatuses.includes(status);
+        const isEditable = (HGBA1C_STATUSES as readonly string[]).includes(status) || (BP_STATUSES as readonly string[]).includes(status);
 
         // Disabled - show N/A
         if (!isEditable) {
           return 'N/A';
         }
         // Show prompt for empty fields
-        if (!params.value && hgba1cStatuses.includes(status)) {
+        if (!params.value && (HGBA1C_STATUSES as readonly string[]).includes(status)) {
           return 'Testing interval';
         }
-        if (!params.value && bpStatuses.includes(status)) {
+        if (!params.value && (BP_STATUSES as readonly string[]).includes(status)) {
           return 'BP reading';
         }
         return params.value || '';
       },
       cellClass: (params: CellClassParams<GridRow>) => {
         const classes: string[] = [];
-        const hgba1cStatuses = ['HgbA1c ordered', 'HgbA1c at goal', 'HgbA1c NOT at goal'];
-        const bpStatuses = ['Scheduled call back - BP not at goal', 'Scheduled call back - BP at goal'];
         const status = params.data?.measureStatus || '';
-        const isEditable = hgba1cStatuses.includes(status) || bpStatuses.includes(status);
+        const isEditable = (HGBA1C_STATUSES as readonly string[]).includes(status) || (BP_STATUSES as readonly string[]).includes(status);
 
         // Show prompt for empty editable fields
         if (isEditable && !params.value) {
-          classes.push('cell-prompt');
+          classes.push('stripe-overlay', 'cell-prompt');
         }
         // Disabled (N/A) - not editable
         else if (!isEditable) {
-          classes.push('cell-disabled');
+          classes.push('stripe-overlay', 'cell-disabled');
         }
 
         // Remote editing indicator
@@ -1289,28 +904,27 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
   const rowClassRules = useMemo(() => ({
     'row-status-duplicate': (params: RowClassParams<GridRow>) => params.data?.isDuplicate === true,
     'row-status-overdue': (params: RowClassParams<GridRow>) => isRowOverdue(params.data),
-    'row-status-gray': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && GRAY_STATUSES.includes(params.data?.measureStatus as any || ''),
-    'row-status-purple': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && PURPLE_STATUSES.includes(params.data?.measureStatus as any || ''),
-    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (GREEN_STATUSES.includes(params.data?.measureStatus as any || '') || isChronicDxAttestationSent(params.data)),
-    'row-status-blue': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && BLUE_STATUSES.includes(params.data?.measureStatus as any || ''),
-    'row-status-yellow': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && YELLOW_STATUSES.includes(params.data?.measureStatus as any || ''),
-    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && ORANGE_STATUSES.includes(params.data?.measureStatus as any || '') && !isChronicDxAttestationSent(params.data),
+    'row-status-gray': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (GRAY_STATUSES as readonly string[]).includes(params.data?.measureStatus || ''),
+    'row-status-purple': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (PURPLE_STATUSES as readonly string[]).includes(params.data?.measureStatus || ''),
+    'row-status-green': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && ((GREEN_STATUSES as readonly string[]).includes(params.data?.measureStatus || '') || isChronicDxAttestationSent(params.data)),
+    'row-status-blue': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (BLUE_STATUSES as readonly string[]).includes(params.data?.measureStatus || ''),
+    'row-status-yellow': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (YELLOW_STATUSES as readonly string[]).includes(params.data?.measureStatus || ''),
+    'row-status-orange': (params: RowClassParams<GridRow>) => !isRowOverdue(params.data) && (ORANGE_STATUSES as readonly string[]).includes(params.data?.measureStatus || '') && !isChronicDxAttestationSent(params.data),
     'row-status-white': (params: RowClassParams<GridRow>) => {
       if (isRowOverdue(params.data)) return false;
       const status = params.data?.measureStatus || '';
-      return !GRAY_STATUSES.includes(status as any) &&
-             !PURPLE_STATUSES.includes(status as any) &&
-             !GREEN_STATUSES.includes(status as any) &&
-             !BLUE_STATUSES.includes(status as any) &&
-             !YELLOW_STATUSES.includes(status as any) &&
-             !ORANGE_STATUSES.includes(status as any);
+      return !(GRAY_STATUSES as readonly string[]).includes(status) &&
+             !(PURPLE_STATUSES as readonly string[]).includes(status) &&
+             !(GREEN_STATUSES as readonly string[]).includes(status) &&
+             !(BLUE_STATUSES as readonly string[]).includes(status) &&
+             !(YELLOW_STATUSES as readonly string[]).includes(status) &&
+             !(ORANGE_STATUSES as readonly string[]).includes(status);
     },
   }), []);
 
   return (
     <div
-      className="ag-theme-alpine"
-      style={{ width: '100%', height: 'calc(100vh - 200px)' }}
+      className="ag-theme-alpine patient-grid-container"
     >
       <AgGridReact<GridRow>
         ref={gridRef}

@@ -21,7 +21,7 @@ html, body, #root {
   --ag-font-size: 14px;
 }
 
-/* Status row colors - using classes instead of inline styles */
+/* Status row colors — !important required: overrides AG Grid inline style */
 .ag-theme-alpine .row-status-gray { background-color: #E9EBF3 !important; }
 .ag-theme-alpine .row-status-purple { background-color: #E5D9F2 !important; }
 .ag-theme-alpine .row-status-green { background-color: #D4EDDA !important; }
@@ -32,19 +32,19 @@ html, body, #root {
 .ag-theme-alpine .row-status-duplicate { border-left: 4px solid #F97316 !important; }
 .ag-theme-alpine .row-status-overdue { background-color: #FFCDD2 !important; }
 
-/* Selected row indicator - use outline, preserve status color */
+/* Selected row indicator — !important required: overrides AG Grid inline style */
 .ag-theme-alpine .ag-row-selected {
   outline: 2px solid #2196F3 !important;
   outline-offset: -2px;
 }
 
-/* Focused cell indicator - clear blue border */
+/* Focused cell indicator — !important required: overrides AG Grid inline style */
 .ag-theme-alpine .ag-cell-focus {
   outline: 2px solid #2196F3 !important;
   outline-offset: -2px;
 }
 
-/* Cell being edited - highlight with box shadow */
+/* Cell being edited — !important required: overrides AG Grid inline style */
 .ag-theme-alpine .ag-cell-inline-editing {
   box-shadow: inset 0 0 0 2px #2196F3 !important;
 }
@@ -82,49 +82,41 @@ html, body, #root {
   animation: pulse-save 1s ease-in-out infinite;
 }
 
-/* Cell styles */
-.cell-invalid {
-  border: 2px solid #ef4444 !important;
-  background-color: #fef2f2 !important;
+/* Cell validation styles — higher specificity replaces !important */
+.ag-theme-alpine .ag-cell.cell-invalid {
+  border: 2px solid #ef4444;
+  background-color: #fef2f2;
 }
 
-.cell-warning {
-  border: 2px solid #f59e0b !important;
-  background-color: #fffbeb !important;
+.ag-theme-alpine .ag-cell.cell-warning {
+  border: 2px solid #f59e0b;
+  background-color: #fffbeb;
 }
 
-.cell-required-empty {
-  border: 2px dashed #ef4444 !important;
+.ag-theme-alpine .ag-cell.cell-required-empty {
+  border: 2px dashed #ef4444;
 }
 
-/* Disabled cell - subtle diagonal grid pattern overlay with italic N/A text */
-/* Inherits row color, adds semi-transparent stripe overlay */
+/* Shared stripe overlay pattern — !important required: overrides AG Grid inline style */
+.ag-theme-alpine .stripe-overlay {
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.06) 4px, rgba(0, 0, 0, 0.06) 8px) !important;
+  font-style: italic;
+}
+
+/* Disabled cell — N/A, not editable. Compose with .stripe-overlay for striped background */
+/* !important required: overrides AG Grid inline style */
 .ag-theme-alpine .cell-disabled {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 4px,
-    rgba(0, 0, 0, 0.06) 4px,
-    rgba(0, 0, 0, 0.06) 8px
-  ) !important;
   color: #6B7280 !important;
-  font-style: italic;
 }
 
-/* Prompt cell - stripe overlay (inherits row color) with italic text (needs data) */
+/* Prompt cell — needs data entry. Compose with .stripe-overlay for striped background */
+/* !important required: overrides AG Grid inline style */
 .ag-theme-alpine .cell-prompt {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 4px,
-    rgba(0, 0, 0, 0.06) 4px,
-    rgba(0, 0, 0, 0.06) 8px
-  ) !important;
   color: #4B5563 !important;
-  font-style: italic;
 }
 
 /* Hide stripes and reset text color when prompt cell is in edit mode */
+/* !important required: overrides AG Grid inline style */
 .ag-theme-alpine .cell-prompt.ag-cell-inline-editing {
   background-image: none !important;
   font-style: normal !important;
@@ -139,7 +131,7 @@ html, body, #root {
   font-style: normal;
 }
 
-/* Row styles */
+/* Row styles — !important required: overrides AG Grid inline style */
 .row-duplicate {
   background-color: #fef3c7 !important;
   border-left: 4px solid #f59e0b !important;
@@ -157,6 +149,7 @@ html, body, #root {
 }
 
 /* Remote editing indicator — dashed orange border on cells being edited by another user */
+/* !important required: overrides AG Grid inline style */
 .ag-theme-alpine .cell-remote-editing {
   border: 2px dashed #f97316 !important;
 }
@@ -171,7 +164,7 @@ html, body, #root {
   animation: cellFlash 1.5s ease-out;
 }
 
-/* Ensure cell editor input has visible text (dark on light background) */
+/* Ensure cell editor input has visible text — !important required: overrides AG Grid inline style */
 .ag-theme-alpine .ag-cell-edit-wrapper input,
 .ag-theme-alpine .ag-cell-editor input {
   color: #1f2937 !important;
@@ -213,12 +206,12 @@ html, body, #root {
   display: flex;
 }
 
-/* Hide arrow on disabled (N/A) cells */
+/* Hide arrow on disabled (N/A) cells — !important required: overrides hover show rule */
 .cell-disabled .cell-dropdown-arrow {
   display: none !important;
 }
 
-/* Hide arrow on remotely-edited cells */
+/* Hide arrow on remotely-edited cells — !important required: overrides hover show rule */
 .cell-remote-editing .cell-dropdown-arrow {
   display: none !important;
 }
@@ -350,3 +343,13 @@ html, body, #root {
 .ag-cell:hover .status-date-prompt {
   color: #4b5563;
 }
+
+/* AG Grid container dimensions */
+.patient-grid-container {
+  width: 100%;
+  height: calc(100vh - 200px);
+}
+
+/* Tab panel visibility */
+.tab-visible { display: block; }
+.tab-hidden { display: none; }

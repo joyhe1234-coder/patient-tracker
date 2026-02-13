@@ -13,15 +13,16 @@ import app from './app.js';
 import { config } from './config/index.js';
 import { prisma } from './config/database.js';
 import { initializeSocketIO, getIO } from './services/socketManager.js';
+import { logger } from './utils/logger.js';
 
 const server = createServer(app);
 
 // Initialize Socket.IO (non-fatal: HTTP server continues if Socket.IO fails)
 try {
   initializeSocketIO(server);
-  console.log('Socket.IO initialized successfully');
+  logger.info('Socket.IO initialized successfully');
 } catch (error) {
-  console.error('Failed to initialize Socket.IO (HTTP server will continue):', error);
+  logger.error('Failed to initialize Socket.IO (HTTP server will continue)', { error: String(error) });
 }
 
 /**
@@ -49,53 +50,53 @@ async function bootstrapAdminUser() {
     },
   });
 
-  console.log(`Created initial admin user: ${email}`);
+  logger.info('Created initial admin user', { email });
 }
 
 async function startServer() {
   try {
     // Test database connection
     await prisma.$connect();
-    console.log('Database connected successfully');
+    logger.info('Database connected successfully');
 
     // Ensure an admin user exists on first run (no-op if one already exists)
     await bootstrapAdminUser();
 
     server.listen(config.port, () => {
-      console.log(`Server running on port ${config.port}`);
-      console.log(`Environment: ${config.nodeEnv}`);
-      console.log(`Health check: http://localhost:${config.port}/api/health`);
+      logger.info('Server running', { port: config.port });
+      logger.info('Environment', { nodeEnv: config.nodeEnv });
+      logger.info('Health check available', { url: `http://localhost:${config.port}/api/health` });
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error: String(error) });
     process.exit(1);
   }
 }
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  logger.info('SIGTERM received, shutting down gracefully');
   const io = getIO();
   if (io) {
-    console.log('Closing Socket.IO connections');
+    logger.info('Closing Socket.IO connections');
     io.close();
   }
   server.close(() => {
-    console.log('HTTP server closed');
+    logger.info('HTTP server closed');
   });
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
+  logger.info('SIGINT received, shutting down gracefully');
   const io = getIO();
   if (io) {
-    console.log('Closing Socket.IO connections');
+    logger.info('Closing Socket.IO connections');
     io.close();
   }
   server.close(() => {
-    console.log('HTTP server closed');
+    logger.info('HTTP server closed');
   });
   await prisma.$disconnect();
   process.exit(0);

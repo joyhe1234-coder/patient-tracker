@@ -1,39 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Users,
-  FileText,
-  Plus,
-  Edit2,
-  Trash2,
-  Key,
-  Check,
-  X,
-  ChevronDown,
-  ChevronUp,
-  Shield,
-  UserCircle,
-  Stethoscope,
-} from 'lucide-react';
+import { Users, FileText, Plus, Edit2, Trash2, Key, Check, X,
+  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope } from 'lucide-react';
 import { api } from '../api/axios';
+import { logger } from '../utils/logger';
 import { useAuthStore, UserRole } from '../stores/authStore';
-
-interface AdminUser {
-  id: number;
-  email: string;
-  displayName: string;
-  roles: UserRole[];
-  isActive: boolean;
-  lastLoginAt: string | null;
-  patientCount: number;
-  assignedPhysicians: { physicianId: number; physicianName: string }[];
-  assignedStaff: { staffId: number; staffName: string }[];
-}
-
-interface Physician {
-  id: number;
-  displayName: string;
-}
+import UserModal, { type AdminUser, type Physician } from '../components/modals/UserModal';
+import ResetPasswordModal from '../components/modals/ResetPasswordModal';
 
 interface AuditLogEntry {
   id: number;
@@ -78,9 +51,15 @@ export default function AdminPage() {
   // Load data
   useEffect(() => {
     if (activeTab === 'users') {
-      loadUsers();
+      loadUsers().catch((err) => {
+        logger.error('Failed to load users:', err);
+        setError('Failed to load users');
+      });
     } else {
-      loadAuditLog();
+      loadAuditLog().catch((err) => {
+        logger.error('Failed to load audit log:', err);
+        setError('Failed to load audit log');
+      });
     }
   }, [activeTab]);
 
@@ -95,7 +74,7 @@ export default function AdminPage() {
       setUsers(usersRes.data.data);
       setPhysicians(physiciansRes.data.data);
     } catch (err) {
-      console.error('Failed to load users:', err);
+      logger.error('Failed to load users:', err);
       setError('Failed to load users');
     } finally {
       setLoading(false);
@@ -109,7 +88,7 @@ export default function AdminPage() {
       const response = await api.get('/admin/audit-log?limit=100');
       setAuditLog(response.data.data.entries);
     } catch (err) {
-      console.error('Failed to load audit log:', err);
+      logger.error('Failed to load audit log:', err);
       setError('Failed to load audit log');
     } finally {
       setLoading(false);
@@ -123,7 +102,7 @@ export default function AdminPage() {
       await api.delete(`/admin/users/${userId}`);
       await loadUsers();
     } catch (err) {
-      console.error('Failed to delete user:', err);
+      logger.error('Failed to delete user:', err);
       setError('Failed to deactivate user');
     }
   };
@@ -182,7 +161,8 @@ export default function AdminPage() {
     );
   };
 
-  const formatDate = (date: string | null) => {
+  // NOTE: Uses locale-aware DateTime formatting for timestamps (different from dateFormatter.ts UTC date-only formatting)
+  const formatTimestamp = (date: string | null) => {
     if (!date) return 'Never';
     return new Date(date).toLocaleString();
   };
@@ -328,7 +308,7 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          {formatDate(u.lastLoginAt)}
+                          {formatTimestamp(u.lastLoginAt)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
                           {u.roles.includes('PHYSICIAN') ? u.patientCount : '-'}
@@ -447,7 +427,7 @@ export default function AdminPage() {
                   {auditLog.map((entry) => (
                     <tr key={entry.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {formatDate(entry.createdAt)}
+                        {formatTimestamp(entry.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {entry.userDisplayName}
@@ -515,403 +495,6 @@ export default function AdminPage() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-// User Modal Component
-function UserModal({
-  user,
-  physicians,
-  onClose,
-  onSaved,
-}: {
-  user: AdminUser | null;
-  physicians: Physician[];
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const isEditing = !!user;
-  const [formData, setFormData] = useState({
-    email: user?.email || '',
-    password: '',
-    displayName: user?.displayName || '',
-    roles: user?.roles || ['PHYSICIAN'] as UserRole[],
-    isActive: user?.isActive ?? true,
-    assignedPhysicianIds: user?.assignedPhysicians.map((a) => a.physicianId) || [],
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSaving(true);
-
-    try {
-      if (isEditing) {
-        // Update user
-        const updateData: Record<string, unknown> = {
-          email: formData.email,
-          displayName: formData.displayName,
-          roles: formData.roles,
-          isActive: formData.isActive,
-        };
-        await api.put(`/admin/users/${user!.id}`, updateData);
-
-        // Update staff assignments if role is STAFF
-        if (formData.roles.includes('STAFF')) {
-          // Remove old assignments not in new list
-          for (const old of user!.assignedPhysicians) {
-            if (!formData.assignedPhysicianIds.includes(old.physicianId)) {
-              await api.delete('/admin/staff-assignments', {
-                data: { staffId: user!.id, physicianId: old.physicianId },
-              });
-            }
-          }
-          // Add new assignments not in old list
-          const oldIds = user!.assignedPhysicians.map((a) => a.physicianId);
-          for (const newId of formData.assignedPhysicianIds) {
-            if (!oldIds.includes(newId)) {
-              await api.post('/admin/staff-assignments', {
-                staffId: user!.id,
-                physicianId: newId,
-              });
-            }
-          }
-        }
-      } else {
-        // Create user
-        if (!formData.password) {
-          setError('Password is required for new users');
-          setSaving(false);
-          return;
-        }
-        const createData: Record<string, unknown> = {
-          email: formData.email,
-          password: formData.password,
-          displayName: formData.displayName,
-          roles: formData.roles,
-        };
-        const response = await api.post('/admin/users', createData);
-
-        // Add staff assignments if role is STAFF
-        if (formData.roles.includes('STAFF')) {
-          const newUserId = response.data.data.id;
-          for (const physicianId of formData.assignedPhysicianIds) {
-            await api.post('/admin/staff-assignments', {
-              staffId: newUserId,
-              physicianId,
-            });
-          }
-        }
-      }
-
-      onSaved();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
-      setError(error.response?.data?.error?.message || 'Failed to save user');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {isEditing ? 'Edit User' : 'Add User'}
-          </h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          {!isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                minLength={8}
-                required={!isEditing}
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={formData.displayName}
-              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Roles
-            </label>
-            <div className="space-y-2 p-3 border border-gray-300 rounded-md">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="roleSelection"
-                  checked={formData.roles.length === 1 && formData.roles[0] === 'PHYSICIAN'}
-                  onChange={() => setFormData({ ...formData, roles: ['PHYSICIAN'] })}
-                  className="rounded"
-                />
-                <span className="text-sm">Physician</span>
-                <span className="text-xs text-gray-500">- Can have patients assigned</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="roleSelection"
-                  checked={formData.roles.length === 1 && formData.roles[0] === 'STAFF'}
-                  onChange={() => setFormData({ ...formData, roles: ['STAFF'] })}
-                  className="rounded"
-                />
-                <span className="text-sm">Staff</span>
-                <span className="text-xs text-gray-500">- Can view assigned physicians' patients</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="roleSelection"
-                  checked={formData.roles.length === 1 && formData.roles[0] === 'ADMIN'}
-                  onChange={() => setFormData({ ...formData, roles: ['ADMIN'] })}
-                  className="rounded"
-                />
-                <span className="text-sm">Admin</span>
-                <span className="text-xs text-gray-500">- Can manage users and view all patients</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="roleSelection"
-                  checked={formData.roles.includes('ADMIN') && formData.roles.includes('PHYSICIAN')}
-                  onChange={() => setFormData({ ...formData, roles: ['ADMIN', 'PHYSICIAN'] })}
-                  className="rounded"
-                />
-                <span className="text-sm">Admin + Physician</span>
-                <span className="text-xs text-gray-500">- Admin who can also have patients</span>
-              </label>
-            </div>
-          </div>
-
-          {formData.roles.includes('STAFF') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Assigned Physicians
-              </label>
-              <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
-                {physicians.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.assignedPhysicianIds.includes(p.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            assignedPhysicianIds: [...formData.assignedPhysicianIds, p.id],
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            assignedPhysicianIds: formData.assignedPhysicianIds.filter(
-                              (id) => id !== p.id
-                            ),
-                          });
-                        }
-                      }}
-                      className="rounded"
-                    />
-                    <span className="text-sm">{p.displayName}</span>
-                  </label>
-                ))}
-                {physicians.length === 0 && (
-                  <p className="text-sm text-gray-500">No physicians available</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {isEditing && (
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
-                Active
-              </label>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// Reset Password Modal
-function ResetPasswordModal({
-  userId,
-  onClose,
-}: {
-  userId: number;
-  onClose: () => void;
-}) {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await api.post(`/admin/users/${userId}/reset-password`, { newPassword: password });
-      setSuccess(true);
-      setTimeout(onClose, 2000);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
-      setError(error.response?.data?.error?.message || 'Failed to reset password');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Reset Password</h2>
-        </div>
-
-        {success ? (
-          <div className="p-6 text-center">
-            <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center">
-              <Check className="w-6 h-6 text-green-600" />
-            </div>
-            <p className="mt-4 text-sm text-gray-600">Password reset successfully!</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {error && (
-              <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md">
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                minLength={8}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                disabled={saving}
-              >
-                {saving ? 'Resetting...' : 'Reset Password'}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
     </div>
   );
 }

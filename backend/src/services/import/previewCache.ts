@@ -7,6 +7,7 @@ import { DiffResult } from './diffCalculator.js';
 import { TransformedRow } from './dataTransformer.js';
 import { ValidationResult } from './validator.js';
 import crypto from 'crypto';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Default TTL for preview cache entries (30 minutes)
@@ -247,7 +248,7 @@ function startCleanupTimer(): void {
   cleanupTimer = setInterval(() => {
     const removed = cleanupExpired();
     if (removed > 0) {
-      console.log(`[PreviewCache] Cleaned up ${removed} expired entries`);
+      logger.debug(`[PreviewCache] Cleaned up ${removed} expired entries`);
     }
   }, CLEANUP_INTERVAL_MS);
 

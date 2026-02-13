@@ -478,7 +478,156 @@ npm run test:cli -- --save    # Save new baselines
 | UX improvements | Cypress | 10 | Complete |
 | Visual/UX review | MCP Playwright | - | On-demand |
 
-**Total Automated Tests: ~1172**
+**Total Automated Tests: ~1557** (701 Jest + 856 Vitest + ~43 Playwright + ~293 Cypress)
+
+---
+
+## Code Coverage Results (Phase 9-10 Audit, Feb 12, 2026)
+
+### Backend Coverage (Jest)
+
+Run via: `cd backend && node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage`
+
+| File | % Stmts | % Branch | % Funcs | % Lines | Notes |
+|------|---------|----------|---------|---------|-------|
+| **All files** | **82.77** | **75.23** | **87.61** | **82.97** | |
+| columnMapper.ts | 96.72 | 90.00 | 100 | 98.24 | |
+| configLoader.ts | 88.46 | 66.66 | 100 | 88.00 | |
+| dataTransformer.ts | 74.25 | 65.90 | 62.50 | 74.48 | Lines 301, 327-348, 366-404 uncovered |
+| diffCalculator.ts | 57.81 | 58.82 | 64.28 | 57.25 | Lines 157-245, 463, 536-615 uncovered |
+| errorReporter.ts | 100 | 100 | 100 | 100 | |
+| fileParser.ts | 94.59 | 85.45 | 100 | 95.45 | |
+| importExecutor.ts | 93.93 | 76.66 | 100 | 93.75 | |
+| previewCache.ts | 91.17 | 87.87 | 92.85 | 91.17 | |
+| validator.ts | 86.74 | 81.48 | 80 | 86.58 | |
+| dateParser.ts (utils) | 72.46 | 66.66 | 75 | 74.62 | |
+| logger.ts (utils) | 72.22 | 50 | 87.50 | 72.22 | |
+
+**Files below 70% line coverage:**
+- `diffCalculator.ts` (57.25%) - Uncovered: replace mode edge cases, some merge scenarios
+
+**Notes:**
+- Backend tests use `node --experimental-vm-modules` for ESM support
+- `npx jest --coverage` (without VM modules flag) fails with TS1378/TS1343 errors for ESM test files
+- The 82.97% overall coverage exceeds the 70% target for backend services
+
+### Frontend Coverage (Vitest + v8)
+
+Run via: `cd frontend && npx vitest run --coverage`
+
+| File | % Stmts | % Branch | % Funcs | % Lines | Notes |
+|------|---------|----------|---------|---------|-------|
+| **All files** | **65.40** | **57.93** | **64.35** | **65.72** | |
+| ProtectedRoute.tsx | 100 | 100 | 100 | 100 | |
+| AutoOpenSelectEditor.tsx | 100 | 92.30 | 100 | 100 | |
+| DateCellEditor.tsx | 100 | 75 | 100 | 100 | |
+| PatientGrid.tsx | 16.80 | 11.01 | 27.39 | 16.71 | AG Grid dependency limits unit testing |
+| StatusDateRenderer.tsx | 100 | 100 | 100 | 100 | |
+| useGridCellUpdate.ts | 88.04 | 67.85 | 44.44 | 88.63 | |
+| useRemoteEditClass.ts | 90 | 87.50 | 100 | 100 | |
+| cascadingFields.ts | 100 | 100 | 100 | 100 | |
+| Header.tsx | 52.30 | 66.21 | 55 | 51.56 | Complex multi-role logic |
+| StatusBar.tsx | 94.11 | 95.83 | 100 | 93.33 | |
+| StatusFilterBar.tsx | 100 | 100 | 100 | 100 | |
+| Toolbar.tsx | 90 | 81.25 | 100 | 90 | |
+| AddRowModal.tsx | 100 | 100 | 100 | 100 | |
+| ConfirmModal.tsx | 100 | 100 | 100 | 100 | |
+| ConflictModal.tsx | 100 | 100 | 100 | 100 | |
+| ResetPasswordModal.tsx | 0 | 0 | 0 | 0 | No tests yet |
+| UserModal.tsx | 0 | 0 | 0 | 0 | No tests yet |
+| dropdownConfig.ts | 100 | 100 | 100 | 100 | |
+| statusColors.ts | 100 | 100 | 100 | 100 | |
+| useSocket.ts | 96.42 | 100 | 91.30 | 95.74 | |
+| AdminPage.tsx | 59.18 | 57.14 | 35.71 | 59.37 | |
+| ForgotPasswordPage.tsx | 100 | 100 | 100 | 100 | |
+| ImportPage.tsx | 64.60 | 48.45 | 57.14 | 64.60 | |
+| ImportPreviewPage.tsx | 72.15 | 57.73 | 64.28 | 74.02 | |
+| LoginPage.tsx | 78.78 | 80.76 | 100 | 80.64 | |
+| PatientAssignmentPage.tsx | 98.36 | 88.13 | 100 | 100 | |
+| PatientManagementPage.tsx | 100 | 100 | 100 | 100 | |
+| ResetPasswordPage.tsx | 100 | 100 | 100 | 100 | |
+| socketService.ts | 73.33 | 80 | 52.17 | 73.33 | |
+| authStore.ts | 81.17 | 60.71 | 56.25 | 82.71 | |
+| realtimeStore.ts | 100 | 100 | 100 | 100 | |
+| agGridMocks.ts | 81.81 | 100 | 71.42 | 81.81 | |
+| apiError.ts | 100 | 100 | 100 | 100 | |
+| dateFormatter.ts | 100 | 100 | 100 | 100 | |
+| dateParser.ts | 98.14 | 97.50 | 100 | 100 | |
+| logger.ts | 90 | 50 | 100 | 90 | |
+
+**Files below 60% line coverage:**
+- `PatientGrid.tsx` (16.71%) - AG Grid requires real DOM; covered by Cypress E2E tests instead
+- `Header.tsx` (51.56%) - Complex multi-role dropdown logic; partially tested
+- `ResetPasswordModal.tsx` (0%) - Admin modal, no tests yet
+- `UserModal.tsx` (0%) - Admin modal, no tests yet
+- `SummaryCards.tsx` (42.85%) - Import preview component, partially tested
+- `AdminPage.tsx` (59.37%) - Complex admin dashboard, partially tested
+
+**Notes:**
+- `PatientGrid.tsx` low coverage is expected: AG Grid rendering is tested via Cypress E2E (283+ tests)
+- `ResetPasswordModal.tsx` and `UserModal.tsx` are admin-only modals with low risk
+- Overall frontend coverage includes significant E2E coverage not reflected in Vitest numbers
+
+### Bundle Size Analysis (Vite Build)
+
+Run via: `cd frontend && npx vite build`
+
+| Chunk | Size | Gzip | Notes |
+|-------|------|------|-------|
+| index.html | 0.49 KB | 0.32 KB | |
+| index.css | 299.37 KB | 43.46 KB | AG Grid styles + app styles |
+| index.js | 1,551.64 KB | 411.09 KB | Single chunk (no code-splitting) |
+
+**Findings:**
+- Vite warns about chunk > 500 KB after minification
+- Primary contributors: AG Grid Community (~600KB min), React + React-DOM (~130KB), Socket.IO client (~50KB)
+- No tree-shaking failures found - all imports use named/specific imports
+- No barrel imports from large libraries (lodash, date-fns, etc.)
+- Code-splitting the grid page would require lazy loading and is out of scope for this refactor
+- Gzip size (411 KB) is acceptable for an internal enterprise application
+
+### Cypress cy.wait() Analysis
+
+**Total cy.wait() calls: 420 across 15 files**
+
+| File | Count | Primary Pattern |
+|------|-------|----------------|
+| cascading-dropdowns.cy.ts | 71 | AG Grid dropdown open/close timing |
+| sorting-filtering.cy.ts | 52 | AG Grid sort/filter transitions |
+| time-interval.cy.ts | 49 | AG Grid cell edit + API save timing |
+| patient-assignment.cy.ts | 47 | API response + DOM update timing |
+| cell-editing.cy.ts | 41 | AG Grid cell transition timing |
+| duplicate-detection.cy.ts | 34 | AG Grid + API save timing |
+| multi-select-filter.cy.ts | 35 | Filter chip + grid re-render timing |
+| date-prepopulate.cy.ts | 24 | DateCellEditor + Today button timing |
+| patient-name-search.cy.ts | 14 | Search input debounce timing |
+| hover-reveal-dropdown.cy.ts | 12 | Hover + dropdown open timing |
+| role-access-control.cy.ts | 12 | Page navigation + API load timing |
+| ux-improvements.cy.ts | 11 | Mixed UI transition timing |
+| parallel-editing-row-operations.cy.ts | 9 | Socket.IO event timing |
+| compact-filter-bar.cy.ts | 7 | Filter bar transitions |
+| parallel-editing-grid-updates.cy.ts | 2 | Socket.IO event timing |
+
+**Wait duration breakdown:**
+| Duration | Count | Category |
+|----------|-------|----------|
+| 200ms | 21 | Short UI transitions |
+| 300ms | 163 | AG Grid cell transitions, dropdown close |
+| 500ms | 171 | API saves, AG Grid re-renders |
+| 1000ms | 55 | Heavy API operations, grid refreshes |
+| 1500ms | 6 | Import execution, bulk operations |
+
+**Existing cy.intercept usage:** Only 3 calls across 3 files (duplicate-detection, patient-assignment, role-access-control).
+
+**Categorization of cy.wait() calls:**
+1. **AG Grid internal timing (300ms waits):** ~163 calls. These wait for AG Grid cell transitions (edit mode open/close, dropdown popup, cell value commit). AG Grid does not expose reliable events for these transitions, making `.should()` assertions the only alternative - but this can be flaky.
+2. **API save completion (500ms waits):** ~171 calls. These wait for PUT/POST API calls to complete and the grid to reflect updated data. These are prime candidates for `cy.intercept` + `cy.wait('@alias')` replacement.
+3. **Heavy operations (1000ms+ waits):** ~61 calls. Import execution, bulk assignment, page loads. Some could use intercept, others are necessary.
+
+**Recommendation (documented only - no modifications per instructions):**
+- ~171 of the 500ms waits could potentially be replaced with `cy.intercept('PUT', '/api/data/*').as('save')` + `cy.wait('@save')` for deterministic waiting
+- The 300ms AG Grid timing waits are risky to change without interactive testing - AG Grid internal animations vary
+- Decision: Do NOT modify Cypress tests in this refactor (too risky without running them interactively)
 
 ---
 
@@ -676,6 +825,12 @@ describe('Feature Name', () => {
 ---
 
 ## Last Updated
+
+February 12, 2026 - Phase 9-10 code quality audit: coverage analysis, bundle review, cy.wait analysis
+- Backend coverage: 82.97% lines (701 tests), frontend coverage: 65.72% lines (856 tests)
+- Bundle: 1,551 KB (411 KB gzip) - AG Grid is dominant factor, no tree-shaking issues
+- Cypress cy.wait(): 420 calls across 15 files, documented categories and replacement candidates
+- Test counts: Jest 701, Vitest 856, Playwright ~43, Cypress ~293, total ~1,893
 
 February 6, 2026 - Row numbers removed, search improvements, test updates
 - Removed row numbers: PatientGrid.test.tsx (-2, now 44), ux-improvements.cy.ts (-5, now 10)

@@ -9,6 +9,7 @@ import type {
 } from '../types/socket.js';
 import { socketAuthMiddleware } from '../middleware/socketAuth.js';
 import { isStaffAssignedToPhysician } from './authService.js';
+import { logger } from '../utils/logger.js';
 
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
@@ -49,13 +50,13 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer<Clien
 
   // Wire connection handlers
   io.on('connection', (socket: TypedSocket) => {
-    console.log(`[socket] connected: ${socket.data.email} (${socket.id})`);
+    logger.debug(`[socket] connected: ${socket.data.email} (${socket.id})`);
 
     socket.on('room:join', async (payload) => {
       try {
         await handleRoomJoin(socket, payload.physicianId);
       } catch (err) {
-        console.error(`[socket] room:join error for ${socket.data.email}:`, err);
+        logger.error(`[socket] room:join error for ${socket.data.email}`, { error: String(err) });
       }
     });
 
@@ -101,7 +102,7 @@ async function handleRoomJoin(socket: TypedSocket, physicianId: number | 'unassi
       : false;
 
     if (!isAdmin && !isOwnRoom && !isAssignedStaff) {
-      console.warn(`[socket] unauthorized room:join by ${socket.data.email} for physician ${physicianId}`);
+      logger.warn(`[socket] unauthorized room:join`, { email: socket.data.email, physicianId });
       return;
     }
   }
@@ -117,7 +118,7 @@ async function handleRoomJoin(socket: TypedSocket, physicianId: number | 'unassi
   addUserToRoom(room, socket.id, socket.data);
   broadcastPresenceUpdate(room);
 
-  console.log(`[socket] ${socket.data.email} joined room ${room}`);
+  logger.debug(`[socket] ${socket.data.email} joined room ${room}`);
 }
 
 /**
@@ -137,7 +138,7 @@ function handleRoomLeave(socket: TypedSocket, physicianIdOrRoom: number | 'unass
   }
 
   broadcastPresenceUpdate(room);
-  console.log(`[socket] ${socket.data.email} left room ${room}`);
+  logger.debug(`[socket] ${socket.data.email} left room ${room}`);
 }
 
 /**
@@ -166,7 +167,7 @@ function handleEditingStop(socket: TypedSocket, rowId: number, field: string): v
  * Handle disconnect — clean up all presence and active edits for the socket.
  */
 function handleDisconnect(socket: TypedSocket): void {
-  console.log(`[socket] disconnected: ${socket.data.email} (${socket.id})`);
+  logger.debug(`[socket] disconnected: ${socket.data.email} (${socket.id})`);
 
   // Clean up active edits and broadcast editing:inactive for each
   const clearedEdits = clearEditsForSocket(socket.id);
