@@ -3208,6 +3208,60 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 34. Security Hardening — Account Lockout + Temp Password + Forced Password Change (REQ-SEC-06)
+
+### TC-34.1: Failed Login Increments Counter
+**Requirement:** REQ-SEC-06 AC-1
+**Automation:** Automated - `auth.routes.test.ts: "lockout logic"` tests
+**Expected:** Each failed login increments `failedLoginAttempts` counter on User record
+
+### TC-34.2: Account Locks After 5 Failed Attempts
+**Requirement:** REQ-SEC-06 AC-2
+**Automation:** Automated - `authService.test.ts: "lockAccount"`, `auth.routes.test.ts`
+**Expected:** After 5 consecutive failed logins, account is locked for 30 minutes (`lockedUntil` set)
+
+### TC-34.3: Locked Account Rejects Login
+**Requirement:** REQ-SEC-06 AC-3
+**Automation:** Automated - `auth.routes.test.ts: "rejects login when account is locked"`
+**Expected:** Login returns 423 (Locked) with "Account is temporarily locked" message and `lockedUntil` timestamp
+
+### TC-34.4: Warning Shown at 3+ Failed Attempts
+**Requirement:** REQ-SEC-06 AC-4
+**Automation:** Automated - `auth.routes.test.ts: "returns warning on attempt 3+"`, `LoginPage.test.tsx`
+**Expected:** Login response includes `warning` field with remaining attempts count; frontend shows yellow warning box
+
+### TC-34.5: Successful Login Resets Counter
+**Requirement:** REQ-SEC-06 AC-5
+**Automation:** Automated - `auth.routes.test.ts: "resets failed attempts on successful login"`
+**Expected:** Successful login resets `failedLoginAttempts` to 0
+
+### TC-34.6: Admin Can Send Temp Password
+**Requirement:** REQ-SEC-06 AC-6
+**Automation:** Automated - `admin.routes.test.ts: "send-temp-password"`, `AdminPage.test.tsx`
+**Expected:** Admin clicks "Send Temp Password" button, temp password is generated, sent via email (or shown on-screen if SMTP not configured), user's `mustChangePassword` flag set to true
+
+### TC-34.7: Temp Password Forces Password Change
+**Requirement:** REQ-SEC-06 AC-7
+**Automation:** Automated - `ForcePasswordChange.test.tsx` (7 tests), `ProtectedRoute.test.tsx`
+**Expected:** User logging in with `mustChangePassword=true` sees ForcePasswordChange modal (full-screen, no close button, no escape), must set new password before accessing app
+
+### TC-34.8: Force-Change-Password Endpoint
+**Requirement:** REQ-SEC-06 AC-8
+**Automation:** Automated - `auth.routes.test.ts: "force-change-password"`
+**Expected:** `POST /force-change-password` validates old password, sets new password, clears `mustChangePassword` flag, returns new JWT token
+
+### TC-34.9: Password Change Clears mustChangePassword
+**Requirement:** REQ-SEC-06 AC-9
+**Automation:** Automated - `auth.routes.test.ts: "clears mustChangePassword on password change"`
+**Expected:** `PUT /password` (regular password change) also clears `mustChangePassword` flag if set
+
+### TC-34.10: Lock Duration Expires Automatically
+**Requirement:** REQ-SEC-06 AC-10
+**Automation:** Automated - `authService.test.ts: "isAccountLocked returns false after lockout expires"`
+**Expected:** After 30 minutes, `isAccountLocked()` returns false even if `lockedUntil` is set (time-based expiry)
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -3236,6 +3290,7 @@ npm run cypress:headed  # Run with browser visible
 | 31. UX Improvements | 8 | 8 | 0 | 0 | 100% |
 | 32. Patient Management Page | 8 | 8 | 0 | 0 | 100% |
 | 33. Security: Env Validation | 10 | 10 | 0 | 0 | 100% |
+| 34. Security: Account Lockout | 10 | 10 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3255,6 +3310,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 13, 2026 - Added Section 34: Account Lockout + Temp Password + Forced Password Change (TC-34.1 to TC-34.10, all automated). 10 test cases, 100% automated.
 February 12, 2026 - Added Section 33: Security Hardening Env Var Validation (TC-33.1 to TC-33.10, all automated). 10 test cases, 100% automated.
 February 11, 2026 - Added TC-2.7: Auto-Open Dropdown Editor (single-click opens popup, keyboard nav, type-ahead, checkmark, clear option). Cell Editing coverage: 7 TCs, 43% automated.
 February 7, 2026 - Added Section 32: Patient Management Page (TC-32.1 to TC-32.8)

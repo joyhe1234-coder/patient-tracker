@@ -389,14 +389,14 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ### Security Hardening (In Spec Process)
 **Spec:** `.claude/specs/security-hardening/requirements.md`
-**Status:** Phase 1 complete (env var validation), remaining items pending
+**Status:** Phases 1-3 complete (env var validation, failed login audit logging, account lockout), remaining items pending
 
 #### Included (7 items):
 - [ ] REQ-SEC-02: CORS Origin Whitelist (require `CORS_ORIGIN` env var in production)
 - [ ] REQ-SEC-03: Rate Limiting (20 login/15min, 10 import/min, 100 global/min)
 - [x] REQ-SEC-04: JWT Secret Validation (32 char min, crash on missing/default) -- **Done Feb 12, 2026**
 - [x] REQ-SEC-05: Env Var Validation at Startup (4 required vars: JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD) -- **Done Feb 12, 2026**
-- [ ] REQ-SEC-06: Account Lockout (5 attempts, temp password via email, forced pw change)
+- [x] REQ-SEC-06: Account Lockout (5 attempts, temp password via email, forced pw change) -- **Done Feb 13, 2026**
 - [ ] REQ-SEC-07: Move JWT to httpOnly Cookie (sameSite strict, same-origin Docker)
 - [x] REQ-SEC-10: Failed Login Audit Logging (LOGIN_FAILED entries with reason/email/IP, admin panel display) -- **Done Feb 13, 2026**
 
@@ -492,7 +492,7 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 ## Test Coverage Improvement
 
 **Audit Report:** [TEST_AUDIT_REPORT.md](./TEST_AUDIT_REPORT.md) (February 10, 2026)
-**Current:** ~1,987 tests (741 Jest + 861 Vitest + 43 Playwright + ~342 Cypress)
+**Current:** ~2,020 tests (763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress)
 **Added Feb 10-12, 2026:** +244 new tests (116 Jest + 115 Vitest + 13 Cypress), fixed 13 pre-existing failures, 3 bugs fixed, +22 Jest from code quality refactor, +104 Vitest from code quality refactor
 
 ### Priority 1: Critical Gaps (Zero Coverage)
@@ -559,7 +559,8 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
-February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP, admin panel orange/red badges. Email integration tests. 741 Jest + 861 Vitest + 43 Playwright + ~342 Cypress = ~1,987 automated tests.
+February 13, 2026 - Security hardening phase 3: account lockout + temp password + forced password change (REQ-SEC-06). 763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress = ~2,020 automated tests.
+February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP, admin panel orange/red badges. Email integration tests.
 February 12, 2026 - Release 4.5.0: 10-phase code quality refactor complete, visual test plan v2.1 executed (232 tests, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt + hover Today button. 22 new Vitest + ~36 new Cypress tests. Total: ~1,816 tests (679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress).
 February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor. 22 new Vitest, 3 updated PatientGrid tests. Cypress commands updated. Total: 1,758 tests (679 Jest + 730 Vitest + 43 Playwright + 306 Cypress).

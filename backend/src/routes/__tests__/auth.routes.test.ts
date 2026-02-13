@@ -18,7 +18,7 @@ import express, { Express } from 'express';
 const mockPrisma = {
   auditLog: { create: jest.fn<any>() },
   editLock: { updateMany: jest.fn<any>() },
-  user: { findUnique: jest.fn<any>() },
+  user: { findUnique: jest.fn<any>(), update: jest.fn<any>() },
   passwordResetToken: {
     create: jest.fn<any>(),
     findUnique: jest.fn<any>(),
@@ -33,6 +33,9 @@ const testUser = {
   roles: ['PHYSICIAN'],
   isActive: true,
   passwordHash: '$2b$04$fakehash',
+  failedLoginAttempts: 0,
+  lockedUntil: null,
+  mustChangePassword: false,
 };
 
 let authBlocked = false;
@@ -71,6 +74,11 @@ jest.unstable_mockModule('../../services/authService.js', () => ({
   updateLastLogin: jest.fn<any>(),
   getStaffAssignments: jest.fn<any>(),
   getAllPhysicians: jest.fn<any>(),
+  isAccountLocked: jest.fn<any>().mockReturnValue(false),
+  incrementFailedAttempts: jest.fn<any>().mockResolvedValue(1),
+  lockAccount: jest.fn<any>().mockResolvedValue(undefined),
+  resetFailedAttempts: jest.fn<any>().mockResolvedValue(undefined),
+  hashPassword: jest.fn<any>().mockResolvedValue('$2b$04$hashedpassword'),
 }));
 
 jest.unstable_mockModule('../../services/emailService.js', () => ({
@@ -90,7 +98,7 @@ jest.unstable_mockModule('../../config/index.js', () => ({
 
 const { default: authRouter } = await import('../auth.routes.js');
 const { errorHandler } = await import('../../middleware/errorHandler.js');
-const { authenticateUser, findUserByEmail, findUserById, verifyPassword, generateToken, updateLastLogin, getStaffAssignments } = await import('../../services/authService.js');
+const { authenticateUser, findUserByEmail, findUserById, verifyPassword, updatePassword, generateToken, updateLastLogin, getStaffAssignments, isAccountLocked, incrementFailedAttempts, lockAccount, resetFailedAttempts } = await import('../../services/authService.js');
 const { isSmtpConfigured } = await import('../../services/emailService.js');
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -372,6 +380,129 @@ describe('Auth Routes', () => {
     });
   });
 
+  // ── Account lockout (REQ-SEC-06) ────────────────────────────────
+
+  describe('Account lockout', () => {
+    it('returns ACCOUNT_LOCKED when user account is locked', async () => {
+      const lockedUser = { ...testUser, lockedUntil: new Date(Date.now() + 60000) };
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(lockedUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(true);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('ACCOUNT_LOCKED');
+      expect(res.body.error.message).toContain('temporarily locked');
+    });
+
+    it('locks account after 5 failed attempts', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      (incrementFailedAttempts as jest.Mock<any>).mockResolvedValue(5);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('ACCOUNT_LOCKED');
+      expect(lockAccount).toHaveBeenCalledWith(testUser.id);
+    });
+
+    it('returns warning after 3 failed attempts', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      (incrementFailedAttempts as jest.Mock<any>).mockResolvedValue(3);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+      expect(res.body.error.warning).toContain('trouble logging in');
+    });
+
+    it('resets failed attempts on successful login', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('jwt-token-123');
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(resetFailedAttempts).toHaveBeenCalledWith(testUser.id);
+    });
+
+    it('allows login when lock has expired', async () => {
+      const expiredLockUser = { ...testUser, lockedUntil: new Date(Date.now() - 60000) };
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(expiredLockUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('jwt-token-123');
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('includes mustChangePassword in successful login response', async () => {
+      const mustChangeUser = { ...testUser, mustChangePassword: true };
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(mustChangeUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('jwt-token-123');
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.mustChangePassword).toBe(true);
+    });
+
+    it('creates ACCOUNT_LOCKED audit log on lockout', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      (incrementFailedAttempts as jest.Mock<any>).mockResolvedValue(5);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      // One call for LOGIN_FAILED (fire-and-forget from logFailedLogin),
+      // another for ACCOUNT_LOCKED (fire-and-forget from lockout)
+      const calls = mockPrisma.auditLog.create.mock.calls;
+      const accountLockedCall = calls.find(
+        (c: any) => c[0]?.data?.action === 'ACCOUNT_LOCKED'
+      );
+      expect(accountLockedCall).toBeDefined();
+      expect((accountLockedCall as any)[0].data.details).toEqual(
+        expect.objectContaining({ reason: 'TOO_MANY_FAILED_ATTEMPTS' })
+      );
+    });
+  });
+
   // ── POST /api/auth/logout ───────────────────────────────────────
 
   describe('POST /api/auth/logout', () => {
@@ -638,6 +769,54 @@ describe('Auth Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.message).toContain('reset successfully');
+    });
+  });
+
+  // ── POST /api/auth/force-change-password ──────────────────────────
+
+  describe('POST /api/auth/force-change-password', () => {
+    it('returns 401 when not authenticated', async () => {
+      authBlocked = true;
+      const res = await request(app)
+        .post('/api/auth/force-change-password')
+        .send({ newPassword: 'newpassword123' });
+      expect(res.status).toBe(401);
+    });
+
+    it('changes password when mustChangePassword is true', async () => {
+      const mustChangeUser = { ...testUser, mustChangePassword: true };
+      (findUserById as jest.Mock<any>).mockResolvedValue(mustChangeUser);
+      (updatePassword as jest.Mock<any>).mockResolvedValue(undefined);
+      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/force-change-password')
+        .send({ newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('log in again');
+      expect(updatePassword).toHaveBeenCalledWith(testUser.id, 'newpassword123');
+    });
+
+    it('returns 400 when mustChangePassword is false', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(testUser); // mustChangePassword: false
+
+      const res = await request(app)
+        .post('/api/auth/force-change-password')
+        .send({ newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('NOT_REQUIRED');
+    });
+
+    it('returns 400 for short password', async () => {
+      const res = await request(app)
+        .post('/api/auth/force-change-password')
+        .send({ newPassword: 'short' });
+
+      expect(res.status).toBe(400);
     });
   });
 });

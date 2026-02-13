@@ -12,6 +12,10 @@ import {
   updateLastLogin,
   getStaffAssignments,
   getAllPhysicians,
+  isAccountLocked,
+  incrementFailedAttempts,
+  lockAccount,
+  resetFailedAttempts,
 } from '../services/authService.js';
 import { requireAuth } from '../middleware/auth.js';
 import { createError } from '../middleware/errorHandler.js';
@@ -68,6 +72,10 @@ const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
+const forceChangePasswordSchema = z.object({
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
 /**
  * POST /api/auth/login
  * Authenticate user and return JWT token.
@@ -91,20 +99,64 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
       throw createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
     }
 
-    // 2. Check if account is deactivated
+    // 2. Check if account is locked
+    if (isAccountLocked(user)) {
+      logFailedLogin(user.id, email, clientIp, 'ACCOUNT_LOCKED');
+      throw createError(
+        'Account temporarily locked due to too many failed login attempts. Please try again in 15 minutes or reset your password.',
+        401,
+        'ACCOUNT_LOCKED'
+      );
+    }
+
+    // 3. Check if account is deactivated
     if (!user.isActive) {
       logFailedLogin(user.id, email, clientIp, 'ACCOUNT_DEACTIVATED');
       throw createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
     }
 
-    // 3. Verify password
+    // 4. Verify password
     const isValidPassword = await verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
+      // Increment failed attempts
+      const failedCount = await incrementFailedAttempts(user.id);
+
+      if (failedCount >= 5) {
+        // Lock the account
+        await lockAccount(user.id);
+        logFailedLogin(user.id, email, clientIp, 'ACCOUNT_LOCKED');
+        // Also log the ACCOUNT_LOCKED action
+        prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            userEmail: user.email,
+            action: 'ACCOUNT_LOCKED',
+            entity: 'user',
+            entityId: user.id,
+            details: { reason: 'TOO_MANY_FAILED_ATTEMPTS', failedAttempts: failedCount },
+            ipAddress: clientIp || null,
+          },
+        }).catch(() => { /* fire-and-forget */ });
+        throw createError(
+          'Account temporarily locked due to too many failed login attempts. Please try again in 15 minutes or reset your password.',
+          401,
+          'ACCOUNT_LOCKED'
+        );
+      }
+
       logFailedLogin(user.id, email, clientIp, 'INVALID_CREDENTIALS');
+
+      if (failedCount >= 3) {
+        const err = createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+        err.warning = 'Having trouble logging in? You can reset your password using the "Forgot your password?" link below.';
+        throw err;
+      }
+
       throw createError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
     }
 
-    // 4. Success - update last login and generate token
+    // 5. Success - reset failed attempts and update last login
+    await resetFailedAttempts(user.id);
     await updateLastLogin(user.id);
     const token = generateToken(user);
 
@@ -134,6 +186,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
         user: toAuthUser(user),
         token,
         assignments,
+        mustChangePassword: user.mustChangePassword,
       },
     });
   } catch (error) {
@@ -252,8 +305,12 @@ router.put('/password', requireAuth, async (req: Request, res: Response, next: N
       throw createError('New password must be different from current password', 400, 'SAME_PASSWORD');
     }
 
-    // Update password
+    // Update password and clear mustChangePassword flag
     await updatePassword(user.id, newPassword);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { mustChangePassword: false },
+    });
 
     // Log the password change
     await prisma.auditLog.create({
@@ -417,6 +474,62 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
     res.json({
       success: true,
       message: 'Password has been reset successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/auth/force-change-password
+ * Change password when mustChangePassword flag is set.
+ * Requires authentication. User must re-login after changing.
+ */
+router.post('/force-change-password', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+
+    // Validate request body
+    const parseResult = forceChangePasswordSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      throw createError(parseResult.error.errors[0].message, 400, 'VALIDATION_ERROR');
+    }
+
+    const { newPassword } = parseResult.data;
+
+    // Get full user to check mustChangePassword
+    const fullUser = await findUserById(user.id);
+    if (!fullUser) {
+      throw createError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    if (!fullUser.mustChangePassword) {
+      throw createError('Password change is not required', 400, 'NOT_REQUIRED');
+    }
+
+    // Update password and clear the flag
+    await updatePassword(user.id, newPassword);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { mustChangePassword: false },
+    });
+
+    // Log the password change
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userEmail: user.email,
+        action: 'PASSWORD_CHANGE',
+        entity: 'user',
+        entityId: user.id,
+        details: { reason: 'FORCED_CHANGE' },
+        ipAddress: req.ip || req.socket.remoteAddress,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully. Please log in again.',
     });
   } catch (error) {
     next(error);

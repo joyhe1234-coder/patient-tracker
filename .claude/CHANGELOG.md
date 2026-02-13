@@ -9,6 +9,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [4.5.1-snapshot] - 2026-02-13
 
 ### Added
+- **Security Hardening: Account Lockout + Temp Password + Forced Password Change (REQ-SEC-06)** (Feb 13, 2026)
+  - **Backend — Prisma migration:** 3 new User model fields: `failedLoginAttempts` (Int, default 0), `lockedUntil` (DateTime?), `mustChangePassword` (Boolean, default false)
+  - **Backend — authService:** 7 new functions: `incrementFailedAttempts()`, `lockAccount()`, `resetFailedAttempts()`, `isAccountLocked()`, `generateTempPassword()`, `sendTempPassword()`, plus lockout constants (MAX_FAILED_ATTEMPTS=5, LOCKOUT_DURATION_MINUTES=30)
+  - **Backend — emailService:** `sendTempPasswordEmail()` function for emailing temporary passwords
+  - **Backend — auth.routes:** Lockout logic integrated into `POST /login` (increment on failure, lock after 5 attempts, warning on attempt 3+, reject if locked), new `POST /force-change-password` endpoint for forced password change
+  - **Backend — auth.routes:** `PUT /password` now clears `mustChangePassword` flag on successful password change
+  - **Backend — admin.routes:** New `POST /users/:id/send-temp-password` endpoint for admin-initiated temp password generation
+  - **Backend — userHandlers:** `sendTempPasswordHandler` extracted into handlers module
+  - **Backend — errorHandler:** Added `warning` field to `AppError` interface for passing warning messages (e.g., remaining login attempts)
+  - **Frontend — authStore:** New `loginWarning` and `mustChangePassword` state fields, `clearMustChangePassword` action
+  - **Frontend — ForcePasswordChange.tsx:** New full-screen modal component (no close button, no escape) that forces password change before accessing the app
+  - **Frontend — ProtectedRoute.tsx:** Intercepts `mustChangePassword` before role check to redirect to forced password change flow
+  - **Frontend — LoginPage.tsx:** Yellow warning box displays remaining attempts and reset password link when login response includes warning
+  - **Frontend — AdminPage.tsx:** "Send Temp Password" button per user + result modal showing temp password (SMTP fallback: on-screen display)
+  - ~30 new backend Jest tests (lockout logic, temp password, force-change-password, admin send-temp-password)
+  - ~12 new frontend Vitest tests (7 ForcePasswordChange + 1 LoginPage + 4 AdminPage)
+  - Total: 763 Jest + 872 Vitest = 1,635 unit tests
+
 - **Security Hardening: Failed Login Audit Logging (REQ-SEC-10)** (Feb 13, 2026)
   - **Backend:** Refactored `POST /login` handler to use granular auth steps (`findUserByEmail`, `verifyPassword`, `generateToken`, `updateLastLogin`) instead of monolithic `authenticateUser()`, enabling per-failure-reason audit logging
   - **Failed login audit logging:** `LOGIN_FAILED` audit log entries created for invalid credentials (user not found or wrong password) and deactivated accounts, with reason codes (`INVALID_CREDENTIALS`, `ACCOUNT_DEACTIVATED`), client IP address, and user email
@@ -20,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 8 new Jest tests for failed login audit logging (audit log creation, reason codes, no-password-leak, IP address, audit failure resilience)
   - 2 new Jest tests for login edge cases (deactivated account, split invalid-credentials scenarios)
   - 5 new Vitest tests for admin panel LOGIN_FAILED/ACCOUNT_LOCKED display (orange badge, red badge, reason/email/IP, combined details)
-  - Total: 741 Jest + 861 Vitest = 1,602 unit tests
+  - Total (at time of commit): 741 Jest + 861 Vitest = 1,602 unit tests
 
 - **Email Service: Integration Tests + Dev TLS** (Feb 13, 2026)
   - New `emailService.integration.test.ts` — 6 Ethereal SMTP integration tests (real network, no mocking): SMTP detection, password-reset email, admin-reset notification, preview URL, unconfigured fallback, bad-host error

@@ -82,6 +82,7 @@ jest.unstable_mockModule('../../services/authService.js', () => ({
   })),
   verifyToken: jest.fn<any>(),
   findUserById: jest.fn<any>(),
+  sendTempPassword: jest.fn<any>(),
 }));
 
 jest.unstable_mockModule('../../services/emailService.js', () => ({
@@ -101,6 +102,7 @@ jest.unstable_mockModule('../../config/index.js', () => ({
 
 const { default: adminRouter } = await import('../admin.routes.js');
 const { errorHandler } = await import('../../middleware/errorHandler.js');
+const { sendTempPassword } = await import('../../services/authService.js');
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -617,6 +619,87 @@ describe('Admin Routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(0);
+    });
+  });
+
+  // ── POST /api/admin/users/:id/send-temp-password ──────────────────
+
+  describe('POST /api/admin/users/:id/send-temp-password', () => {
+    it('sends temp password successfully (email sent)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 2,
+        email: 'doc@clinic.com',
+        displayName: 'Dr. Smith',
+      });
+      (sendTempPassword as jest.Mock<any>).mockResolvedValue({
+        email: 'doc@clinic.com',
+        tempPassword: null,
+        emailSent: true,
+      });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/admin/users/2/send-temp-password');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.emailSent).toBe(true);
+      expect(res.body.data.tempPassword).toBeNull();
+    });
+
+    it('returns temp password when SMTP not configured', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 2,
+        email: 'doc@clinic.com',
+        displayName: 'Dr. Smith',
+      });
+      (sendTempPassword as jest.Mock<any>).mockResolvedValue({
+        email: 'doc@clinic.com',
+        tempPassword: 'Abc123!@#xyz',
+        emailSent: false,
+      });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/admin/users/2/send-temp-password');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.emailSent).toBe(false);
+      expect(res.body.data.tempPassword).toBe('Abc123!@#xyz');
+    });
+
+    it('returns 404 for non-existent user', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/admin/users/999/send-temp-password');
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('USER_NOT_FOUND');
+    });
+
+    it('creates SEND_TEMP_PASSWORD audit log', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 2,
+        email: 'doc@clinic.com',
+        displayName: 'Dr. Smith',
+      });
+      (sendTempPassword as jest.Mock<any>).mockResolvedValue({
+        email: 'doc@clinic.com',
+        tempPassword: null,
+        emailSent: true,
+      });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app).post('/api/admin/users/2/send-temp-password');
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'SEND_TEMP_PASSWORD',
+          entity: 'user',
+          entityId: 2,
+        }),
+      });
     });
   });
 });

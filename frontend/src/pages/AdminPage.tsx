@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, FileText, Plus, Edit2, Trash2, Key, Check, X,
-  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope } from 'lucide-react';
+  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope, Mail, Copy } from 'lucide-react';
 import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { useAuthStore, UserRole } from '../stores/authStore';
@@ -39,6 +39,11 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
+
+  // Temp password modal state
+  const [showTempPasswordModal, setShowTempPasswordModal] = useState(false);
+  const [tempPasswordResult, setTempPasswordResult] = useState<{ tempPassword: string | null; emailSent: boolean } | null>(null);
+  const [tempPasswordCopied, setTempPasswordCopied] = useState(false);
 
   // Expanded user rows (to show assignments)
   const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
@@ -106,6 +111,28 @@ export default function AdminPage() {
     } catch (err) {
       logger.error('Failed to delete user:', err);
       setError('Failed to deactivate user');
+    }
+  };
+
+  const handleSendTempPassword = async (userId: number) => {
+    if (!confirm('This will generate a temporary password and require the user to change it on next login. Continue?')) return;
+
+    try {
+      const response = await api.post(`/admin/users/${userId}/send-temp-password`);
+      const { emailSent, tempPassword } = response.data.data;
+
+      if (emailSent) {
+        setError(null);
+        setTempPasswordResult({ emailSent: true, tempPassword: null });
+        setShowTempPasswordModal(true);
+      } else if (tempPassword) {
+        setTempPasswordResult({ emailSent: false, tempPassword });
+        setShowTempPasswordModal(true);
+        setTempPasswordCopied(false);
+      }
+    } catch (err) {
+      logger.error('Failed to send temp password:', err);
+      setError('Failed to send temporary password');
     }
   };
 
@@ -348,6 +375,13 @@ export default function AdminPage() {
                             >
                               <Key className="w-4 h-4" />
                             </button>
+                            <button
+                              onClick={() => handleSendTempPassword(u.id)}
+                              className="p-2 text-gray-400 hover:text-blue-600"
+                              title="Send temporary password"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </button>
                             {u.id !== user?.id && (
                               <button
                                 onClick={() => handleDeleteUser(u.id)}
@@ -513,6 +547,57 @@ export default function AdminPage() {
             setResetPasswordUserId(null);
           }}
         />
+      )}
+
+      {/* Temp Password Result Modal */}
+      {showTempPasswordModal && tempPasswordResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            {tempPasswordResult.emailSent ? (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Temporary Password Sent</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  A temporary password has been emailed to the user. They will be required to change it on their next login.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Temporary Password Generated</h3>
+                <div className="rounded-md bg-yellow-50 p-3 border border-yellow-200 mb-4">
+                  <p className="text-sm text-yellow-800 font-medium mb-1">
+                    Email is not configured. Please communicate this password securely to the user.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-100 rounded-md p-3 mb-4">
+                  <code className="flex-1 font-mono text-lg tracking-wider">{tempPasswordResult.tempPassword}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(tempPasswordResult.tempPassword || '');
+                      setTempPasswordCopied(true);
+                      setTimeout(() => setTempPasswordCopied(false), 2000);
+                    }}
+                    className="p-2 text-gray-500 hover:text-blue-600"
+                    title="Copy password"
+                  >
+                    {tempPasswordCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  The user will be required to change this password on their next login.
+                </p>
+              </>
+            )}
+            <button
+              onClick={() => {
+                setShowTempPasswordModal(false);
+                setTempPasswordResult(null);
+              }}
+              className="mt-4 w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

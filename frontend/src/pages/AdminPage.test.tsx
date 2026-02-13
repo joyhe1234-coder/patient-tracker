@@ -462,6 +462,63 @@ describe('AdminPage', () => {
 
   // ── Error handling ────────────────────────────────────────────
 
+  // ── Send Temporary Password ──────────────────────────────────────
+
+  it('renders Send Temporary Password button for each user', async () => {
+    renderAdminPage();
+    await waitFor(() => {
+      const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
+      expect(mailButtons.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('shows temp password modal when SMTP not configured', async () => {
+    mockPost.mockResolvedValue({
+      data: { data: { emailSent: false, tempPassword: 'TempPass123!' } },
+    });
+
+    // Mock confirm dialog
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+
+    // Find and click the send temp password button for user 2
+    const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
+    fireEvent.click(mailButtons[1]); // Second user (Dr. Smith)
+
+    await waitFor(() => {
+      expect(screen.getByText('Temporary Password Generated')).toBeInTheDocument();
+      expect(screen.getByText('TempPass123!')).toBeInTheDocument();
+    });
+
+    vi.restoreAllMocks();
+  });
+
+  it('shows success modal when temp password emailed', async () => {
+    mockPost.mockResolvedValue({
+      data: { data: { emailSent: true, tempPassword: null } },
+    });
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+
+    const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
+    fireEvent.click(mailButtons[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Temporary Password Sent')).toBeInTheDocument();
+    });
+
+    vi.restoreAllMocks();
+  });
+
   it('shows error message when API call fails', async () => {
     mockGet.mockRejectedValue(new Error('Network error'));
 
