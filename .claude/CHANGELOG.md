@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [4.6.0-snapshot] - 2026-02-13
+## [4.6.0] - 2026-02-13
 
 ### Added
 - **Insurance Group Filter (REQ-IG)** (Feb 13, 2026)
@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - +12 Cypress E2E tests (`insurance-group-filter.cy.ts`)
   - Total: 777 Jest + 895 Vitest = 1,672 unit tests
 
-## [4.5.1-snapshot] - 2026-02-13
+## [4.5.1] - 2026-02-13
 
 ### Added
 - **Security Hardening: Account Lockout + Temp Password + Forced Password Change (REQ-SEC-06)** (Feb 13, 2026)

@@ -30,8 +30,8 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 726 tests passing
-- Layer 2 (Frontend Vitest): 856 tests passing
+- Layer 1 (Backend Jest): 777 tests passing
+- Layer 2 (Frontend Vitest): 895 tests passing
 - Visual test plan v2.1: 427 test cases documented
 
 ### Security Hardening — Phase 1: Env Var Validation (REQ-SEC-04, REQ-SEC-05)
@@ -882,6 +882,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 February 13, 2026 - Security hardening phase 3: account lockout + temp password + forced password change (REQ-SEC-06). Prisma migration (3 fields), authService lockout functions, ForcePasswordChange modal, LoginPage warning, AdminPage send-temp-password. ~30 Jest + ~12 Vitest new tests. All tests passing: 763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress = ~2,020 automated tests.
 February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP. Admin panel orange/red badges. Email service Ethereal integration tests. 15 new Jest + 5 new Vitest tests.
+February 13, 2026 - Release 4.6.0: Insurance group filter (REQ-IG), security hardening phases 1-3 (REQ-SEC-04/05/06/10). All tests passing: 777 Jest + 895 Vitest + 43 Playwright + ~342 Cypress = ~2,057 automated tests.
 February 12, 2026 - Security hardening phase 1: validateEnv() startup validation for JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD. 26 new Jest tests. All tests passing: 726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,967 automated tests.
 February 12, 2026 - Release 4.5.0: 10-phase code quality refactor, visual test plan v2.1 (232 tests executed, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt replaces dark gray bg. Hover-reveal "Today" button. 22 new Vitest + ~36 new Cypress tests. Total: 679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress = ~1,816.
