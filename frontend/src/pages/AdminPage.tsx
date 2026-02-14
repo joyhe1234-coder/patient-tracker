@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, FileText, Plus, Edit2, Trash2, Key, Check, X,
-  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope } from 'lucide-react';
+  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope, Mail, Copy } from 'lucide-react';
 import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { useAuthStore, UserRole } from '../stores/authStore';
@@ -11,12 +11,14 @@ import ResetPasswordModal from '../components/modals/ResetPasswordModal';
 interface AuditLogEntry {
   id: number;
   userId: number | null;
+  userEmail: string | null;
   userDisplayName: string;
   action: string;
   entity: string | null;
   entityId: number | null;
   changes: object | null;
-  details: object | null;
+  details: Record<string, unknown> | null;
+  ipAddress: string | null;
   createdAt: string;
 }
 
@@ -37,6 +39,11 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
+
+  // Temp password modal state
+  const [showTempPasswordModal, setShowTempPasswordModal] = useState(false);
+  const [tempPasswordResult, setTempPasswordResult] = useState<{ tempPassword: string | null; emailSent: boolean } | null>(null);
+  const [tempPasswordCopied, setTempPasswordCopied] = useState(false);
 
   // Expanded user rows (to show assignments)
   const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
@@ -107,6 +114,28 @@ export default function AdminPage() {
     }
   };
 
+  const handleSendTempPassword = async (userId: number) => {
+    if (!confirm('This will generate a temporary password and require the user to change it on next login. Continue?')) return;
+
+    try {
+      const response = await api.post(`/admin/users/${userId}/send-temp-password`);
+      const { emailSent, tempPassword } = response.data.data;
+
+      if (emailSent) {
+        setError(null);
+        setTempPasswordResult({ emailSent: true, tempPassword: null });
+        setShowTempPasswordModal(true);
+      } else if (tempPassword) {
+        setTempPasswordResult({ emailSent: false, tempPassword });
+        setShowTempPasswordModal(true);
+        setTempPasswordCopied(false);
+      }
+    } catch (err) {
+      logger.error('Failed to send temp password:', err);
+      setError('Failed to send temporary password');
+    }
+  };
+
   const toggleUserExpanded = (userId: number) => {
     setExpandedUsers((prev) => {
       const next = new Set(prev);
@@ -165,6 +194,17 @@ export default function AdminPage() {
   const formatTimestamp = (date: string | null) => {
     if (!date) return 'Never';
     return new Date(date).toLocaleString();
+  };
+
+  const formatSecurityDetails = (entry: AuditLogEntry) => {
+    const parts: string[] = [];
+    if (entry.details && typeof entry.details === 'object') {
+      const reason = (entry.details as Record<string, unknown>).reason;
+      if (reason) parts.push(`Reason: ${String(reason)}`);
+    }
+    if (entry.userEmail) parts.push(`Email: ${entry.userEmail}`);
+    if (entry.ipAddress) parts.push(`IP: ${entry.ipAddress}`);
+    return parts.length > 0 ? parts.join(' | ') : '-';
   };
 
   if (!user?.roles.includes('ADMIN')) {
@@ -320,7 +360,7 @@ export default function AdminPage() {
                                 setEditingUser(u);
                                 setShowUserModal(true);
                               }}
-                              className="p-2 text-gray-400 hover:text-blue-600"
+                              className="p-2 text-gray-500 hover:text-blue-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="Edit user"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -330,15 +370,22 @@ export default function AdminPage() {
                                 setResetPasswordUserId(u.id);
                                 setShowResetPasswordModal(true);
                               }}
-                              className="p-2 text-gray-400 hover:text-yellow-600"
+                              className="p-2 text-gray-500 hover:text-yellow-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="Reset password"
                             >
                               <Key className="w-4 h-4" />
                             </button>
+                            <button
+                              onClick={() => handleSendTempPassword(u.id)}
+                              className="p-2 text-gray-500 hover:text-blue-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                              title="Send temporary password"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </button>
                             {u.id !== user?.id && (
                               <button
                                 onClick={() => handleDeleteUser(u.id)}
-                                className="p-2 text-gray-400 hover:text-red-600"
+                                className="p-2 text-gray-500 hover:text-red-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 title="Deactivate user"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -443,6 +490,12 @@ export default function AdminPage() {
                               ? 'bg-red-100 text-red-800'
                               : entry.action === 'LOGIN'
                               ? 'bg-purple-100 text-purple-800'
+                              : entry.action === 'LOGIN_FAILED'
+                              ? 'bg-orange-100 text-orange-800'
+                              : entry.action === 'ACCOUNT_LOCKED'
+                              ? 'bg-red-100 text-red-800'
+                              : entry.action === 'SEND_TEMP_PASSWORD'
+                              ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >
@@ -453,7 +506,9 @@ export default function AdminPage() {
                         {entry.entity} {entry.entityId ? `#${entry.entityId}` : ''}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {entry.changes
+                        {entry.action === 'LOGIN_FAILED' || entry.action === 'ACCOUNT_LOCKED'
+                          ? formatSecurityDetails(entry)
+                          : entry.changes
                           ? JSON.stringify(entry.changes).substring(0, 50) + '...'
                           : entry.details
                           ? JSON.stringify(entry.details).substring(0, 50) + '...'
@@ -494,6 +549,57 @@ export default function AdminPage() {
             setResetPasswordUserId(null);
           }}
         />
+      )}
+
+      {/* Temp Password Result Modal */}
+      {showTempPasswordModal && tempPasswordResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            {tempPasswordResult.emailSent ? (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Temporary Password Sent</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  A temporary password has been emailed to the user. They will be required to change it on their next login.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Temporary Password Generated</h3>
+                <div className="rounded-md bg-yellow-50 p-3 border border-yellow-200 mb-4">
+                  <p className="text-sm text-yellow-800 font-medium mb-1">
+                    Email is not configured. Please communicate this password securely to the user.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-100 rounded-md p-3 mb-4">
+                  <code className="flex-1 font-mono text-lg tracking-wider">{tempPasswordResult.tempPassword}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(tempPasswordResult.tempPassword || '');
+                      setTempPasswordCopied(true);
+                      setTimeout(() => setTempPasswordCopied(false), 2000);
+                    }}
+                    className="p-2 text-gray-500 hover:text-blue-600"
+                    title="Copy password"
+                  >
+                    {tempPasswordCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  The user will be required to change this password on their next login.
+                </p>
+              </>
+            )}
+            <button
+              onClick={() => {
+                setShowTempPasswordModal(false);
+                setTempPasswordResult(null);
+              }}
+              className="mt-4 w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

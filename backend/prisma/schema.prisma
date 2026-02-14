@@ -29,8 +29,11 @@ model User {
   roles           UserRole[] @default([PHYSICIAN])
   isActive        Boolean    @default(true) @map("is_active")
   lastLoginAt     DateTime?  @map("last_login_at")
-  createdAt       DateTime   @default(now()) @map("created_at")
-  updatedAt       DateTime   @updatedAt @map("updated_at")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  mustChangePassword  Boolean   @default(false) @map("must_change_password")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   // Patients owned by this physician
   patients        Patient[]
@@ -71,6 +74,7 @@ model Patient {
   memberTelephone String?          @map("member_telephone")
   memberAddress   String?          @map("member_address")
   ownerId         Int?             @map("owner_id")
+  insuranceGroup  String?          @map("insurance_group")
   owner           User?            @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
@@ -78,6 +82,7 @@ model Patient {
 
   @@unique([memberName, memberDob])
   @@index([ownerId])
+  @@index([insuranceGroup])
   @@map("patients")
 }
 
@@ -249,7 +254,7 @@ model AuditLog {
   userId    Int?     @map("user_id")
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   userEmail String?  @map("user_email") // Kept for when user is deleted
-  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'LOCK', 'UNLOCK', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI'
+  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOCK', 'UNLOCK', 'ACCOUNT_LOCKED', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI', 'SEND_TEMP_PASSWORD'
   entity    String?  // 'patient_measure', 'patient', 'user', etc.
   entityId  Int?     @map("entity_id")
   changes   Json?    // Field-level changes: { fields: [{ field, old, new }] }

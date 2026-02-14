@@ -54,7 +54,10 @@ describe('LoginPage', () => {
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      loginWarning: null,
+      mustChangePassword: false,
       clearError: mockClearError,
+      clearMustChangePassword: vi.fn(),
       user: null,
       token: null,
       assignments: [],
@@ -200,7 +203,10 @@ describe('LoginPage', () => {
         isAuthenticated: false,
         isLoading: false,
         error: 'Invalid credentials',
+        loginWarning: null,
+        mustChangePassword: false,
         clearError: mockClearError,
+        clearMustChangePassword: vi.fn(),
         user: null,
         token: null,
         assignments: [],
@@ -224,7 +230,10 @@ describe('LoginPage', () => {
         isAuthenticated: false,
         isLoading: true,
         error: null,
+        loginWarning: null,
+        mustChangePassword: false,
         clearError: mockClearError,
+        clearMustChangePassword: vi.fn(),
         user: null,
         token: null,
         assignments: [],
@@ -246,7 +255,10 @@ describe('LoginPage', () => {
         isAuthenticated: false,
         isLoading: true,
         error: null,
+        loginWarning: null,
+        mustChangePassword: false,
         clearError: mockClearError,
+        clearMustChangePassword: vi.fn(),
         user: null,
         token: null,
         assignments: [],
@@ -303,14 +315,43 @@ describe('LoginPage', () => {
   });
 
   describe('Redirect when authenticated', () => {
+    it('displays login warning when present', () => {
+      vi.mocked(useAuthStore).mockReturnValue({
+        login: mockLogin,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Invalid email or password',
+        loginWarning: 'Having trouble logging in? You can reset your password.',
+        mustChangePassword: false,
+        clearError: mockClearError,
+        clearMustChangePassword: vi.fn(),
+        user: null,
+        token: null,
+        assignments: [],
+        selectedPhysicianId: null,
+        logout: vi.fn(),
+        refreshUser: vi.fn(),
+        setSelectedPhysicianId: vi.fn(),
+        checkAuth: vi.fn(),
+      });
+
+      renderLoginPage();
+
+      expect(screen.getByText(/Having trouble logging in/)).toBeInTheDocument();
+      expect(screen.getByText('Reset your password')).toBeInTheDocument();
+    });
+
     it('redirects to home when already authenticated', () => {
       vi.mocked(useAuthStore).mockReturnValue({
         login: mockLogin,
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        loginWarning: null,
+        mustChangePassword: false,
         clearError: mockClearError,
-        user: { id: 1, email: 'test@test.com', displayName: 'Test', role: 'PHYSICIAN', isActive: true, lastLoginAt: null },
+        clearMustChangePassword: vi.fn(),
+        user: { id: 1, email: 'test@test.com', displayName: 'Test', roles: ['PHYSICIAN'], isActive: true, lastLoginAt: null },
         token: 'token',
         assignments: [],
         selectedPhysicianId: 1,

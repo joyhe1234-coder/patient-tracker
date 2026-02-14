@@ -220,9 +220,9 @@ describe('importExecutor', () => {
         }),
       });
       (getPreview as jest.Mock).mockReturnValue(preview);
-      // Existing patient has ownerId: null (unassigned)
-      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: null });
-      mockPatientUpdate.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10 });
+      // Existing patient has ownerId: null (unassigned), insuranceGroup: null
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: null, insuranceGroup: null });
+      mockPatientUpdate.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10, insuranceGroup: 'hill' });
 
       // Execute with ownerId = 10 (assigning to physician)
       const result = await executeImport('test-preview-123', 10);
@@ -231,12 +231,12 @@ describe('importExecutor', () => {
       expect(mockPatientUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 5 },
-          data: { ownerId: 10 },
+          data: { insuranceGroup: 'hill', ownerId: 10 },
         })
       );
     });
 
-    it('should not update ownerId when existing patient already has same owner', async () => {
+    it('should not update ownerId when existing patient already has same owner and same insuranceGroup', async () => {
       const preview = createMockPreview({
         mode: 'merge',
         diff: createMockDiffResult({
@@ -245,17 +245,18 @@ describe('importExecutor', () => {
         }),
       });
       (getPreview as jest.Mock).mockReturnValue(preview);
-      // Existing patient already has ownerId: 10
-      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10 });
+      // Existing patient already has ownerId: 10 and insuranceGroup: 'hill' (same as default systemId)
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10, insuranceGroup: 'hill' });
 
-      // Execute with same ownerId = 10
+      // Execute with same ownerId = 10 (systemId defaults to 'hill')
       const result = await executeImport('test-preview-123', 10);
 
       expect(result.success).toBe(true);
+      // No update needed since ownerId and insuranceGroup are already correct
       expect(mockPatientUpdate).not.toHaveBeenCalled();
     });
 
-    it('should not update ownerId when importing with null owner', async () => {
+    it('should update insuranceGroup even when importing with null owner', async () => {
       const preview = createMockPreview({
         mode: 'merge',
         diff: createMockDiffResult({
@@ -264,14 +265,21 @@ describe('importExecutor', () => {
         }),
       });
       (getPreview as jest.Mock).mockReturnValue(preview);
-      // Existing patient has ownerId: 10
-      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10 });
+      // Existing patient has ownerId: 10, insuranceGroup: null (needs update)
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10, insuranceGroup: null });
+      mockPatientUpdate.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10, insuranceGroup: 'hill' });
 
       // Execute with null ownerId (admin import without specifying physician)
       const result = await executeImport('test-preview-123', null);
 
       expect(result.success).toBe(true);
-      expect(mockPatientUpdate).not.toHaveBeenCalled();
+      // Should update insuranceGroup even though ownerId is null
+      expect(mockPatientUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 5 },
+          data: { insuranceGroup: 'hill' },
+        })
+      );
     });
   });
 
@@ -524,6 +532,140 @@ describe('importExecutor', () => {
       expect(result.stats.skipped).toBe(3);
       expect(result.stats.bothKept).toBe(1);
       expect(result.stats.deleted).toBe(0);
+    });
+  });
+
+  describe('insuranceGroup', () => {
+    it('should create patient with insuranceGroup from systemId', async () => {
+      const preview = createMockPreview({
+        systemId: 'hill',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT' })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockPatientFindUnique.mockResolvedValue(null);
+      mockPatientCreate.mockResolvedValue({ id: 1, memberName: 'John Smith', insuranceGroup: 'hill' });
+      mockMeasureAggregate.mockResolvedValue({ _max: { rowOrder: 0 } });
+      mockMeasureCreate.mockResolvedValue({ id: 1 });
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockPatientCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            insuranceGroup: 'hill',
+          }),
+        })
+      );
+    });
+
+    it('should update existing patient insuranceGroup on re-import', async () => {
+      const preview = createMockPreview({
+        systemId: 'kaiser',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT', existingPatientId: 5 })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: null, insuranceGroup: 'hill' });
+      mockPatientUpdate.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: null, insuranceGroup: 'kaiser' });
+      mockMeasureAggregate.mockResolvedValue({ _max: { rowOrder: 0 } });
+      mockMeasureCreate.mockResolvedValue({ id: 1 });
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockPatientUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            insuranceGroup: 'kaiser',
+          }),
+        })
+      );
+    });
+
+    it('should default to hill when systemId missing from preview cache', async () => {
+      const preview = createMockPreview({
+        systemId: undefined as unknown as string,
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT' })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockPatientFindUnique.mockResolvedValue(null);
+      mockPatientCreate.mockResolvedValue({ id: 1, memberName: 'John Smith', insuranceGroup: 'hill' });
+      mockMeasureAggregate.mockResolvedValue({ _max: { rowOrder: 0 } });
+      mockMeasureCreate.mockResolvedValue({ id: 1 });
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockPatientCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            insuranceGroup: 'hill',
+          }),
+        })
+      );
+    });
+
+    it('should not update patient when insuranceGroup already matches', async () => {
+      const preview = createMockPreview({
+        systemId: 'hill',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT', existingPatientId: 5 })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockPatientFindUnique.mockResolvedValue({ id: 5, memberName: 'John Smith', ownerId: 10, insuranceGroup: 'hill' });
+      mockMeasureAggregate.mockResolvedValue({ _max: { rowOrder: 0 } });
+      mockMeasureCreate.mockResolvedValue({ id: 1 });
+
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      expect(mockPatientUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should update patient insuranceGroup on re-import via UPDATE action', async () => {
+      const preview = createMockPreview({
+        systemId: 'kaiser',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 1, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'UPDATE',
+            existingPatientId: 5,
+            existingMeasureId: 10,
+            oldStatus: 'Not Addressed',
+            newStatus: 'AWV completed',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockMeasureUpdate.mockResolvedValue({ id: 10 });
+      mockPatientUpdate.mockResolvedValue({ id: 5, insuranceGroup: 'kaiser' });
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockPatientUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 5 },
+          data: { insuranceGroup: 'kaiser' },
+        })
+      );
     });
   });
 });

@@ -13,6 +13,8 @@ import {
   generateToken,
   verifyToken,
   toAuthUser,
+  isAccountLocked,
+  generateTempPassword,
 } from '../authService.js';
 import type { User, UserRole } from '@prisma/client';
 
@@ -201,6 +203,9 @@ describe('authService', () => {
         roles: ['PHYSICIAN'],
         isActive: true,
         lastLoginAt: new Date('2026-01-15'),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        mustChangePassword: false,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-10'),
       };
@@ -228,6 +233,9 @@ describe('authService', () => {
         roles: ['STAFF'],
         isActive: true,
         lastLoginAt: null,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        mustChangePassword: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -254,6 +262,9 @@ describe('authService', () => {
           roles,
           isActive: true,
           lastLoginAt: null,
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          mustChangePassword: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -272,6 +283,9 @@ describe('authService', () => {
         roles: ['STAFF'],
         isActive: false,
         lastLoginAt: null,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        mustChangePassword: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -279,6 +293,52 @@ describe('authService', () => {
       const authUser = toAuthUser(user);
 
       expect(authUser.isActive).toBe(false);
+    });
+  });
+
+  // ── isAccountLocked (pure function) ──────────────────────────────
+
+  describe('isAccountLocked', () => {
+    it('returns true when lockedUntil is in the future', () => {
+      const futureDate = new Date(Date.now() + 60 * 1000);
+      expect(isAccountLocked({ lockedUntil: futureDate })).toBe(true);
+    });
+
+    it('returns false when lockedUntil is in the past', () => {
+      const pastDate = new Date(Date.now() - 60 * 1000);
+      expect(isAccountLocked({ lockedUntil: pastDate })).toBe(false);
+    });
+
+    it('returns false when lockedUntil is null', () => {
+      expect(isAccountLocked({ lockedUntil: null })).toBe(false);
+    });
+
+    it('returns false when lockedUntil is exactly now (boundary)', () => {
+      // At exactly the current time, lock has expired
+      const now = new Date();
+      expect(isAccountLocked({ lockedUntil: now })).toBe(false);
+    });
+  });
+
+  // ── generateTempPassword ──────────────────────────────────────────
+
+  describe('generateTempPassword', () => {
+    it('returns a 12-character string', () => {
+      const password = generateTempPassword();
+      expect(password).toHaveLength(12);
+    });
+
+    it('generates different passwords each time', () => {
+      const p1 = generateTempPassword();
+      const p2 = generateTempPassword();
+      expect(p1).not.toBe(p2);
+    });
+
+    it('only contains allowed characters', () => {
+      const allowed = /^[A-Za-z0-9!@#$%&*]+$/;
+      for (let i = 0; i < 10; i++) {
+        expect(generateTempPassword()).toMatch(allowed);
+      }
     });
   });
 });

@@ -245,6 +245,280 @@ describe('AdminPage', () => {
 
   // ── Error handling ────────────────────────────────────────────
 
+  // ── Audit Log: LOGIN_FAILED entries ──────────────────────
+
+  const mockAuditLogWithLoginFailed = [
+    {
+      id: 101,
+      userId: null,
+      userEmail: 'hacker@example.com',
+      userDisplayName: 'hacker@example.com',
+      action: 'LOGIN_FAILED',
+      entity: null,
+      entityId: null,
+      changes: null,
+      details: { reason: 'INVALID_CREDENTIALS' },
+      ipAddress: '192.168.1.100',
+      createdAt: '2025-07-01T14:30:00Z',
+    },
+    {
+      id: 102,
+      userId: 5,
+      userEmail: 'locked@example.com',
+      userDisplayName: 'locked@example.com',
+      action: 'LOGIN_FAILED',
+      entity: null,
+      entityId: null,
+      changes: null,
+      details: { reason: 'ACCOUNT_LOCKED' },
+      ipAddress: '10.0.0.50',
+      createdAt: '2025-07-01T14:35:00Z',
+    },
+    {
+      id: 103,
+      userId: 5,
+      userEmail: 'deactivated@example.com',
+      userDisplayName: 'deactivated@example.com',
+      action: 'LOGIN_FAILED',
+      entity: null,
+      entityId: null,
+      changes: null,
+      details: { reason: 'ACCOUNT_DEACTIVATED' },
+      ipAddress: '172.16.0.1',
+      createdAt: '2025-07-01T14:40:00Z',
+    },
+    {
+      id: 104,
+      userId: 5,
+      userEmail: 'locked@example.com',
+      userDisplayName: 'locked@example.com',
+      action: 'ACCOUNT_LOCKED',
+      entity: null,
+      entityId: null,
+      changes: null,
+      details: { reason: 'TOO_MANY_FAILED_ATTEMPTS' },
+      ipAddress: '10.0.0.50',
+      createdAt: '2025-07-01T14:36:00Z',
+    },
+  ];
+
+  it('renders LOGIN_FAILED entries with orange action badge', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/admin/users') {
+        return Promise.resolve({ data: { data: mockUsers } });
+      }
+      if (url === '/admin/physicians') {
+        return Promise.resolve({ data: { data: mockPhysicians } });
+      }
+      if (url.startsWith('/admin/audit-log')) {
+        return Promise.resolve({ data: { data: { entries: mockAuditLogWithLoginFailed } } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Users')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Audit Log'));
+    await waitFor(() => {
+      const badges = screen.getAllByText('LOGIN_FAILED');
+      expect(badges.length).toBe(3);
+      badges.forEach((badge) => {
+        expect(badge).toHaveClass('bg-orange-100', 'text-orange-800');
+      });
+    });
+  });
+
+  it('displays reason from details for LOGIN_FAILED entries', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/admin/users') {
+        return Promise.resolve({ data: { data: mockUsers } });
+      }
+      if (url === '/admin/physicians') {
+        return Promise.resolve({ data: { data: mockPhysicians } });
+      }
+      if (url.startsWith('/admin/audit-log')) {
+        return Promise.resolve({ data: { data: { entries: mockAuditLogWithLoginFailed } } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Users')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Audit Log'));
+    await waitFor(() => {
+      expect(screen.getByText(/Reason: INVALID_CREDENTIALS/)).toBeInTheDocument();
+      expect(screen.getByText(/Reason: ACCOUNT_LOCKED/)).toBeInTheDocument();
+      expect(screen.getByText(/Reason: ACCOUNT_DEACTIVATED/)).toBeInTheDocument();
+    });
+  });
+
+  it('displays email and IP address for LOGIN_FAILED entries', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/admin/users') {
+        return Promise.resolve({ data: { data: mockUsers } });
+      }
+      if (url === '/admin/physicians') {
+        return Promise.resolve({ data: { data: mockPhysicians } });
+      }
+      if (url.startsWith('/admin/audit-log')) {
+        return Promise.resolve({ data: { data: { entries: mockAuditLogWithLoginFailed } } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Users')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Audit Log'));
+    await waitFor(() => {
+      expect(screen.getByText(/Email: hacker@example.com/)).toBeInTheDocument();
+      expect(screen.getByText(/IP: 192\.168\.1\.100/)).toBeInTheDocument();
+      // IP 10.0.0.50 appears in both LOGIN_FAILED (id=102) and ACCOUNT_LOCKED (id=104) entries
+      const ipMatches = screen.getAllByText(/IP: 10\.0\.0\.50/);
+      expect(ipMatches.length).toBe(2);
+    });
+  });
+
+  it('renders ACCOUNT_LOCKED entries with red badge and details', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/admin/users') {
+        return Promise.resolve({ data: { data: mockUsers } });
+      }
+      if (url === '/admin/physicians') {
+        return Promise.resolve({ data: { data: mockPhysicians } });
+      }
+      if (url.startsWith('/admin/audit-log')) {
+        return Promise.resolve({ data: { data: { entries: mockAuditLogWithLoginFailed } } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Users')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Audit Log'));
+    await waitFor(() => {
+      const badge = screen.getByText('ACCOUNT_LOCKED');
+      expect(badge).toHaveClass('bg-red-100', 'text-red-800');
+      expect(screen.getByText(/Reason: TOO_MANY_FAILED_ATTEMPTS/)).toBeInTheDocument();
+    });
+  });
+
+  it('displays LOGIN_FAILED entry with all security details combined', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/admin/users') {
+        return Promise.resolve({ data: { data: mockUsers } });
+      }
+      if (url === '/admin/physicians') {
+        return Promise.resolve({ data: { data: mockPhysicians } });
+      }
+      if (url.startsWith('/admin/audit-log')) {
+        return Promise.resolve({
+          data: {
+            data: {
+              entries: [
+                {
+                  id: 200,
+                  userId: null,
+                  userEmail: 'attacker@evil.com',
+                  userDisplayName: 'attacker@evil.com',
+                  action: 'LOGIN_FAILED',
+                  entity: null,
+                  entityId: null,
+                  changes: null,
+                  details: { reason: 'INVALID_CREDENTIALS' },
+                  ipAddress: '203.0.113.42',
+                  createdAt: '2025-07-02T08:00:00Z',
+                },
+              ],
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Users')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Audit Log'));
+    await waitFor(() => {
+      const detailsText = 'Reason: INVALID_CREDENTIALS | Email: attacker@evil.com | IP: 203.0.113.42';
+      expect(screen.getByText(detailsText)).toBeInTheDocument();
+    });
+  });
+
+  // ── Error handling ────────────────────────────────────────────
+
+  // ── Send Temporary Password ──────────────────────────────────────
+
+  it('renders Send Temporary Password button for each user', async () => {
+    renderAdminPage();
+    await waitFor(() => {
+      const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
+      expect(mailButtons.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('shows temp password modal when SMTP not configured', async () => {
+    mockPost.mockResolvedValue({
+      data: { data: { emailSent: false, tempPassword: 'TempPass123!' } },
+    });
+
+    // Mock confirm dialog
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+
+    // Find and click the send temp password button for user 2
+    const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
+    fireEvent.click(mailButtons[1]); // Second user (Dr. Smith)
+
+    await waitFor(() => {
+      expect(screen.getByText('Temporary Password Generated')).toBeInTheDocument();
+      expect(screen.getByText('TempPass123!')).toBeInTheDocument();
+    });
+
+    vi.restoreAllMocks();
+  });
+
+  it('shows success modal when temp password emailed', async () => {
+    mockPost.mockResolvedValue({
+      data: { data: { emailSent: true, tempPassword: null } },
+    });
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+
+    const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
+    fireEvent.click(mailButtons[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Temporary Password Sent')).toBeInTheDocument();
+    });
+
+    vi.restoreAllMocks();
+  });
+
   it('shows error message when API call fails', async () => {
     mockGet.mockRejectedValue(new Error('Network error'));
 

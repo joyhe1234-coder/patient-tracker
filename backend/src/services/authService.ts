@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { config } from '../config/index.js';
+import { isSmtpConfigured, sendTempPasswordEmail } from './emailService.js';
 import type { User, UserRole } from '@prisma/client';
 
 // JWT payload structure
@@ -226,5 +228,105 @@ export async function authenticateUser(
     user: toAuthUser(user),
     token,
     assignments,
+  };
+}
+
+// ── Account lockout helpers ────────────────────────────────────────
+
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Increment failed login attempts for a user.
+ * Returns the new count.
+ */
+export async function incrementFailedAttempts(userId: number): Promise<number> {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { failedLoginAttempts: { increment: 1 } },
+    select: { failedLoginAttempts: true },
+  });
+  return user.failedLoginAttempts;
+}
+
+/**
+ * Lock an account for 15 minutes.
+ */
+export async function lockAccount(userId: number): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) },
+  });
+}
+
+/**
+ * Reset failed login attempts and clear lockout.
+ */
+export async function resetFailedAttempts(userId: number): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { failedLoginAttempts: 0, lockedUntil: null },
+  });
+}
+
+/**
+ * Check if an account is currently locked.
+ * Pure function — does not touch the database.
+ */
+export function isAccountLocked(user: { lockedUntil: Date | null }): boolean {
+  if (!user.lockedUntil) return false;
+  return new Date(user.lockedUntil) > new Date();
+}
+
+/**
+ * Generate a cryptographically secure temporary password.
+ * 12 characters, alphanumeric + symbols.
+ */
+export function generateTempPassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+  const bytes = crypto.randomBytes(12);
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
+}
+
+/**
+ * Generate and set a temporary password for a user.
+ * Unlocks the account, sets mustChangePassword flag, and emails if SMTP is configured.
+ * Returns the temp password only when email was NOT sent (so admin can communicate it).
+ */
+export async function sendTempPassword(userId: number): Promise<{
+  email: string;
+  tempPassword: string | null;
+  emailSent: boolean;
+}> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      mustChangePassword: true,
+    },
+  });
+
+  let emailSent = false;
+  if (isSmtpConfigured()) {
+    emailSent = await sendTempPasswordEmail(user.email, tempPassword);
+  }
+
+  return {
+    email: user.email,
+    tempPassword: emailSent ? null : tempPassword,
+    emailSent,
   };
 }

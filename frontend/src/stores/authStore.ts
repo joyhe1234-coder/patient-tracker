@@ -50,6 +50,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  loginWarning: string | null;
+  mustChangePassword: boolean;
   assignments: StaffAssignment[]; // For STAFF users
   selectedPhysicianId: number | null; // For STAFF users to switch between physicians
 
@@ -59,6 +61,7 @@ interface AuthState {
   refreshUser: () => Promise<void>;
   setSelectedPhysicianId: (physicianId: number | null) => void;
   clearError: () => void;
+  clearMustChangePassword: () => void;
   checkAuth: () => Promise<boolean>;
 }
 
@@ -71,16 +74,18 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      loginWarning: null,
+      mustChangePassword: false,
       assignments: [],
       selectedPhysicianId: null,
 
       // Login action
       login: async (email: string, password: string): Promise<boolean> => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, loginWarning: null });
 
         try {
           const response = await api.post('/auth/login', { email, password });
-          const { user, token, assignments } = response.data.data;
+          const { user, token, assignments, mustChangePassword: mcp } = response.data.data;
 
           // Store token in localStorage for axios interceptor
           localStorage.setItem('auth_token', token);
@@ -110,20 +115,25 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
             error: null,
+            loginWarning: null,
+            mustChangePassword: mcp || false,
             assignments: assignments || [],
             selectedPhysicianId,
           });
 
           return true;
         } catch (err: unknown) {
-          const error = err as { response?: { data?: { error?: { message?: string } } } };
+          const error = err as { response?: { data?: { error?: { message?: string; warning?: string } } } };
           const message = error.response?.data?.error?.message || 'Login failed';
+          const warning = error.response?.data?.error?.warning || null;
           set({
             user: null,
             token: null,
             isAuthenticated: false,
             isLoading: false,
             error: message,
+            loginWarning: warning,
+            mustChangePassword: false,
             assignments: [],
             selectedPhysicianId: null,
           });
@@ -150,6 +160,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
+            loginWarning: null,
+            mustChangePassword: false,
             assignments: [],
             selectedPhysicianId: null,
           });
@@ -212,7 +224,12 @@ export const useAuthStore = create<AuthState>()(
 
       // Clear error message
       clearError: (): void => {
-        set({ error: null });
+        set({ error: null, loginWarning: null });
+      },
+
+      // Clear mustChangePassword flag (after forced change)
+      clearMustChangePassword: (): void => {
+        set({ mustChangePassword: false });
       },
 
       // Check if user is authenticated (on app load)

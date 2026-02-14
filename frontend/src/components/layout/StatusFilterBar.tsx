@@ -15,6 +15,9 @@ interface StatusFilterBarProps {
   selectedMeasure: string;
   onMeasureChange: (measure: string) => void;
   measureOptions: string[];
+  selectedInsuranceGroup: string;
+  onInsuranceGroupChange: (value: string) => void;
+  insuranceGroupOptions: Array<{ id: string; name: string }>;
 }
 
 // Status category definitions
@@ -37,7 +40,7 @@ const STATUS_CATEGORIES: Array<{
   { id: 'gray', label: 'N/A', bgColor: 'bg-gray-200', textColor: 'text-gray-600', borderColor: 'border-gray-400' },
 ];
 
-export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts, searchText, onSearchChange, searchInputRef, selectedMeasure, onMeasureChange, measureOptions }: StatusFilterBarProps) {
+export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts, searchText, onSearchChange, searchInputRef, selectedMeasure, onMeasureChange, measureOptions, selectedInsuranceGroup, onInsuranceGroupChange, insuranceGroupOptions }: StatusFilterBarProps) {
   const isAllSelected = activeFilters.includes('all') || activeFilters.length === 0;
 
   const handleChipClick = (id: StatusColor) => {
@@ -134,6 +137,24 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
         {measureOptions.map((measure) => (
           <option key={measure} value={measure}>{measure}</option>
         ))}
+      </select>
+
+      {/* Insurance Group dropdown */}
+      <select
+        value={selectedInsuranceGroup}
+        onChange={(e) => onInsuranceGroupChange(e.target.value)}
+        aria-label="Filter by insurance group"
+        className={`
+          text-xs py-0.5 pl-1.5 pr-6 border rounded-md bg-white cursor-pointer
+          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          ${selectedInsuranceGroup !== 'all' ? 'ring-2 ring-blue-400 border-blue-400' : 'border-gray-300'}
+        `}
+      >
+        <option value="all">All</option>
+        {insuranceGroupOptions.map((system) => (
+          <option key={system.id} value={system.id}>{system.name}</option>
+        ))}
+        <option value="none">No Insurance</option>
       </select>
 
       {/* Search input */}

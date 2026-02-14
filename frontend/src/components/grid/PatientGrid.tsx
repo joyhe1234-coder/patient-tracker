@@ -73,6 +73,7 @@ export interface GridRow {
   memberDob: string;
   memberTelephone: string | null;
   memberAddress: string | null;
+  insuranceGroup: string | null;
   requestType: string | null;
   qualityMeasure: string | null;
   measureStatus: string | null;

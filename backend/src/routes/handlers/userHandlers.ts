@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../config/database.js';
 import { createError } from '../../middleware/errorHandler.js';
-import { hashPassword, toAuthUser } from '../../services/authService.js';
+import { hashPassword, toAuthUser, sendTempPassword } from '../../services/authService.js';
 import { isSmtpConfigured, sendAdminPasswordResetNotification } from '../../services/emailService.js';
 import { UserRole } from '@prisma/client';
 import {
@@ -432,6 +432,48 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
       success: true,
       message: 'Password reset successfully',
       emailSent,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/admin/users/:id/send-temp-password
+ * Generate a temporary password, set mustChangePassword, and email if SMTP configured
+ */
+export async function sendTempPasswordHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    const userId = parseInt(id, 10);
+
+    // Check user exists
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw createError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    const result = await sendTempPassword(userId);
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.id,
+        userEmail: req.user!.email,
+        action: 'SEND_TEMP_PASSWORD',
+        entity: 'user',
+        entityId: userId,
+        details: { emailSent: result.emailSent, targetEmail: result.email },
+        ipAddress: req.ip || req.socket.remoteAddress,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        emailSent: result.emailSent,
+        tempPassword: result.tempPassword,
+      },
     });
   } catch (error) {
     next(error);

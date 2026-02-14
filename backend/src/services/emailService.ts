@@ -35,10 +35,32 @@ function getTransporter(): nodemailer.Transporter | null {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // Allow self-signed certificates for development SMTP services (e.g., Ethereal)
+      ...(process.env.NODE_ENV !== 'production' && {
+        tls: { rejectUnauthorized: false },
+      }),
     });
   }
 
   return transporter;
+}
+
+// ── Test helpers (non-production only) ──────────────────────────────
+
+/** Reset the singleton transporter so the next call to getTransporter() creates a fresh one. */
+export function _resetTransporterForTesting(): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('_resetTransporterForTesting must not be called in production');
+  }
+  transporter = null;
+}
+
+/** Return the current transporter instance (for direct sendMail / getTestMessageUrl). */
+export function _getTransporterForTesting(): nodemailer.Transporter | null {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('_getTransporterForTesting must not be called in production');
+  }
+  return getTransporter();
 }
 
 // Send email
@@ -116,6 +138,71 @@ If you did not request this password reset, please ignore this email.
     <p><strong>This link will expire in 1 hour.</strong></p>
     <div class="footer">
       <p>If you did not request this password reset, please ignore this email.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return sendEmail({ to: email, subject, text, html });
+}
+
+// Send temporary password email
+export async function sendTempPasswordEmail(
+  email: string,
+  tempPassword: string
+): Promise<boolean> {
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const loginUrl = `${appUrl}/login`;
+
+  const subject = 'Your Temporary Password - Patient Tracker';
+
+  const text = `
+A temporary password has been generated for your Patient Tracker account.
+
+Your temporary password: ${tempPassword}
+
+Please log in at:
+${loginUrl}
+
+You will be required to change your password upon login.
+
+If you did not expect this, please contact your administrator immediately.
+`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #1976d2;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .password-box { background-color: #f5f5f5; border: 1px solid #ddd; padding: 12px 16px; border-radius: 4px; font-family: monospace; font-size: 16px; letter-spacing: 1px; margin: 15px 0; }
+    .alert { background-color: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 4px; margin: 15px 0; }
+    .footer { margin-top: 30px; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Your Temporary Password</h2>
+    <p>A temporary password has been generated for your Patient Tracker account.</p>
+    <p><strong>Your temporary password:</strong></p>
+    <div class="password-box">${tempPassword}</div>
+    <a href="${loginUrl}" class="button">Log In</a>
+    <div class="alert">
+      <strong>Important:</strong> You will be required to change your password upon login.
+    </div>
+    <div class="footer">
+      <p>If you did not expect this, please contact your administrator immediately.</p>
     </div>
   </div>
 </body>

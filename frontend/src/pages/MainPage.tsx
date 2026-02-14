@@ -55,17 +55,43 @@ export default function MainPage() {
   const [selectedMeasure, setSelectedMeasure] = useState<string>('All Measures');
   const measureOptions = useMemo(() => Object.keys(QUALITY_MEASURE_TO_STATUS).sort(), []);
 
+  // Insurance group filter
+  const [selectedInsuranceGroup, setSelectedInsuranceGroup] = useState<string>('hill');
+  const [insuranceGroupOptions, setInsuranceGroupOptions] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Fetch insurance group options from systems registry (cached for session per NFR-IG-3)
+  useEffect(() => {
+    api.get('/import/systems')
+      .then((res) => {
+        if (res.data.success) {
+          setInsuranceGroupOptions(
+            res.data.data
+              .map((s: { id: string; name: string }) => ({ id: s.id, name: s.name }))
+              .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
+          );
+        }
+      })
+      .catch(() => {
+        // Fallback per REQ-IG-7 AC4
+        setInsuranceGroupOptions([{ id: 'hill', name: 'Hill' }]);
+      });
+  }, []);
+
   // Build query params for API calls (STAFF and ADMIN users need physicianId)
   const getQueryParams = useCallback(() => {
+    const params = new URLSearchParams();
     if (user?.roles.includes('STAFF') && selectedPhysicianId) {
-      return `?physicianId=${selectedPhysicianId}`;
+      params.set('physicianId', String(selectedPhysicianId));
+    } else if (user?.roles.includes('ADMIN')) {
+      params.set('physicianId', selectedPhysicianId === null ? 'unassigned' : String(selectedPhysicianId));
     }
-    if (user?.roles.includes('ADMIN')) {
-      // ADMIN can view unassigned patients (physicianId=null) or specific physician
-      return `?physicianId=${selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}`;
+    // Add insurance group filter
+    if (selectedInsuranceGroup !== 'all') {
+      params.set('insuranceGroup', selectedInsuranceGroup === 'none' ? 'none' : selectedInsuranceGroup);
     }
-    return '';
-  }, [user?.roles, selectedPhysicianId]);
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  }, [user?.roles, selectedPhysicianId, selectedInsuranceGroup]);
 
   // Calculate row counts by status color, scoped by selected measure
   const rowCounts = useMemo(() => {
@@ -140,6 +166,14 @@ export default function MainPage() {
   const filterSummary = useMemo(() => {
     const parts: string[] = [];
 
+    // Insurance group filter
+    if (selectedInsuranceGroup !== 'all') {
+      const label = selectedInsuranceGroup === 'none'
+        ? 'None'
+        : insuranceGroupOptions.find(o => o.id === selectedInsuranceGroup)?.name || selectedInsuranceGroup;
+      parts.push(`Insurance: ${label}`);
+    }
+
     if (!activeFilters.includes('all') && activeFilters.length > 0) {
       const labels = activeFilters.map(f => STATUS_LABELS[f] || f).join(', ');
       parts.push(`Color: ${labels}`);
@@ -150,7 +184,7 @@ export default function MainPage() {
     }
 
     return parts.length > 0 ? parts.join(' | ') : undefined;
-  }, [activeFilters, selectedMeasure]);
+  }, [activeFilters, selectedMeasure, selectedInsuranceGroup, insuranceGroupOptions]);
 
   // Ctrl+F / Cmd+F to focus search input
   useEffect(() => {
@@ -178,7 +212,7 @@ export default function MainPage() {
     loadData().catch((err) => {
       showToast(getApiErrorMessage(err, 'Failed to load data'), 'error');
     });
-  }, [selectedPhysicianId, getQueryParams]);
+  }, [selectedPhysicianId, selectedInsuranceGroup, getQueryParams]);
 
   const loadData = async () => {
     try {
@@ -488,6 +522,9 @@ export default function MainPage() {
         selectedMeasure={selectedMeasure}
         onMeasureChange={setSelectedMeasure}
         measureOptions={measureOptions}
+        selectedInsuranceGroup={selectedInsuranceGroup}
+        onInsuranceGroupChange={setSelectedInsuranceGroup}
+        insuranceGroupOptions={insuranceGroupOptions}
       />
 
       <div className="flex-1 p-4">

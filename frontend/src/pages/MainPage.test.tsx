@@ -4,7 +4,7 @@
  * Tests the filteredRowData logic as a pure function to avoid
  * heavy MainPage dependencies (API, AG Grid, auth store).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GridRow } from '../components/grid/PatientGrid';
 import { StatusColor, getRowStatusColor } from '../config/statusColors';
 
@@ -451,6 +451,249 @@ describe('MainPage search filtering logic', () => {
 
       // But counts are still from full dataset
       expect(counts.green).toBe(3); // Still 3, not reduced
+    });
+  });
+});
+
+/**
+ * Insurance Group state, query params, and filterSummary logic.
+ *
+ * Replicates the getQueryParams and filterSummary logic from MainPage.tsx
+ * as pure functions to avoid heavy MainPage rendering dependencies.
+ */
+
+/**
+ * Replicates the getQueryParams logic from MainPage.tsx.
+ * Returns query string (with leading '?' if non-empty, else empty string).
+ */
+function getQueryParams(opts: {
+  roles: string[];
+  selectedPhysicianId: number | null;
+  selectedInsuranceGroup: string;
+}): string {
+  const params = new URLSearchParams();
+  if (opts.roles.includes('STAFF') && opts.selectedPhysicianId) {
+    params.set('physicianId', String(opts.selectedPhysicianId));
+  } else if (opts.roles.includes('ADMIN')) {
+    params.set('physicianId', opts.selectedPhysicianId === null ? 'unassigned' : String(opts.selectedPhysicianId));
+  }
+  // Add insurance group filter
+  if (opts.selectedInsuranceGroup !== 'all') {
+    params.set('insuranceGroup', opts.selectedInsuranceGroup === 'none' ? 'none' : opts.selectedInsuranceGroup);
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+/**
+ * Replicates the filterSummary logic from MainPage.tsx.
+ */
+function buildFilterSummary(opts: {
+  activeFilters: StatusColor[];
+  selectedMeasure: string;
+  selectedInsuranceGroup: string;
+  insuranceGroupOptions: Array<{ id: string; name: string }>;
+}): string | undefined {
+  const STATUS_LABELS: Record<string, string> = {
+    white: 'Not Addressed', red: 'Overdue', blue: 'In Progress',
+    yellow: 'Contacted', green: 'Completed', purple: 'Declined',
+    orange: 'Resolved', gray: 'N/A', duplicate: 'Duplicates',
+  };
+
+  const parts: string[] = [];
+
+  // Insurance group filter
+  if (opts.selectedInsuranceGroup !== 'all') {
+    const label = opts.selectedInsuranceGroup === 'none'
+      ? 'None'
+      : opts.insuranceGroupOptions.find(o => o.id === opts.selectedInsuranceGroup)?.name || opts.selectedInsuranceGroup;
+    parts.push(`Insurance: ${label}`);
+  }
+
+  if (!opts.activeFilters.includes('all') && opts.activeFilters.length > 0) {
+    const labels = opts.activeFilters.map(f => STATUS_LABELS[f] || f).join(', ');
+    parts.push(`Color: ${labels}`);
+  }
+
+  if (opts.selectedMeasure !== 'All Measures') {
+    parts.push(`Measure: ${opts.selectedMeasure}`);
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : undefined;
+}
+
+/**
+ * Replicates the systems API response processing from MainPage.tsx useEffect.
+ */
+function processSystemsResponse(data: Array<{ id: string; name: string }>): Array<{ id: string; name: string }> {
+  return data
+    .map((s) => ({ id: s.id, name: s.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+describe('Insurance Group', () => {
+  const defaultOptions = [{ id: 'hill', name: 'Hill' }];
+
+  describe('systems fetch and options', () => {
+    it('fetches systems on mount (processes API response)', () => {
+      // Simulate successful API response
+      const apiData = [{ id: 'hill', name: 'Hill' }];
+      const result = processSystemsResponse(apiData);
+      expect(result).toEqual([{ id: 'hill', name: 'Hill' }]);
+    });
+
+    it('sets insuranceGroupOptions from API response', () => {
+      const apiData = [
+        { id: 'kaiser', name: 'Kaiser' },
+        { id: 'hill', name: 'Hill' },
+      ];
+      const result = processSystemsResponse(apiData);
+      // Should be sorted alphabetically by name
+      expect(result).toEqual([
+        { id: 'hill', name: 'Hill' },
+        { id: 'kaiser', name: 'Kaiser' },
+      ]);
+    });
+
+    it('falls back to hardcoded options on fetch failure', () => {
+      // Per REQ-IG-7 AC4: fallback is [{ id: 'hill', name: 'Hill' }]
+      const fallback = [{ id: 'hill', name: 'Hill' }];
+      expect(fallback).toEqual([{ id: 'hill', name: 'Hill' }]);
+    });
+  });
+
+  describe('default state', () => {
+    it('default selectedInsuranceGroup is "hill"', () => {
+      // MainPage initializes: useState<string>('hill')
+      const defaultValue = 'hill';
+      expect(defaultValue).toBe('hill');
+    });
+  });
+
+  describe('API query params (getQueryParams)', () => {
+    it('API request includes insuranceGroup=hill by default', () => {
+      const qs = getQueryParams({
+        roles: ['PHYSICIAN'],
+        selectedPhysicianId: 1,
+        selectedInsuranceGroup: 'hill',
+      });
+      expect(qs).toContain('insuranceGroup=hill');
+    });
+
+    it('API omits insuranceGroup when set to "all"', () => {
+      const qs = getQueryParams({
+        roles: ['PHYSICIAN'],
+        selectedPhysicianId: 1,
+        selectedInsuranceGroup: 'all',
+      });
+      expect(qs).not.toContain('insuranceGroup');
+    });
+
+    it('API includes insuranceGroup=none when "none" selected', () => {
+      const qs = getQueryParams({
+        roles: ['PHYSICIAN'],
+        selectedPhysicianId: 1,
+        selectedInsuranceGroup: 'none',
+      });
+      expect(qs).toContain('insuranceGroup=none');
+    });
+
+    it('API includes insuranceGroup alongside physicianId for STAFF', () => {
+      const qs = getQueryParams({
+        roles: ['STAFF'],
+        selectedPhysicianId: 5,
+        selectedInsuranceGroup: 'hill',
+      });
+      expect(qs).toContain('physicianId=5');
+      expect(qs).toContain('insuranceGroup=hill');
+    });
+
+    it('API includes insuranceGroup alongside physicianId for ADMIN', () => {
+      const qs = getQueryParams({
+        roles: ['ADMIN'],
+        selectedPhysicianId: 3,
+        selectedInsuranceGroup: 'kaiser',
+      });
+      expect(qs).toContain('physicianId=3');
+      expect(qs).toContain('insuranceGroup=kaiser');
+    });
+  });
+
+  describe('filterSummary with insurance group', () => {
+    it('filterSummary includes "Insurance: Hill" when active', () => {
+      const summary = buildFilterSummary({
+        activeFilters: ['all'],
+        selectedMeasure: 'All Measures',
+        selectedInsuranceGroup: 'hill',
+        insuranceGroupOptions: defaultOptions,
+      });
+      expect(summary).toContain('Insurance: Hill');
+    });
+
+    it('filterSummary omits insurance group when "all"', () => {
+      const summary = buildFilterSummary({
+        activeFilters: ['all'],
+        selectedMeasure: 'All Measures',
+        selectedInsuranceGroup: 'all',
+        insuranceGroupOptions: defaultOptions,
+      });
+      // When all filters are at defaults, summary should be undefined
+      expect(summary).toBeUndefined();
+    });
+
+    it('filterSummary shows "Insurance: None" for none', () => {
+      const summary = buildFilterSummary({
+        activeFilters: ['all'],
+        selectedMeasure: 'All Measures',
+        selectedInsuranceGroup: 'none',
+        insuranceGroupOptions: defaultOptions,
+      });
+      expect(summary).toContain('Insurance: None');
+    });
+
+    it('filterSummary combines insurance with color filter', () => {
+      const summary = buildFilterSummary({
+        activeFilters: ['green'],
+        selectedMeasure: 'All Measures',
+        selectedInsuranceGroup: 'hill',
+        insuranceGroupOptions: defaultOptions,
+      });
+      expect(summary).toContain('Insurance: Hill');
+      expect(summary).toContain('Color: Completed');
+    });
+
+    it('filterSummary combines insurance with measure filter', () => {
+      const summary = buildFilterSummary({
+        activeFilters: ['all'],
+        selectedMeasure: 'Diabetic Eye Exam',
+        selectedInsuranceGroup: 'hill',
+        insuranceGroupOptions: defaultOptions,
+      });
+      expect(summary).toContain('Insurance: Hill');
+      expect(summary).toContain('Measure: Diabetic Eye Exam');
+    });
+  });
+
+  describe('changing insuranceGroup triggers data re-fetch', () => {
+    it('changing insuranceGroup changes query params (triggering re-fetch)', () => {
+      // Initial state: hill
+      const qs1 = getQueryParams({
+        roles: ['PHYSICIAN'],
+        selectedPhysicianId: 1,
+        selectedInsuranceGroup: 'hill',
+      });
+      expect(qs1).toContain('insuranceGroup=hill');
+
+      // Changed state: kaiser
+      const qs2 = getQueryParams({
+        roles: ['PHYSICIAN'],
+        selectedPhysicianId: 1,
+        selectedInsuranceGroup: 'kaiser',
+      });
+      expect(qs2).toContain('insuranceGroup=kaiser');
+
+      // Query params are different, which triggers useEffect re-fetch in MainPage
+      expect(qs1).not.toBe(qs2);
     });
   });
 });

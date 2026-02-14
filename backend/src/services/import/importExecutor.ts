@@ -61,6 +61,9 @@ export async function executeImport(previewId: string, ownerId: number | null = 
     throw new Error(`Preview not found or expired: ${previewId}`);
   }
 
+  // Determine insurance group from the import system (REQ-IG-2)
+  const systemId = preview.systemId || 'hill';
+
   const stats = {
     inserted: 0,
     updated: 0,
@@ -75,9 +78,9 @@ export async function executeImport(previewId: string, ownerId: number | null = 
     // Increase timeout for large imports (default is 5s, we use 5 minutes)
     await prisma.$transaction(async (tx) => {
       if (preview.mode === 'replace') {
-        await executeReplaceMode(preview.diff.changes, tx, stats, errors, ownerId);
+        await executeReplaceMode(preview.diff.changes, tx, stats, errors, ownerId, systemId);
       } else {
-        await executeMergeMode(preview.diff.changes, tx, stats, errors, ownerId);
+        await executeMergeMode(preview.diff.changes, tx, stats, errors, ownerId, systemId);
       }
     }, {
       timeout: 300000, // 5 minutes for large imports
@@ -122,7 +125,8 @@ async function executeReplaceMode(
   tx: PrismaTransaction,
   stats: ExecutionResult['stats'],
   errors: ExecutionError[],
-  ownerId: number | null
+  ownerId: number | null,
+  systemId: string
 ): Promise<void> {
   // Step 1: Delete all existing (DELETE actions)
   const deleteChanges = changes.filter(c => c.action === 'DELETE');
@@ -141,7 +145,7 @@ async function executeReplaceMode(
   const insertChanges = changes.filter(c => c.action === 'INSERT');
   for (const change of insertChanges) {
     try {
-      await insertMeasure(change, tx, ownerId);
+      await insertMeasure(change, tx, ownerId, systemId);
       stats.inserted++;
     } catch (error) {
       errors.push({
@@ -163,24 +167,25 @@ async function executeMergeMode(
   tx: PrismaTransaction,
   stats: ExecutionResult['stats'],
   errors: ExecutionError[],
-  ownerId: number | null
+  ownerId: number | null,
+  systemId: string
 ): Promise<void> {
   for (const change of changes) {
     try {
       switch (change.action) {
         case 'INSERT':
-          await insertMeasure(change, tx, ownerId);
+          await insertMeasure(change, tx, ownerId, systemId);
           stats.inserted++;
           break;
 
         case 'UPDATE':
-          await updateMeasure(change, tx);
+          await updateMeasure(change, tx, systemId);
           stats.updated++;
           break;
 
         case 'BOTH':
           // Keep existing (no action needed) + insert new record
-          await insertMeasure(change, tx, ownerId);
+          await insertMeasure(change, tx, ownerId, systemId);
           stats.bothKept++;
           break;
 
@@ -211,7 +216,8 @@ async function executeMergeMode(
 async function insertMeasure(
   change: DiffChange,
   tx: PrismaTransaction,
-  ownerId: number | null
+  ownerId: number | null,
+  systemId: string
 ): Promise<void> {
   // Handle null DOB - use a default or skip
   if (!change.memberDob) {
@@ -238,14 +244,21 @@ async function insertMeasure(
         memberTelephone: change.memberTelephone,
         memberAddress: change.memberAddress,
         ownerId: ownerId,
+        insuranceGroup: systemId,
       }
     });
-  } else if (ownerId !== null && patient.ownerId !== ownerId) {
-    // Update existing patient's ownerId to assign to the importing user
-    patient = await tx.patient.update({
-      where: { id: patient.id },
-      data: { ownerId: ownerId }
-    });
+  } else {
+    // Update existing patient's ownerId and insuranceGroup
+    const updateData: Record<string, unknown> = { insuranceGroup: systemId };
+    if (ownerId !== null && patient.ownerId !== ownerId) {
+      updateData.ownerId = ownerId;
+    }
+    if (patient.insuranceGroup !== systemId || (ownerId !== null && patient.ownerId !== ownerId)) {
+      patient = await tx.patient.update({
+        where: { id: patient.id },
+        data: updateData,
+      });
+    }
   }
 
   // Get next rowOrder (append to end)
@@ -284,7 +297,8 @@ async function insertMeasure(
  */
 async function updateMeasure(
   change: DiffChange,
-  tx: PrismaTransaction
+  tx: PrismaTransaction,
+  systemId: string
 ): Promise<void> {
   if (!change.existingMeasureId) {
     throw new Error(`Cannot update measure for ${change.memberName}: no existing measure ID`);
@@ -308,6 +322,14 @@ async function updateMeasure(
       timeIntervalDays: timeIntervalDays,
     }
   });
+
+  // Update patient's insuranceGroup (REQ-IG-2 AC3: re-import updates group)
+  if (change.existingPatientId) {
+    await tx.patient.update({
+      where: { id: change.existingPatientId },
+      data: { insuranceGroup: systemId },
+    });
+  }
 }
 
 /**

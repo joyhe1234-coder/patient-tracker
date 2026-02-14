@@ -6,6 +6,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.6.0] - 2026-02-13
+
+### Added
+- **Insurance Group Filter (REQ-IG)** (Feb 13, 2026)
+  - **Backend — Prisma migration:** New `insuranceGroup` (String?) field on Patient model with database index; data migration sets existing patients to 'hill'
+  - **Backend — dataHandlers:** `GET /api/data` accepts `?insuranceGroup=` query param (`all`, `none`/`null`, or system ID); validates against systems registry via `systemExists()`
+  - **Backend — importExecutor:** Import sets `patient.insuranceGroup` to the import system ID (REQ-IG-2); re-import updates existing patients' group; both replace and merge modes supported
+  - **Backend — versionCheck + dataDuplicateHandler:** `insuranceGroup` included in `GridRowPayload` for real-time sync and duplicate row creation
+  - **Backend + Frontend types:** `GridRowPayload` and `GridRow` interfaces extended with `insuranceGroup: string | null`
+  - **Frontend — StatusFilterBar:** New insurance group dropdown with All / system options / No Insurance; active-ring visual when filtered
+  - **Frontend — MainPage:** Insurance group state management, fetches `/import/systems` for options (with fallback), builds query params, filter summary includes insurance label
+  - **Frontend — AdminPage:** Improved action button touch targets (44x44px min), `SEND_TEMP_PASSWORD` audit log badge (yellow), increased icon contrast (gray-400 to gray-500)
+  - **Spec:** `.claude/specs/insurance-group/` (requirements, design, tasks)
+  - +14 Jest tests (data routes insurance group filtering, importExecutor systemId, versionCheck insuranceGroup)
+  - +23 Vitest tests (StatusFilterBar insurance group dropdown, MainPage insurance group integration)
+  - +12 Cypress E2E tests (`insurance-group-filter.cy.ts`)
+  - Total: 777 Jest + 895 Vitest = 1,672 unit tests
+
+## [4.5.1] - 2026-02-13
+
+### Added
+- **Security Hardening: Account Lockout + Temp Password + Forced Password Change (REQ-SEC-06)** (Feb 13, 2026)
+  - **Backend — Prisma migration:** 3 new User model fields: `failedLoginAttempts` (Int, default 0), `lockedUntil` (DateTime?), `mustChangePassword` (Boolean, default false)
+  - **Backend — authService:** 7 new functions: `incrementFailedAttempts()`, `lockAccount()`, `resetFailedAttempts()`, `isAccountLocked()`, `generateTempPassword()`, `sendTempPassword()`, plus lockout constants (MAX_FAILED_ATTEMPTS=5, LOCKOUT_DURATION_MINUTES=30)
+  - **Backend — emailService:** `sendTempPasswordEmail()` function for emailing temporary passwords
+  - **Backend — auth.routes:** Lockout logic integrated into `POST /login` (increment on failure, lock after 5 attempts, warning on attempt 3+, reject if locked), new `POST /force-change-password` endpoint for forced password change
+  - **Backend — auth.routes:** `PUT /password` now clears `mustChangePassword` flag on successful password change
+  - **Backend — admin.routes:** New `POST /users/:id/send-temp-password` endpoint for admin-initiated temp password generation
+  - **Backend — userHandlers:** `sendTempPasswordHandler` extracted into handlers module
+  - **Backend — errorHandler:** Added `warning` field to `AppError` interface for passing warning messages (e.g., remaining login attempts)
+  - **Frontend — authStore:** New `loginWarning` and `mustChangePassword` state fields, `clearMustChangePassword` action
+  - **Frontend — ForcePasswordChange.tsx:** New full-screen modal component (no close button, no escape) that forces password change before accessing the app
+  - **Frontend — ProtectedRoute.tsx:** Intercepts `mustChangePassword` before role check to redirect to forced password change flow
+  - **Frontend — LoginPage.tsx:** Yellow warning box displays remaining attempts and reset password link when login response includes warning
+  - **Frontend — AdminPage.tsx:** "Send Temp Password" button per user + result modal showing temp password (SMTP fallback: on-screen display)
+  - ~30 new backend Jest tests (lockout logic, temp password, force-change-password, admin send-temp-password)
+  - ~12 new frontend Vitest tests (7 ForcePasswordChange + 1 LoginPage + 4 AdminPage)
+  - Total: 763 Jest + 872 Vitest = 1,635 unit tests
+
+- **Security Hardening: Failed Login Audit Logging (REQ-SEC-10)** (Feb 13, 2026)
+  - **Backend:** Refactored `POST /login` handler to use granular auth steps (`findUserByEmail`, `verifyPassword`, `generateToken`, `updateLastLogin`) instead of monolithic `authenticateUser()`, enabling per-failure-reason audit logging
+  - **Failed login audit logging:** `LOGIN_FAILED` audit log entries created for invalid credentials (user not found or wrong password) and deactivated accounts, with reason codes (`INVALID_CREDENTIALS`, `ACCOUNT_DEACTIVATED`), client IP address, and user email
+  - **Fire-and-forget audit:** `logFailedLogin()` helper uses `.catch()` to silently ignore audit log write failures so they never block the login response
+  - **Security:** Audit log entries never log the attempted password (REQ-SEC-10 AC-5)
+  - **AuditLog schema comment** updated with new action types: `LOGIN_FAILED`, `ACCOUNT_LOCKED`, `SEND_TEMP_PASSWORD`
+  - **Admin panel (frontend):** `AdminPage.tsx` updated to display `LOGIN_FAILED` entries with orange badge and `ACCOUNT_LOCKED` entries with red badge; `formatSecurityDetails()` renders reason, email, and IP address inline
+  - **AuditLogEntry interface** extended with `userEmail`, `ipAddress`, and typed `details` field
+  - 8 new Jest tests for failed login audit logging (audit log creation, reason codes, no-password-leak, IP address, audit failure resilience)
+  - 2 new Jest tests for login edge cases (deactivated account, split invalid-credentials scenarios)
+  - 5 new Vitest tests for admin panel LOGIN_FAILED/ACCOUNT_LOCKED display (orange badge, red badge, reason/email/IP, combined details)
+  - Total (at time of commit): 741 Jest + 861 Vitest = 1,602 unit tests
+
+- **Email Service: Integration Tests + Dev TLS** (Feb 13, 2026)
+  - New `emailService.integration.test.ts` — 6 Ethereal SMTP integration tests (real network, no mocking): SMTP detection, password-reset email, admin-reset notification, preview URL, unconfigured fallback, bad-host error
+  - `emailService.ts`: added `tls: { rejectUnauthorized: false }` for non-production SMTP (Ethereal/dev), plus `_resetTransporterForTesting()` and `_getTransporterForTesting()` test helpers (production-guarded)
+  - Security hardening spec updates: clarified temp password UX (inside user edit dialog, fallback to on-screen display when SMTP unconfigured), forced password change as modal overlay, 3-attempt warning links to `/forgot-password`
+
+- **Security Hardening: Env Var Validation at Startup (REQ-SEC-04, REQ-SEC-05)** (Feb 12, 2026)
+  - New `validateEnv()` function in `backend/src/config/validateEnv.ts`
+  - **Production mode:** crashes with `process.exit(1)` if JWT_SECRET is missing/default/<32 chars, SMTP_HOST is missing, ADMIN_EMAIL is missing/default, or ADMIN_PASSWORD is missing/default
+  - **Development mode:** logs warnings for same issues but allows startup
+  - Config summary logged on success (masks secrets, shows lengths/presence only)
+  - Called at the very start of `startServer()` in `backend/src/index.ts`, before DB connect
+  - 25 new Jest unit tests in `backend/src/config/__tests__/validateEnv.test.ts` (uses `jest.unstable_mockModule` for ESM-compatible mocking)
+  - Security hardening spec created: `.claude/specs/security-hardening/` (requirements.md, design.md, tasks.md)
+  - Total: 726 Jest + 856 Vitest = 1,582 unit tests
+
 ## [4.5.0] - 2026-02-12
 
 ### Fixed

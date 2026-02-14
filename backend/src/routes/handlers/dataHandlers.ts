@@ -7,6 +7,7 @@ import { resolveStatusDatePrompt, getDefaultDatePrompt } from '../../services/st
 import { checkVersion, toGridRowPayload } from '../../services/versionCheck.js';
 import { broadcastToRoom, getRoomName } from '../../services/socketManager.js';
 import { getPatientOwnerFilter, getPatientOwnerId } from '../data.routes.js';
+import { systemExists } from '../../services/import/configLoader.js';
 
 /**
  * GET /api/data
@@ -25,9 +26,26 @@ export async function getPatientMeasures(req: Request, res: Response, next: Next
       ? { ownerId: null }
       : { ownerId: ownerId };
 
+    // Insurance group filter
+    const insuranceGroupParam = req.query.insuranceGroup as string | undefined;
+    let insuranceGroupWhere: Record<string, unknown> = {};
+    if (insuranceGroupParam && insuranceGroupParam !== 'all') {
+      if (insuranceGroupParam === 'none' || insuranceGroupParam === 'null') {
+        insuranceGroupWhere = { insuranceGroup: null };
+      } else {
+        if (!systemExists(insuranceGroupParam)) {
+          throw createError(`Invalid insuranceGroup: ${insuranceGroupParam}`, 400, 'VALIDATION_ERROR');
+        }
+        insuranceGroupWhere = { insuranceGroup: insuranceGroupParam };
+      }
+    }
+
     const measures = await prisma.patientMeasure.findMany({
       where: {
-        patient: ownerWhere,
+        patient: {
+          ...ownerWhere,
+          ...insuranceGroupWhere,
+        },
       },
       include: {
         patient: true,
@@ -45,6 +63,7 @@ export async function getPatientMeasures(req: Request, res: Response, next: Next
       memberDob: measure.patient.memberDob,
       memberTelephone: measure.patient.memberTelephone,
       memberAddress: measure.patient.memberAddress,
+      insuranceGroup: measure.patient.insuranceGroup,
       requestType: measure.requestType,
       qualityMeasure: measure.qualityMeasure,
       measureStatus: measure.measureStatus,
@@ -212,6 +231,7 @@ export async function createPatientMeasure(req: Request, res: Response, next: Ne
         memberDob: updatedMeasure!.patient.memberDob,
         memberTelephone: updatedMeasure!.patient.memberTelephone,
         memberAddress: updatedMeasure!.patient.memberAddress,
+        insuranceGroup: updatedMeasure!.patient.insuranceGroup,
         requestType: updatedMeasure!.requestType,
         qualityMeasure: updatedMeasure!.qualityMeasure,
         measureStatus: updatedMeasure!.measureStatus,
@@ -537,6 +557,7 @@ export async function updatePatientMeasure(req: Request, res: Response, next: Ne
         memberDob: finalMeasure!.patient.memberDob,
         memberTelephone: finalMeasure!.patient.memberTelephone,
         memberAddress: finalMeasure!.patient.memberAddress,
+        insuranceGroup: finalMeasure!.patient.insuranceGroup,
         requestType: finalMeasure!.requestType,
         qualityMeasure: finalMeasure!.qualityMeasure,
         measureStatus: finalMeasure!.measureStatus,

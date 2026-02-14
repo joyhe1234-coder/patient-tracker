@@ -260,5 +260,35 @@ describe('versionCheck', () => {
       expect(payload.statusDate).toBeNull();
       expect(payload.dueDate).toBeNull();
     });
+
+    it('should include insuranceGroup in payload', () => {
+      const measure = createMockMeasure({
+        patient: {
+          memberName: 'Doe, John',
+          memberDob: new Date('1990-01-15'),
+          memberTelephone: '555-1234',
+          memberAddress: '123 Main St',
+          insuranceGroup: 'hill',
+        },
+      });
+      const payload = toGridRowPayload(measure as any);
+
+      expect(payload.insuranceGroup).toBe('hill');
+    });
+
+    it('should handle null insuranceGroup', () => {
+      const measure = createMockMeasure({
+        patient: {
+          memberName: 'Doe, John',
+          memberDob: new Date('1990-01-15'),
+          memberTelephone: '555-1234',
+          memberAddress: '123 Main St',
+          insuranceGroup: null,
+        },
+      });
+      const payload = toGridRowPayload(measure as any);
+
+      expect(payload.insuranceGroup).toBeNull();
+    });
   });
 });

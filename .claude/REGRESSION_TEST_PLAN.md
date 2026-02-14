@@ -2374,14 +2374,44 @@ npm run cypress:headed  # Run with browser visible
 
 ### TC-26.18: Admin - Audit Log Viewer
 **Requirement:** See admin-dashboard spec AC-9, AC-10, AC-11
-**Automation:** Manual - audit log display not automated
+**Automation:** Partial - `AdminPage.test.tsx` (5 tests for LOGIN_FAILED/ACCOUNT_LOCKED display), remaining audit log views manual
 **Steps:**
 1. As ADMIN, navigate to Audit Log section
 2. View recent entries
 
 **Expected:**
-- Shows recent audit entries (LOGIN, LOGOUT, PASSWORD_CHANGE, user CRUD)
+- Shows recent audit entries (LOGIN, LOGIN_FAILED, LOGOUT, PASSWORD_CHANGE, user CRUD)
+- LOGIN_FAILED entries show orange badge, reason, email, and IP address
+- ACCOUNT_LOCKED entries show red badge with reason
 - Entries include timestamp, user, action, details
+
+### TC-26.18a: Failed Login Audit Logging - Backend
+**Requirement:** REQ-SEC-10 (AC 1-5)
+**Automation:** Automated - `auth.routes.test.ts: "Failed login audit logging"` (8 tests)
+**Steps:**
+1. Attempt login with invalid email
+2. Attempt login with valid email but wrong password
+3. Attempt login with deactivated account
+
+**Expected:**
+- LOGIN_FAILED audit log created for each scenario
+- Reason field contains: INVALID_CREDENTIALS or ACCOUNT_DEACTIVATED
+- userEmail field populated (even for unknown users)
+- IP address captured
+- Attempted password NEVER stored in audit log
+- Audit log write failure does not return 500 (login still returns 401)
+
+### TC-26.18b: Failed Login Audit Display - Admin Panel
+**Requirement:** REQ-SEC-10 (AC 6-7)
+**Automation:** Automated - `AdminPage.test.tsx` (5 tests: orange badge, reason display, email/IP display, red ACCOUNT_LOCKED badge, combined details)
+**Steps:**
+1. As ADMIN, navigate to Audit Log
+2. View LOGIN_FAILED and ACCOUNT_LOCKED entries
+
+**Expected:**
+- LOGIN_FAILED entries have orange badge (bg-orange-100 text-orange-800)
+- ACCOUNT_LOCKED entries have red badge (bg-red-100 text-red-800)
+- Details column shows: "Reason: X | Email: Y | IP: Z"
 
 ### TC-26.19: Protected Routes - No Token
 **Requirement:** AC-8
@@ -3122,6 +3152,172 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 33. Security Hardening — Env Var Validation (REQ-SEC-04, REQ-SEC-05)
+
+**Requirement Spec:** `.claude/specs/security-hardening/requirements.md`
+
+### TC-33.1: Production — Missing JWT_SECRET Crashes
+**Requirement:** REQ-SEC-04 AC-1
+**Automation:** Automated - `validateEnv.test.ts: "should error when JWT_SECRET is missing in production"`
+**Expected:** `process.exit(1)` called, error includes "JWT_SECRET environment variable is required"
+
+### TC-33.2: Production — Default JWT_SECRET Crashes
+**Requirement:** REQ-SEC-04 AC-2
+**Automation:** Automated - `validateEnv.test.ts: "should error when JWT_SECRET is the default development value"`
+**Expected:** `process.exit(1)` called, error includes "must not use the default"
+
+### TC-33.3: Production — Short JWT_SECRET Crashes
+**Requirement:** REQ-SEC-04 AC-3
+**Automation:** Automated - `validateEnv.test.ts: "should error when JWT_SECRET is shorter than 32 characters"`
+**Expected:** `process.exit(1)` called, error includes "at least 32 characters"
+
+### TC-33.4: Development — Missing JWT_SECRET Warns Only
+**Requirement:** REQ-SEC-04 AC-4
+**Automation:** Automated - `validateEnv.test.ts: "should log a warning when JWT_SECRET is not set in development"`
+**Expected:** `valid: true`, no `process.exit`, warning logged
+
+### TC-33.5: Production — Missing SMTP_HOST Crashes
+**Requirement:** REQ-SEC-05 AC-1
+**Automation:** Automated - `validateEnv.test.ts: "should error when SMTP_HOST is missing"`
+**Expected:** `process.exit(1)` called
+
+### TC-33.6: Production — Default ADMIN_EMAIL Crashes
+**Requirement:** REQ-SEC-05 AC-3
+**Automation:** Automated - `validateEnv.test.ts: "should error when ADMIN_EMAIL is the default value"`
+**Expected:** `process.exit(1)` called
+
+### TC-33.7: Production — Default ADMIN_PASSWORD Crashes
+**Requirement:** REQ-SEC-05 AC-4
+**Automation:** Automated - `validateEnv.test.ts: "should error when ADMIN_PASSWORD is the default value"`
+**Expected:** `process.exit(1)` called
+
+### TC-33.8: Production — All Valid Passes
+**Requirement:** REQ-SEC-05 AC-5
+**Automation:** Automated - `validateEnv.test.ts: "should return valid: true with no errors when all env vars are correctly set"`
+**Expected:** `valid: true`, no errors, no warnings, config summary logged
+
+### TC-33.9: Production — Multiple Errors Reported
+**Requirement:** REQ-SEC-05 AC-2
+**Automation:** Automated - `validateEnv.test.ts: "should report all errors when multiple env vars are invalid"`
+**Expected:** All 4 errors reported before exit
+
+### TC-33.10: Config Summary Does Not Reveal Secrets
+**Requirement:** REQ-SEC-05 AC-5
+**Automation:** Automated - `validateEnv.test.ts: "should not reveal secret values in the configuration summary"`
+**Expected:** JWT secret logged as length only, SMTP_HOST as "(set)", admin email as "(custom)"
+
+---
+
+## 34. Security Hardening — Account Lockout + Temp Password + Forced Password Change (REQ-SEC-06)
+
+### TC-34.1: Failed Login Increments Counter
+**Requirement:** REQ-SEC-06 AC-1
+**Automation:** Automated - `auth.routes.test.ts: "lockout logic"` tests
+**Expected:** Each failed login increments `failedLoginAttempts` counter on User record
+
+### TC-34.2: Account Locks After 5 Failed Attempts
+**Requirement:** REQ-SEC-06 AC-2
+**Automation:** Automated - `authService.test.ts: "lockAccount"`, `auth.routes.test.ts`
+**Expected:** After 5 consecutive failed logins, account is locked for 30 minutes (`lockedUntil` set)
+
+### TC-34.3: Locked Account Rejects Login
+**Requirement:** REQ-SEC-06 AC-3
+**Automation:** Automated - `auth.routes.test.ts: "rejects login when account is locked"`
+**Expected:** Login returns 423 (Locked) with "Account is temporarily locked" message and `lockedUntil` timestamp
+
+### TC-34.4: Warning Shown at 3+ Failed Attempts
+**Requirement:** REQ-SEC-06 AC-4
+**Automation:** Automated - `auth.routes.test.ts: "returns warning on attempt 3+"`, `LoginPage.test.tsx`
+**Expected:** Login response includes `warning` field with remaining attempts count; frontend shows yellow warning box
+
+### TC-34.5: Successful Login Resets Counter
+**Requirement:** REQ-SEC-06 AC-5
+**Automation:** Automated - `auth.routes.test.ts: "resets failed attempts on successful login"`
+**Expected:** Successful login resets `failedLoginAttempts` to 0
+
+### TC-34.6: Admin Can Send Temp Password
+**Requirement:** REQ-SEC-06 AC-6
+**Automation:** Automated - `admin.routes.test.ts: "send-temp-password"`, `AdminPage.test.tsx`
+**Expected:** Admin clicks "Send Temp Password" button, temp password is generated, sent via email (or shown on-screen if SMTP not configured), user's `mustChangePassword` flag set to true
+
+### TC-34.7: Temp Password Forces Password Change
+**Requirement:** REQ-SEC-06 AC-7
+**Automation:** Automated - `ForcePasswordChange.test.tsx` (7 tests), `ProtectedRoute.test.tsx`
+**Expected:** User logging in with `mustChangePassword=true` sees ForcePasswordChange modal (full-screen, no close button, no escape), must set new password before accessing app
+
+### TC-34.8: Force-Change-Password Endpoint
+**Requirement:** REQ-SEC-06 AC-8
+**Automation:** Automated - `auth.routes.test.ts: "force-change-password"`
+**Expected:** `POST /force-change-password` validates old password, sets new password, clears `mustChangePassword` flag, returns new JWT token
+
+### TC-34.9: Password Change Clears mustChangePassword
+**Requirement:** REQ-SEC-06 AC-9
+**Automation:** Automated - `auth.routes.test.ts: "clears mustChangePassword on password change"`
+**Expected:** `PUT /password` (regular password change) also clears `mustChangePassword` flag if set
+
+### TC-34.10: Lock Duration Expires Automatically
+**Requirement:** REQ-SEC-06 AC-10
+**Automation:** Automated - `authService.test.ts: "isAccountLocked returns false after lockout expires"`
+**Expected:** After 30 minutes, `isAccountLocked()` returns false even if `lockedUntil` is set (time-based expiry)
+
+---
+
+## 35. Insurance Group Filter (REQ-IG)
+
+**Requirement Spec:** [`.claude/specs/insurance-group/requirements.md`](specs/insurance-group/requirements.md)
+
+### TC-35.1: Insurance Group Dropdown Renders
+**Automation:** Automated - `StatusFilterBar.test.tsx`, `insurance-group-filter.cy.ts`
+**Steps:** Open grid page; observe filter bar
+**Expected:** Insurance group dropdown visible with aria-label "Filter by insurance group"; default selection is "Hill"; options include All, system names, No Insurance
+
+### TC-35.2: Filter by Specific Insurance Group
+**Automation:** Automated - `data.routes.test.ts: "filters by insuranceGroup=hill"`, `insurance-group-filter.cy.ts`
+**Steps:** Select "Hill" from insurance group dropdown
+**Expected:** Only patients with `insuranceGroup='hill'` are displayed; API called with `?insuranceGroup=hill`
+
+### TC-35.3: Filter by No Insurance
+**Automation:** Automated - `data.routes.test.ts: "filters by insuranceGroup=none"`, `insurance-group-filter.cy.ts`
+**Steps:** Select "No Insurance" from insurance group dropdown
+**Expected:** Only patients with `insuranceGroup=null` are displayed
+
+### TC-35.4: Show All Insurance Groups
+**Automation:** Automated - `data.routes.test.ts: "returns all when insuranceGroup=all"`, `insurance-group-filter.cy.ts`
+**Steps:** Select "All" from insurance group dropdown
+**Expected:** All patients displayed regardless of insurance group; no insuranceGroup param sent to API
+
+### TC-35.5: Invalid Insurance Group Rejected
+**Automation:** Automated - `data.routes.test.ts: "rejects invalid insuranceGroup"``
+**Steps:** API call with `?insuranceGroup=invalid_system`
+**Expected:** 400 error with `VALIDATION_ERROR` code
+
+### TC-35.6: Active Filter Visual Ring
+**Automation:** Automated - `StatusFilterBar.test.tsx`, `insurance-group-filter.cy.ts`
+**Steps:** Select a non-"All" insurance group
+**Expected:** Dropdown shows blue ring-2 border; selecting "All" removes the ring
+
+### TC-35.7: Combined with Quality Measure Filter
+**Automation:** Automated - `insurance-group-filter.cy.ts: "should combine insurance group filter with quality measure filter"`
+**Steps:** Select "Hill" insurance group, then select a quality measure
+**Expected:** Both filters apply (AND logic); filter summary shows both
+
+### TC-35.8: Import Sets Insurance Group
+**Automation:** Automated - `importExecutor.test.ts: "sets insuranceGroup on new patient"`, `importExecutor.test.ts: "updates insuranceGroup on existing patient"`
+**Steps:** Import data for "hill" system
+**Expected:** New patients get `insuranceGroup='hill'`; existing patients updated to match import system
+
+### TC-35.9: Insurance Group in Grid Row Payload
+**Automation:** Automated - `versionCheck.test.ts: "insuranceGroup included in payload"`
+**Steps:** Fetch patient data via API
+**Expected:** Each row includes `insuranceGroup` field for real-time sync
+
+### TC-35.10: Duplicate Row Preserves Insurance Group
+**Automation:** Automated - via `dataDuplicateHandler.ts` inclusion
+**Steps:** Duplicate a row
+**Expected:** Duplicated row preserves the patient's insurance group value
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -3149,6 +3345,9 @@ npm run cypress:headed  # Run with browser visible
 | 30. Multi-Select Filter | 5 | 5 | 0 | 0 | 100% |
 | 31. UX Improvements | 8 | 8 | 0 | 0 | 100% |
 | 32. Patient Management Page | 8 | 8 | 0 | 0 | 100% |
+| 33. Security: Env Validation | 10 | 10 | 0 | 0 | 100% |
+| 34. Security: Account Lockout | 10 | 10 | 0 | 0 | 100% |
+| 35. Insurance Group Filter | 10 | 10 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3168,6 +3367,9 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 13, 2026 - Added Section 35: Insurance Group Filter (TC-35.1 to TC-35.10, all automated). 10 test cases, 100% automated. Total: 777 Jest + 895 Vitest + 12 Cypress.
+February 13, 2026 - Added Section 34: Account Lockout + Temp Password + Forced Password Change (TC-34.1 to TC-34.10, all automated). 10 test cases, 100% automated.
+February 12, 2026 - Added Section 33: Security Hardening Env Var Validation (TC-33.1 to TC-33.10, all automated). 10 test cases, 100% automated.
 February 11, 2026 - Added TC-2.7: Auto-Open Dropdown Editor (single-click opens popup, keyboard nav, type-ahead, checkmark, clear option). Cell Editing coverage: 7 TCs, 43% automated.
 February 7, 2026 - Added Section 32: Patient Management Page (TC-32.1 to TC-32.8)
 February 6, 2026 - TC-31.1 (Row Numbers) removed — feature removed per user feedback. TC-29.2 updated for word-based search matching.

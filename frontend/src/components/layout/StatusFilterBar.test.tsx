@@ -31,6 +31,12 @@ describe('StatusFilterBar', () => {
     measureOptions,
   };
 
+  const defaultInsuranceGroupProps = {
+    selectedInsuranceGroup: 'hill',
+    onInsuranceGroupChange: vi.fn(),
+    insuranceGroupOptions: [{ id: 'hill', name: 'Hill' }],
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -43,10 +49,12 @@ describe('StatusFilterBar', () => {
         rowCounts={defaultCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
-    expect(screen.getByText('All')).toBeInTheDocument();
+    // "All" appears in both the filter chip and the insurance group dropdown, so use getAllByText
+    expect(screen.getAllByText('All').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Duplicates')).toBeInTheDocument();
     expect(screen.getByText('Not Addressed')).toBeInTheDocument();
     expect(screen.getByText('Overdue')).toBeInTheDocument();
@@ -66,6 +74,7 @@ describe('StatusFilterBar', () => {
         rowCounts={defaultCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
@@ -88,6 +97,7 @@ describe('StatusFilterBar', () => {
         rowCounts={defaultCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
@@ -104,6 +114,7 @@ describe('StatusFilterBar', () => {
         rowCounts={defaultCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
@@ -120,10 +131,12 @@ describe('StatusFilterBar', () => {
         rowCounts={defaultCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
-    fireEvent.click(screen.getByText('All'));
+    // Use button role to target the "All" chip (not the dropdown option)
+    fireEvent.click(screen.getByRole('button', { name: /All/ }));
     expect(handleChange).toHaveBeenCalledWith(['all']);
   });
 
@@ -135,6 +148,7 @@ describe('StatusFilterBar', () => {
         rowCounts={defaultCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
@@ -153,6 +167,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -169,6 +184,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -185,6 +201,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -201,6 +218,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -217,6 +235,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -233,6 +252,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -249,6 +269,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -266,6 +287,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -281,6 +303,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -296,6 +319,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -311,6 +335,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -326,6 +351,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -357,6 +383,7 @@ describe('StatusFilterBar', () => {
         rowCounts={partialCounts}
         {...defaultSearchProps}
         {...defaultMeasureProps}
+        {...defaultInsuranceGroupProps}
       />
     );
 
@@ -373,6 +400,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -388,6 +416,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -404,6 +433,7 @@ describe('StatusFilterBar', () => {
           searchText=""
           onSearchChange={vi.fn()}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -419,6 +449,7 @@ describe('StatusFilterBar', () => {
           searchText="smith"
           onSearchChange={vi.fn()}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -435,6 +466,7 @@ describe('StatusFilterBar', () => {
           searchText=""
           onSearchChange={handleSearch}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -453,6 +485,7 @@ describe('StatusFilterBar', () => {
           searchText="smith"
           onSearchChange={handleSearch}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -469,6 +502,7 @@ describe('StatusFilterBar', () => {
           searchText="test"
           onSearchChange={vi.fn()}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -486,6 +520,7 @@ describe('StatusFilterBar', () => {
           searchText="smith"
           onSearchChange={handleSearch}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -505,6 +540,7 @@ describe('StatusFilterBar', () => {
           searchText="smith"
           onSearchChange={handleSearch}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -522,6 +558,7 @@ describe('StatusFilterBar', () => {
           searchText="john doe"
           onSearchChange={vi.fn()}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -539,6 +576,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -561,6 +599,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -578,6 +617,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -596,6 +636,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -613,6 +654,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -632,6 +674,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -647,6 +690,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -662,6 +706,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -683,6 +728,7 @@ describe('StatusFilterBar', () => {
           selectedMeasure="All Measures"
           onMeasureChange={handleMeasure}
           measureOptions={measureOptions}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -701,6 +747,7 @@ describe('StatusFilterBar', () => {
           selectedMeasure="Diabetic Eye Exam"
           onMeasureChange={vi.fn()}
           measureOptions={measureOptions}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -717,6 +764,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -732,6 +780,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -746,6 +795,7 @@ describe('StatusFilterBar', () => {
           rowCounts={defaultCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -770,6 +820,7 @@ describe('StatusFilterBar', () => {
           rowCounts={zeroCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
@@ -791,11 +842,164 @@ describe('StatusFilterBar', () => {
           rowCounts={zeroCounts}
           {...defaultSearchProps}
           {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
         />
       );
 
       fireEvent.click(screen.getByText('Resolved'));
       expect(handleChange).toHaveBeenCalledWith(['orange']);
+    });
+  });
+
+  describe('Insurance Group Dropdown', () => {
+    it('renders insurance group dropdown', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
+        />
+      );
+
+      expect(screen.getByLabelText('Filter by insurance group')).toBeInTheDocument();
+    });
+
+    it('shows "All" option first', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group') as HTMLSelectElement;
+      expect(dropdown.options[0].textContent).toBe('All');
+      expect(dropdown.options[0].value).toBe('all');
+    });
+
+    it('shows system options sorted alphabetically', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          selectedInsuranceGroup="all"
+          onInsuranceGroupChange={vi.fn()}
+          insuranceGroupOptions={[
+            { id: 'hill', name: 'Hill' },
+            { id: 'kaiser', name: 'Kaiser' },
+          ]}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group') as HTMLSelectElement;
+      // Options: All, Hill, Kaiser, No Insurance (MainPage sorts before passing)
+      const optionTexts = Array.from(dropdown.options).map(o => o.textContent);
+      const hillIndex = optionTexts.indexOf('Hill');
+      const kaiserIndex = optionTexts.indexOf('Kaiser');
+      expect(hillIndex).toBeGreaterThan(0); // After "All"
+      expect(kaiserIndex).toBeGreaterThan(hillIndex); // Kaiser after Hill alphabetically
+    });
+
+    it('shows "No Insurance" option last', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group') as HTMLSelectElement;
+      const lastOption = dropdown.options[dropdown.options.length - 1];
+      expect(lastOption.textContent).toBe('No Insurance');
+      expect(lastOption.value).toBe('none');
+    });
+
+    it('shows active-ring indicator when value is not "all"', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          selectedInsuranceGroup="hill"
+          onInsuranceGroupChange={vi.fn()}
+          insuranceGroupOptions={[{ id: 'hill', name: 'Hill' }]}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group');
+      expect(dropdown.className).toContain('ring-2');
+      expect(dropdown.className).toContain('ring-blue-400');
+    });
+
+    it('does not show active-ring when value is "all"', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          selectedInsuranceGroup="all"
+          onInsuranceGroupChange={vi.fn()}
+          insuranceGroupOptions={[{ id: 'hill', name: 'Hill' }]}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group');
+      expect(dropdown.className).toContain('border-gray-300');
+      expect(dropdown.className).not.toContain('ring-2 ring-blue-400');
+    });
+
+    it('calls onInsuranceGroupChange when changed', () => {
+      const handleChange = vi.fn();
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          selectedInsuranceGroup="hill"
+          onInsuranceGroupChange={handleChange}
+          insuranceGroupOptions={[{ id: 'hill', name: 'Hill' }]}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group');
+      fireEvent.change(dropdown, { target: { value: 'none' } });
+      expect(handleChange).toHaveBeenCalledWith('none');
+    });
+
+    it('default selection is "hill"', () => {
+      render(
+        <StatusFilterBar
+          activeFilters={['all']}
+          onFilterChange={() => {}}
+          rowCounts={defaultCounts}
+          {...defaultSearchProps}
+          {...defaultMeasureProps}
+          {...defaultInsuranceGroupProps}
+        />
+      );
+
+      const dropdown = screen.getByLabelText('Filter by insurance group') as HTMLSelectElement;
+      expect(dropdown.value).toBe('hill');
     });
   });
 });

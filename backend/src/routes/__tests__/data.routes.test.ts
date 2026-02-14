@@ -128,6 +128,14 @@ jest.unstable_mockModule('../../config/index.js', () => ({
   },
 }));
 
+jest.unstable_mockModule('../../services/import/configLoader.js', () => ({
+  systemExists: jest.fn<any>().mockImplementation((id: string) => ['hill', 'kaiser'].includes(id)),
+  loadSystemsRegistry: jest.fn<any>(),
+  listSystems: jest.fn<any>(),
+  loadSystemConfig: jest.fn<any>(),
+  getDefaultSystemId: jest.fn<any>().mockReturnValue('hill'),
+}));
+
 // ── Dynamic imports (AFTER mocks) ──────────────────────────────────
 
 const { default: dataRouter } = await import('../data.routes.js');
@@ -482,6 +490,133 @@ describe('Data Routes', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+  });
+
+  // ── Insurance group filtering ─────────────────────────────────────
+
+  describe('insurance group filtering', () => {
+    const hillMeasure = {
+      ...sampleMeasure,
+      id: 10,
+      patient: { ...samplePatient, insuranceGroup: 'hill' },
+    };
+    const kaiserMeasure = {
+      ...sampleMeasure,
+      id: 11,
+      patient: { ...samplePatient, id: 2, insuranceGroup: 'kaiser' },
+    };
+    const nullGroupMeasure = {
+      ...sampleMeasure,
+      id: 12,
+      patient: { ...samplePatient, id: 3, insuranceGroup: null },
+    };
+
+    it('filters by insuranceGroup=hill and returns only Hill patients', async () => {
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([hillMeasure]);
+
+      const res = await request(app).get('/api/data?insuranceGroup=hill');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      // Verify the query was called with the correct insurance group filter
+      expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            patient: expect.objectContaining({
+              insuranceGroup: 'hill',
+            }),
+          }),
+        })
+      );
+    });
+
+    it('filters by insuranceGroup=none and returns only null-group patients', async () => {
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([nullGroupMeasure]);
+
+      const res = await request(app).get('/api/data?insuranceGroup=none');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+      expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            patient: expect.objectContaining({
+              insuranceGroup: null,
+            }),
+          }),
+        })
+      );
+    });
+
+    it('returns all patients when insuranceGroup=all', async () => {
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([hillMeasure, kaiserMeasure, nullGroupMeasure]);
+
+      const res = await request(app).get('/api/data?insuranceGroup=all');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(3);
+      // Should NOT include insuranceGroup in the where clause
+      const callArgs = mockPrisma.patientMeasure.findMany.mock.calls[0][0] as any;
+      expect(callArgs.where.patient).not.toHaveProperty('insuranceGroup');
+    });
+
+    it('returns all patients when no insuranceGroup param is provided', async () => {
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([hillMeasure, kaiserMeasure, nullGroupMeasure]);
+
+      const res = await request(app).get('/api/data');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(3);
+      // Should NOT include insuranceGroup in the where clause
+      const callArgs = mockPrisma.patientMeasure.findMany.mock.calls[0][0] as any;
+      expect(callArgs.where.patient).not.toHaveProperty('insuranceGroup');
+    });
+
+    it('returns 400 for invalid insuranceGroup', async () => {
+      const res = await request(app).get('/api/data?insuranceGroup=invalid');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('combines insuranceGroup with physicianId filter', async () => {
+      // Switch to ADMIN role so physicianId query param works
+      testUser.roles = ['ADMIN'];
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([hillMeasure]);
+
+      const res = await request(app).get('/api/data?insuranceGroup=hill&physicianId=1');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            patient: expect.objectContaining({
+              ownerId: 1,
+              insuranceGroup: 'hill',
+            }),
+          }),
+        })
+      );
+
+      // Reset to PHYSICIAN role
+      testUser.roles = ['PHYSICIAN'];
+    });
+
+    it('includes insuranceGroup field in response rows', async () => {
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([hillMeasure]);
+
+      const res = await request(app).get('/api/data');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0]).toHaveProperty('insuranceGroup', 'hill');
     });
   });
 });

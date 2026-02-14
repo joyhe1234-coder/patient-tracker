@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 export interface AppError extends Error {
   statusCode?: number;
   code?: string;
+  warning?: string;
 }
 
 export function errorHandler(
@@ -23,6 +24,7 @@ export function errorHandler(
     error: {
       code,
       message,
+      ...(err.warning && { warning: err.warning }),
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
     },
   });

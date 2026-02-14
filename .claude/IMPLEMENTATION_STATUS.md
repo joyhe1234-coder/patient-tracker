@@ -30,9 +30,82 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 701 tests passing
-- Layer 2 (Frontend Vitest): 856 tests passing
+- Layer 1 (Backend Jest): 777 tests passing
+- Layer 2 (Frontend Vitest): 895 tests passing
 - Visual test plan v2.1: 427 test cases documented
+
+### Security Hardening — Phase 1: Env Var Validation (REQ-SEC-04, REQ-SEC-05)
+
+**Status: Complete** (Feb 12, 2026)
+**Spec:** `.claude/specs/security-hardening/` (requirements, design, tasks)
+
+- [x] `validateEnv()` function in `backend/src/config/validateEnv.ts`
+- [x] Production: crash on missing/default/weak JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD
+- [x] Development: warn-only for same issues
+- [x] Config summary logged without revealing secrets
+- [x] Integrated into `startServer()` in `backend/src/index.ts` (before DB connect)
+- [x] 25 Jest tests with ESM-compatible mocking (`jest.unstable_mockModule`)
+
+### Security Hardening — Phase 2: Failed Login Audit Logging (REQ-SEC-10)
+
+**Status: Complete** (Feb 13, 2026)
+**Spec:** `.claude/specs/security-hardening/` (requirements, design, tasks — tasks 18-20)
+
+- [x] Refactored `POST /login` to granular auth steps (findUserByEmail, verifyPassword, generateToken, updateLastLogin)
+- [x] `logFailedLogin()` fire-and-forget helper creates `LOGIN_FAILED` audit entries with reason, email, IP
+- [x] Three failure reasons logged: `INVALID_CREDENTIALS` (user not found), `INVALID_CREDENTIALS` (wrong password), `ACCOUNT_DEACTIVATED`
+- [x] Attempted password NEVER logged in audit entries (REQ-SEC-10 AC-5)
+- [x] Audit log failure does not block login response (silent `.catch()`)
+- [x] AuditLog schema comment updated with new action types
+- [x] Admin panel: `LOGIN_FAILED` orange badge, `ACCOUNT_LOCKED` red badge, `formatSecurityDetails()` for reason/email/IP
+- [x] AuditLogEntry interface extended with `userEmail`, `ipAddress`, typed `details`
+- [x] Email service: Ethereal integration tests + dev TLS support + test helpers
+- [x] 10 new Jest tests (8 audit logging + 2 login edge cases)
+- [x] 5 new Vitest tests (admin panel LOGIN_FAILED/ACCOUNT_LOCKED display)
+- [x] 6 new Jest integration tests (Ethereal SMTP)
+
+### Security Hardening — Phase 3: Account Lockout + Temp Password + Forced Password Change (REQ-SEC-06)
+
+**Status: Complete** (Feb 13, 2026)
+**Spec:** `.claude/specs/security-hardening/` (requirements, design, tasks — tasks 21-28)
+
+- [x] Prisma migration: 3 new User model fields (`failedLoginAttempts`, `lockedUntil`, `mustChangePassword`)
+- [x] authService: 7 new functions (incrementFailedAttempts, lockAccount, resetFailedAttempts, isAccountLocked, generateTempPassword, sendTempPassword) + lockout constants
+- [x] emailService: `sendTempPasswordEmail()` for temp password delivery
+- [x] `POST /login`: lockout logic (increment on failure, lock after 5, warning on 3+, reject if locked)
+- [x] `POST /force-change-password`: new endpoint for forced password change
+- [x] `PUT /password`: clears `mustChangePassword` on success
+- [x] `POST /users/:id/send-temp-password`: admin-initiated temp password
+- [x] errorHandler: `warning` field on AppError interface
+- [x] authStore: `loginWarning`, `mustChangePassword` state, `clearMustChangePassword` action
+- [x] ForcePasswordChange.tsx: full-screen modal (no close, no escape)
+- [x] ProtectedRoute.tsx: intercepts `mustChangePassword` before role check
+- [x] LoginPage.tsx: yellow warning box with remaining attempts + reset link
+- [x] AdminPage.tsx: "Send Temp Password" button + result modal (SMTP fallback)
+- [x] ~30 new Jest tests (lockout, temp password, force-change, admin send-temp)
+- [x] ~12 new Vitest tests (ForcePasswordChange, LoginPage, AdminPage)
+
+### Insurance Group Filter (REQ-IG)
+
+**Status: Complete** (Feb 13, 2026)
+**Spec:** `.claude/specs/insurance-group/` (requirements, design, tasks)
+
+- [x] Prisma migration: `insuranceGroup` (String?) on Patient model + database index + data migration (existing → 'hill')
+- [x] `GET /api/data?insuranceGroup=` query param: `all`, `none`/`null`, or system ID (validated via `systemExists()`)
+- [x] Import executor: sets `patient.insuranceGroup` to import system ID; re-import updates group; replace + merge modes
+- [x] `GridRowPayload` / `GridRow` extended with `insuranceGroup: string | null` (backend + frontend types)
+- [x] `versionCheck` + `dataDuplicateHandler`: insuranceGroup included in real-time payloads
+- [x] StatusFilterBar: insurance group dropdown (All / system options / No Insurance) with active-ring visual
+- [x] MainPage: insurance group state, fetches `/import/systems`, query param building, filter summary
+- [x] AdminPage: improved touch targets (44x44px), `SEND_TEMP_PASSWORD` yellow badge, icon contrast improvement
+- [x] 14 new Jest tests (data routes filtering, importExecutor systemId, versionCheck)
+- [x] 23 new Vitest tests (StatusFilterBar, MainPage)
+- [x] 12 new Cypress E2E tests (`insurance-group-filter.cy.ts`)
+
+**Remaining Security Hardening (Not Yet Implemented):**
+- [ ] REQ-SEC-02: CORS Origin Whitelist
+- [ ] REQ-SEC-03: Rate Limiting
+- [ ] REQ-SEC-07: Move JWT to httpOnly Cookie
 
 ### Real-Time Collaborative Editing (Parallel Editing)
 
@@ -400,7 +473,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - DateCellEditor.test.tsx (8 tests - rendering, AG Grid interface, focus, accessibility)
   - StatusDateRenderer.test.tsx (13 tests - filled cell, empty cell with prompt, Today button click, empty without prompt, different prompts)
   - Header.test.tsx (16 tests - provider dropdown, unassigned patients, change password modal, visibility toggles)
-  - LoginPage.test.tsx (17 tests)
+  - LoginPage.test.tsx (18 tests - includes login warning display)
   - ForgotPasswordPage.test.tsx (14 tests)
   - ResetPasswordPage.test.tsx (18 tests - includes password helper text)
   - ImportPage.test.tsx (27 tests - includes warning icon, max file size)
@@ -410,8 +483,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - PatientManagementPage.test.tsx (18 tests)
   - dropdownConfig.test.ts (45 tests - all mappings, helper functions, auto-fill, cascade chain integrity)
   - statusColors.test.ts (29 tests - status arrays, attestation sent, overdue, priority ordering)
+  - ForcePasswordChange.test.tsx (7 tests - rendering, validation, submit, API error, loading state)
   - ProtectedRoute.test.tsx (9 tests - loading, redirect, role-based access, token verification)
-  - AdminPage.test.tsx (12 tests - rendering, tabs, user list, role badges, error/loading states)
+  - AdminPage.test.tsx (21 tests - rendering, tabs, user list, role badges, error/loading states, LOGIN_FAILED/ACCOUNT_LOCKED audit display, Send Temp Password button + result modal)
   - PatientAssignmentPage.test.tsx (20 tests - wrapper, lazy-load, patient list, bulk assign, error/success/empty states)
 
 ### E2E Testing (Playwright)
@@ -471,11 +545,11 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 701 tests passing (was 679; +22 from code quality refactor phase 10)
-- Total test count: ~1,942 automated tests across all frameworks (701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress)
+- [x] 763 tests passing (was 741; +22 from account lockout + temp password + force-change-password)
+- Total test count: ~2,020 automated tests across all frameworks (763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
-  - auth.routes.test.ts - 29 tests (login, registration, password reset, JWT)
+  - auth.routes.test.ts - 39 tests (login, registration, password reset, JWT, failed login audit logging)
   - data.routes.test.ts - 24 tests (CRUD, duplicate check, physician filtering)
   - import.routes.test.ts - 28 tests (preview, execute, parse, auth)
   - users.routes.test.ts - 15 tests (physician endpoints, auth)
@@ -806,6 +880,10 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 13, 2026 - Security hardening phase 3: account lockout + temp password + forced password change (REQ-SEC-06). Prisma migration (3 fields), authService lockout functions, ForcePasswordChange modal, LoginPage warning, AdminPage send-temp-password. ~30 Jest + ~12 Vitest new tests. All tests passing: 763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress = ~2,020 automated tests.
+February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP. Admin panel orange/red badges. Email service Ethereal integration tests. 15 new Jest + 5 new Vitest tests.
+February 13, 2026 - Release 4.6.0: Insurance group filter (REQ-IG), security hardening phases 1-3 (REQ-SEC-04/05/06/10). All tests passing: 777 Jest + 895 Vitest + 43 Playwright + ~342 Cypress = ~2,057 automated tests.
+February 12, 2026 - Security hardening phase 1: validateEnv() startup validation for JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD. 26 new Jest tests. All tests passing: 726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,967 automated tests.
 February 12, 2026 - Release 4.5.0: 10-phase code quality refactor, visual test plan v2.1 (232 tests executed, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt replaces dark gray bg. Hover-reveal "Today" button. 22 new Vitest + ~36 new Cypress tests. Total: 679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress = ~1,816.
 February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor on all 5 dropdown columns. Single-click opens popup. Checkmark + (clear) styling. 22 new Vitest tests, 3 updated PatientGrid tests, Cypress commands updated. Total: 679 Jest + 730 Vitest + 43 Playwright + 306 Cypress = 1,758.

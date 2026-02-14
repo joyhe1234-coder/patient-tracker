@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading, error, clearError } = useAuthStore();
+  const { login, isAuthenticated, isLoading, error, loginWarning, clearError } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,6 +80,18 @@ export default function LoginPage() {
                     <p className="text-sm text-red-700">{displayError}</p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {loginWarning && (
+              <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
+                <p className="text-sm text-yellow-800">{loginWarning}</p>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-yellow-800 underline hover:text-yellow-900 mt-1 inline-block"
+                >
+                  Reset your password
+                </Link>
               </div>
             )}
 

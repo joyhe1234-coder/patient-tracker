@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore, UserRole } from '../../stores/authStore';
+import ForcePasswordChange from '../ForcePasswordChange';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,7 +10,8 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const location = useLocation();
-  const { isAuthenticated, isLoading, user, checkAuth } = useAuthStore();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading, user, mustChangePassword, logout, checkAuth } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -59,6 +61,18 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Force password change if required
+  if (mustChangePassword) {
+    return (
+      <ForcePasswordChange
+        onPasswordChanged={async () => {
+          await logout();
+          navigate('/login');
+        }}
+      />
+    );
   }
 
   // Check role access if specified

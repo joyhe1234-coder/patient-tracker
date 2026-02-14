@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { UserRole } from '@prisma/client';
-import { listUsers, getUser, createUser, updateUser, deleteUser, resetPassword } from './handlers/userHandlers.js';
+import { listUsers, getUser, createUser, updateUser, deleteUser, resetPassword, sendTempPasswordHandler } from './handlers/userHandlers.js';
 import { createStaffAssignment, deleteStaffAssignment, listPhysicians } from './handlers/staffHandlers.js';
 import { getAuditLog } from './handlers/auditHandlers.js';
 import { bulkAssignPatients, getUnassignedPatients } from './handlers/patientHandlers.js';
@@ -65,6 +65,7 @@ router.post('/users', createUser);
 router.put('/users/:id', updateUser);
 router.delete('/users/:id', deleteUser);
 router.post('/users/:id/reset-password', resetPassword);
+router.post('/users/:id/send-temp-password', sendTempPasswordHandler);
 
 // Route definitions — Physicians & Staff assignments
 router.get('/physicians', listPhysicians);
