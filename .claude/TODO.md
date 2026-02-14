@@ -75,6 +75,7 @@ This document tracks planned features and enhancements for future development.
 - [ ] Multi-column sort support
 - [ ] Persist sort/filter preferences (localStorage or user settings)
 - [x] Quick search/filter by patient name
+- [x] **Insurance Group Filter (REQ-IG)** — filter grid by insurance group (Hill, Kaiser, etc.) via dropdown in StatusFilterBar; backend query param, import sets group, Prisma migration + index
 - [ ] **Column-level filtering** (e.g., filter by Quality Measure, Request Type, Physician)
   - Design needed: dropdown/multi-select filter per column header? Separate filter panel? AG Grid built-in column filters?
   - Priority use case: filter grid to show only rows for a specific Quality Measure

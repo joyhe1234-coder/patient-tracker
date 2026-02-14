@@ -154,6 +154,7 @@ export async function duplicateRow(req: Request, res: Response, next: NextFuncti
         memberDob: newMeasure.patient.memberDob,
         memberTelephone: newMeasure.patient.memberTelephone,
         memberAddress: newMeasure.patient.memberAddress,
+        insuranceGroup: newMeasure.patient.insuranceGroup,
         requestType: newMeasure.requestType,
         qualityMeasure: newMeasure.qualityMeasure,
         measureStatus: newMeasure.measureStatus,

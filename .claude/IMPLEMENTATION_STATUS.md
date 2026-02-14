@@ -85,6 +85,23 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] ~30 new Jest tests (lockout, temp password, force-change, admin send-temp)
 - [x] ~12 new Vitest tests (ForcePasswordChange, LoginPage, AdminPage)
 
+### Insurance Group Filter (REQ-IG)
+
+**Status: Complete** (Feb 13, 2026)
+**Spec:** `.claude/specs/insurance-group/` (requirements, design, tasks)
+
+- [x] Prisma migration: `insuranceGroup` (String?) on Patient model + database index + data migration (existing → 'hill')
+- [x] `GET /api/data?insuranceGroup=` query param: `all`, `none`/`null`, or system ID (validated via `systemExists()`)
+- [x] Import executor: sets `patient.insuranceGroup` to import system ID; re-import updates group; replace + merge modes
+- [x] `GridRowPayload` / `GridRow` extended with `insuranceGroup: string | null` (backend + frontend types)
+- [x] `versionCheck` + `dataDuplicateHandler`: insuranceGroup included in real-time payloads
+- [x] StatusFilterBar: insurance group dropdown (All / system options / No Insurance) with active-ring visual
+- [x] MainPage: insurance group state, fetches `/import/systems`, query param building, filter summary
+- [x] AdminPage: improved touch targets (44x44px), `SEND_TEMP_PASSWORD` yellow badge, icon contrast improvement
+- [x] 14 new Jest tests (data routes filtering, importExecutor systemId, versionCheck)
+- [x] 23 new Vitest tests (StatusFilterBar, MainPage)
+- [x] 12 new Cypress E2E tests (`insurance-group-filter.cy.ts`)
+
 **Remaining Security Hardening (Not Yet Implemented):**
 - [ ] REQ-SEC-02: CORS Origin Whitelist
 - [ ] REQ-SEC-03: Rate Limiting

@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.6.0-snapshot] - 2026-02-13
+
+### Added
+- **Insurance Group Filter (REQ-IG)** (Feb 13, 2026)
+  - **Backend — Prisma migration:** New `insuranceGroup` (String?) field on Patient model with database index; data migration sets existing patients to 'hill'
+  - **Backend — dataHandlers:** `GET /api/data` accepts `?insuranceGroup=` query param (`all`, `none`/`null`, or system ID); validates against systems registry via `systemExists()`
+  - **Backend — importExecutor:** Import sets `patient.insuranceGroup` to the import system ID (REQ-IG-2); re-import updates existing patients' group; both replace and merge modes supported
+  - **Backend — versionCheck + dataDuplicateHandler:** `insuranceGroup` included in `GridRowPayload` for real-time sync and duplicate row creation
+  - **Backend + Frontend types:** `GridRowPayload` and `GridRow` interfaces extended with `insuranceGroup: string | null`
+  - **Frontend — StatusFilterBar:** New insurance group dropdown with All / system options / No Insurance; active-ring visual when filtered
+  - **Frontend — MainPage:** Insurance group state management, fetches `/import/systems` for options (with fallback), builds query params, filter summary includes insurance label
+  - **Frontend — AdminPage:** Improved action button touch targets (44x44px min), `SEND_TEMP_PASSWORD` audit log badge (yellow), increased icon contrast (gray-400 to gray-500)
+  - **Spec:** `.claude/specs/insurance-group/` (requirements, design, tasks)
+  - +14 Jest tests (data routes insurance group filtering, importExecutor systemId, versionCheck insuranceGroup)
+  - +23 Vitest tests (StatusFilterBar insurance group dropdown, MainPage insurance group integration)
+  - +12 Cypress E2E tests (`insurance-group-filter.cy.ts`)
+  - Total: 777 Jest + 895 Vitest = 1,672 unit tests
+
 ## [4.5.1-snapshot] - 2026-02-13
 
 ### Added

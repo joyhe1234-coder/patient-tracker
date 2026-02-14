@@ -360,7 +360,7 @@ export default function AdminPage() {
                                 setEditingUser(u);
                                 setShowUserModal(true);
                               }}
-                              className="p-2 text-gray-400 hover:text-blue-600"
+                              className="p-2 text-gray-500 hover:text-blue-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="Edit user"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -370,14 +370,14 @@ export default function AdminPage() {
                                 setResetPasswordUserId(u.id);
                                 setShowResetPasswordModal(true);
                               }}
-                              className="p-2 text-gray-400 hover:text-yellow-600"
+                              className="p-2 text-gray-500 hover:text-yellow-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="Reset password"
                             >
                               <Key className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleSendTempPassword(u.id)}
-                              className="p-2 text-gray-400 hover:text-blue-600"
+                              className="p-2 text-gray-500 hover:text-blue-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                               title="Send temporary password"
                             >
                               <Mail className="w-4 h-4" />
@@ -385,7 +385,7 @@ export default function AdminPage() {
                             {u.id !== user?.id && (
                               <button
                                 onClick={() => handleDeleteUser(u.id)}
-                                className="p-2 text-gray-400 hover:text-red-600"
+                                className="p-2 text-gray-500 hover:text-red-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 title="Deactivate user"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -494,6 +494,8 @@ export default function AdminPage() {
                               ? 'bg-orange-100 text-orange-800'
                               : entry.action === 'ACCOUNT_LOCKED'
                               ? 'bg-red-100 text-red-800'
+                              : entry.action === 'SEND_TEMP_PASSWORD'
+                              ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >

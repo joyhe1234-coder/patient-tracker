@@ -3262,6 +3262,62 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 35. Insurance Group Filter (REQ-IG)
+
+**Requirement Spec:** [`.claude/specs/insurance-group/requirements.md`](specs/insurance-group/requirements.md)
+
+### TC-35.1: Insurance Group Dropdown Renders
+**Automation:** Automated - `StatusFilterBar.test.tsx`, `insurance-group-filter.cy.ts`
+**Steps:** Open grid page; observe filter bar
+**Expected:** Insurance group dropdown visible with aria-label "Filter by insurance group"; default selection is "Hill"; options include All, system names, No Insurance
+
+### TC-35.2: Filter by Specific Insurance Group
+**Automation:** Automated - `data.routes.test.ts: "filters by insuranceGroup=hill"`, `insurance-group-filter.cy.ts`
+**Steps:** Select "Hill" from insurance group dropdown
+**Expected:** Only patients with `insuranceGroup='hill'` are displayed; API called with `?insuranceGroup=hill`
+
+### TC-35.3: Filter by No Insurance
+**Automation:** Automated - `data.routes.test.ts: "filters by insuranceGroup=none"`, `insurance-group-filter.cy.ts`
+**Steps:** Select "No Insurance" from insurance group dropdown
+**Expected:** Only patients with `insuranceGroup=null` are displayed
+
+### TC-35.4: Show All Insurance Groups
+**Automation:** Automated - `data.routes.test.ts: "returns all when insuranceGroup=all"`, `insurance-group-filter.cy.ts`
+**Steps:** Select "All" from insurance group dropdown
+**Expected:** All patients displayed regardless of insurance group; no insuranceGroup param sent to API
+
+### TC-35.5: Invalid Insurance Group Rejected
+**Automation:** Automated - `data.routes.test.ts: "rejects invalid insuranceGroup"``
+**Steps:** API call with `?insuranceGroup=invalid_system`
+**Expected:** 400 error with `VALIDATION_ERROR` code
+
+### TC-35.6: Active Filter Visual Ring
+**Automation:** Automated - `StatusFilterBar.test.tsx`, `insurance-group-filter.cy.ts`
+**Steps:** Select a non-"All" insurance group
+**Expected:** Dropdown shows blue ring-2 border; selecting "All" removes the ring
+
+### TC-35.7: Combined with Quality Measure Filter
+**Automation:** Automated - `insurance-group-filter.cy.ts: "should combine insurance group filter with quality measure filter"`
+**Steps:** Select "Hill" insurance group, then select a quality measure
+**Expected:** Both filters apply (AND logic); filter summary shows both
+
+### TC-35.8: Import Sets Insurance Group
+**Automation:** Automated - `importExecutor.test.ts: "sets insuranceGroup on new patient"`, `importExecutor.test.ts: "updates insuranceGroup on existing patient"`
+**Steps:** Import data for "hill" system
+**Expected:** New patients get `insuranceGroup='hill'`; existing patients updated to match import system
+
+### TC-35.9: Insurance Group in Grid Row Payload
+**Automation:** Automated - `versionCheck.test.ts: "insuranceGroup included in payload"`
+**Steps:** Fetch patient data via API
+**Expected:** Each row includes `insuranceGroup` field for real-time sync
+
+### TC-35.10: Duplicate Row Preserves Insurance Group
+**Automation:** Automated - via `dataDuplicateHandler.ts` inclusion
+**Steps:** Duplicate a row
+**Expected:** Duplicated row preserves the patient's insurance group value
+
+---
+
 ## Automation Summary
 
 ### Coverage by Section
@@ -3291,6 +3347,7 @@ npm run cypress:headed  # Run with browser visible
 | 32. Patient Management Page | 8 | 8 | 0 | 0 | 100% |
 | 33. Security: Env Validation | 10 | 10 | 0 | 0 | 100% |
 | 34. Security: Account Lockout | 10 | 10 | 0 | 0 | 100% |
+| 35. Insurance Group Filter | 10 | 10 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3310,6 +3367,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 13, 2026 - Added Section 35: Insurance Group Filter (TC-35.1 to TC-35.10, all automated). 10 test cases, 100% automated. Total: 777 Jest + 895 Vitest + 12 Cypress.
 February 13, 2026 - Added Section 34: Account Lockout + Temp Password + Forced Password Change (TC-34.1 to TC-34.10, all automated). 10 test cases, 100% automated.
 February 12, 2026 - Added Section 33: Security Hardening Env Var Validation (TC-33.1 to TC-33.10, all automated). 10 test cases, 100% automated.
 February 11, 2026 - Added TC-2.7: Auto-Open Dropdown Editor (single-click opens popup, keyboard nav, type-ahead, checkmark, clear option). Cell Editing coverage: 7 TCs, 43% automated.

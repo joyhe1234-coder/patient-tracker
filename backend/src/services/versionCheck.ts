@@ -22,6 +22,7 @@ function toGridRowPayload(measure: {
     memberDob: Date;
     memberTelephone: string | null;
     memberAddress: string | null;
+    insuranceGroup: string | null;
   };
   requestType: string | null;
   qualityMeasure: string | null;
@@ -48,6 +49,7 @@ function toGridRowPayload(measure: {
     memberDob: measure.patient.memberDob.toISOString(),
     memberTelephone: measure.patient.memberTelephone,
     memberAddress: measure.patient.memberAddress,
+    insuranceGroup: measure.patient.insuranceGroup,
     requestType: measure.requestType,
     qualityMeasure: measure.qualityMeasure,
     measureStatus: measure.measureStatus,

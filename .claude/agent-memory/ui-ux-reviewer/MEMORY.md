@@ -17,6 +17,7 @@
 | PHYSICIAN | `joyhe1234@gmail.com` | (reset via admin) | |
 | STAFF | `staff1@gmail.com` | `welcome100` | Assigned to Physician One + Ko Admin-Phy |
 | STAFF | `staff2@gmail.com` | (reset via admin) | |
+| DOES NOT EXIST | `admin@hillphysicians.com` | N/A | Not in DB -- do not use for lockout testing |
 
 ## Design System Tokens
 - **Primary Blue**: #3B82F6 (buttons, links, active tabs)
@@ -58,6 +59,8 @@
 | 2026-02-12 | Section C Part 2 | `reviews/section-c-qm-status-matrix-part2-2026-02-12.md` | 53 tests: 52 PASS, 1 DEVIATION. C.9-C.15: ACE/ARB, Vaccination, HgbA1c, Annual Serum, Chronic DX attestation, manual TI, cascading clears. Combined C.1-C.15: 134 tests, 131 PASS, 2 DEVIATION, 1 SKIP, 0 FAIL. |
 | 2026-02-12 | Sections D-G | `reviews/sections-defg-search-sort-filter-overdue-2026-02-12.md` | 53 tests: 52 PASS, 0 DEVIATION, 1 SKIP (SORT-10 notes). Search, sorting, filter chips, overdue edge cases all verified. Combined B-G: 208 tests, 201 PASS, 4 DEVIATION, 3 SKIP, 0 FAIL. |
 | 2026-02-12 | Sections H-K | `reviews/sections-hijk-toast-dup-kbd-hgba1c-2026-02-12.md` | 24 tests: 21 PASS, 10 DEVIATION, 3 SKIP, 0 FAIL. Toast=SaveStatusIndicator not toast, Dup detection correct, Keyboard 8/8, HgbA1c columns not in grid UI. **GRAND TOTAL B-K: 232 tests, 222 PASS, 14 DEVIATION, 6 SKIP, 0 FAIL.** |
+| 2026-02-13 | REQ-SEC-06 Lockout+TempPass | `reviews/req-sec-06-lockout-temppass-forcechange-2026-02-13.md` | 12 screens, 4 IMPORTANT (lockout warning untestable, confirm() vs modal, badge color, touch targets), 4 NICE-TO-HAVE. ForcePasswordChange code-only review. |
+| 2026-02-13 | Insurance Group Filter | `reviews/insurance-group-filter-2026-02-13.md` | 12 screenshots, 6 scenarios ALL PASS. Visual parity with QM dropdown. Touch target too small (pre-existing). Seed data limitation prevents visual filter verification. |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -86,13 +89,20 @@ frontend/src/components/grid/
     cascadingFields.ts        # requestType -> QM -> status cascading clears
 ```
 
-## AdminPage Component Structure (post-refactor Feb 12)
+## AdminPage Component Structure (post-refactor Feb 12, updated Feb 13 w/ REQ-SEC-06)
 ```
-frontend/src/pages/AdminPage.tsx           # Parent: tabs, users table, audit log (499 lines)
+frontend/src/pages/AdminPage.tsx           # Parent: tabs, users table, audit log (~605 lines)
 frontend/src/components/modals/
   UserModal.tsx                            # Create/Edit user modal (304 lines)
   ResetPasswordModal.tsx                   # Reset password modal (128 lines)
+frontend/src/components/
+  ForcePasswordChange.tsx                  # Blocking password change overlay (125 lines)
+frontend/src/components/auth/
+  ProtectedRoute.tsx                       # Auth guard, renders ForcePasswordChange when mustChangePassword=true
 ```
+- AdminPage: action buttons per row = Edit (pencil), Reset (key), Send Temp Password (mail), Deactivate (trash)
+- Temp password flow: confirm() -> API -> modal (SMTP sent) or modal (temp password + copy button)
+- Audit log badges: LOGIN=purple, LOGIN_FAILED=orange, ACCOUNT_LOCKED=red, SEND_TEMP_PASSWORD=gray (default)
 - UserModal exports: AdminUser, Physician interfaces
 - ResetPasswordModal has unused `userEmail` prop (dead code)
 - AdminPage.tsx line 270: React key warning on `<>` fragment (pre-existing, not from refactor)
