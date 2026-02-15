@@ -64,10 +64,13 @@ const VALID_QUALITY_MEASURES: Record<string, string[]> = {
 };
 
 /**
- * Validate all transformed rows
- * Errors are reported by original spreadsheet row number and deduplicated per patient+field
+ * Validate all transformed rows.
+ * Errors are reported by original spreadsheet row number and deduplicated per patient+field.
+ * @param rows - The transformed rows to validate
+ * @param systemId - Optional system identifier. When 'sutter', invalid requestType
+ *                   is treated as a warning (non-blocking) instead of an error.
  */
-export function validateRows(rows: TransformedRow[]): ValidationResult {
+export function validateRows(rows: TransformedRow[], systemId?: string): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
   const rowsWithErrors = new Set<number>();
@@ -82,7 +85,7 @@ export function validateRows(rows: TransformedRow[]): ValidationResult {
   for (const row of rows) {
     // Use sourceRowIndex from the row (original spreadsheet row, 0-indexed)
     const sourceRowIndex = row.sourceRowIndex;
-    const rowErrors = validateRow(row, sourceRowIndex);
+    const rowErrors = validateRow(row, sourceRowIndex, systemId);
 
     for (const error of rowErrors) {
       // Create dedup key: sourceRowIndex + field
@@ -145,8 +148,9 @@ export function validateRows(rows: TransformedRow[]): ValidationResult {
 
 /**
  * Validate a single row
+ * @param systemId - Optional system identifier for system-aware severity rules
  */
-function validateRow(row: TransformedRow, rowIndex: number): ValidationError[] {
+function validateRow(row: TransformedRow, rowIndex: number, systemId?: string): ValidationError[] {
   const errors: ValidationError[] = [];
   const memberName = row.memberName || 'Unknown';
 
@@ -191,12 +195,16 @@ function validateRow(row: TransformedRow, rowIndex: number): ValidationError[] {
       memberName,
     });
   } else if (!VALID_REQUEST_TYPES.includes(row.requestType)) {
+    // For Sutter: invalid requestType is a warning (non-blocking) since
+    // action mapping may produce request types not in the standard list.
+    // For Hill or unspecified: it remains an error (blocking).
+    const invalidRtSeverity: 'error' | 'warning' = systemId === 'sutter' ? 'warning' : 'error';
     errors.push({
       rowIndex,
       field: 'requestType',
       message: `Invalid request type: ${row.requestType}`,
       value: row.requestType,
-      severity: 'error',
+      severity: invalidRtSeverity,
       memberName,
     });
   }

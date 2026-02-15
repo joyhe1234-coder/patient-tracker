@@ -6,6 +6,7 @@ import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { getApiErrorMessage } from '../utils/apiError';
 import { useAuthStore } from '../stores/authStore';
+import SheetSelector from '../components/import/SheetSelector';
 
 type ImportMode = 'replace' | 'merge';
 
@@ -23,6 +24,7 @@ interface Physician {
 
 const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
   { id: 'hill', name: 'Hill Healthcare' },
+  { id: 'sutter', name: 'Sutter/SIP' },
 ];
 
 export function ImportTabContent() {
@@ -47,15 +49,22 @@ export function ImportTabContent() {
   const [selectedPhysicianId, setSelectedPhysicianId] = useState<number | null>(null);
   const [loadingPhysicians, setLoadingPhysicians] = useState(false);
 
+  // Sutter-specific state: sheet selection + physician assignment from SheetSelector
+  const [selectedSheetName, setSelectedSheetName] = useState<string | null>(null);
+  const [sheetPhysicianId, setSheetPhysicianId] = useState<number | null>(null);
+  const [_sheetError, setSheetError] = useState<string | null>(null);
+
+  const isSutter = systemId === 'sutter';
+
   // Determine if user needs to select a physician
   const needsPhysicianSelection = user?.roles.includes('STAFF') || user?.roles.includes('ADMIN');
 
-  // Load available physicians for STAFF/ADMIN users
+  // Load available physicians for STAFF/ADMIN users, or when Sutter is selected
   useEffect(() => {
-    if (needsPhysicianSelection) {
+    if (needsPhysicianSelection || isSutter) {
       loadPhysicians();
     }
-  }, [needsPhysicianSelection]);
+  }, [needsPhysicianSelection, isSutter]);
 
   const loadPhysicians = async () => {
     setLoadingPhysicians(true);
@@ -130,8 +139,18 @@ export function ImportTabContent() {
       return;
     }
 
-    // Validate physician selection for STAFF/ADMIN
-    if (needsPhysicianSelection && !selectedPhysicianId) {
+    // Validate Sutter requires sheet and physician selection
+    if (isSutter && !selectedSheetName) {
+      setError('Please select a tab from the workbook');
+      return;
+    }
+    if (isSutter && !sheetPhysicianId) {
+      setError('Please select a physician for the selected tab');
+      return;
+    }
+
+    // Validate physician selection for STAFF/ADMIN (non-Sutter)
+    if (!isSutter && needsPhysicianSelection && !selectedPhysicianId) {
       setError('Please select a physician to import patients for');
       return;
     }
@@ -162,9 +181,18 @@ export function ImportTabContent() {
       formData.append('systemId', systemId);
       formData.append('mode', mode);
 
-      // Build URL with physicianId for STAFF/ADMIN
+      // Include sheetName for Sutter imports
+      if (isSutter && selectedSheetName) {
+        formData.append('sheetName', selectedSheetName);
+      }
+
+      // Build URL with physicianId
       let url = '/import/preview';
-      if (needsPhysicianSelection && selectedPhysicianId) {
+      // For Sutter, use the physician selected in the SheetSelector
+      const effectivePhysicianId = isSutter ? sheetPhysicianId : selectedPhysicianId;
+      if (effectivePhysicianId) {
+        url += `?physicianId=${effectivePhysicianId}`;
+      } else if (needsPhysicianSelection && selectedPhysicianId) {
         url += `?physicianId=${selectedPhysicianId}`;
       }
 
@@ -204,7 +232,39 @@ export function ImportTabContent() {
     setFile(null);
     setError(null);
     setValidationErrors([]);
+    // Reset Sutter-specific state
+    setSelectedSheetName(null);
+    setSheetPhysicianId(null);
+    setSheetError(null);
   };
+
+  // Handle SheetSelector callback
+  const handleSheetSelect = (sheetName: string, physicianId: number) => {
+    setSelectedSheetName(sheetName);
+    setSheetPhysicianId(physicianId);
+    setSheetError(null);
+  };
+
+  const handleSheetError = (errorMsg: string) => {
+    setSheetError(errorMsg);
+  };
+
+  // Dynamic step numbering:
+  // Step 1: Healthcare System (always)
+  // Step 2: Import Mode (always)
+  // Step 3: Physician Selection (non-Sutter STAFF/ADMIN only)
+  // Step N: File Upload
+  // Step N+1: Select Tab & Physician (Sutter only, after file upload)
+  // For Sutter: physician is selected inside SheetSelector, not in the separate step
+  const showPhysicianStep = needsPhysicianSelection && !isSutter;
+  let stepCounter = 2; // After system (1) and mode (2)
+  const physicianStepNum = showPhysicianStep ? ++stepCounter : 0;
+  const fileUploadStepNum = ++stepCounter;
+  const sheetSelectorStepNum = isSutter ? ++stepCounter : 0;
+
+  // Determine if submit is allowed
+  const isSutterReady = !isSutter || (!!selectedSheetName && !!sheetPhysicianId);
+  const isSubmitDisabled = !file || loading || (showPhysicianStep && !selectedPhysicianId) || (isSutter && !isSutterReady);
 
   return (
     <>
@@ -218,7 +278,14 @@ export function ImportTabContent() {
         </div>
         <select
           value={systemId}
-          onChange={(e) => setSystemId(e.target.value)}
+          onChange={(e) => {
+            setSystemId(e.target.value);
+            // Reset Sutter-specific state when switching system
+            setSelectedSheetName(null);
+            setSheetPhysicianId(null);
+            setSheetError(null);
+          }}
+          aria-label="Healthcare system"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           {HEALTHCARE_SYSTEMS.map((system) => (
@@ -289,12 +356,12 @@ export function ImportTabContent() {
         </div>
       </div>
 
-      {/* Step 3: Physician Selection (STAFF/ADMIN only) */}
-      {needsPhysicianSelection && (
+      {/* Step 3: Physician Selection (STAFF/ADMIN only, non-Sutter) */}
+      {showPhysicianStep && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-              3
+              {physicianStepNum}
             </span>
             <h2 className="text-lg font-semibold text-gray-900">Select Target Physician</h2>
           </div>
@@ -334,11 +401,11 @@ export function ImportTabContent() {
         </div>
       )}
 
-      {/* Step {needsPhysicianSelection ? 4 : 3}: File Upload */}
+      {/* File Upload Step */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-            {needsPhysicianSelection ? 4 : 3}
+            {fileUploadStepNum}
           </span>
           <h2 className="text-lg font-semibold text-gray-900">Upload File</h2>
         </div>
@@ -399,11 +466,31 @@ export function ImportTabContent() {
         )}
       </div>
 
+      {/* Sheet Selector Step (Sutter only, shown after file upload) */}
+      {isSutter && file && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
+              {sheetSelectorStepNum}
+            </span>
+            <h2 className="text-lg font-semibold text-gray-900">Select Tab & Physician</h2>
+          </div>
+          <SheetSelector
+            file={file}
+            systemId={systemId}
+            physicians={physicians}
+            onSelect={handleSheetSelect}
+            onError={handleSheetError}
+          />
+        </div>
+      )}
+
+
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
           <div className="flex items-start gap-3">
-            <span className="text-red-500 text-xl">!</span>
+            <span className="text-red-500 text-xl" aria-hidden="true">!</span>
             <div className="flex-1">
               <div className="font-medium text-red-800">Error</div>
               <div className="text-sm text-red-700">{error}</div>
@@ -441,9 +528,9 @@ export function ImportTabContent() {
         </a>
         <button
           onClick={handleSubmitClick}
-          disabled={!file || loading || (needsPhysicianSelection && !selectedPhysicianId)}
+          disabled={isSubmitDisabled}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            !file || loading || (needsPhysicianSelection && !selectedPhysicianId)
+            isSubmitDisabled
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}

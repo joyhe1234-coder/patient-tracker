@@ -522,4 +522,155 @@ describe('ImportPreviewPage', () => {
       });
     });
   });
+
+  describe('Sutter/SIP Preview Integration', () => {
+    const sutterPreviewData = {
+      ...mockPreviewData,
+      systemId: 'sutter',
+      sheetName: 'Smith, John',
+      physicianName: 'Dr. Smith, John',
+      unmappedActions: [
+        { action: 'Schedule cardiac rehab follow-up', count: 12 },
+        { action: 'Order advanced imaging study', count: 5 },
+      ],
+      unmappedActionsSummary: {
+        totalTypes: 2,
+        totalRows: 17,
+      },
+    };
+
+    it('renders UnmappedActionsBanner when unmapped actions present', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: sutterPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByRole('status')).toBeInTheDocument();
+        expect(screen.getByText(/17 rows skipped/)).toBeInTheDocument();
+      });
+    });
+
+    it('hides UnmappedActionsBanner when all actions mapped (no unmappedActions)', async () => {
+      const noUnmappedData = {
+        ...mockPreviewData,
+        systemId: 'sutter',
+        sheetName: 'Smith, John',
+        physicianName: 'Dr. Smith, John',
+        unmappedActions: [],
+      };
+
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: noUnmappedData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      // UnmappedActionsBanner returns null for empty array
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('hides UnmappedActionsBanner when unmappedActions field is absent', async () => {
+      // Standard Hill preview without unmappedActions
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('displays sheetName in preview header for Sutter', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: sutterPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      // The header shows "Tab:" label and the sheet name
+      expect(screen.getByText('Smith, John')).toBeInTheDocument();
+    });
+
+    it('displays physician name in preview header for Sutter', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: sutterPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      // The header shows "Physician:" label and the physician name
+      expect(screen.getByText('Dr. Smith, John')).toBeInTheDocument();
+    });
+
+    it('does NOT show sheetName or physician in header for Hill imports', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      // Hill preview should not have Tab or Physician labels
+      expect(screen.queryByText('Tab:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Physician:')).not.toBeInTheDocument();
+    });
+
+    it('shows correct total skipped rows in UnmappedActionsBanner', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: sutterPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        // 12 + 5 = 17 total skipped rows
+        expect(screen.getByText(/17 rows skipped/)).toBeInTheDocument();
+        expect(screen.getByText(/2 action types/)).toBeInTheDocument();
+      });
+    });
+
+    it('can expand unmapped actions details in preview', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: sutterPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Show details')).toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByText('Show details'));
+
+      // Should show the action texts in the expanded table
+      expect(screen.getByText('Schedule cardiac rehab follow-up')).toBeInTheDocument();
+      expect(screen.getByText('Order advanced imaging study')).toBeInTheDocument();
+
+      // Verify counts within the banner's details table (use the status container)
+      const banner = screen.getByRole('status');
+      expect(banner).toHaveTextContent('12');
+      expect(banner).toHaveTextContent('5');
+    });
+  });
 });

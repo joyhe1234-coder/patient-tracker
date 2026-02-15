@@ -61,6 +61,7 @@
 | 2026-02-12 | Sections H-K | `reviews/sections-hijk-toast-dup-kbd-hgba1c-2026-02-12.md` | 24 tests: 21 PASS, 10 DEVIATION, 3 SKIP, 0 FAIL. Toast=SaveStatusIndicator not toast, Dup detection correct, Keyboard 8/8, HgbA1c columns not in grid UI. **GRAND TOTAL B-K: 232 tests, 222 PASS, 14 DEVIATION, 6 SKIP, 0 FAIL.** |
 | 2026-02-13 | REQ-SEC-06 Lockout+TempPass | `reviews/req-sec-06-lockout-temppass-forcechange-2026-02-13.md` | 12 screens, 4 IMPORTANT (lockout warning untestable, confirm() vs modal, badge color, touch targets), 4 NICE-TO-HAVE. ForcePasswordChange code-only review. |
 | 2026-02-13 | Insurance Group Filter | `reviews/insurance-group-filter-2026-02-13.md` | 12 screenshots, 6 scenarios ALL PASS. Visual parity with QM dropdown. Touch target too small (pre-existing). Seed data limitation prevents visual filter verification. |
+| 2026-02-14 | Sutter Import Flow | `reviews/sutter-import-flow-2026-02-14.md` | 12 screenshots. BUG: duplicate error banners, nested card-in-card. Missing aria-label on system select, no role=alert on errors. UnmappedActionsBanner good a11y. Step numbering correct. |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -74,6 +75,8 @@
 
 9. **Prompt text #6B7280 fails AA on colored rows**: Only passes on white (4.83) and yellow (4.59). Fails on blue (3.73), green (3.90), purple (3.58), orange (4.07), gray (4.06), overdue (3.43). Fix: use #4B5563.
 10. **setDataValue + valueSetter mismatch**: When calling node.setDataValue() from a renderer, the value goes through the column's valueSetter. If the valueSetter expects display-format input (e.g., "2/11/2026") but receives ISO datetime ("2026-02-11T12:00:00.000Z"), parsing fails.
+11. **Step number badges fail AA contrast**: blue-600 on blue-100 = 4.24:1 (needs 4.5:1). Fix: use text-blue-700.
+12. **Import page form controls missing labels**: Healthcare System `<select>` has no aria-label, no htmlFor/id, no associated `<label>`. SheetSelector internal selects DO have proper labels.
 
 ## PatientGrid Component Structure (post-refactor Feb 12)
 ```
@@ -127,6 +130,26 @@ frontend/src/components/auth/
 - Tracking #2: Dropdown 1-12 months testing interval for HGBA1C_STATUSES
 - Time Interval: Auto-calculated from Tracking #2 month (locked, not manually editable)
 - Non-HgbA1c rows: Tracking #1 and #2 show "N/A" with disabled striped styling
+
+## Import Page Component Structure (updated Feb 14 w/ Sutter)
+```
+frontend/src/pages/ImportPage.tsx              # Import form: system select, mode, physician, file upload (~630 lines)
+frontend/src/pages/ImportPreviewPage.tsx        # Preview & execute: summary cards, changes table, modals (~486 lines)
+frontend/src/components/import/
+  SheetSelector.tsx                             # Sutter tab picker + physician auto-match (280 lines)
+  UnmappedActionsBanner.tsx                     # Skipped actions info banner with expand/collapse (108 lines)
+  PreviewSummaryCards.tsx                        # Import preview summary cards
+  PreviewChangesTable.tsx                        # Import preview changes table
+  ImportResultsDisplay.tsx                       # Post-import results display
+```
+- Healthcare systems: `hill` (Hill Healthcare), `sutter` (Sutter/SIP)
+- Sutter flow: Steps 1-3 (System, Mode, Upload), then Step 4 (Select Tab & Physician) appears after file upload
+- Hill flow: Steps 1-4 (System, Mode, Physician, Upload) for ADMIN/STAFF; Steps 1-3 for PHYSICIAN
+- SheetSelector calls `/api/import/sheets` to discover tabs, auto-matches physician by tab name substring scoring
+- BUG: SheetSelector wraps its own content in card styling, but parent also wraps in card = nested cards
+- BUG: SheetSelector error calls both internal render + parent onError = duplicate error banners
+- Preview page shows Tab/Physician metadata conditionally for Sutter imports
+- UnmappedActionsBanner uses role="status", aria-expanded, semantic table -- good a11y
 
 ## Known Bugs Fixed (Feb 6, 2026)
 - BUG-1: Reset password generic error → reads specific backend error messages now

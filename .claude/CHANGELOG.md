@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.7.0] - 2026-02-14
+
+### Added
+- **Sutter/SIP Multi-System Import Support** (Feb 14, 2026)
+  - **Backend — Sutter config:** New `backend/src/config/import/sutter.json` with tab-based physician layout, skipTabs patterns (suffix/prefix/exact/contains), header row offset, and action-to-measureStatus mapping
+  - **Backend — systems.json:** Registered `sutter` system (`Sutter/SIP`, configFile: `sutter.json`) alongside existing Hill system
+  - **Backend — configLoader.ts:** Added `isHillConfig()`, `isSutterConfig()` type guards and `SutterSystemConfig`, `SkipTabPattern` types for polymorphic config handling
+  - **Backend — fileParser.ts:** Added `parseExcel()` with sheet selection and configurable header row, `getSheetNames()` for workbook tab discovery
+  - **Backend — import.routes.ts:** New `POST /api/import/sheets` endpoint for tab discovery with skipTabs filtering; enhanced `POST /api/import/preview` with sheetName validation, empty tab detection (EMPTY_TAB error), and Sutter-specific parsing
+  - **Backend — New Sutter services:**
+    - `actionMapper.ts` — Maps Sutter action text to measureStatus/requestType/qualityMeasure tuples with fuzzy matching
+    - `measureDetailsParser.ts` — Parses freeform measure detail text for tracking values (HgbA1c levels, BP readings, test types, time intervals)
+    - `sutterColumnMapper.ts` — Maps Sutter per-tab columns (member name, DOB, action, measure details) to internal fields
+    - `sutterDataTransformer.ts` — Transforms Sutter wide-format rows into long-format patient measures, tracks unmapped actions with counts
+  - **Backend — Enhanced existing services:** columnMapper, dataTransformer, diffCalculator, importExecutor, previewCache, validator all extended with Sutter-specific code paths
+  - **Frontend — ImportPage.tsx:** Sutter system option in dropdown, dynamic step numbering, sheet selection + physician assignment step (appears after file upload for Sutter), isSutter state management, fixed unused variable build error
+  - **Frontend — SheetSelector.tsx:** New component for Sutter tab selection — fetches available sheets via `/api/import/sheets`, physician dropdown per tab, error handling for API failures
+  - **Frontend — UnmappedActionsBanner.tsx:** New component showing unmapped action types from Sutter imports with counts, expandable detail list, accessible markup (role=alert)
+  - **Frontend — ImportPreviewPage.tsx:** Displays sheetName, physicianName, and UnmappedActionsBanner for Sutter imports
+  - **Playwright E2E:** 3 new spec files (`sutter-import.spec.ts`, `sutter-import-edge-cases.spec.ts`, `sutter-import-errors.spec.ts`) + `import-page.ts` page object
+  - **Spec:** `.claude/specs/sutter-import/` (requirements, design, tasks)
+  - +253 Jest tests (8 new backend test files: actionMapper, measureDetailsParser, sutterColumnMapper, sutterDataTransformer, sutter-import-flow, sutter-edge-cases, sutter-error-handling, sutter-performance; enhanced existing: configLoader, diffCalculator, fileParser, importExecutor, previewCache, validator, import.routes)
+  - +61 Vitest tests (SheetSelector 24, UnmappedActionsBanner 17, ImportPage +12, ImportPreviewPage +8)
+  - Total: 1,030 Jest + 956 Vitest = 1,986 unit tests
+
 ## [4.6.0] - 2026-02-13
 
 ### Added

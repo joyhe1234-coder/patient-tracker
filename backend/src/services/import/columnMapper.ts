@@ -3,15 +3,22 @@
  * Maps CSV/Excel column headers to internal field names using system config
  */
 
-import { loadSystemConfig, SystemConfig } from './configLoader.js';
+import { loadSystemConfig, isSutterConfig, type HillSystemConfig } from './configLoader.js';
+import { mapSutterColumns } from './sutterColumnMapper.js';
 
 export interface ColumnMapping {
   // Source column name from CSV/Excel
   sourceColumn: string;
   // Target field name in our system
   targetField: string;
-  // Type of column: 'patient' for patient data, 'measure' for quality measures
-  columnType: 'patient' | 'measure';
+  /**
+   * Type of column:
+   * - 'patient': patient demographic data (name, DOB, phone, address)
+   * - 'measure': quality measure columns with Q1/Q2 suffixes (Hill format)
+   * - 'data': non-measure data columns used by Sutter long format
+   *           (e.g., Request Type, Possible Actions Needed, Measure Details)
+   */
+  columnType: 'patient' | 'measure' | 'data';
   // For measure columns: the measure info
   measureInfo?: {
     requestType: string;
@@ -38,11 +45,27 @@ export interface MappingResult {
 }
 
 /**
- * Analyze headers and create column mappings based on system config
+ * Analyze headers and create column mappings based on system config.
+ * Loads the system configuration and dispatches to the appropriate mapper:
+ * - Sutter (long format) -> mapSutterColumns
+ * - Hill (wide format)   -> mapHillColumns
  */
 export function mapColumns(headers: string[], systemId: string): MappingResult {
   const config = loadSystemConfig(systemId);
 
+  if (isSutterConfig(config)) {
+    return mapSutterColumns(headers, config);
+  }
+
+  return mapHillColumns(headers, config as HillSystemConfig);
+}
+
+/**
+ * Hill-specific column mapping logic.
+ * Maps patient columns, skip columns, and measure columns with Q1/Q2 suffix matching.
+ * Exported for use by the system-aware dispatcher (task 6).
+ */
+export function mapHillColumns(headers: string[], config: HillSystemConfig): MappingResult {
   const mappedColumns: ColumnMapping[] = [];
   const skippedColumns: string[] = [];
   const unmappedColumns: string[] = [];
@@ -124,7 +147,7 @@ export function mapColumns(headers: string[], systemId: string): MappingResult {
  */
 function findMeasureMapping(
   header: string,
-  config: SystemConfig
+  config: HillSystemConfig
 ): { field: 'statusDate' | 'complianceStatus'; requestType: string; qualityMeasure: string } | null {
   // Check for Q1 suffix (date column)
   if (header.endsWith(' Q1')) {

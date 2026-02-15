@@ -8,6 +8,7 @@ import ImportPage from './ImportPage';
 vi.mock('../api/axios', () => ({
   api: {
     post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -20,6 +21,24 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate,
   };
 });
+
+// Mock logger to silence console output during tests
+vi.mock('../utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Mock getApiErrorMessage to pass-through error messages
+vi.mock('../utils/apiError', () => ({
+  getApiErrorMessage: (err: unknown, fallback: string) => {
+    if (err instanceof Error && err.message) return err.message;
+    return fallback;
+  },
+}));
 
 import { api } from '../api/axios';
 
@@ -405,6 +424,316 @@ describe('ImportPage', () => {
       expect(formData.get('systemId')).toBe('hill');
       expect(formData.get('mode')).toBe('merge');
       expect(formData.get('file')).toBeTruthy();
+    });
+  });
+
+  describe('Sutter/SIP Integration', () => {
+    const mockPhysicians = [
+      { id: 10, displayName: 'Dr. Smith, John', email: 'smith@example.com', roles: ['PHYSICIAN'] },
+      { id: 20, displayName: 'Dr. Johnson, Mary', email: 'johnson@example.com', roles: ['PHYSICIAN'] },
+    ];
+
+    const mockSheetsResponse = {
+      data: {
+        success: true,
+        data: {
+          sheets: ['Smith, John', 'Johnson, Mary'],
+          totalSheets: 4,
+          filteredSheets: 2,
+          skippedSheets: ['Perf by Measure', 'CAR Report'],
+        },
+      },
+    };
+
+    const mockSingleSheetResponse = {
+      data: {
+        success: true,
+        data: {
+          sheets: ['Smith, John'],
+          totalSheets: 2,
+          filteredSheets: 1,
+          skippedSheets: ['CAR Report'],
+        },
+      },
+    };
+
+    // Helper: select Sutter in the healthcare system dropdown
+    async function selectSutterSystem() {
+      // The system dropdown is the first combobox
+      const systemDropdown = screen.getAllByRole('combobox')[0];
+      await userEvent.selectOptions(systemDropdown, 'sutter');
+    }
+
+    // Helper: upload a file
+    async function uploadFile(filename = 'sutter-data.xlsx') {
+      const file = new File(['test content'], filename, {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      await userEvent.upload(input, file);
+      return file;
+    }
+
+    it('shows Sutter/SIP in healthcare system dropdown', () => {
+      renderImportPage();
+
+      expect(screen.getByText('Sutter/SIP')).toBeInTheDocument();
+    });
+
+    it('shows Hill Healthcare in healthcare system dropdown', () => {
+      renderImportPage();
+
+      expect(screen.getByText('Hill Healthcare')).toBeInTheDocument();
+    });
+
+    it('shows SheetSelector step after file upload when Sutter is selected', async () => {
+      // Mock physicians API call (triggered when Sutter is selected)
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      // Mock sheet discovery API call (triggered by SheetSelector)
+      (api.post as any).mockResolvedValue(mockSheetsResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      // Wait for the SheetSelector step to appear
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
+    });
+
+    it('does NOT show SheetSelector step for Hill system', async () => {
+      renderImportPage();
+
+      // Hill is default, just upload file
+      const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      await userEvent.upload(input, file);
+
+      // Should NOT show the Sheet selector step
+      expect(screen.queryByText('Select Tab & Physician')).not.toBeInTheDocument();
+    });
+
+    it('adjusts step numbering for Sutter (extra step)', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      (api.post as any).mockResolvedValue(mockSheetsResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
+
+      // For Sutter with no STAFF/ADMIN role (user is null):
+      // Step 1: Healthcare System
+      // Step 2: Import Mode
+      // Step 3: Upload File
+      // Step 4: Select Tab & Physician
+      // Check that step numbers are present
+      const stepBadges = screen.getAllByText(/^[1-4]$/);
+      // At minimum, steps 1-4 should be shown
+      expect(stepBadges.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('keeps submit button disabled until sheet and physician are selected', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      // Return sheets but don't auto-select (multiple sheets)
+      (api.post as any).mockResolvedValue(mockSheetsResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
+
+      // Submit should be disabled since no tab/physician selected yet
+      const submitButton = screen.getByRole('button', { name: 'Preview Import' });
+      expect(submitButton).toBeDisabled();
+    });
+
+    it('enables submit after sheet and physician selection', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      // Single sheet auto-selects tab + auto-matches physician
+      (api.post as any).mockResolvedValue(mockSingleSheetResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      // Wait for SheetSelector to auto-select single tab and auto-match physician
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
+
+      // With single tab + auto-matched physician, the submit should become enabled
+      await waitFor(() => {
+        const submitButton = screen.getByRole('button', { name: 'Preview Import' });
+        expect(submitButton).not.toBeDisabled();
+      });
+    });
+
+    it('includes sheetName in preview request form data for Sutter', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      // Single sheet so it auto-selects
+      (api.post as any).mockResolvedValue(mockSingleSheetResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      // Wait for auto-selection
+      await waitFor(() => {
+        const submitButton = screen.getByRole('button', { name: 'Preview Import' });
+        expect(submitButton).not.toBeDisabled();
+      });
+
+      // Now mock the preview POST response
+      (api.post as any).mockResolvedValue({
+        data: {
+          success: true,
+          data: { previewId: 'sutter-preview-456' },
+        },
+      });
+
+      // Click submit
+      await userEvent.click(screen.getByRole('button', { name: 'Preview Import' }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/patient-management/preview/sutter-preview-456');
+      });
+
+      // Find the preview POST call (not the sheets POST call)
+      const postCalls = (api.post as any).mock.calls;
+      const previewCall = postCalls.find(
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('/import/preview')
+      );
+      expect(previewCall).toBeDefined();
+
+      // Check FormData includes sheetName
+      const formData = previewCall[1] as FormData;
+      expect(formData.get('sheetName')).toBe('Smith, John');
+      expect(formData.get('systemId')).toBe('sutter');
+    });
+
+    it('includes physicianId in preview request URL for Sutter', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      (api.post as any).mockResolvedValue(mockSingleSheetResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      await waitFor(() => {
+        const submitButton = screen.getByRole('button', { name: 'Preview Import' });
+        expect(submitButton).not.toBeDisabled();
+      });
+
+      (api.post as any).mockResolvedValue({
+        data: {
+          success: true,
+          data: { previewId: 'sutter-preview-789' },
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Preview Import' }));
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalled();
+      });
+
+      // Find the preview POST call
+      const postCalls = (api.post as any).mock.calls;
+      const previewCall = postCalls.find(
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('/import/preview')
+      );
+      expect(previewCall).toBeDefined();
+
+      // URL should include physicianId query param
+      expect(previewCall[0]).toContain('physicianId=10');
+    });
+
+    it('shows error when submitting Sutter without sheet selection', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      // Multiple sheets, so no auto-select
+      (api.post as any).mockResolvedValue(mockSheetsResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
+
+      // Try to submit without selecting tab - button should be disabled
+      const submitButton = screen.getByRole('button', { name: 'Preview Import' });
+      expect(submitButton).toBeDisabled();
+    });
+
+    it('clears Sutter-specific state when switching from Sutter to Hill', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      (api.post as any).mockResolvedValue(mockSingleSheetResponse);
+
+      renderImportPage();
+
+      // Select Sutter and upload file
+      await selectSutterSystem();
+      await uploadFile();
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
+
+      // Now switch back to Hill
+      const systemDropdown = screen.getAllByRole('combobox')[0];
+      await userEvent.selectOptions(systemDropdown, 'hill');
+
+      // SheetSelector step should disappear
+      expect(screen.queryByText('Select Tab & Physician')).not.toBeInTheDocument();
+    });
+
+    it('single-tab file pre-selects tab in SheetSelector', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPhysicians },
+      });
+      (api.post as any).mockResolvedValue(mockSingleSheetResponse);
+
+      renderImportPage();
+
+      await selectSutterSystem();
+      await uploadFile();
+
+      // With single tab, SheetSelector auto-selects and shows physician dropdown
+      await waitFor(() => {
+        expect(screen.getByText('Assign to Physician')).toBeInTheDocument();
+      });
     });
   });
 });

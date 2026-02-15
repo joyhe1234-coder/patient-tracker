@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { listSystems, loadSystemConfig, systemExists } from '../services/import/configLoader.js';
-import { parseFile, validateRequiredColumns } from '../services/import/fileParser.js';
+import { listSystems, loadSystemConfig, systemExists, isHillConfig, isSutterConfig } from '../services/import/configLoader.js';
+import { parseFile, parseExcel, validateRequiredColumns, getSheetNames } from '../services/import/fileParser.js';
 import { mapColumns } from '../services/import/columnMapper.js';
 import { transformData, groupByPatient } from '../services/import/dataTransformer.js';
 import { validateRows } from '../services/import/validator.js';
@@ -14,6 +14,8 @@ import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
 import { isStaffAssignedToPhysician } from '../services/authService.js';
 import { socketIdMiddleware } from '../middleware/socketIdMiddleware.js';
 import { broadcastToRoom, getRoomName } from '../services/socketManager.js';
+import type { SutterSystemConfig, SkipTabPattern } from '../services/import/configLoader.js';
+import type { SutterTransformResult } from '../services/import/sutterDataTransformer.js';
 
 const router = Router();
 
@@ -60,13 +62,87 @@ router.get('/systems/:systemId', async (req: Request, res: Response, next: NextF
         name: config.name,
         version: config.version,
         patientColumns: Object.keys(config.patientColumns),
-        measureColumns: Object.keys(config.measureColumns),
-        qualityMeasures: [...new Set(Object.values(config.measureColumns).map(m => m.qualityMeasure))],
-        skipColumns: config.skipColumns
+        measureColumns: isHillConfig(config) ? Object.keys(config.measureColumns) : [],
+        qualityMeasures: isHillConfig(config)
+          ? [...new Set(Object.values(config.measureColumns).map(m => m.qualityMeasure))]
+          : [],
+        skipColumns: isHillConfig(config) ? config.skipColumns : []
       }
     });
   } catch (error) {
     next(createError(`Failed to load system config: ${(error as Error).message}`, 500));
+  }
+});
+
+/**
+ * Check whether a tab name matches a skipTabs pattern.
+ */
+function matchesSkipPattern(tabName: string, pattern: SkipTabPattern): boolean {
+  switch (pattern.type) {
+    case 'suffix':
+      return tabName.endsWith(pattern.value);
+    case 'prefix':
+      return tabName.startsWith(pattern.value);
+    case 'exact':
+      return tabName === pattern.value;
+    case 'contains':
+      return tabName.includes(pattern.value);
+    default:
+      return false;
+  }
+}
+
+/**
+ * POST /api/import/sheets
+ * Discover sheet/tab names in an uploaded Excel workbook.
+ * Applies skipTabs filters from the system config.
+ * Returns the valid physician data tabs for selection.
+ */
+router.post('/sheets', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    const systemId = req.body.systemId || 'hill';
+
+    if (!file) {
+      return next(createError('No file uploaded', 400));
+    }
+
+    if (!systemExists(systemId)) {
+      return next(createError(`System not found: ${systemId}`, 404));
+    }
+
+    // Get all sheet names from the workbook
+    const allSheets = getSheetNames(file.buffer);
+    const totalSheets = allSheets.length;
+
+    // Load config and apply skipTabs filter if available
+    const config = loadSystemConfig(systemId);
+    let skippedSheets: string[] = [];
+
+    if (isSutterConfig(config) && config.skipTabs && config.skipTabs.length > 0) {
+      skippedSheets = allSheets.filter(tab =>
+        config.skipTabs.some(pattern => matchesSkipPattern(tab, pattern))
+      );
+    }
+
+    const filteredSheets = allSheets.filter(tab => !skippedSheets.includes(tab));
+
+    // Error if no valid tabs remain (Task 26c)
+    if (filteredSheets.length === 0) {
+      return next(createError('No physician data tabs found in the uploaded file', 400, 'NO_VALID_TABS'));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        sheets: filteredSheets,
+        totalSheets,
+        filteredSheets: filteredSheets.length,
+        skippedSheets
+      }
+    });
+  } catch (error) {
+    next(createError(`Failed to read sheets: ${(error as Error).message}`, 400));
   }
 });
 
@@ -286,12 +362,18 @@ router.post('/validate', handleUpload, async (req: Request, res: Response, next:
  *
  * Query params:
  * - physicianId: (optional) For STAFF/ADMIN, the target physician for imported patients
+ *
+ * Form fields:
+ * - systemId: (optional) Healthcare system ID (default: 'hill')
+ * - mode: (optional) Import mode: 'merge' or 'replace' (default: 'merge')
+ * - sheetName: (optional for Hill, REQUIRED for Sutter) Tab name to import from
  */
 router.post('/preview', handleUpload, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const file = req.file;
     const systemId = req.body.systemId || 'hill';
     const mode: ImportMode = req.body.mode === 'replace' ? 'replace' : 'merge';
+    const sheetName: string | undefined = req.body.sheetName || undefined;
     const user = req.user!;
 
     if (!file) {
@@ -300,6 +382,26 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
 
     if (!systemExists(systemId)) {
       return next(createError(`System not found: ${systemId}`, 404));
+    }
+
+    // Load config to check system-specific requirements
+    const config = loadSystemConfig(systemId);
+
+    // For Sutter imports, sheetName is required
+    if (isSutterConfig(config) && !sheetName) {
+      return next(createError('sheetName is required for Sutter imports', 400, 'MISSING_SHEET_NAME'));
+    }
+
+    // Validate sheetName exists in workbook if provided
+    if (sheetName) {
+      const availableSheets = getSheetNames(file.buffer);
+      if (!availableSheets.includes(sheetName)) {
+        return next(createError(
+          `Sheet "${sheetName}" not found in workbook. Available sheets: ${availableSheets.join(', ')}`,
+          400,
+          'INVALID_SHEET_NAME'
+        ));
+      }
     }
 
     // Determine target ownerId based on user roles
@@ -342,8 +444,22 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       targetOwnerId = user.id;
     }
 
-    // Step 1: Parse the file
-    const parseResult = parseFile(file.buffer, file.originalname);
+    // Step 1: Parse the file (with sheetName/headerRow for Sutter)
+    let parseResult;
+    if (isSutterConfig(config) && sheetName) {
+      // Sutter: use parseExcel directly with sheet selection and headerRow from config
+      parseResult = parseExcel(file.buffer, file.originalname, {
+        sheetName,
+        headerRow: config.headerRow,
+      });
+    } else {
+      parseResult = parseFile(file.buffer, file.originalname);
+    }
+
+    // Task 26c: Validate selected tab has data rows
+    if (parseResult.totalRows === 0) {
+      return next(createError('Selected tab has no patient data rows', 400, 'EMPTY_TAB'));
+    }
 
     // Step 2: Transform the data
     const transformResult = transformData(
@@ -382,7 +498,19 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
     // Step 5: Detect patient reassignments (existing patients that would change owner)
     const reassignments = await detectReassignments(transformResult.rows, targetOwnerId);
 
-    // Step 6: Store in preview cache (include warnings and reassignments)
+    // Step 6: Extract unmappedActions from Sutter transform result (Task 29)
+    const sutterResult = transformResult as SutterTransformResult;
+    const unmappedActions = sutterResult.unmappedActions
+      ? sutterResult.unmappedActions
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 20)
+      : [];
+    const unmappedActionsSummary = {
+      totalTypes: unmappedActions.length,
+      totalRows: unmappedActions.reduce((sum, a) => sum + a.count, 0)
+    };
+
+    // Step 7: Store in preview cache (include warnings, reassignments, sheetName, unmappedActions)
     const warnings = condensedReport.topWarnings.map(w => ({
       rowIndex: w.rowIndex,
       field: w.field,
@@ -402,8 +530,17 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       parseResult.fileName
     );
 
-    // Get the stored entry for summary
+    // Set sheetName and unmappedActions on the stored preview entry
     const previewEntry = getPreview(previewId)!;
+    if (sheetName) {
+      previewEntry.sheetName = sheetName;
+    }
+    if (unmappedActions.length > 0) {
+      previewEntry.unmappedActions = unmappedActions.map(a => ({
+        actionText: a.actionText,
+        count: a.count
+      }));
+    }
 
     res.json({
       success: true,
@@ -412,6 +549,7 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
         systemId,
         mode,
         fileName: parseResult.fileName,
+        sheetName: sheetName || undefined,
         expiresAt: previewEntry.expiresAt.toISOString(),
         targetOwnerId,
         // Summary stats
@@ -439,6 +577,9 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
           requiresConfirmation: reassignments.length > 0,
           items: reassignments.slice(0, 20) // First 20 for preview
         },
+        // Unmapped actions (Task 29)
+        unmappedActions,
+        unmappedActionsSummary,
         // Preview of changes (first 50)
         changes: diffResult.changes.slice(0, 50).map(change => ({
           action: change.action,

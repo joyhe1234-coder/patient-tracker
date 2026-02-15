@@ -16,13 +16,82 @@ export interface StatusMapping {
   nonCompliant: string;
 }
 
-export interface SystemConfig {
+/**
+ * Action mapping entry for Sutter config.
+ * Maps a regex pattern (applied to "Possible Actions Needed" text)
+ * to a requestType, qualityMeasure, and measureStatus tuple.
+ */
+export interface ActionMappingEntry {
+  pattern: string;
+  requestType: string;
+  qualityMeasure: string;
+  measureStatus: string;
+}
+
+/**
+ * Skip tab pattern for Sutter config.
+ * Defines how to match tab names that should be excluded from import.
+ */
+export interface SkipTabPattern {
+  type: 'suffix' | 'prefix' | 'exact' | 'contains';
+  value: string;
+}
+
+/**
+ * Shared base fields for all system configurations.
+ */
+export interface SystemConfigBase {
   name: string;
   version: string;
   patientColumns: Record<string, string>;
+}
+
+/**
+ * Hill-specific config (wide format).
+ * Uses Q1/Q2 suffix column matching with measure columns.
+ */
+export interface HillSystemConfig extends SystemConfigBase {
+  format?: 'wide';
   measureColumns: Record<string, MeasureColumnMapping>;
   statusMapping: Record<string, StatusMapping>;
   skipColumns: string[];
+}
+
+/**
+ * Sutter-specific config (long format).
+ * Uses direct column mapping with action-based measure resolution.
+ */
+export interface SutterSystemConfig extends SystemConfigBase {
+  format: 'long';
+  headerRow: number;
+  dataColumns: string[];
+  requestTypeMapping: Record<string, {
+    requestType: string | null;
+    qualityMeasure: string | null;
+  }>;
+  actionMapping: ActionMappingEntry[];
+  skipActions: string[];
+  skipTabs: SkipTabPattern[];
+}
+
+/**
+ * Discriminated union of all system configurations.
+ * Use isSutterConfig() or isHillConfig() type guards to narrow.
+ */
+export type SystemConfig = HillSystemConfig | SutterSystemConfig;
+
+/**
+ * Type guard: returns true if config is a Sutter/long-format config.
+ */
+export function isSutterConfig(config: SystemConfig): config is SutterSystemConfig {
+  return (config as SutterSystemConfig).format === 'long';
+}
+
+/**
+ * Type guard: returns true if config is a Hill/wide-format config.
+ */
+export function isHillConfig(config: SystemConfig): config is HillSystemConfig {
+  return !isSutterConfig(config);
 }
 
 export interface SystemInfo {

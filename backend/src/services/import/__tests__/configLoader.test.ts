@@ -10,8 +10,12 @@ import {
   listSystems,
   getDefaultSystemId,
   systemExists,
-  SystemConfig,
-  SystemsRegistry,
+  type SystemConfig,
+  type SystemsRegistry,
+  type HillSystemConfig,
+  type SutterSystemConfig,
+  isHillConfig,
+  isSutterConfig,
 } from '../configLoader.js';
 
 describe('configLoader', () => {
@@ -60,12 +64,14 @@ describe('configLoader', () => {
 
     it('should have measureColumns defined', () => {
       const config = loadSystemConfig('hill');
+      expect(isHillConfig(config)).toBe(true);
+      const hillConfig = config as HillSystemConfig;
 
-      expect(config.measureColumns).toBeDefined();
-      expect(Object.keys(config.measureColumns).length).toBeGreaterThan(0);
+      expect(hillConfig.measureColumns).toBeDefined();
+      expect(Object.keys(hillConfig.measureColumns).length).toBeGreaterThan(0);
 
       // Check specific measure
-      const awv = config.measureColumns['Annual Wellness Visit'];
+      const awv = hillConfig.measureColumns['Annual Wellness Visit'];
       expect(awv).toBeDefined();
       expect(awv.requestType).toBe('AWV');
       expect(awv.qualityMeasure).toBe('Annual Wellness Visit');
@@ -73,10 +79,11 @@ describe('configLoader', () => {
 
     it('should have statusMapping defined', () => {
       const config = loadSystemConfig('hill');
+      const hillConfig = config as HillSystemConfig;
 
-      expect(config.statusMapping).toBeDefined();
+      expect(hillConfig.statusMapping).toBeDefined();
 
-      const awvStatus = config.statusMapping['Annual Wellness Visit'];
+      const awvStatus = hillConfig.statusMapping['Annual Wellness Visit'];
       expect(awvStatus).toBeDefined();
       expect(awvStatus.compliant).toBe('AWV completed');
       expect(awvStatus.nonCompliant).toBe('Not Addressed');
@@ -84,11 +91,12 @@ describe('configLoader', () => {
 
     it('should have skipColumns defined', () => {
       const config = loadSystemConfig('hill');
+      const hillConfig = config as HillSystemConfig;
 
-      expect(config.skipColumns).toBeDefined();
-      expect(Array.isArray(config.skipColumns)).toBe(true);
-      expect(config.skipColumns).toContain('Sex');
-      expect(config.skipColumns).toContain('MembID');
+      expect(hillConfig.skipColumns).toBeDefined();
+      expect(Array.isArray(hillConfig.skipColumns)).toBe(true);
+      expect(hillConfig.skipColumns).toContain('Sex');
+      expect(hillConfig.skipColumns).toContain('MembID');
     });
 
     it('should throw error for unknown system', () => {
@@ -175,9 +183,149 @@ describe('configLoader', () => {
     });
   });
 
+  describe('Sutter system config', () => {
+    it('should load sutter system config successfully', () => {
+      const config = loadSystemConfig('sutter');
+
+      expect(config).toBeDefined();
+      expect(config.name).toBe('Sutter/SIP');
+      expect(config.version).toBeDefined();
+    });
+
+    it('should have format "long" for Sutter config', () => {
+      const config = loadSystemConfig('sutter');
+
+      expect(isSutterConfig(config)).toBe(true);
+      const sutterConfig = config as SutterSystemConfig;
+      expect(sutterConfig.format).toBe('long');
+    });
+
+    it('should have headerRow defined for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(config.headerRow).toBeDefined();
+      expect(config.headerRow).toBe(3);
+    });
+
+    it('should have patientColumns defined for Sutter', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(config.patientColumns).toBeDefined();
+      expect(config.patientColumns['Member Name']).toBe('memberName');
+      expect(config.patientColumns['Member DOB']).toBe('memberDob');
+      expect(config.patientColumns['Member Telephone']).toBe('memberTelephone');
+      expect(config.patientColumns['Member Home Address']).toBe('memberAddress');
+    });
+
+    it('should have dataColumns array for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(Array.isArray(config.dataColumns)).toBe(true);
+      expect(config.dataColumns).toContain('Possible Actions Needed');
+      expect(config.dataColumns).toContain('Request Type');
+      expect(config.dataColumns).toContain('Measure Details');
+    });
+
+    it('should have requestTypeMapping for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(config.requestTypeMapping).toBeDefined();
+      expect(config.requestTypeMapping['AWV']).toBeDefined();
+      expect(config.requestTypeMapping['AWV'].requestType).toBe('AWV');
+      expect(config.requestTypeMapping['HCC']).toBeDefined();
+      expect(config.requestTypeMapping['HCC'].requestType).toBe('Chronic DX');
+      expect(config.requestTypeMapping['Quality']).toBeDefined();
+      expect(config.requestTypeMapping['Quality'].requestType).toBeNull();
+    });
+
+    it('should have actionMapping array for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(Array.isArray(config.actionMapping)).toBe(true);
+      expect(config.actionMapping.length).toBeGreaterThan(0);
+
+      // Each entry should have pattern, requestType, qualityMeasure, measureStatus
+      for (const entry of config.actionMapping) {
+        expect(typeof entry.pattern).toBe('string');
+        expect(typeof entry.requestType).toBe('string');
+        expect(typeof entry.qualityMeasure).toBe('string');
+        expect(typeof entry.measureStatus).toBe('string');
+      }
+    });
+
+    it('should have skipActions array for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(Array.isArray(config.skipActions)).toBe(true);
+      expect(config.skipActions.length).toBeGreaterThan(0);
+    });
+
+    it('should have skipTabs array for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      expect(Array.isArray(config.skipTabs)).toBe(true);
+      expect(config.skipTabs.length).toBeGreaterThan(0);
+
+      // Each entry should have type and value
+      for (const tab of config.skipTabs) {
+        expect(['suffix', 'prefix', 'exact', 'contains']).toContain(tab.type);
+        expect(typeof tab.value).toBe('string');
+      }
+    });
+  });
+
+  describe('type guards', () => {
+    it('isSutterConfig should return true for Sutter config', () => {
+      const config = loadSystemConfig('sutter');
+      expect(isSutterConfig(config)).toBe(true);
+    });
+
+    it('isSutterConfig should return false for Hill config', () => {
+      const config = loadSystemConfig('hill');
+      expect(isSutterConfig(config)).toBe(false);
+    });
+
+    it('isHillConfig should return true for Hill config', () => {
+      const config = loadSystemConfig('hill');
+      expect(isHillConfig(config)).toBe(true);
+    });
+
+    it('isHillConfig should return false for Sutter config', () => {
+      const config = loadSystemConfig('sutter');
+      expect(isHillConfig(config)).toBe(false);
+    });
+
+    it('union type allows both Hill and Sutter configs', () => {
+      const hillConfig: SystemConfig = loadSystemConfig('hill');
+      const sutterConfig: SystemConfig = loadSystemConfig('sutter');
+
+      // Both should be assignable to SystemConfig
+      expect(hillConfig).toBeDefined();
+      expect(sutterConfig).toBeDefined();
+
+      // And distinguishable via type guards
+      expect(isHillConfig(hillConfig)).toBe(true);
+      expect(isSutterConfig(sutterConfig)).toBe(true);
+    });
+  });
+
+  describe('Sutter in system registry', () => {
+    it('should include sutter in systems list', () => {
+      const systems = listSystems();
+
+      const sutter = systems.find(s => s.id === 'sutter');
+      expect(sutter).toBeDefined();
+      expect(sutter?.name).toBe('Sutter/SIP');
+    });
+
+    it('systemExists should return true for sutter', () => {
+      expect(systemExists('sutter')).toBe(true);
+    });
+  });
+
   describe('config structure validation', () => {
     it('should have consistent measure types across measureColumns and statusMapping', () => {
-      const config = loadSystemConfig('hill');
+      const config = loadSystemConfig('hill') as HillSystemConfig;
 
       // Get unique quality measures from measureColumns
       const measureQualityMeasures = new Set<string>();
@@ -195,7 +343,7 @@ describe('configLoader', () => {
     });
 
     it('should have multiple measure column mappings', () => {
-      const config = loadSystemConfig('hill');
+      const config = loadSystemConfig('hill') as HillSystemConfig;
 
       // Should have various measure types
       const qualityMeasures = new Set<string>();

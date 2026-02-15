@@ -30,8 +30,8 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 777 tests passing
-- Layer 2 (Frontend Vitest): 895 tests passing
+- Layer 1 (Backend Jest): 1,030 tests passing
+- Layer 2 (Frontend Vitest): 956 tests passing
 - Visual test plan v2.1: 427 test cases documented
 
 ### Security Hardening — Phase 1: Env Var Validation (REQ-SEC-04, REQ-SEC-05)
@@ -84,6 +84,30 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] AdminPage.tsx: "Send Temp Password" button + result modal (SMTP fallback)
 - [x] ~30 new Jest tests (lockout, temp password, force-change, admin send-temp)
 - [x] ~12 new Vitest tests (ForcePasswordChange, LoginPage, AdminPage)
+
+### Sutter/SIP Multi-System Import
+
+**Status: Complete** (Feb 14, 2026)
+**Spec:** `.claude/specs/sutter-import/` (requirements, design, tasks)
+
+- [x] Sutter system config (`sutter.json`): tab-based physician layout, skipTabs patterns, header row offset, action-to-status mapping
+- [x] Systems registry updated (`systems.json`): `sutter` added alongside `hill`
+- [x] Config loader: `isHillConfig()` / `isSutterConfig()` type guards, `SutterSystemConfig` / `SkipTabPattern` types
+- [x] File parser: `parseExcel()` with sheet selection + header row, `getSheetNames()` for tab discovery
+- [x] New `POST /api/import/sheets` endpoint: tab discovery with skipTabs filtering, NO_VALID_TABS error
+- [x] Enhanced `POST /api/import/preview`: sheetName validation, EMPTY_TAB / MISSING_SHEET_NAME / INVALID_SHEET_NAME errors, Sutter-specific parsing
+- [x] `actionMapper.ts`: Sutter action text to measureStatus/requestType/qualityMeasure mapping with fuzzy matching
+- [x] `measureDetailsParser.ts`: freeform text parsing for HgbA1c, BP readings, test types, time intervals
+- [x] `sutterColumnMapper.ts`: per-tab column mapping (member name, DOB, action, measure details)
+- [x] `sutterDataTransformer.ts`: wide-to-long format with unmapped action tracking
+- [x] Extended: columnMapper, dataTransformer, diffCalculator, importExecutor, previewCache, validator for Sutter paths
+- [x] ImportPage.tsx: Sutter system option, dynamic step numbering, sheet selection + physician assignment step
+- [x] SheetSelector.tsx: tab selection component with physician dropdown, API integration
+- [x] UnmappedActionsBanner.tsx: unmapped action display with counts, accessible markup
+- [x] ImportPreviewPage.tsx: sheetName, physicianName, UnmappedActionsBanner display
+- [x] 3 Playwright E2E spec files + import-page page object
+- [x] 253 new Jest tests (8 new test files + 6 enhanced existing files)
+- [x] 61 new Vitest tests (SheetSelector, UnmappedActionsBanner, ImportPage, ImportPreviewPage)
 
 ### Insurance Group Filter (REQ-IG)
 
@@ -476,8 +500,10 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - LoginPage.test.tsx (18 tests - includes login warning display)
   - ForgotPasswordPage.test.tsx (14 tests)
   - ResetPasswordPage.test.tsx (18 tests - includes password helper text)
-  - ImportPage.test.tsx (27 tests - includes warning icon, max file size)
-  - ImportPreviewPage.test.tsx (23 tests)
+  - ImportPage.test.tsx (39 tests - includes warning icon, max file size, Sutter system selection, sheet selector step, physician assignment)
+  - ImportPreviewPage.test.tsx (31 tests - includes unmapped actions banner, sheetName/physicianName display)
+  - SheetSelector.test.tsx (24 tests - sheet discovery, physician selection, error handling)
+  - UnmappedActionsBanner.test.tsx (17 tests - rendering, expand/collapse, accessibility)
   - MainPage.test.tsx (41 tests - search filtering, word-based search, multi-select filter logic, measure dropdown filtering)
   - authStore.test.ts (25 tests)
   - PatientManagementPage.test.tsx (18 tests)
@@ -545,8 +571,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 763 tests passing (was 741; +22 from account lockout + temp password + force-change-password)
-- Total test count: ~2,020 automated tests across all frameworks (763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress)
+- [x] 1,030 tests passing (was 777; +253 from Sutter multi-system import)
+- Total test count: ~2,371 automated tests across all frameworks (1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
   - auth.routes.test.ts - 39 tests (login, registration, password reset, JWT, failed login audit logging)
@@ -560,13 +586,22 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [x] Service tests:
   - dueDateCalculator.test.ts - 31 tests (Prisma mock, edge cases, month boundaries)
 - [x] Import services tests:
-  - fileParser.test.ts - 28 tests, 95% coverage (CSV/Excel parsing, title row detection)
-  - diffCalculator.test.ts - 54 tests, 97% coverage (status categorization, merge logic)
+  - fileParser.test.ts - 28+ tests, 95% coverage (CSV/Excel parsing, title row detection, sheet selection)
+  - diffCalculator.test.ts - 54+ tests, 97% coverage (status categorization, merge logic)
   - mergeLogic.test.ts - 12 integration tests (graceful DB skip, `import.meta.url` fix)
-  - previewCache.test.ts - 17 tests (cache TTL, cleanup)
+  - previewCache.test.ts - 17+ tests (cache TTL, cleanup, sheetName/unmappedActions)
   - validator.test.ts - validation error handling (`import.meta.url` fix)
   - integration.test.ts - integration tests (`import.meta.url` fix)
-  - importExecutor.test.ts - 16 tests (replace/merge mode execution)
+  - importExecutor.test.ts - 16+ tests (replace/merge mode execution, Sutter paths)
+  - configLoader.test.ts - enhanced with Sutter config type guard tests
+  - actionMapper.test.ts - action text to status mapping, fuzzy matching
+  - measureDetailsParser.test.ts - freeform text parsing for tracking values
+  - sutterColumnMapper.test.ts - per-tab column mapping
+  - sutterDataTransformer.test.ts - wide-to-long transform, unmapped action tracking
+  - sutter-import-flow.test.ts - end-to-end Sutter import flow
+  - sutter-edge-cases.test.ts - edge cases and boundary conditions
+  - sutter-error-handling.test.ts - error paths and validation
+  - sutter-performance.test.ts - performance characteristics
 
 ---
 
@@ -880,6 +915,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 14, 2026 - Sutter/SIP multi-system import: full pipeline (config, parser, routes, transformer, mapper, UI components). 253 new Jest + 61 new Vitest tests. All tests passing: 1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress = ~2,371 automated tests.
 February 13, 2026 - Security hardening phase 3: account lockout + temp password + forced password change (REQ-SEC-06). Prisma migration (3 fields), authService lockout functions, ForcePasswordChange modal, LoginPage warning, AdminPage send-temp-password. ~30 Jest + ~12 Vitest new tests. All tests passing: 763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress = ~2,020 automated tests.
 February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP. Admin panel orange/red badges. Email service Ethereal integration tests. 15 new Jest + 5 new Vitest tests.
 February 13, 2026 - Release 4.6.0: Insurance group filter (REQ-IG), security hardening phases 1-3 (REQ-SEC-04/05/06/10). All tests passing: 777 Jest + 895 Vitest + 43 Playwright + ~342 Cypress = ~2,057 automated tests.

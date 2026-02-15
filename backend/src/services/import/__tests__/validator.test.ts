@@ -329,6 +329,68 @@ describe('validator', () => {
     });
   });
 
+  describe('Sutter data validation', () => {
+    it('should validate Sutter TransformedRows with Chronic DX request type', () => {
+      const rows = [createBaseRow({
+        requestType: 'Chronic DX',
+        qualityMeasure: 'Chronic Diagnosis Code',
+        notes: 'HCC coding action text',
+      })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(true);
+      const typeErrors = result.errors.filter(e => e.field === 'requestType');
+      expect(typeErrors).toHaveLength(0);
+    });
+
+    it('should validate Sutter TransformedRows with Screening request type', () => {
+      const rows = [createBaseRow({
+        requestType: 'Screening',
+        qualityMeasure: 'Colon Cancer Screening',
+      })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('should treat invalid requestType as warning for Sutter system', () => {
+      const rows = [createBaseRow({ requestType: 'UnknownType' })];
+
+      const result = validateRows(rows, 'sutter');
+
+      // Should pass validation (warnings don't fail)
+      expect(result.valid).toBe(true);
+      const typeWarning = result.warnings.find(w => w.field === 'requestType');
+      expect(typeWarning).toBeDefined();
+      expect(typeWarning?.severity).toBe('warning');
+      expect(typeWarning?.message).toContain('Invalid request type');
+    });
+
+    it('should treat invalid requestType as error for Hill system', () => {
+      const rows = [createBaseRow({ requestType: 'UnknownType' })];
+
+      const result = validateRows(rows, 'hill');
+
+      expect(result.valid).toBe(false);
+      const typeError = result.errors.find(e => e.field === 'requestType');
+      expect(typeError).toBeDefined();
+      expect(typeError?.severity).toBe('error');
+    });
+
+    it('should treat invalid requestType as error when systemId is not specified', () => {
+      const rows = [createBaseRow({ requestType: 'UnknownType' })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(false);
+      const typeError = result.errors.find(e => e.field === 'requestType');
+      expect(typeError).toBeDefined();
+      expect(typeError?.severity).toBe('error');
+    });
+  });
+
   describe('date validation edge cases', () => {
     it('should accept various valid date formats after transformation', () => {
       // The transformer should normalize to YYYY-MM-DD

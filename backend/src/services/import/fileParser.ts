@@ -112,19 +112,30 @@ function isTitleRow(row: unknown[]): boolean {
 }
 
 /**
- * Parse an Excel file buffer
+ * Parse an Excel file buffer.
+ * @param buffer - The file buffer to read
+ * @param fileName - Original file name
+ * @param options - Optional: sheet selection and header row override
  */
-export function parseExcel(buffer: Buffer, fileName: string): ParseResult {
+export function parseExcel(buffer: Buffer, fileName: string, options?: ParseOptions): ParseResult {
   // Use raw: true to prevent XLSX from auto-converting dates to serial numbers
   const workbook = XLSX.read(buffer, { type: 'buffer', raw: true });
 
-  // Get the first sheet
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
-    throw new Error('Excel file has no sheets');
+  // Select sheet: use options.sheetName if provided, otherwise first sheet
+  let selectedSheetName: string;
+  if (options?.sheetName) {
+    if (!workbook.SheetNames.includes(options.sheetName)) {
+      throw new Error(`Sheet "${options.sheetName}" not found in workbook. Available sheets: ${workbook.SheetNames.join(', ')}`);
+    }
+    selectedSheetName = options.sheetName;
+  } else {
+    selectedSheetName = workbook.SheetNames[0];
+    if (!selectedSheetName) {
+      throw new Error('Excel file has no sheets');
+    }
   }
 
-  const worksheet = workbook.Sheets[sheetName];
+  const worksheet = workbook.Sheets[selectedSheetName];
   if (!worksheet) {
     throw new Error('Could not read worksheet');
   }
@@ -141,10 +152,20 @@ export function parseExcel(buffer: Buffer, fileName: string): ParseResult {
     throw new Error('Excel file is empty');
   }
 
-  // Check if first row is a title row (skip if so)
-  let headerRowIndex = 0;
-  if (isTitleRow(jsonData[0] as unknown[])) {
-    headerRowIndex = 1;
+  // Determine header row index
+  let headerRowIndex: number;
+  if (options?.headerRow !== undefined) {
+    // Use fixed header row index (0-indexed) from options
+    headerRowIndex = options.headerRow;
+    if (headerRowIndex < 0 || headerRowIndex >= jsonData.length) {
+      throw new Error(`Header row index ${headerRowIndex} is out of range (0-${jsonData.length - 1})`);
+    }
+  } else {
+    // Auto-detect: check if first row is a title row (skip if so)
+    headerRowIndex = 0;
+    if (isTitleRow(jsonData[0] as unknown[])) {
+      headerRowIndex = 1;
+    }
   }
 
   if (jsonData.length <= headerRowIndex) {
@@ -176,6 +197,28 @@ export function parseExcel(buffer: Buffer, fileName: string): ParseResult {
     fileType: 'xlsx',
     dataStartRow: headerRowIndex + 2  // 1-indexed: headerRowIndex is 0 or 1, +1 for 1-index, +1 for data after header
   };
+}
+
+/**
+ * Options for parsing Excel files.
+ * Used to select a specific sheet and/or override header row detection.
+ */
+export interface ParseOptions {
+  /** Name of the sheet to parse. If omitted, the first sheet is used. */
+  sheetName?: string;
+  /** 0-indexed row number to use as the header row. If omitted, auto-detect via isTitleRow(). */
+  headerRow?: number;
+}
+
+/**
+ * Get all sheet names from an Excel workbook.
+ * Useful for multi-sheet files (e.g., Sutter physician tabs).
+ * @param buffer - The file buffer to read
+ * @returns Array of sheet names in workbook order
+ */
+export function getSheetNames(buffer: Buffer): string[] {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  return workbook.SheetNames;
 }
 
 /**

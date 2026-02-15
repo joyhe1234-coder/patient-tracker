@@ -5,7 +5,8 @@
 
 import { ParsedRow } from './fileParser.js';
 import { mapColumns, groupMeasureColumns, getPatientColumnMappings, MappingResult } from './columnMapper.js';
-import { loadSystemConfig } from './configLoader.js';
+import { loadSystemConfig, isSutterConfig, type HillSystemConfig } from './configLoader.js';
+import { transformSutterData } from './sutterDataTransformer.js';
 import { parseDate, toISODateString } from '../../utils/dateParser.js';
 
 /**
@@ -23,6 +24,20 @@ export interface TransformedRow {
   qualityMeasure: string;
   measureStatus: string | null;
   statusDate: string | null;
+
+  /**
+   * Free-text notes associated with the measure.
+   * Used by Sutter imports to store HCC action text.
+   * Null/undefined for Hill imports.
+   */
+  notes?: string | null;
+
+  /**
+   * Additional tracking data (e.g., lab readings from Measure Details).
+   * Used by Sutter imports to store parsed Measure Details values.
+   * Null/undefined for Hill imports.
+   */
+  tracking1?: string | null;
 
   // Source info for debugging/auditing
   sourceRowIndex: number;
@@ -64,7 +79,10 @@ export interface PatientWithNoMeasures {
 }
 
 /**
- * Transform parsed data from wide format to long format
+ * Transform parsed data to long format (one row per measure).
+ * Loads the system configuration and dispatches to the appropriate transformer:
+ * - Sutter (long format) -> transformSutterData (already one-row-per-measure)
+ * - Hill (wide format)   -> transformHillData (wide-to-long pivot)
  * @param dataStartRow - 1-indexed spreadsheet row where data starts (for display purposes)
  */
 export function transformData(
@@ -74,6 +92,30 @@ export function transformData(
   dataStartRow: number = 2
 ): TransformResult {
   const config = loadSystemConfig(systemId);
+
+  if (isSutterConfig(config)) {
+    // For Sutter, we need the column mapping to locate data columns.
+    // Compute it here so the public API signature stays unchanged.
+    const mapping = mapColumns(headers, systemId);
+    return transformSutterData(headers, rows, config, mapping, dataStartRow);
+  }
+
+  return transformHillData(headers, rows, config as HillSystemConfig, systemId, dataStartRow);
+}
+
+/**
+ * Hill-specific data transformation logic.
+ * Performs wide-to-long pivot: one input row per patient becomes multiple output rows,
+ * one per quality measure. Handles Q1/Q2 pairing and compliance mapping.
+ * Exported for use by the system-aware dispatcher (task 9).
+ */
+export function transformHillData(
+  headers: string[],
+  rows: ParsedRow[],
+  config: HillSystemConfig,
+  systemId: string,
+  dataStartRow: number = 2
+): TransformResult {
   const mapping = mapColumns(headers, systemId);
   const transformedRows: TransformedRow[] = [];
   const errors: TransformError[] = [];
@@ -148,9 +190,11 @@ export function transformData(
 }
 
 /**
- * Extract patient data from a row
+ * Extract patient data from a row.
+ * Shared utility used by both Hill and Sutter transformers.
+ * Parses DOB via dateParser, normalizes phone numbers, and trims other fields.
  */
-function extractPatientData(
+export function extractPatientData(
   row: ParsedRow,
   patientMappings: { sourceColumn: string; targetField: string }[],
   rowIndex: number,
@@ -227,7 +271,7 @@ function transformMeasureRow(
     requestType: string;
     qualityMeasure: string;
   },
-  config: ReturnType<typeof loadSystemConfig>,
+  config: HillSystemConfig,
   rowIndex: number,
   _errors: TransformError[]
 ): TransformedRow | null {
@@ -322,7 +366,7 @@ function transformMeasureRow(
 function mapComplianceToStatus(
   complianceValue: string,
   qualityMeasure: string,
-  config: ReturnType<typeof loadSystemConfig>
+  config: HillSystemConfig
 ): string | null {
   const statusMapping = config.statusMapping[qualityMeasure];
   if (!statusMapping) return null;
@@ -349,9 +393,12 @@ function mapComplianceToStatus(
 }
 
 /**
- * Normalize phone number to standard format
+ * Normalize phone number to standard format.
+ * Shared utility used by both Hill and Sutter transformers.
+ * Formats 10-digit US numbers as (XXX) XXX-XXXX. Returns original value
+ * if it cannot be normalized, or null if empty.
  */
-function normalizePhone(value: string | undefined): string | null {
+export function normalizePhone(value: string | undefined): string | null {
   if (!value) return null;
 
   // Remove all non-digit characters
