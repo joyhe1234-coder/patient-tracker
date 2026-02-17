@@ -821,6 +821,36 @@ describe('Import Routes', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('uses headerRow 0 for CSV files even when config has headerRow 3 (Sutter CSV)', async () => {
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['Sheet1'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['Sheet1', ['Member Name', 'Member DOB', 'Request Type', 'Measure Details']]])
+      );
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Member Name', 'Member DOB'],
+        dataColumns: ['Request Type', 'Measure Details'],
+        minDataColumns: 1,
+      });
+      mockLoadSystemConfig.mockReturnValue({
+        name: 'Sutter/SIP',
+        version: '1.0',
+        format: 'long',
+        headerRow: 3,
+        patientColumns: { 'Member Name': 'memberName', 'Member DOB': 'memberDob' },
+        dataColumns: ['Request Type', 'Measure Details'],
+        skipTabs: [],
+      });
+
+      const res = await request(app)
+        .post('/api/import/sheets')
+        .set('x-test-file', 'test-sutter.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.sheets).toEqual(['Sheet1']);
+      // Verify getSheetHeaders was called with headerRow 0 (not 3)
+      expect(mockGetSheetHeaders).toHaveBeenCalledWith(expect.anything(), ['Sheet1'], 0);
+    });
   });
 
   // ── POST /api/import/preview with sheetName (Task 32) ─────────

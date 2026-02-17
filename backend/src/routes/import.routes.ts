@@ -199,7 +199,11 @@ router.post('/sheets', handleUpload, async (req: Request, res: Response, next: N
     const required = getRequiredColumns(config);
 
     // Step 4: Get headers for candidate sheets
-    const headerMap = getSheetHeaders(workbook, candidateSheets, config.headerRow ?? 0);
+    // CSV files always have headers on row 0 (no metadata rows), regardless of config.headerRow
+    const fileName = file.originalname?.toLowerCase() || '';
+    const isCSV = fileName.endsWith('.csv');
+    const headerRowIndex = isCSV ? 0 : (config.headerRow ?? 0);
+    const headerMap = getSheetHeaders(workbook, candidateSheets, headerRowIndex);
 
     // Step 5: Validate each candidate sheet's headers
     const validSheets: string[] = [];
@@ -546,9 +550,11 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
     let parseResult;
     if (isSutterConfig(config) && sheetName) {
       // Sutter: use parseExcel directly with sheet selection and headerRow from config
+      // CSV files always have headers on row 0 (no metadata rows)
+      const fileIsCSV = file.originalname?.toLowerCase().endsWith('.csv');
       parseResult = parseExcel(file.buffer, file.originalname, {
         sheetName,
-        headerRow: config.headerRow,
+        headerRow: fileIsCSV ? 0 : config.headerRow,
       });
     } else {
       parseResult = parseFile(file.buffer, file.originalname);
