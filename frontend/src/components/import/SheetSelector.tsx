@@ -60,7 +60,8 @@ export default function SheetSelector({
   const [suggestedPhysicianId, setSuggestedPhysicianId] = useState<number | null>(null);
   const [showInvalidDetails, setShowInvalidDetails] = useState(false);
 
-  const isPhysicianRole = user?.roles.includes('PHYSICIAN') ?? false;
+  // PHYSICIAN-only users get auto-assigned; ADMIN (even with PHYSICIAN) gets dropdown
+  const isPhysicianRole = (user?.roles.includes('PHYSICIAN') && !user?.roles.includes('ADMIN')) ?? false;
 
   // Fetch sheet names on mount
   useEffect(() => {

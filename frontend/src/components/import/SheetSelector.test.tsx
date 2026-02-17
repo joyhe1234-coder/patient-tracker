@@ -1044,6 +1044,29 @@ describe('SheetSelector', () => {
       });
     });
 
+    it('ADMIN+PHYSICIAN dual role shows physician dropdown (not auto-assigned)', async () => {
+      // User with both ADMIN and PHYSICIAN roles should get the dropdown
+      mockAuthUser = {
+        id: 1,
+        email: 'admin-phy@example.com',
+        displayName: 'Ko Admin-Phy',
+        roles: ['ADMIN', 'PHYSICIAN'],
+        isActive: true,
+        lastLoginAt: null,
+      };
+      (api.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockSingleSheetResponse);
+
+      renderSheetSelector();
+
+      await waitFor(() => {
+        expect(screen.getByText(/Importing from: Smith, John/)).toBeInTheDocument();
+      });
+
+      // Should show physician dropdown (ADMIN behavior), NOT "Importing for:" text
+      expect(screen.getByLabelText('Assign to Physician')).toBeInTheDocument();
+      expect(screen.queryByText(/Importing for:/)).not.toBeInTheDocument();
+    });
+
     it('PHYSICIAN role falls back to user displayName when not in physicians list', async () => {
       setAuthUser('PHYSICIAN', 999); // ID not in mockPhysicians
       mockAuthUser!.displayName = 'Dr. Unknown';
