@@ -587,6 +587,107 @@ describe('sutterDataTransformer', () => {
     });
   });
 
+  describe('measureStatus defaulting for mapped actions', () => {
+    it('should default measureStatus to "Not Addressed" when action match has empty measureStatus', () => {
+      // FOBT action maps to Colon Cancer Screening; the config match.measureStatus
+      // is set to "Not Addressed" via the || fallback in the transformer
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'FOBT in 2025 or colonoscopy in 2015-2025',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].measureStatus).toBe('Not Addressed');
+    });
+
+    it('should preserve explicit measureStatus from action match when present', () => {
+      // HTN BP action maps to Hypertension Management with measureStatus "Not at goal"
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].measureStatus).toBe('Not at goal');
+    });
+
+    it('should handle mixed mapped and unmapped rows correctly', () => {
+      const rows: ParsedRow[] = [
+        // Mapped: FOBT -> Screening / Colon Cancer Screening, status defaults to "Not Addressed"
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'FOBT in 2025 or colonoscopy in 2015-2025',
+        }),
+        // Mapped: HTN -> Quality / Hypertension Management, status = "Not at goal"
+        makeRow({
+          'Member Name': 'Doe, Jane',
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+        }),
+        // Unmapped: skipped, no warnings about status
+        makeRow({
+          'Member Name': 'Brown, Bob',
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'Some completely unmapped action',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      // Only the two mapped rows should produce output
+      expect(result.rows).toHaveLength(2);
+
+      // First mapped row: defaulted status
+      const colonRow = result.rows.find(r => r.qualityMeasure === 'Colon Cancer Screening');
+      expect(colonRow).toBeDefined();
+      expect(colonRow!.measureStatus).toBe('Not Addressed');
+
+      // Second mapped row: explicit status from config
+      const htnRow = result.rows.find(r => r.qualityMeasure === 'Hypertension Management');
+      expect(htnRow).toBeDefined();
+      expect(htnRow!.measureStatus).toBe('Not at goal');
+
+      // Unmapped row should be in unmappedActions, not errors
+      expect(result.unmappedActions).toHaveLength(1);
+      expect(result.unmappedActions[0].actionText).toBe('Some completely unmapped action');
+    });
+
+    it('should NOT set measureStatus for AWV rows (direct mapping, not action match)', () => {
+      const rows: ParsedRow[] = [
+        makeRow({ 'Request Type': 'AWV' }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      // AWV uses direct config mapping; measureStatus is null (not set via action mapper)
+      expect(result.rows[0].measureStatus).toBeNull();
+    });
+
+    it('should NOT set measureStatus for HCC rows (direct mapping, not action match)', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'HCC',
+          'Possible Actions Needed': 'Diabetes Type 2, E11.65',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      // HCC uses direct config mapping; measureStatus is null
+      expect(result.rows[0].measureStatus).toBeNull();
+    });
+  });
+
   describe('patientsWithNoMeasures', () => {
     it('should return empty patientsWithNoMeasures array (Sutter is 1:1)', () => {
       const rows: ParsedRow[] = [makeRow({ 'Request Type': 'AWV' })];

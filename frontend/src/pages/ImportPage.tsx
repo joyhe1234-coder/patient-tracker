@@ -5,7 +5,6 @@ import axios from 'axios';
 import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { getApiErrorMessage } from '../utils/apiError';
-import { useAuthStore } from '../stores/authStore';
 import SheetSelector from '../components/import/SheetSelector';
 
 type ImportMode = 'replace' | 'merge';
@@ -29,7 +28,6 @@ const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
 
 export function ImportTabContent() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [systemId, setSystemId] = useState<string>('hill');
   const [mode, setMode] = useState<ImportMode>('merge');
   const [file, setFile] = useState<File | null>(null);
@@ -44,27 +42,19 @@ export function ImportTabContent() {
   }>>([]);
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
 
-  // Physician selection for STAFF/ADMIN
+  // Physicians for SheetSelector (loaded for all systems)
   const [physicians, setPhysicians] = useState<Physician[]>([]);
-  const [selectedPhysicianId, setSelectedPhysicianId] = useState<number | null>(null);
   const [loadingPhysicians, setLoadingPhysicians] = useState(false);
 
-  // Sutter-specific state: sheet selection + physician assignment from SheetSelector
+  // Sheet selection + physician assignment from SheetSelector (universal)
   const [selectedSheetName, setSelectedSheetName] = useState<string | null>(null);
   const [sheetPhysicianId, setSheetPhysicianId] = useState<number | null>(null);
   const [_sheetError, setSheetError] = useState<string | null>(null);
 
-  const isSutter = systemId === 'sutter';
-
-  // Determine if user needs to select a physician
-  const needsPhysicianSelection = user?.roles.includes('STAFF') || user?.roles.includes('ADMIN');
-
-  // Load available physicians for STAFF/ADMIN users, or when Sutter is selected
+  // Load available physicians for SheetSelector
   useEffect(() => {
-    if (needsPhysicianSelection || isSutter) {
-      loadPhysicians();
-    }
-  }, [needsPhysicianSelection, isSutter]);
+    loadPhysicians();
+  }, []);
 
   const loadPhysicians = async () => {
     setLoadingPhysicians(true);
@@ -72,10 +62,6 @@ export function ImportTabContent() {
       const response = await api.get('/users/physicians');
       if (response.data.success) {
         setPhysicians(response.data.data);
-        // Auto-select if only one physician available
-        if (response.data.data.length === 1) {
-          setSelectedPhysicianId(response.data.data[0].id);
-        }
       }
     } catch (err) {
       logger.error('Failed to load physicians:', err);
@@ -139,19 +125,13 @@ export function ImportTabContent() {
       return;
     }
 
-    // Validate Sutter requires sheet and physician selection
-    if (isSutter && !selectedSheetName) {
+    // Validate sheet and physician selection (universal for all systems)
+    if (!selectedSheetName) {
       setError('Please select a tab from the workbook');
       return;
     }
-    if (isSutter && !sheetPhysicianId) {
-      setError('Please select a physician for the selected tab');
-      return;
-    }
-
-    // Validate physician selection for STAFF/ADMIN (non-Sutter)
-    if (!isSutter && needsPhysicianSelection && !selectedPhysicianId) {
-      setError('Please select a physician to import patients for');
+    if (!sheetPhysicianId) {
+      setError('Please select a physician for the import');
       return;
     }
 
@@ -181,19 +161,15 @@ export function ImportTabContent() {
       formData.append('systemId', systemId);
       formData.append('mode', mode);
 
-      // Include sheetName for Sutter imports
-      if (isSutter && selectedSheetName) {
+      // Always include sheetName from SheetSelector
+      if (selectedSheetName) {
         formData.append('sheetName', selectedSheetName);
       }
 
-      // Build URL with physicianId
+      // Build URL with physicianId from SheetSelector
       let url = '/import/preview';
-      // For Sutter, use the physician selected in the SheetSelector
-      const effectivePhysicianId = isSutter ? sheetPhysicianId : selectedPhysicianId;
-      if (effectivePhysicianId) {
-        url += `?physicianId=${effectivePhysicianId}`;
-      } else if (needsPhysicianSelection && selectedPhysicianId) {
-        url += `?physicianId=${selectedPhysicianId}`;
+      if (sheetPhysicianId) {
+        url += `?physicianId=${sheetPhysicianId}`;
       }
 
       const response = await api.post(url, formData, {
@@ -232,7 +208,7 @@ export function ImportTabContent() {
     setFile(null);
     setError(null);
     setValidationErrors([]);
-    // Reset Sutter-specific state
+    // Reset sheet selection state
     setSelectedSheetName(null);
     setSheetPhysicianId(null);
     setSheetError(null);
@@ -249,22 +225,16 @@ export function ImportTabContent() {
     setSheetError(errorMsg);
   };
 
-  // Dynamic step numbering:
-  // Step 1: Healthcare System (always)
-  // Step 2: Import Mode (always)
-  // Step 3: Physician Selection (non-Sutter STAFF/ADMIN only)
-  // Step N: File Upload
-  // Step N+1: Select Tab & Physician (Sutter only, after file upload)
-  // For Sutter: physician is selected inside SheetSelector, not in the separate step
-  const showPhysicianStep = needsPhysicianSelection && !isSutter;
-  let stepCounter = 2; // After system (1) and mode (2)
-  const physicianStepNum = showPhysicianStep ? ++stepCounter : 0;
-  const fileUploadStepNum = ++stepCounter;
-  const sheetSelectorStepNum = isSutter ? ++stepCounter : 0;
+  // Step numbering:
+  // Step 1: Healthcare System
+  // Step 2: Import Mode
+  // Step 3: File Upload
+  // Step 4: Select Tab & Physician (shown after file upload)
+  const fileUploadStepNum = 3;
+  const sheetSelectorStepNum = 4;
 
   // Determine if submit is allowed
-  const isSutterReady = !isSutter || (!!selectedSheetName && !!sheetPhysicianId);
-  const isSubmitDisabled = !file || loading || (showPhysicianStep && !selectedPhysicianId) || (isSutter && !isSutterReady);
+  const isSubmitDisabled = !file || loading || !selectedSheetName || !sheetPhysicianId;
 
   return (
     <>
@@ -280,7 +250,7 @@ export function ImportTabContent() {
           value={systemId}
           onChange={(e) => {
             setSystemId(e.target.value);
-            // Reset Sutter-specific state when switching system
+            // Reset sheet state when switching system
             setSelectedSheetName(null);
             setSheetPhysicianId(null);
             setSheetError(null);
@@ -356,52 +326,7 @@ export function ImportTabContent() {
         </div>
       </div>
 
-      {/* Step 3: Physician Selection (STAFF/ADMIN only, non-Sutter) */}
-      {showPhysicianStep && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-              {physicianStepNum}
-            </span>
-            <h2 className="text-lg font-semibold text-gray-900">Select Target Physician</h2>
-          </div>
-          {loadingPhysicians ? (
-            <div className="flex items-center gap-2 text-gray-500">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              Loading physicians...
-            </div>
-          ) : physicians.length === 0 ? (
-            <div className="text-gray-500">
-              No physicians available. {user?.roles.includes('STAFF') && 'You need to be assigned to at least one physician.'}
-            </div>
-          ) : (
-            <>
-              <select
-                value={selectedPhysicianId || ''}
-                onChange={(e) => setSelectedPhysicianId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">-- Select a physician --</option>
-                {physicians.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName} {p.roles && p.roles.includes('ADMIN') && '(ADMIN)'}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-sm text-gray-500">
-                {user?.roles.includes('ADMIN')
-                  ? 'Imported patients will be assigned to the selected physician.'
-                  : 'You can only import for physicians you are assigned to.'}
-              </p>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* File Upload Step */}
+      {/* Step 3: File Upload */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
@@ -466,8 +391,8 @@ export function ImportTabContent() {
         )}
       </div>
 
-      {/* Sheet Selector Step (Sutter only, shown after file upload) */}
-      {isSutter && file && (
+      {/* Step 4: Select Tab & Physician (universal, shown after file upload) */}
+      {file && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
@@ -475,13 +400,23 @@ export function ImportTabContent() {
             </span>
             <h2 className="text-lg font-semibold text-gray-900">Select Tab & Physician</h2>
           </div>
-          <SheetSelector
-            file={file}
-            systemId={systemId}
-            physicians={physicians}
-            onSelect={handleSheetSelect}
-            onError={handleSheetError}
-          />
+          {loadingPhysicians ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+              Loading...
+            </div>
+          ) : (
+            <SheetSelector
+              file={file}
+              systemId={systemId}
+              physicians={physicians}
+              onSelect={handleSheetSelect}
+              onError={handleSheetError}
+            />
+          )}
         </div>
       )}
 

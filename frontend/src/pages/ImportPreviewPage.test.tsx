@@ -650,6 +650,56 @@ describe('ImportPreviewPage', () => {
       });
     });
 
+    it('renders previewColumns as dynamic table headers', async () => {
+      const sutterWithPreviewCols = {
+        ...sutterPreviewData,
+        previewColumns: [
+          { field: 'statusDate', label: 'Status Date', source: 'Measure Details' },
+          { field: 'sourceActionText', label: 'Possible Actions Needed', source: 'Possible Actions Needed' },
+        ],
+        changes: {
+          ...sutterPreviewData.changes,
+          items: sutterPreviewData.changes.items.map((item, i) => ({
+            ...item,
+            extraColumns: i === 0
+              ? { statusDate: '2024-06-15', sourceActionText: 'Order lab work' }
+              : {},
+          })),
+        },
+      };
+
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: sutterWithPreviewCols },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Status Date')).toBeInTheDocument();
+        expect(screen.getByText('Possible Actions Needed')).toBeInTheDocument();
+      });
+
+      // Check extra column data rendered
+      expect(screen.getByText('2024-06-15')).toBeInTheDocument();
+      expect(screen.getByText('Order lab work')).toBeInTheDocument();
+    });
+
+    it('does not render extra columns for Hill previews (no previewColumns)', async () => {
+      (api.get as any).mockResolvedValue({
+        data: { success: true, data: mockPreviewData },
+      });
+
+      renderPreviewPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Import Preview')).toBeInTheDocument();
+      });
+
+      // No dynamic column headers should be present
+      expect(screen.queryByText('Status Date')).not.toBeInTheDocument();
+      expect(screen.queryByText('Possible Actions Needed')).not.toBeInTheDocument();
+    });
+
     it('can expand unmapped actions details in preview', async () => {
       (api.get as any).mockResolvedValue({
         data: { success: true, data: sutterPreviewData },

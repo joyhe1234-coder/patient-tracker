@@ -71,9 +71,14 @@ const mockSystemExists = jest.fn<any>().mockReturnValue(true);
 const mockLoadSystemConfig = jest.fn<any>().mockReturnValue({
   name: 'Hill Healthcare',
   version: '1.0',
-  patientColumns: { Patient: {}, DOB: {} },
+  patientColumns: { Patient: 'memberName', DOB: 'memberDob' },
   measureColumns: { 'Annual Wellness Visit': { qualityMeasure: 'AWV' } },
   skipColumns: [],
+});
+const mockGetRequiredColumns = jest.fn<any>().mockReturnValue({
+  patientColumns: ['Patient', 'DOB'],
+  dataColumns: ['Annual Wellness Visit'],
+  minDataColumns: 1,
 });
 
 jest.unstable_mockModule('../../services/import/configLoader.js', () => ({
@@ -82,6 +87,7 @@ jest.unstable_mockModule('../../services/import/configLoader.js', () => ({
   loadSystemConfig: mockLoadSystemConfig,
   isHillConfig: (config: any) => config?.format !== 'long',
   isSutterConfig: (config: any) => config?.format === 'long',
+  getRequiredColumns: mockGetRequiredColumns,
 }));
 
 // Mock fileParser
@@ -109,12 +115,25 @@ const mockParseExcel = jest.fn<any>().mockReturnValue({
 });
 const mockGetSheetNames = jest.fn<any>().mockReturnValue(['Dr. Smith', 'Dr. Jones', 'CAR Report']);
 const mockValidateRequiredColumns = jest.fn<any>().mockReturnValue({ valid: true, missing: [] });
+const mockGetWorkbookInfo = jest.fn<any>().mockReturnValue({
+  sheetNames: ['Dr. Smith', 'Dr. Jones', 'CAR Report'],
+  workbook: {},
+});
+const mockGetSheetHeaders = jest.fn<any>().mockReturnValue(
+  new Map([
+    ['Dr. Smith', ['Patient', 'DOB', 'Annual Wellness Visit']],
+    ['Dr. Jones', ['Patient', 'DOB', 'Annual Wellness Visit']],
+    ['CAR Report', ['Patient', 'DOB', 'Annual Wellness Visit']],
+  ])
+);
 
 jest.unstable_mockModule('../../services/import/fileParser.js', () => ({
   parseFile: mockParseFile,
   parseExcel: mockParseExcel,
   getSheetNames: mockGetSheetNames,
   validateRequiredColumns: mockValidateRequiredColumns,
+  getWorkbookInfo: mockGetWorkbookInfo,
+  getSheetHeaders: mockGetSheetHeaders,
 }));
 
 // Mock columnMapper
@@ -293,9 +312,14 @@ describe('Import Routes', () => {
     mockLoadSystemConfig.mockReturnValue({
       name: 'Hill Healthcare',
       version: '1.0',
-      patientColumns: { Patient: {}, DOB: {} },
+      patientColumns: { Patient: 'memberName', DOB: 'memberDob' },
       measureColumns: { 'Annual Wellness Visit': { qualityMeasure: 'AWV' } },
       skipColumns: [],
+    });
+    mockGetRequiredColumns.mockReturnValue({
+      patientColumns: ['Patient', 'DOB'],
+      dataColumns: ['Annual Wellness Visit'],
+      minDataColumns: 1,
     });
     mockParseFile.mockReturnValue({
       fileName: 'test.csv',
@@ -320,6 +344,17 @@ describe('Import Routes', () => {
       dataStartRow: 4,
     });
     mockGetSheetNames.mockReturnValue(['Dr. Smith', 'Dr. Jones', 'CAR Report']);
+    mockGetWorkbookInfo.mockReturnValue({
+      sheetNames: ['Dr. Smith', 'Dr. Jones', 'CAR Report'],
+      workbook: {},
+    });
+    mockGetSheetHeaders.mockReturnValue(
+      new Map([
+        ['Dr. Smith', ['Patient', 'DOB', 'Annual Wellness Visit']],
+        ['Dr. Jones', ['Patient', 'DOB', 'Annual Wellness Visit']],
+        ['CAR Report', ['Patient', 'DOB', 'Annual Wellness Visit']],
+      ])
+    );
     mockGetPreview.mockReturnValue({
       diff: {
         changes: [{ action: 'INSERT', memberName: 'Smith', memberDob: '1990-01-15', requestType: 'AWV', qualityMeasure: 'AWV', oldStatus: null, newStatus: 'Compliant', reason: 'New' }],
@@ -516,7 +551,20 @@ describe('Import Routes', () => {
 
   describe('POST /api/import/sheets', () => {
     it('returns sheet names from a multi-sheet Excel file', async () => {
-      mockGetSheetNames.mockReturnValue(['Dr. Smith', 'Dr. Jones', 'CAR Report']);
+      const sheets = ['Dr. Smith', 'Dr. Jones', 'CAR Report'];
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: sheets, workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([
+          ['Dr. Smith', ['Member Name', 'Member DOB', 'Request Type']],
+          ['Dr. Jones', ['Member Name', 'Member DOB', 'Request Type']],
+          ['CAR Report', ['Member Name', 'Member DOB', 'Request Type']],
+        ])
+      );
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Member Name', 'Member DOB'],
+        dataColumns: ['Request Type'],
+        minDataColumns: 1,
+      });
       mockLoadSystemConfig.mockReturnValue({
         name: 'Sutter/SIP',
         version: '1.0',
@@ -538,7 +586,20 @@ describe('Import Routes', () => {
     });
 
     it('filters tabs using skipTabs patterns', async () => {
-      mockGetSheetNames.mockReturnValue(['Dr. Smith', 'Dr. Jones', 'Dr. Smith_NY', 'CAR Report', 'Perf by Measure Q1']);
+      const sheets = ['Dr. Smith', 'Dr. Jones', 'Dr. Smith_NY', 'CAR Report', 'Perf by Measure Q1'];
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: sheets, workbook: {} });
+      // Only non-skipped sheets get header validation
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([
+          ['Dr. Smith', ['Member Name', 'Member DOB', 'Request Type']],
+          ['Dr. Jones', ['Member Name', 'Member DOB', 'Request Type']],
+        ])
+      );
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Member Name', 'Member DOB'],
+        dataColumns: ['Request Type'],
+        minDataColumns: 1,
+      });
       mockLoadSystemConfig.mockReturnValue({
         name: 'Sutter/SIP',
         version: '1.0',
@@ -564,7 +625,13 @@ describe('Import Routes', () => {
     });
 
     it('returns 400 when no valid tabs remain after filtering', async () => {
-      mockGetSheetNames.mockReturnValue(['CAR Report']);
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['CAR Report'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(new Map());
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Member Name', 'Member DOB'],
+        dataColumns: ['Request Type'],
+        minDataColumns: 1,
+      });
       mockLoadSystemConfig.mockReturnValue({
         name: 'Sutter/SIP',
         version: '1.0',
@@ -601,12 +668,20 @@ describe('Import Routes', () => {
     });
 
     it('does not filter tabs for Hill (no skipTabs)', async () => {
-      mockGetSheetNames.mockReturnValue(['Sheet1']);
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['Sheet1'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['Sheet1', ['Patient', 'DOB', 'Annual Wellness Visit']]])
+      );
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Patient', 'DOB'],
+        dataColumns: ['Annual Wellness Visit'],
+        minDataColumns: 1,
+      });
       mockLoadSystemConfig.mockReturnValue({
         name: 'Hill Healthcare',
         version: '1.0',
-        patientColumns: { Patient: {} },
-        measureColumns: {},
+        patientColumns: { Patient: 'memberName', DOB: 'memberDob' },
+        measureColumns: { 'Annual Wellness Visit': { qualityMeasure: 'AWV' } },
         skipColumns: [],
       });
 
@@ -622,7 +697,16 @@ describe('Import Routes', () => {
     });
 
     it('handles suffix skipTabs pattern', async () => {
-      mockGetSheetNames.mockReturnValue(['Dr. Smith', 'Dr. Smith_NY', 'Report Perf by Measure']);
+      const sheets = ['Dr. Smith', 'Dr. Smith_NY', 'Report Perf by Measure'];
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: sheets, workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['Dr. Smith', ['Member Name', 'Member DOB', 'Request Type']]])
+      );
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Member Name', 'Member DOB'],
+        dataColumns: ['Request Type'],
+        minDataColumns: 1,
+      });
       mockLoadSystemConfig.mockReturnValue({
         name: 'Sutter/SIP',
         version: '1.0',
@@ -645,7 +729,19 @@ describe('Import Routes', () => {
     });
 
     it('handles contains skipTabs pattern', async () => {
-      mockGetSheetNames.mockReturnValue(['Dr. Smith', 'Internal CAR Data', 'Summary']);
+      const sheets = ['Dr. Smith', 'Internal CAR Data', 'Summary'];
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: sheets, workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([
+          ['Dr. Smith', ['Member Name', 'Member DOB', 'Request Type']],
+          ['Summary', ['Member Name', 'Member DOB', 'Request Type']],
+        ])
+      );
+      mockGetRequiredColumns.mockReturnValue({
+        patientColumns: ['Member Name', 'Member DOB'],
+        dataColumns: ['Request Type'],
+        minDataColumns: 1,
+      });
       mockLoadSystemConfig.mockReturnValue({
         name: 'Sutter/SIP',
         version: '1.0',
@@ -665,18 +761,24 @@ describe('Import Routes', () => {
       expect(res.body.data.sheets).toEqual(['Dr. Smith', 'Summary']);
     });
 
-    it('calls getSheetNames with the file buffer', async () => {
-      mockGetSheetNames.mockReturnValue(['Sheet1']);
+    it('calls getWorkbookInfo with the file buffer', async () => {
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['Sheet1'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['Sheet1', ['Patient', 'DOB', 'Annual Wellness Visit']]])
+      );
 
       await request(app)
         .post('/api/import/sheets')
         .set('x-test-file', 'test.xlsx');
 
-      expect(mockGetSheetNames).toHaveBeenCalledWith(expect.any(Buffer));
+      expect(mockGetWorkbookInfo).toHaveBeenCalledWith(expect.any(Buffer));
     });
 
     it('uses default systemId (hill) when not provided', async () => {
-      mockGetSheetNames.mockReturnValue(['Sheet1']);
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['Sheet1'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['Sheet1', ['Patient', 'DOB', 'Annual Wellness Visit']]])
+      );
 
       const res = await request(app)
         .post('/api/import/sheets')
@@ -684,6 +786,40 @@ describe('Import Routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.sheets).toEqual(['Sheet1']);
+    });
+
+    it('returns invalidSheets for tabs that fail header validation', async () => {
+      const sheets = ['ValidTab', 'InvalidTab'];
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: sheets, workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([
+          ['ValidTab', ['Patient', 'DOB', 'Annual Wellness Visit']],
+          ['InvalidTab', ['SomeColumn', 'OtherColumn', 'ThirdColumn']],
+        ])
+      );
+
+      const res = await request(app)
+        .post('/api/import/sheets')
+        .set('x-test-file', 'test.xlsx');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.sheets).toEqual(['ValidTab']);
+      expect(res.body.data.invalidSheets).toHaveLength(1);
+      expect(res.body.data.invalidSheets[0].name).toBe('InvalidTab');
+      expect(res.body.data.invalidSheets[0].reason).toBeDefined();
+    });
+
+    it('returns 400 when all tabs fail header validation', async () => {
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['BadTab'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['BadTab', ['SomeColumn', 'OtherColumn', 'ThirdColumn']]])
+      );
+
+      const res = await request(app)
+        .post('/api/import/sheets')
+        .set('x-test-file', 'test.xlsx');
+
+      expect(res.status).toBe(400);
     });
   });
 

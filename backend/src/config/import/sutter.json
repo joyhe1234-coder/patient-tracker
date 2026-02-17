@@ -105,6 +105,11 @@
     "Well-Child Visit (first 15 mos)"
   ],
 
+  "previewColumns": [
+    { "field": "statusDate", "label": "Status Date", "source": "Measure Details" },
+    { "field": "sourceActionText", "label": "Possible Actions Needed", "source": "Possible Actions Needed" }
+  ],
+
   "skipTabs": [
     { "type": "suffix", "value": "_NY" },
     { "type": "prefix", "value": "Perf by Measure" },

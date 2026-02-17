@@ -39,6 +39,13 @@ export interface TransformedRow {
    */
   tracking1?: string | null;
 
+  /**
+   * Raw action text from the source file (e.g., "Possible Actions Needed" column).
+   * Used for configurable preview columns display.
+   * Null/undefined for Hill imports.
+   */
+  sourceActionText?: string | null;
+
   // Source info for debugging/auditing
   sourceRowIndex: number;
   sourceMeasureColumn: string;

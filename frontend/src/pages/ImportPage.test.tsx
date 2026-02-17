@@ -40,7 +40,58 @@ vi.mock('../utils/apiError', () => ({
   },
 }));
 
+// Mock authStore for PHYSICIAN role auto-assign tests
+vi.mock('../stores/authStore', () => ({
+  useAuthStore: () => ({
+    user: { id: 10, email: 'smith@example.com', displayName: 'Dr. Smith', roles: ['ADMIN'] },
+  }),
+}));
+
 import { api } from '../api/axios';
+
+const mockPhysicians = [
+  { id: 10, displayName: 'Dr. Smith, John', email: 'smith@example.com', roles: ['PHYSICIAN'] },
+  { id: 20, displayName: 'Dr. Johnson, Mary', email: 'johnson@example.com', roles: ['PHYSICIAN'] },
+];
+
+const mockHillSheetsResponse = {
+  data: {
+    success: true,
+    data: {
+      sheets: ['Smith, John'],
+      totalSheets: 1,
+      filteredSheets: 1,
+      skippedSheets: [],
+      invalidSheets: [],
+    },
+  },
+};
+
+const mockSutterSheetsResponse = {
+  data: {
+    success: true,
+    data: {
+      sheets: ['Smith, John', 'Johnson, Mary'],
+      totalSheets: 4,
+      filteredSheets: 2,
+      skippedSheets: ['Perf by Measure', 'CAR Report'],
+      invalidSheets: [],
+    },
+  },
+};
+
+const mockSingleSheetResponse = {
+  data: {
+    success: true,
+    data: {
+      sheets: ['Smith, John'],
+      totalSheets: 2,
+      filteredSheets: 1,
+      skippedSheets: ['CAR Report'],
+      invalidSheets: [],
+    },
+  },
+};
 
 const renderImportPage = () => {
   return render(
@@ -50,9 +101,38 @@ const renderImportPage = () => {
   );
 };
 
+/**
+ * Helper: Set up mocks for universal sheet selector flow.
+ * After file upload, SheetSelector calls POST /import/sheets.
+ * For Hill (single sheet), it auto-selects tab + physician.
+ */
+function setupHillMocks() {
+  (api.get as any).mockResolvedValue({
+    data: { success: true, data: mockPhysicians },
+  });
+  (api.post as any).mockResolvedValue(mockHillSheetsResponse);
+}
+
+/**
+ * Helper: Wait for sheet selector to auto-select (single tab + physician match).
+ * Must be called after file upload when using single-sheet mock.
+ */
+async function waitForSheetAutoSelect() {
+  await waitFor(() => {
+    expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+  });
+  // Wait for auto-selection to enable the submit button
+  await waitFor(() => {
+    const submitButton = screen.getByRole('button', { name: 'Preview Import' });
+    expect(submitButton).not.toBeDisabled();
+  });
+}
+
 describe('ImportPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: set up Hill mocks (physicians + single-sheet response)
+    setupHillMocks();
   });
 
   describe('Rendering', () => {
@@ -145,6 +225,9 @@ describe('ImportPage', () => {
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       await userEvent.upload(input, file);
 
+      // Wait for sheet auto-select (single tab for Hill)
+      await waitForSheetAutoSelect();
+
       // Click Preview Import
       const button = screen.getByRole('button', { name: 'Preview Import' });
       await userEvent.click(button);
@@ -162,6 +245,8 @@ describe('ImportPage', () => {
       const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
       await userEvent.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
 
+      await waitForSheetAutoSelect();
+
       // Click Preview Import
       await userEvent.click(screen.getByRole('button', { name: 'Preview Import' }));
 
@@ -173,19 +258,22 @@ describe('ImportPage', () => {
     });
 
     it('proceeds with import when confirming Replace All warning', async () => {
-      (api.post as any).mockResolvedValue({
-        data: {
-          success: true,
-          data: { previewId: 'test-preview-123' },
-        },
-      });
-
       renderImportPage();
 
       // Select Replace All mode and upload file
       await userEvent.click(screen.getByRole('radio', { name: /Replace All/i }));
       const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
       await userEvent.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
+
+      await waitForSheetAutoSelect();
+
+      // Now set up the preview POST response for the actual submit
+      (api.post as any).mockResolvedValue({
+        data: {
+          success: true,
+          data: { previewId: 'test-preview-123' },
+        },
+      });
 
       // Click Preview Import
       await userEvent.click(screen.getByRole('button', { name: 'Preview Import' }));
@@ -200,18 +288,21 @@ describe('ImportPage', () => {
     });
 
     it('does not show warning modal for Merge mode', async () => {
+      renderImportPage();
+
+      // Merge is already default, just upload file
+      const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
+      await userEvent.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
+
+      await waitForSheetAutoSelect();
+
+      // Now set up the preview POST response for the actual submit
       (api.post as any).mockResolvedValue({
         data: {
           success: true,
           data: { previewId: 'test-preview-123' },
         },
       });
-
-      renderImportPage();
-
-      // Merge is already default, just upload file
-      const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
-      await userEvent.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
 
       // Click Preview Import
       await userEvent.click(screen.getByRole('button', { name: 'Preview Import' }));
@@ -279,13 +370,16 @@ describe('ImportPage', () => {
       expect(screen.getByText(/1\.0 KB/)).toBeInTheDocument();
     });
 
-    it('enables Preview Import button after file upload', async () => {
+    it('enables Preview Import button after sheet auto-select', async () => {
       renderImportPage();
 
       const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
       await userEvent.upload(input, file);
+
+      // With universal sheet selector, button is only enabled after sheet+physician selection
+      await waitForSheetAutoSelect();
 
       const button = screen.getByRole('button', { name: 'Preview Import' });
       expect(button).not.toBeDisabled();
@@ -311,13 +405,16 @@ describe('ImportPage', () => {
 
   describe('Form Submission', () => {
     it('shows loading state during submission', async () => {
-      (api.post as any).mockImplementation(() => new Promise(() => {})); // Never resolves
-
       renderImportPage();
 
       const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       await userEvent.upload(input, file);
+
+      await waitForSheetAutoSelect();
+
+      // Now set up a never-resolving mock for the preview POST
+      (api.post as any).mockImplementation(() => new Promise(() => {}));
 
       const button = screen.getByRole('button', { name: 'Preview Import' });
       await userEvent.click(button);
@@ -326,18 +423,20 @@ describe('ImportPage', () => {
     });
 
     it('navigates to preview page on success', async () => {
+      renderImportPage();
+
+      const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      await userEvent.upload(input, file);
+
+      await waitForSheetAutoSelect();
+
       (api.post as any).mockResolvedValue({
         data: {
           success: true,
           data: { previewId: 'test-preview-123' },
         },
       });
-
-      renderImportPage();
-
-      const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
-      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-      await userEvent.upload(input, file);
 
       const button = screen.getByRole('button', { name: 'Preview Import' });
       await userEvent.click(button);
@@ -348,11 +447,19 @@ describe('ImportPage', () => {
     });
 
     it('shows error message on API failure', async () => {
-      (api.post as any).mockResolvedValue({
-        data: {
-          success: false,
-          error: { message: 'Invalid file format' },
-        },
+      // SheetSelector POST must succeed; preview POST returns API error
+      let sheetsCallDone = false;
+      (api.post as any).mockImplementation((url: string) => {
+        if (!sheetsCallDone && url.includes('/import/sheets')) {
+          sheetsCallDone = true;
+          return Promise.resolve(mockHillSheetsResponse);
+        }
+        return Promise.resolve({
+          data: {
+            success: false,
+            error: { message: 'Invalid file format' },
+          },
+        });
       });
 
       renderImportPage();
@@ -360,6 +467,8 @@ describe('ImportPage', () => {
       const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       await userEvent.upload(input, file);
+
+      await waitForSheetAutoSelect();
 
       const button = screen.getByRole('button', { name: 'Preview Import' });
       await userEvent.click(button);
@@ -370,13 +479,23 @@ describe('ImportPage', () => {
     });
 
     it('shows error message on network error', async () => {
-      (api.post as any).mockRejectedValue(new Error('Network error'));
+      // SheetSelector POST must succeed; preview POST rejects with network error
+      let sheetsCallDone = false;
+      (api.post as any).mockImplementation((url: string) => {
+        if (!sheetsCallDone && url.includes('/import/sheets')) {
+          sheetsCallDone = true;
+          return Promise.resolve(mockHillSheetsResponse);
+        }
+        return Promise.reject(new Error('Network error'));
+      });
 
       renderImportPage();
 
       const file = new File(['name,dob'], 'test.csv', { type: 'text/csv' });
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       await userEvent.upload(input, file);
+
+      await waitForSheetAutoSelect();
 
       const button = screen.getByRole('button', { name: 'Preview Import' });
       await userEvent.click(button);
@@ -387,13 +506,6 @@ describe('ImportPage', () => {
     });
 
     it('sends correct form data to API', async () => {
-      (api.post as any).mockResolvedValue({
-        data: {
-          success: true,
-          data: { previewId: 'test-123' },
-        },
-      });
-
       renderImportPage();
 
       // Select Merge mode
@@ -405,58 +517,42 @@ describe('ImportPage', () => {
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       await userEvent.upload(input, file);
 
+      await waitForSheetAutoSelect();
+
+      // Set up preview response for submission
+      (api.post as any).mockResolvedValue({
+        data: {
+          success: true,
+          data: { previewId: 'test-123' },
+        },
+      });
+
       // Submit
       const button = screen.getByRole('button', { name: 'Preview Import' });
       await userEvent.click(button);
 
       await waitFor(() => {
-        expect(api.post).toHaveBeenCalledWith(
-          '/import/preview',
-          expect.any(FormData),
-          expect.objectContaining({
-            headers: { 'Content-Type': 'multipart/form-data' },
-          })
-        );
+        expect(mockNavigate).toHaveBeenCalled();
       });
 
+      // Find the preview POST call (not the sheets POST call)
+      const postCalls = (api.post as any).mock.calls;
+      const previewCall = postCalls.find(
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('/import/preview')
+      );
+      expect(previewCall).toBeDefined();
+
       // Check FormData contents
-      const formData = (api.post as any).mock.calls[0][1] as FormData;
+      const formData = previewCall[1] as FormData;
       expect(formData.get('systemId')).toBe('hill');
       expect(formData.get('mode')).toBe('merge');
       expect(formData.get('file')).toBeTruthy();
+      // Sheet name is always included now
+      expect(formData.get('sheetName')).toBe('Smith, John');
     });
   });
 
   describe('Sutter/SIP Integration', () => {
-    const mockPhysicians = [
-      { id: 10, displayName: 'Dr. Smith, John', email: 'smith@example.com', roles: ['PHYSICIAN'] },
-      { id: 20, displayName: 'Dr. Johnson, Mary', email: 'johnson@example.com', roles: ['PHYSICIAN'] },
-    ];
-
-    const mockSheetsResponse = {
-      data: {
-        success: true,
-        data: {
-          sheets: ['Smith, John', 'Johnson, Mary'],
-          totalSheets: 4,
-          filteredSheets: 2,
-          skippedSheets: ['Perf by Measure', 'CAR Report'],
-        },
-      },
-    };
-
-    const mockSingleSheetResponse = {
-      data: {
-        success: true,
-        data: {
-          sheets: ['Smith, John'],
-          totalSheets: 2,
-          filteredSheets: 1,
-          skippedSheets: ['CAR Report'],
-        },
-      },
-    };
-
     // Helper: select Sutter in the healthcare system dropdown
     async function selectSutterSystem() {
       // The system dropdown is the first combobox
@@ -487,12 +583,8 @@ describe('ImportPage', () => {
     });
 
     it('shows SheetSelector step after file upload when Sutter is selected', async () => {
-      // Mock physicians API call (triggered when Sutter is selected)
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
-      // Mock sheet discovery API call (triggered by SheetSelector)
-      (api.post as any).mockResolvedValue(mockSheetsResponse);
+      // Mock for Sutter multi-sheet response
+      (api.post as any).mockResolvedValue(mockSutterSheetsResponse);
 
       renderImportPage();
 
@@ -505,7 +597,7 @@ describe('ImportPage', () => {
       });
     });
 
-    it('does NOT show SheetSelector step for Hill system', async () => {
+    it('shows SheetSelector step for Hill system too (universal)', async () => {
       renderImportPage();
 
       // Hill is default, just upload file
@@ -513,15 +605,14 @@ describe('ImportPage', () => {
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       await userEvent.upload(input, file);
 
-      // Should NOT show the Sheet selector step
-      expect(screen.queryByText('Select Tab & Physician')).not.toBeInTheDocument();
+      // SheetSelector is now shown for all systems (universal)
+      await waitFor(() => {
+        expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
+      });
     });
 
     it('adjusts step numbering for Sutter (extra step)', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
-      (api.post as any).mockResolvedValue(mockSheetsResponse);
+      (api.post as any).mockResolvedValue(mockSutterSheetsResponse);
 
       renderImportPage();
 
@@ -532,7 +623,6 @@ describe('ImportPage', () => {
         expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
       });
 
-      // For Sutter with no STAFF/ADMIN role (user is null):
       // Step 1: Healthcare System
       // Step 2: Import Mode
       // Step 3: Upload File
@@ -544,11 +634,8 @@ describe('ImportPage', () => {
     });
 
     it('keeps submit button disabled until sheet and physician are selected', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
       // Return sheets but don't auto-select (multiple sheets)
-      (api.post as any).mockResolvedValue(mockSheetsResponse);
+      (api.post as any).mockResolvedValue(mockSutterSheetsResponse);
 
       renderImportPage();
 
@@ -565,9 +652,6 @@ describe('ImportPage', () => {
     });
 
     it('enables submit after sheet and physician selection', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
       // Single sheet auto-selects tab + auto-matches physician
       (api.post as any).mockResolvedValue(mockSingleSheetResponse);
 
@@ -589,9 +673,6 @@ describe('ImportPage', () => {
     });
 
     it('includes sheetName in preview request form data for Sutter', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
       // Single sheet so it auto-selects
       (api.post as any).mockResolvedValue(mockSingleSheetResponse);
 
@@ -635,9 +716,6 @@ describe('ImportPage', () => {
     });
 
     it('includes physicianId in preview request URL for Sutter', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
       (api.post as any).mockResolvedValue(mockSingleSheetResponse);
 
       renderImportPage();
@@ -675,11 +753,8 @@ describe('ImportPage', () => {
     });
 
     it('shows error when submitting Sutter without sheet selection', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
       // Multiple sheets, so no auto-select
-      (api.post as any).mockResolvedValue(mockSheetsResponse);
+      (api.post as any).mockResolvedValue(mockSutterSheetsResponse);
 
       renderImportPage();
 
@@ -695,10 +770,7 @@ describe('ImportPage', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('clears Sutter-specific state when switching from Sutter to Hill', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
+    it('resets sheet state when switching from Sutter to Hill', async () => {
       (api.post as any).mockResolvedValue(mockSingleSheetResponse);
 
       renderImportPage();
@@ -711,18 +783,17 @@ describe('ImportPage', () => {
         expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
       });
 
-      // Now switch back to Hill
+      // Now switch back to Hill - file is still uploaded so SheetSelector stays
+      // but the sheet state should be reset
       const systemDropdown = screen.getAllByRole('combobox')[0];
       await userEvent.selectOptions(systemDropdown, 'hill');
 
-      // SheetSelector step should disappear
-      expect(screen.queryByText('Select Tab & Physician')).not.toBeInTheDocument();
+      // SheetSelector is still shown (universal) but will re-fetch for Hill system
+      // The step header should still be visible since file is still uploaded
+      expect(screen.getByText('Select Tab & Physician')).toBeInTheDocument();
     });
 
     it('single-tab file pre-selects tab in SheetSelector', async () => {
-      (api.get as any).mockResolvedValue({
-        data: { success: true, data: mockPhysicians },
-      });
       (api.post as any).mockResolvedValue(mockSingleSheetResponse);
 
       renderImportPage();

@@ -3327,15 +3327,15 @@ npm run cypress:headed  # Run with browser visible
 **Steps:** Verify Sutter system is listed in `/api/import/systems` endpoint
 **Expected:** Sutter appears with id `sutter`, name `Sutter/SIP`, alongside Hill Healthcare
 
-### TC-36.2: Sheet/Tab Discovery
-**Automation:** Automated - `import.routes.test.ts: "POST /sheets"`, `fileParser.test.ts: "getSheetNames"`
-**Steps:** Upload Sutter Excel workbook via `POST /api/import/sheets?systemId=sutter`
-**Expected:** Returns filtered sheet list (skipTabs patterns applied), total/filtered counts, skipped sheet names
+### TC-36.2: Universal Sheet/Tab Discovery with Header Validation
+**Automation:** Automated - `import.routes.test.ts: "POST /sheets"`, `fileParser.test.ts: "getSheetHeaders/getWorkbookInfo"`, `configLoader.test.ts: "getRequiredColumns"`
+**Steps:** Upload Excel workbook via `POST /api/import/sheets` for ANY system (Hill or Sutter)
+**Expected:** Returns header-validated sheet list (skipTabs + column validation); valid sheets listed; exclusion counts by reason (name vs columns)
 
-### TC-36.3: Sheet skipTabs Filtering
+### TC-36.3: Sheet skipTabs Filtering + Header-Based Validation
 **Automation:** Automated - `import.routes.test.ts`, `sutter-edge-cases.test.ts`
-**Steps:** Upload workbook containing tabs matching skipTabs patterns (suffix, prefix, exact, contains)
-**Expected:** Matching tabs excluded from results; non-matching tabs returned; NO_VALID_TABS error if all filtered
+**Steps:** Upload workbook containing tabs matching skipTabs patterns AND tabs with wrong columns
+**Expected:** Name-matched tabs excluded first; remaining tabs validated against required columns (patient + data); NO_VALID_TABS error if all filtered
 
 ### TC-36.4: Sutter Preview with Sheet Selection
 **Automation:** Automated - `import.routes.test.ts: "POST /preview Sutter"`, `sutter-import-flow.test.ts`
@@ -3362,10 +3362,10 @@ npm run cypress:headed  # Run with browser visible
 **Steps:** Transform Sutter wide-format data to long-format patient measures
 **Expected:** Rows transformed correctly; unmapped actions tracked with counts; grouped by patient
 
-### TC-36.9: Frontend Sheet Selector
-**Automation:** Automated - `SheetSelector.test.tsx` (24 tests), `ImportPage.test.tsx` (Sutter-specific tests)
-**Steps:** Select Sutter system, upload file, use SheetSelector component
-**Expected:** Sheet list fetched from API; physician dropdown per tab; errors displayed on API failure; dynamic step numbering
+### TC-36.9: Universal Frontend Sheet Selector
+**Automation:** Automated - `SheetSelector.test.tsx` (57 tests), `ImportPage.test.tsx` (universal tests), `PreviewChangesTable.test.tsx` (21 tests)
+**Steps:** Select ANY system, upload file, use universal SheetSelector component
+**Expected:** Sheet list fetched from API; single-tab shows text, multi-tab shows dropdown; physician auto-match by tab name; errors displayed on API failure; Step 4 "Select Tab & Physician" with submit gating
 
 ### TC-36.10: Frontend Unmapped Actions Banner
 **Automation:** Automated - `UnmappedActionsBanner.test.tsx` (17 tests), `ImportPreviewPage.test.tsx`
@@ -3381,6 +3381,21 @@ npm run cypress:headed  # Run with browser visible
 **Automation:** Automated - `sutter-performance.test.ts`
 **Steps:** Process large Sutter datasets
 **Expected:** Performance within acceptable bounds for typical workbook sizes
+
+### TC-36.13: Default "Not Addressed" for Unmapped Actions
+**Automation:** Automated - `sutterDataTransformer.test.ts`
+**Steps:** Import Sutter file with action text that doesn't match any actionMapping pattern
+**Expected:** Unmapped actions silently default to measureStatus="Not Addressed"; no validator warnings generated
+
+### TC-36.14: Configurable Preview Columns
+**Automation:** Automated - `PreviewChangesTable.test.tsx` (21 tests), `ImportPreviewPage.test.tsx`
+**Steps:** Preview Sutter import with previewColumns config (Status Date, Possible Actions Needed)
+**Expected:** Dynamic columns rendered in preview table; extraColumns data shown; correct colSpan for empty state; Hill previews show no extra columns
+
+### TC-36.15: Universal Sheet Selector — Cypress E2E
+**Automation:** Automated - `import-flow.cy.ts` (8 new tests)
+**Steps:** Upload file, verify Step 4 appears, select tab and physician, submit
+**Expected:** Step 4 "Select Tab & Physician" visible after upload; tab dropdown or text display; physician dropdown; submit enabled only when both selected
 
 ---
 
@@ -3414,7 +3429,7 @@ npm run cypress:headed  # Run with browser visible
 | 33. Security: Env Validation | 10 | 10 | 0 | 0 | 100% |
 | 34. Security: Account Lockout | 10 | 10 | 0 | 0 | 100% |
 | 35. Insurance Group Filter | 10 | 10 | 0 | 0 | 100% |
-| 36. Sutter/SIP Import | 12 | 12 | 0 | 0 | 100% |
+| 36. Sutter/SIP Import + Universal Sheet Validation | 15 | 15 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3434,6 +3449,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 16, 2026 - Updated Section 36: Universal Sheet Validation + Configurable Preview Columns (TC-36.13 to TC-36.15 added, TC-36.2/36.3/36.9 updated for universal behavior). 15 test cases, 100% automated. Total: 1,064 Jest + 1,012 Vitest + 8 Cypress.
 February 14, 2026 - Added Section 36: Sutter/SIP Multi-System Import (TC-36.1 to TC-36.12, all automated). 12 test cases, 100% automated. Total: 1,030 Jest + 956 Vitest.
 February 13, 2026 - Added Section 35: Insurance Group Filter (TC-35.1 to TC-35.10, all automated). 10 test cases, 100% automated. Total: 777 Jest + 895 Vitest + 12 Cypress.
 February 13, 2026 - Added Section 34: Account Lockout + Temp Password + Forced Password Change (TC-34.1 to TC-34.10, all automated). 10 test cases, 100% automated.

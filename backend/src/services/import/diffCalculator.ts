@@ -54,6 +54,12 @@ export interface DiffChange {
    * Null/undefined for Hill imports.
    */
   tracking1?: string | null;
+  /**
+   * Extra data for configurable preview columns.
+   * Keys are field names from previewColumns config, values are display strings.
+   * Populated during diff calculation when system config has previewColumns.
+   */
+  extraData?: Record<string, string | null>;
 }
 
 /**

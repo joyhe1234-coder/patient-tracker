@@ -10,6 +10,7 @@ import {
   listSystems,
   getDefaultSystemId,
   systemExists,
+  getRequiredColumns,
   type SystemConfig,
   type SystemsRegistry,
   type HillSystemConfig,
@@ -355,6 +356,107 @@ describe('configLoader', () => {
       expect(qualityMeasures.has('Annual Wellness Visit')).toBe(true);
       expect(qualityMeasures.has('Breast Cancer Screening')).toBe(true);
       expect(qualityMeasures.has('Diabetic Eye Exam')).toBe(true);
+    });
+  });
+
+  describe('getRequiredColumns', () => {
+    it('should return correct patient columns for Hill config', () => {
+      const config = loadSystemConfig('hill') as HillSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // Hill patientColumns has Patient->memberName and DOB->memberDob
+      expect(result.patientColumns).toContain('Patient');
+      expect(result.patientColumns).toContain('DOB');
+      expect(result.patientColumns).toHaveLength(2);
+    });
+
+    it('should return first 3 measureColumns keys as dataColumns for Hill config', () => {
+      const config = loadSystemConfig('hill') as HillSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // First 3 keys from hill.json measureColumns
+      const expectedFirst3 = Object.keys(config.measureColumns).slice(0, 3);
+      expect(result.dataColumns).toEqual(expectedFirst3);
+      expect(result.dataColumns).toHaveLength(3);
+
+      // Verify the actual values from hill.json
+      expect(result.dataColumns[0]).toBe('Annual Wellness Visit');
+      expect(result.dataColumns[1]).toBe('Breast Cancer Screening E');
+      expect(result.dataColumns[2]).toBe('Breast Cancer Screening 42-51 Years E');
+    });
+
+    it('should return correct patient columns for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // Sutter patientColumns has Member Name->memberName and Member DOB->memberDob
+      expect(result.patientColumns).toContain('Member Name');
+      expect(result.patientColumns).toContain('Member DOB');
+      expect(result.patientColumns).toHaveLength(2);
+    });
+
+    it('should return dataColumns array entries for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // Sutter dataColumns come directly from config.dataColumns
+      expect(result.dataColumns).toEqual(config.dataColumns);
+      expect(result.dataColumns).toContain('Health Plans');
+      expect(result.dataColumns).toContain('Race-Ethnicity');
+      expect(result.dataColumns).toContain('Possible Actions Needed');
+      expect(result.dataColumns).toContain('Request Type');
+      expect(result.dataColumns).toContain('Measure Details');
+      expect(result.dataColumns).toContain('High Priority');
+    });
+
+    it('should set minDataColumns to 1 for Hill config', () => {
+      const config = loadSystemConfig('hill') as HillSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      expect(result.minDataColumns).toBe(1);
+    });
+
+    it('should set minDataColumns to 1 for Sutter config', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      expect(result.minDataColumns).toBe(1);
+    });
+
+    it('should not include non-name/dob patient columns in patientColumns', () => {
+      const config = loadSystemConfig('hill') as HillSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // Phone->memberTelephone and Address->memberAddress should NOT be included
+      expect(result.patientColumns).not.toContain('Phone');
+      expect(result.patientColumns).not.toContain('Address');
+    });
+
+    it('should not include non-name/dob patient columns for Sutter', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // Member Telephone->memberTelephone and Member Home Address->memberAddress should NOT be included
+      expect(result.patientColumns).not.toContain('Member Telephone');
+      expect(result.patientColumns).not.toContain('Member Home Address');
+    });
+
+    it('should return a new copy of Sutter dataColumns (not a reference)', () => {
+      const config = loadSystemConfig('sutter') as SutterSystemConfig;
+
+      const result = getRequiredColumns(config);
+
+      // Mutating the result should not affect config
+      result.dataColumns.push('Extra Column');
+      expect(config.dataColumns).not.toContain('Extra Column');
     });
   });
 });

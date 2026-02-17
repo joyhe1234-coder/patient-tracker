@@ -171,10 +171,10 @@ export function transformSutterData(
         continue;
       }
 
-      // Use mapped values from action matcher
+      // Use mapped values from action matcher; default to "Not Addressed" if empty
       requestType = match.requestType;
       qualityMeasure = match.qualityMeasure;
-      measureStatus = match.measureStatus;
+      measureStatus = match.measureStatus || 'Not Addressed';
     }
 
     // 4. Parse Measure Details for statusDate and tracking1
@@ -182,7 +182,7 @@ export function transformSutterData(
     const measureDetails = parseMeasureDetails(measureDetailsValue);
 
     // Build the TransformedRow
-    const transformedRow: TransformedRow & { notes?: string | null; tracking1?: string | null } = {
+    const transformedRow: TransformedRow & { notes?: string | null; tracking1?: string | null; sourceActionText?: string | null } = {
       ...patientData,
       requestType,
       qualityMeasure,
@@ -192,12 +192,16 @@ export function transformSutterData(
       sourceMeasureColumn: actionsNeededCol || requestTypeCol || '',
     };
 
-    // Set notes and tracking1 as additional properties
+    // Set notes, tracking1, and sourceActionText as additional properties
     if (notes !== null) {
       transformedRow.notes = notes;
     }
     if (measureDetails.tracking1 !== null) {
       transformedRow.tracking1 = measureDetails.tracking1;
+    }
+    // Capture raw action text for preview columns
+    if (actionText) {
+      transformedRow.sourceActionText = actionText;
     }
 
     transformedRows.push(transformedRow as TransformedRow);

@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.8.0] - 2026-02-16
+
+### Added
+- **Universal Sheet Validation & Configurable Preview Columns** (Feb 16, 2026)
+  - **Area 1 — Universal Sheet Validation (all import systems):**
+    - `getRequiredColumns()` in `configLoader.ts` — extracts required patient + data columns from any system config (Hill or Sutter)
+    - `getSheetHeaders()` in `fileParser.ts` — reads header row from specific sheets in a workbook (uses config's `headerRow` offset)
+    - `getWorkbookInfo()` in `fileParser.ts` — single XLSX.read() to return workbook + sheet names (avoids double-parse)
+    - `validateSheetHeaders()` in `import.routes.ts` — validates each sheet's headers against required columns (min 3 non-empty, all patient columns, min 1 data column)
+    - `POST /api/import/sheets` enhanced — applies skipTabs name filtering THEN header-based validation; returns valid sheets + exclusion counts
+    - `SheetSelector.tsx` rewritten — universal component for ALL systems (was Sutter-only); fetches sheets via POST, shows dropdown for multi-tab or text for single-tab, physician auto-match by tab name, error alert for no valid tabs
+    - `ImportPage.tsx` updated — Step 4 "Select Tab & Physician" shown for ALL systems after file upload; submit gated on both tab + physician selection
+  - **Area 2 — Default "Not Addressed" status:**
+    - `sutterDataTransformer.ts` updated — when action mapper returns no match, silently defaults `measureStatus` to "Not Addressed" instead of generating validator warnings
+  - **Area 3 — Configurable Preview Columns:**
+    - `previewColumns` field added to `SystemConfig` types and Sutter config JSON
+    - `buildExtraData()` in `import.routes.ts` — extracts configured fields from TransformedRow into `extraData` on DiffChange
+    - Preview API response enhanced — includes `previewColumns` array and `extraColumns` per change item
+    - `PreviewChangesTable.tsx` — renders dynamic column headers and cells from `previewColumns` config; correct colSpan for empty state
+    - `ImportPreviewPage.tsx` — passes `previewColumns` and `extraColumns` through to table component
+  - **Spec:** `.claude/specs/sutter-sheet-validation/` (requirements, design, tasks — 43 tasks across 4 phases)
+  - +34 Jest tests (configLoader requiredColumns, fileParser getSheetHeaders/getWorkbookInfo, import.routes header validation, sutterDataTransformer default status)
+  - +56 Vitest tests (SheetSelector 57, PreviewChangesTable 21, ImportPage +3, ImportPreviewPage +2; some replace old Sutter-only tests)
+  - +8 Cypress E2E tests (universal sheet selector flow, physician selection, error handling)
+  - Total: 1,064 Jest + 1,012 Vitest = 2,076 unit tests
+
+---
+
 ## [4.7.0] - 2026-02-14
 
 ### Added

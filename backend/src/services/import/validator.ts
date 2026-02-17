@@ -233,7 +233,9 @@ function validateRow(row: TransformedRow, rowIndex: number, systemId?: string): 
   }
 
   // Warning: missing measureStatus
-  if (!row.measureStatus) {
+  // For Sutter imports, the transformer defaults unmapped actions to "Not Addressed",
+  // so this warning is suppressed to avoid noise. For Hill/other systems, keep the warning.
+  if (!row.measureStatus && systemId !== 'sutter') {
     errors.push({
       rowIndex,
       field: 'measureStatus',

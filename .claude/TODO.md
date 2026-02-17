@@ -102,6 +102,11 @@ This document tracks planned features and enhancements for future development.
 - [x] Implementation: Phase 5i - Execute API endpoint
   - POST /api/import/execute/:previewId
 - [x] Implementation: Phase 5j-5l - Full Import UI (29 E2E tests)
+- [x] Implementation: Phase 5m - Universal Sheet Validation & Configurable Preview Columns (43 tasks, Feb 16, 2026)
+  - Universal header-based sheet validation for ALL import systems
+  - SheetSelector rewritten as universal component (was Sutter-only)
+  - Default "Not Addressed" for unmapped Sutter actions
+  - Configurable preview columns (Sutter shows Status Date + Possible Actions Needed)
 
 ### UI Testing
 - [x] Phase 1: React Testing Library + Vitest setup

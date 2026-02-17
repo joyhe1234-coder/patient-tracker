@@ -30,9 +30,21 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 1,030 tests passing
-- Layer 2 (Frontend Vitest): 956 tests passing
+- Layer 1 (Backend Jest): 1,064 tests passing
+- Layer 2 (Frontend Vitest): 1,012 tests passing
 - Visual test plan v2.1: 427 test cases documented
+
+### Universal Sheet Validation & Configurable Preview Columns
+
+**Status: Complete** (Feb 16, 2026)
+**Spec:** `.claude/specs/sutter-sheet-validation/` (requirements, design, tasks — 43 tasks across 4 phases)
+
+- [x] **Phase 1 — Default "Not Addressed" status:** Unmapped Sutter actions silently default to "Not Addressed" instead of generating validator warnings
+- [x] **Phase 2 — Universal Sheet Validation:** `getRequiredColumns()`, `getSheetHeaders()`, `getWorkbookInfo()`, `validateSheetHeaders()` — header-based validation for ALL import systems (Hill & Sutter); SheetSelector rewritten as universal component with auto-match physician, multi-tab dropdown, error alerts
+- [x] **Phase 3 — Configurable Preview Columns:** `previewColumns` config field, `buildExtraData()` extraction, dynamic column rendering in PreviewChangesTable, Sutter shows "Status Date" and "Possible Actions Needed" in preview
+- [x] **Phase 4 — E2E + Visual Review:** Cypress tests (8 new for universal sheet selector), visual browser review (6 screenshots verifying Hill CSV, Sutter multi-tab, error state, physician selection)
+
+**Tests:** +34 Jest, +56 Vitest, +8 Cypress E2E
 
 ### Security Hardening — Phase 1: Env Var Validation (REQ-SEC-04, REQ-SEC-05)
 

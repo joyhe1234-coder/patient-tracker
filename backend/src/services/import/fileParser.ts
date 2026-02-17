@@ -211,14 +211,76 @@ export interface ParseOptions {
 }
 
 /**
+ * Read workbook from buffer. Returns sheet names and workbook object.
+ * Single XLSX.read() call for reuse — callers can access both sheet names
+ * and the workbook without re-parsing.
+ * @param buffer - The file buffer to read
+ * @returns Object with sheetNames array and workbook object
+ */
+export function getWorkbookInfo(buffer: Buffer): { sheetNames: string[]; workbook: XLSX.WorkBook } {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  return { sheetNames: workbook.SheetNames, workbook };
+}
+
+/**
+ * Read header rows from specified sheets in an already-loaded workbook.
+ * No second XLSX.read() call — uses the workbook object directly.
+ * @param workbook - The already-loaded workbook object
+ * @param sheetNames - Array of sheet names to read headers from
+ * @param headerRowIndex - 0-indexed row number containing headers
+ * @returns Map of sheet name to array of trimmed header strings
+ */
+export function getSheetHeaders(
+  workbook: XLSX.WorkBook,
+  sheetNames: string[],
+  headerRowIndex: number
+): Map<string, string[]> {
+  const headerMap = new Map<string, string[]>();
+
+  for (const sheetName of sheetNames) {
+    try {
+      const worksheet = workbook.Sheets[sheetName];
+      if (!worksheet) {
+        headerMap.set(sheetName, []);
+        continue;
+      }
+
+      // Read sheet data using sheet_to_json with header: 1 to get raw arrays
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: '',
+        blankrows: false,
+        raw: true,
+      }) as unknown[][];
+
+      // Handle out-of-bounds row index
+      if (headerRowIndex < 0 || headerRowIndex >= jsonData.length) {
+        headerMap.set(sheetName, []);
+        continue;
+      }
+
+      const headerRow = jsonData[headerRowIndex] as unknown[];
+      const headers = headerRow.map(h => String(h || '').trim());
+      headerMap.set(sheetName, headers);
+    } catch (error) {
+      // Log error and return empty array for this sheet
+      console.error(`Error reading headers from sheet "${sheetName}":`, error);
+      headerMap.set(sheetName, []);
+    }
+  }
+
+  return headerMap;
+}
+
+/**
  * Get all sheet names from an Excel workbook.
  * Useful for multi-sheet files (e.g., Sutter physician tabs).
+ * Delegates to getWorkbookInfo() for single XLSX.read() reuse.
  * @param buffer - The file buffer to read
  * @returns Array of sheet names in workbook order
  */
 export function getSheetNames(buffer: Buffer): string[] {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  return workbook.SheetNames;
+  return getWorkbookInfo(buffer).sheetNames;
 }
 
 /**

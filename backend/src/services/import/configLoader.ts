@@ -38,12 +38,36 @@ export interface SkipTabPattern {
 }
 
 /**
+ * Column definition for configurable preview columns.
+ * System configs can declare additional columns for the import preview.
+ */
+export interface PreviewColumnDef {
+  field: string;
+  label: string;
+  source: string;
+}
+
+/**
+ * Required columns derived from system config for header validation.
+ * Used by validateSheetHeaders() to determine if a sheet is valid.
+ */
+export interface RequiredColumns {
+  patientColumns: string[];
+  dataColumns: string[];
+  minDataColumns: number;
+}
+
+/**
  * Shared base fields for all system configurations.
  */
 export interface SystemConfigBase {
   name: string;
   version: string;
   patientColumns: Record<string, string>;
+  /** Optional preview columns for enhanced import preview display */
+  previewColumns?: PreviewColumnDef[];
+  /** 0-indexed row number containing headers. Defaults to 0 if not specified. */
+  headerRow?: number;
 }
 
 /**
@@ -179,4 +203,36 @@ export function systemExists(systemId: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Derive required columns from any system config for header validation.
+ * Works for both Hill-style (measureColumns) and Sutter-style (dataColumns) configs.
+ * @param config - The system configuration to extract required columns from
+ * @returns RequiredColumns with patient columns, data columns, and minimum count
+ */
+export function getRequiredColumns(config: HillSystemConfig | SutterSystemConfig): RequiredColumns {
+  // Extract patient columns mapped to memberName and memberDob
+  const patientColumns: string[] = [];
+  for (const [columnName, mapping] of Object.entries(config.patientColumns)) {
+    if (mapping === 'memberName' || mapping === 'memberDob') {
+      patientColumns.push(columnName);
+    }
+  }
+
+  let dataColumns: string[];
+
+  if (isSutterConfig(config)) {
+    // Sutter: use dataColumns entries directly
+    dataColumns = [...config.dataColumns];
+  } else {
+    // Hill: use first few keys from measureColumns
+    dataColumns = Object.keys(config.measureColumns).slice(0, 3);
+  }
+
+  return {
+    patientColumns,
+    dataColumns,
+    minDataColumns: 1,
+  };
 }

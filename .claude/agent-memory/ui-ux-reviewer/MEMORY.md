@@ -62,6 +62,7 @@
 | 2026-02-13 | REQ-SEC-06 Lockout+TempPass | `reviews/req-sec-06-lockout-temppass-forcechange-2026-02-13.md` | 12 screens, 4 IMPORTANT (lockout warning untestable, confirm() vs modal, badge color, touch targets), 4 NICE-TO-HAVE. ForcePasswordChange code-only review. |
 | 2026-02-13 | Insurance Group Filter | `reviews/insurance-group-filter-2026-02-13.md` | 12 screenshots, 6 scenarios ALL PASS. Visual parity with QM dropdown. Touch target too small (pre-existing). Seed data limitation prevents visual filter verification. |
 | 2026-02-14 | Sutter Import Flow | `reviews/sutter-import-flow-2026-02-14.md` | 12 screenshots. BUG: duplicate error banners, nested card-in-card. Missing aria-label on system select, no role=alert on errors. UnmappedActionsBanner good a11y. Step numbering correct. |
+| 2026-02-15 | Universal SheetSelector | `reviews/universal-sheet-selector-2026-02-15.md` | 11 screenshots, 13 scenarios ALL PASS. Nested card + duplicate error bugs FIXED. Amber-600 hint fails AA contrast. Orphaned label for single-tab. PHYSICIAN auto-assign works correctly. |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -131,23 +132,25 @@ frontend/src/components/auth/
 - Time Interval: Auto-calculated from Tracking #2 month (locked, not manually editable)
 - Non-HgbA1c rows: Tracking #1 and #2 show "N/A" with disabled striped styling
 
-## Import Page Component Structure (updated Feb 14 w/ Sutter)
+## Import Page Component Structure (updated Feb 15 w/ Universal SheetSelector)
 ```
-frontend/src/pages/ImportPage.tsx              # Import form: system select, mode, physician, file upload (~630 lines)
+frontend/src/pages/ImportPage.tsx              # Import form: system select, mode, file upload, Step 4 wrapper (~554 lines)
 frontend/src/pages/ImportPreviewPage.tsx        # Preview & execute: summary cards, changes table, modals (~486 lines)
 frontend/src/components/import/
-  SheetSelector.tsx                             # Sutter tab picker + physician auto-match (280 lines)
+  SheetSelector.tsx                             # Universal tab picker + physician auto-match (~357 lines)
   UnmappedActionsBanner.tsx                     # Skipped actions info banner with expand/collapse (108 lines)
   PreviewSummaryCards.tsx                        # Import preview summary cards
   PreviewChangesTable.tsx                        # Import preview changes table
   ImportResultsDisplay.tsx                       # Post-import results display
 ```
 - Healthcare systems: `hill` (Hill Healthcare), `sutter` (Sutter/SIP)
-- Sutter flow: Steps 1-3 (System, Mode, Upload), then Step 4 (Select Tab & Physician) appears after file upload
-- Hill flow: Steps 1-4 (System, Mode, Physician, Upload) for ADMIN/STAFF; Steps 1-3 for PHYSICIAN
-- SheetSelector calls `/api/import/sheets` to discover tabs, auto-matches physician by tab name substring scoring
-- BUG: SheetSelector wraps its own content in card styling, but parent also wraps in card = nested cards
-- BUG: SheetSelector error calls both internal render + parent onError = duplicate error banners
+- Universal flow (ALL systems): Steps 1-3 (System, Mode, Upload), then Step 4 (Select Tab & Physician) appears after file upload
+- SheetSelector is universal: calls `/api/import/sheets` for ALL systems, auto-matches physician by tab name substring scoring
+- Single-tab files: tab auto-selects, shown as static text "Importing from: [name]"
+- Multi-tab files: dropdown appears to select tab
+- PHYSICIAN role: physician auto-assigned (static text), Preview Import immediately enabled
+- ADMIN/STAFF role: physician dropdown, "Please select a physician" hint until selected
+- Previous BUGs FIXED: No nested card-in-card, no duplicate error banners
 - Preview page shows Tab/Physician metadata conditionally for Sutter imports
 - UnmappedActionsBanner uses role="status", aria-expanded, semantic table -- good a11y
 

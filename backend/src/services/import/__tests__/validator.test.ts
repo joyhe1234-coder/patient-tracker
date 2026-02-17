@@ -329,6 +329,66 @@ describe('validator', () => {
     });
   });
 
+  describe('Sutter measureStatus warning suppression', () => {
+    it('should NOT warn for empty measureStatus when systemId is sutter', () => {
+      const rows = [createBaseRow({ measureStatus: null })];
+
+      const result = validateRows(rows, 'sutter');
+
+      expect(result.valid).toBe(true);
+      const statusWarning = result.warnings.find(w => w.field === 'measureStatus');
+      expect(statusWarning).toBeUndefined();
+    });
+
+    it('should NOT warn for empty string measureStatus when systemId is sutter', () => {
+      const rows = [createBaseRow({ measureStatus: '' })];
+
+      const result = validateRows(rows, 'sutter');
+
+      expect(result.valid).toBe(true);
+      const statusWarning = result.warnings.find(w => w.field === 'measureStatus');
+      expect(statusWarning).toBeUndefined();
+    });
+
+    it('should still warn for empty measureStatus when systemId is hill', () => {
+      const rows = [createBaseRow({ measureStatus: null })];
+
+      const result = validateRows(rows, 'hill');
+
+      expect(result.valid).toBe(true);
+      const statusWarning = result.warnings.find(w => w.field === 'measureStatus');
+      expect(statusWarning).toBeDefined();
+      expect(statusWarning?.message).toContain('Measure status is empty');
+    });
+
+    it('should still warn for empty measureStatus when systemId is undefined', () => {
+      const rows = [createBaseRow({ measureStatus: null })];
+
+      const result = validateRows(rows);
+
+      expect(result.valid).toBe(true);
+      const statusWarning = result.warnings.find(w => w.field === 'measureStatus');
+      expect(statusWarning).toBeDefined();
+      expect(statusWarning?.message).toContain('Measure status is empty');
+    });
+
+    it('should pass systemId through validateRows to suppress Sutter warnings correctly', () => {
+      // Multiple rows: some with measureStatus, some without
+      const rows = [
+        createBaseRow({ measureStatus: null, sourceRowIndex: 0 }),
+        createBaseRow({ measureStatus: 'Not Addressed', sourceRowIndex: 1, memberName: 'Patient Two' }),
+        createBaseRow({ measureStatus: '', sourceRowIndex: 2, memberName: 'Patient Three' }),
+      ];
+
+      const result = validateRows(rows, 'sutter');
+
+      expect(result.valid).toBe(true);
+      // No measureStatus warnings should be present for any row
+      const statusWarnings = result.warnings.filter(w => w.field === 'measureStatus');
+      expect(statusWarnings).toHaveLength(0);
+    });
+  });
+
   describe('Sutter data validation', () => {
     it('should validate Sutter TransformedRows with Chronic DX request type', () => {
       const rows = [createBaseRow({
