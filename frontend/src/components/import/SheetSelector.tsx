@@ -250,7 +250,7 @@ export default function SheetSelector({
         </label>
         {sheets.length === 1 ? (
           /* Single tab: show as static text */
-          <div className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900 font-medium">
+          <div id="sheet-selector" role="status" className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900 font-medium">
             Importing from: {sheets[0]}
           </div>
         ) : (
@@ -344,7 +344,7 @@ export default function SheetSelector({
                 </p>
               )}
               {!selectedPhysicianId && (
-                <p className="mt-1 text-sm text-amber-600">
+                <p className="mt-1 text-sm text-amber-700" aria-live="polite">
                   Please select a physician to continue.
                 </p>
               )}
