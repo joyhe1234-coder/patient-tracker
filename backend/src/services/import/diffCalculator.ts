@@ -42,6 +42,24 @@ export interface DiffChange {
   sourceRowIndex?: number;
   // Reason for action
   reason: string;
+  /**
+   * Free-text notes associated with the measure.
+   * Used by Sutter imports for HCC action text.
+   * Null/undefined for Hill imports.
+   */
+  notes?: string | null;
+  /**
+   * Additional tracking data (e.g., lab readings from Measure Details).
+   * Used by Sutter imports for parsed Measure Details values.
+   * Null/undefined for Hill imports.
+   */
+  tracking1?: string | null;
+  /**
+   * Extra data for configurable preview columns.
+   * Keys are field names from previewColumns config, values are display strings.
+   * Populated during diff calculation when system config has previewColumns.
+   */
+  extraData?: Record<string, string | null>;
 }
 
 /**
@@ -302,6 +320,8 @@ export function calculateReplaceAllDiff(
       newStatus: row.measureStatus,
       sourceRowIndex: row.sourceRowIndex,
       reason: 'Replace All mode - inserting new record',
+      notes: row.notes ?? null,
+      tracking1: row.tracking1 ?? null,
     });
     summary.inserts++;
   }
@@ -339,6 +359,8 @@ export function calculateMergeDiff(
         newStatus: row.measureStatus,
         sourceRowIndex: row.sourceRowIndex,
         reason: 'New patient+measure combination',
+        notes: row.notes ?? null,
+        tracking1: row.tracking1 ?? null,
       });
       summary.inserts++;
     } else {
@@ -394,6 +416,8 @@ export function applyMergeLogic(
     existingPatientId: existing.patientId,
     existingMeasureId: existing.measureId,
     sourceRowIndex: row.sourceRowIndex,
+    notes: row.notes ?? null,
+    tracking1: row.tracking1 ?? null,
   };
 
   // Case 2: New data is blank/unknown - SKIP (keep old)

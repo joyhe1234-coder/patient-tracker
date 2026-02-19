@@ -6,6 +6,93 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.9.0] - 2026-02-18
+
+### Added
+- **Sutter Import Enhancements: Duplicate Merging, MeasureDetails Parsing, Role-Based Import Tests** (Feb 18, 2026)
+  - **Duplicate Row Merging in `sutterDataTransformer.ts`:** New `mergeDuplicateRows()` function merges rows with the same patient + requestType + qualityMeasure combination. Merge rules: latest statusDate wins, tracking1 from latest-date row, sourceActionText/notes concatenated with "; " separator. Stats reflect merged output count.
+  - **Improved `measureDetailsParser.ts`:**
+    - Reject lenient native Date parsing (`format: 'native'`) to prevent false positives (e.g., "8.9" no longer parsed as a date)
+    - Mixed date/non-date comma values now extract dates and keep non-date parts as tracking1 (e.g., "12/16/2025, 158/85" → statusDate=2025-12-16, tracking1=158/85)
+    - New `scanForEmbeddedDates()` — extracts MM/DD/YYYY dates from free text prose (e.g., "Last HgbA1c: 7.8 on 01/15/2025"). Requires 4-digit years to avoid matching blood pressure readings like "142/72".
+  - **"Not Addressed" status override:** All Sutter action mapper results now force `measureStatus = "Not Addressed"` regardless of config-defined status (previously HTN used "Not at goal", DM-HbA1c used "HgbA1c NOT at goal")
+  - **Updated `sutter.json` config:** HTN and DM-HbA1c patterns now have `measureStatus: "Not Addressed"` (matches runtime override)
+  - **Dev/test seed users:** 6 new users covering all role combinations (ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN) with staff assignments. Patients distributed round-robin across physicians.
+  - **Role-based data filtering tests:** 12 new backend Jest tests for `getPatientOwnerFilter` (PHYSICIAN auto-filter, ADMIN require physicianId, STAFF assignment check, ADMIN+PHYSICIAN dual role behavior)
+  - **ADMIN+PHYSICIAN dual role UI tests:** 13 new Vitest tests (Header dropdown/nav visibility, PatientManagementPage tab visibility and content rendering for dual-role users)
+  - **Sutter fixture helpers:** `getValidMultiMeasureFixturePath()` and `getSkipActionsFixturePath()` for all-10-patterns and skip-actions E2E fixtures
+  - **Jest config fix:** Added `testPathIgnorePatterns: ['/node_modules/', '/dist/']` to prevent stale compiled files in `dist/` from being picked up by test runner
+
+### Changed
+- `sutter.json`: HTN measureStatus changed from "Not at goal" to "Not Addressed"; DM-HbA1c measureStatus changed from "HgbA1c NOT at goal" to "Not Addressed"
+- `sutterDataTransformer.ts`: Now calls `mergeDuplicateRows()` before returning results; `measureStatus` forced to "Not Addressed" for all action matches
+- `measureDetailsParser.ts`: Mixed comma values now extract dates (previously treated entire value as tracking1); native date format rejected
+- `backend/jest.config.js`: Added `testPathIgnorePatterns` to exclude `dist/` directory
+
+### Fixed
+- **Jest picking up stale `dist/` test files:** `dist/config/__tests__/validateEnv.test.ts` was causing a test suite failure because it referenced files outside `rootDir`. Fixed by adding `testPathIgnorePatterns` to jest.config.js.
+- **Native Date false positives in measureDetailsParser:** Values like "8.9" were being parsed as dates via lenient native `Date()` constructor. Now rejected by checking for `format: 'native'`.
+
+### Tests
+- Backend (Jest): 1,165 tests passing (43 suites) — +101 from 4.8.0
+- Frontend (Vitest): 1,025 tests passing (38 suites) — +13 from 4.8.0
+- Total automated: ~2,575 (1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress)
+
+---
+
+## [4.8.0] - 2026-02-16
+
+### Added
+- **Universal Sheet Validation & Configurable Preview Columns** (Feb 16, 2026)
+  - **Area 1 — Universal Sheet Validation (all import systems):**
+    - `getRequiredColumns()` in `configLoader.ts` — extracts required patient + data columns from any system config (Hill or Sutter)
+    - `getSheetHeaders()` in `fileParser.ts` — reads header row from specific sheets in a workbook (uses config's `headerRow` offset)
+    - `getWorkbookInfo()` in `fileParser.ts` — single XLSX.read() to return workbook + sheet names (avoids double-parse)
+    - `validateSheetHeaders()` in `import.routes.ts` — validates each sheet's headers against required columns (min 3 non-empty, all patient columns, min 1 data column)
+    - `POST /api/import/sheets` enhanced — applies skipTabs name filtering THEN header-based validation; returns valid sheets + exclusion counts
+    - `SheetSelector.tsx` rewritten — universal component for ALL systems (was Sutter-only); fetches sheets via POST, shows dropdown for multi-tab or text for single-tab, physician auto-match by tab name, error alert for no valid tabs
+    - `ImportPage.tsx` updated — Step 4 "Select Tab & Physician" shown for ALL systems after file upload; submit gated on both tab + physician selection
+  - **Area 2 — Default "Not Addressed" status:**
+    - `sutterDataTransformer.ts` updated — when action mapper returns no match, silently defaults `measureStatus` to "Not Addressed" instead of generating validator warnings
+  - **Area 3 — Configurable Preview Columns:**
+    - `previewColumns` field added to `SystemConfig` types and Sutter config JSON
+    - `buildExtraData()` in `import.routes.ts` — extracts configured fields from TransformedRow into `extraData` on DiffChange
+    - Preview API response enhanced — includes `previewColumns` array and `extraColumns` per change item
+    - `PreviewChangesTable.tsx` — renders dynamic column headers and cells from `previewColumns` config; correct colSpan for empty state
+    - `ImportPreviewPage.tsx` — passes `previewColumns` and `extraColumns` through to table component
+  - **Spec:** `.claude/specs/sutter-sheet-validation/` (requirements, design, tasks — 43 tasks across 4 phases)
+  - +34 Jest tests (configLoader requiredColumns, fileParser getSheetHeaders/getWorkbookInfo, import.routes header validation, sutterDataTransformer default status)
+  - +56 Vitest tests (SheetSelector 57, PreviewChangesTable 21, ImportPage +3, ImportPreviewPage +2; some replace old Sutter-only tests)
+  - +8 Cypress E2E tests (universal sheet selector flow, physician selection, error handling)
+  - Total: 1,064 Jest + 1,012 Vitest = 2,076 unit tests
+
+---
+
+## [4.7.0] - 2026-02-14
+
+### Added
+- **Sutter/SIP Multi-System Import Support** (Feb 14, 2026)
+  - **Backend — Sutter config:** New `backend/src/config/import/sutter.json` with tab-based physician layout, skipTabs patterns (suffix/prefix/exact/contains), header row offset, and action-to-measureStatus mapping
+  - **Backend — systems.json:** Registered `sutter` system (`Sutter/SIP`, configFile: `sutter.json`) alongside existing Hill system
+  - **Backend — configLoader.ts:** Added `isHillConfig()`, `isSutterConfig()` type guards and `SutterSystemConfig`, `SkipTabPattern` types for polymorphic config handling
+  - **Backend — fileParser.ts:** Added `parseExcel()` with sheet selection and configurable header row, `getSheetNames()` for workbook tab discovery
+  - **Backend — import.routes.ts:** New `POST /api/import/sheets` endpoint for tab discovery with skipTabs filtering; enhanced `POST /api/import/preview` with sheetName validation, empty tab detection (EMPTY_TAB error), and Sutter-specific parsing
+  - **Backend — New Sutter services:**
+    - `actionMapper.ts` — Maps Sutter action text to measureStatus/requestType/qualityMeasure tuples with fuzzy matching
+    - `measureDetailsParser.ts` — Parses freeform measure detail text for tracking values (HgbA1c levels, BP readings, test types, time intervals)
+    - `sutterColumnMapper.ts` — Maps Sutter per-tab columns (member name, DOB, action, measure details) to internal fields
+    - `sutterDataTransformer.ts` — Transforms Sutter wide-format rows into long-format patient measures, tracks unmapped actions with counts
+  - **Backend — Enhanced existing services:** columnMapper, dataTransformer, diffCalculator, importExecutor, previewCache, validator all extended with Sutter-specific code paths
+  - **Frontend — ImportPage.tsx:** Sutter system option in dropdown, dynamic step numbering, sheet selection + physician assignment step (appears after file upload for Sutter), isSutter state management, fixed unused variable build error
+  - **Frontend — SheetSelector.tsx:** New component for Sutter tab selection — fetches available sheets via `/api/import/sheets`, physician dropdown per tab, error handling for API failures
+  - **Frontend — UnmappedActionsBanner.tsx:** New component showing unmapped action types from Sutter imports with counts, expandable detail list, accessible markup (role=alert)
+  - **Frontend — ImportPreviewPage.tsx:** Displays sheetName, physicianName, and UnmappedActionsBanner for Sutter imports
+  - **Playwright E2E:** 3 new spec files (`sutter-import.spec.ts`, `sutter-import-edge-cases.spec.ts`, `sutter-import-errors.spec.ts`) + `import-page.ts` page object
+  - **Spec:** `.claude/specs/sutter-import/` (requirements, design, tasks)
+  - +253 Jest tests (8 new backend test files: actionMapper, measureDetailsParser, sutterColumnMapper, sutterDataTransformer, sutter-import-flow, sutter-edge-cases, sutter-error-handling, sutter-performance; enhanced existing: configLoader, diffCalculator, fileParser, importExecutor, previewCache, validator, import.routes)
+  - +61 Vitest tests (SheetSelector 24, UnmappedActionsBanner 17, ImportPage +12, ImportPreviewPage +8)
+  - Total: 1,030 Jest + 956 Vitest = 1,986 unit tests
+
 ## [4.6.0] - 2026-02-13
 
 ### Added

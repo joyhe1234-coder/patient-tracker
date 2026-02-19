@@ -1,0 +1,119 @@
+{
+  "name": "Sutter/SIP",
+  "version": "1.0",
+  "format": "long",
+  "headerRow": 3,
+
+  "patientColumns": {
+    "Member Name": "memberName",
+    "Member DOB": "memberDob",
+    "Member Telephone": "memberTelephone",
+    "Member Home Address": "memberAddress"
+  },
+
+  "dataColumns": [
+    "Health Plans",
+    "Race-Ethnicity",
+    "Possible Actions Needed",
+    "Request Type",
+    "Measure Details",
+    "High Priority"
+  ],
+
+  "requestTypeMapping": {
+    "AWV": { "requestType": "AWV", "qualityMeasure": "Annual Wellness Visit" },
+    "APV": { "requestType": "AWV", "qualityMeasure": "Annual Wellness Visit" },
+    "HCC": { "requestType": "Chronic DX", "qualityMeasure": "Chronic Diagnosis Code" },
+    "Quality": { "requestType": null, "qualityMeasure": null }
+  },
+
+  "actionMapping": [
+    {
+      "pattern": "^FOBT in \\d{4} or colonoscopy",
+      "requestType": "Screening",
+      "qualityMeasure": "Colon Cancer Screening",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^HTN - Most recent \\d{4} BP less than",
+      "requestType": "Quality",
+      "qualityMeasure": "Hypertension Management",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^DM - Urine albumin/creatine? ratio",
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetic Nephropathy",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^DM - Most recent \\d{4} HbA1c",
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetes Control",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^DM - Eye exam in \\d{4}",
+      "requestType": "Quality",
+      "qualityMeasure": "Diabetic Eye Exam",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^Pap in \\d{4} - \\d{4} -OR- Pap & HPV",
+      "requestType": "Screening",
+      "qualityMeasure": "Cervical Cancer Screening",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^Mammogram in \\d{4}",
+      "requestType": "Screening",
+      "qualityMeasure": "Breast Cancer Screening",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^Chlamydia test in \\d{4}",
+      "requestType": "Quality",
+      "qualityMeasure": "GC/Chlamydia Screening",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^Need dispensing events for RAS Antagonists",
+      "requestType": "Quality",
+      "qualityMeasure": "ACE/ARB in DM or CAD",
+      "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^Vaccine:",
+      "requestType": "Quality",
+      "qualityMeasure": "Vaccination",
+      "measureStatus": "Not Addressed"
+    }
+  ],
+
+  "skipActions": [
+    "Annual Child and Young Adult Well-Care Visits",
+    "Order and/or schedule patient for osteoporosis screening tests",
+    "DM - One prescription for any intensity statin medication",
+    "Screen for Lung Cancer with low-dose computed tomography",
+    "Well-Child Visit (15-30 mos)",
+    "Need dispensing events for statin medications",
+    "Prenatal Vaccine: Influenza",
+    "One prescription for a high-intensity or moderate-intensity statin",
+    "Prenatal Vaccine: Tdap",
+    "Asthma Medication Ratio",
+    "Need dispensing events for oral diabetes medication",
+    "Well-Child Visit (first 15 mos)"
+  ],
+
+  "previewColumns": [
+    { "field": "statusDate", "label": "Status Date", "source": "Measure Details" },
+    { "field": "sourceActionText", "label": "Possible Actions Needed", "source": "Possible Actions Needed" }
+  ],
+
+  "skipTabs": [
+    { "type": "suffix", "value": "_NY" },
+    { "type": "prefix", "value": "Perf by Measure" },
+    { "type": "suffix", "value": "Perf by Measure" },
+    { "type": "exact", "value": "CAR Report" }
+  ]
+}

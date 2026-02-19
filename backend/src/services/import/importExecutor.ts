@@ -267,16 +267,16 @@ async function insertMeasure(
   });
   const rowOrder = (maxRow._max.rowOrder ?? -1) + 1;
 
-  // Calculate due date based on status
+  // Calculate due date based on status (pass tracking1 from change for Sutter imports)
   const statusDate = new Date();
   const { dueDate, timeIntervalDays } = await calculateDueDate(
     statusDate,
     change.newStatus,
-    null,  // tracking1
+    change.tracking1 ?? null,  // tracking1 from Sutter Measure Details
     null   // tracking2
   );
 
-  // Create the measure
+  // Create the measure (include notes/tracking1 for Sutter imports)
   await tx.patientMeasure.create({
     data: {
       patientId: patient.id,
@@ -288,6 +288,8 @@ async function insertMeasure(
       timeIntervalDays: timeIntervalDays,
       rowOrder: rowOrder,
       isDuplicate: false,  // Will be recalculated after execution
+      notes: change.notes || null,
+      tracking1: change.tracking1 || null,
     }
   });
 }
@@ -304,23 +306,34 @@ async function updateMeasure(
     throw new Error(`Cannot update measure for ${change.memberName}: no existing measure ID`);
   }
 
-  // Calculate due date based on new status
+  // Calculate due date based on new status (pass tracking1 from change for Sutter imports)
   const statusDate = new Date();
   const { dueDate, timeIntervalDays } = await calculateDueDate(
     statusDate,
     change.newStatus,
-    null,  // tracking1
+    change.tracking1 ?? null,  // tracking1 from Sutter Measure Details
     null   // tracking2
   );
 
+  // Build update data: always update status fields, conditionally include notes/tracking1
+  const updateData: Record<string, unknown> = {
+    measureStatus: change.newStatus,
+    statusDate: statusDate,
+    dueDate: dueDate,
+    timeIntervalDays: timeIntervalDays,
+  };
+
+  // Only include notes/tracking1 if they are non-null (avoid overwriting existing data with null)
+  if (change.notes !== undefined && change.notes !== null) {
+    updateData.notes = change.notes;
+  }
+  if (change.tracking1 !== undefined && change.tracking1 !== null) {
+    updateData.tracking1 = change.tracking1;
+  }
+
   await tx.patientMeasure.update({
     where: { id: change.existingMeasureId },
-    data: {
-      measureStatus: change.newStatus,
-      statusDate: statusDate,
-      dueDate: dueDate,
-      timeIntervalDays: timeIntervalDays,
-    }
+    data: updateData,
   });
 
   // Update patient's insuranceGroup (REQ-IG-2 AC3: re-import updates group)

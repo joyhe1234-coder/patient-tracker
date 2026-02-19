@@ -106,6 +106,73 @@ describe('previewCache', () => {
     });
   });
 
+  describe('storePreview with Sutter fields', () => {
+    it('should store sheetName on preview entry', () => {
+      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
+
+      const entry = getPreview(id);
+      // Modify the entry to have sheetName (since storePreview doesn't accept sheetName directly,
+      // we test by directly setting the field on the retrieved entry)
+      expect(entry).not.toBeNull();
+      // Note: storePreview doesn't currently accept sheetName as a parameter;
+      // it's set externally after storePreview. Test that the field is accessible on PreviewEntry.
+      if (entry) {
+        entry.sheetName = 'Dr Smith';
+        expect(entry.sheetName).toBe('Dr Smith');
+      }
+    });
+
+    it('should store unmappedActions array on preview entry', () => {
+      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
+
+      const entry = getPreview(id);
+      expect(entry).not.toBeNull();
+      if (entry) {
+        entry.unmappedActions = [
+          { actionText: 'Unknown action 1', count: 5 },
+          { actionText: 'Unknown action 2', count: 3 },
+        ];
+        expect(entry.unmappedActions).toHaveLength(2);
+        expect(entry.unmappedActions[0].actionText).toBe('Unknown action 1');
+        expect(entry.unmappedActions[0].count).toBe(5);
+      }
+    });
+
+    it('should retrieve sheetName and unmappedActions from getPreview', () => {
+      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
+
+      const entry = getPreview(id);
+      expect(entry).not.toBeNull();
+      if (entry) {
+        entry.sheetName = 'Dr Jones';
+        entry.unmappedActions = [{ actionText: 'Test action', count: 1 }];
+
+        const retrieved = getPreview(id);
+        expect(retrieved?.sheetName).toBe('Dr Jones');
+        expect(retrieved?.unmappedActions).toHaveLength(1);
+      }
+    });
+
+    it('should work correctly when sheetName and unmappedActions are undefined (Hill imports)', () => {
+      const id = storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation());
+
+      const entry = getPreview(id);
+      expect(entry).not.toBeNull();
+      expect(entry?.sheetName).toBeUndefined();
+      expect(entry?.unmappedActions).toBeUndefined();
+    });
+
+    it('should handle empty unmappedActions array', () => {
+      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
+
+      const entry = getPreview(id);
+      if (entry) {
+        entry.unmappedActions = [];
+        expect(entry.unmappedActions).toEqual([]);
+      }
+    });
+  });
+
   describe('getPreview', () => {
     it('should retrieve stored preview', () => {
       const id = storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation());

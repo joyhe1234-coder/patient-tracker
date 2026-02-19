@@ -48,6 +48,19 @@ npm run db:migrate
 npm run db:seed
 ```
 
+The seed creates the following dev/test users (password: `welcome100` for all):
+
+| Email | Name | Roles | Notes |
+|-------|------|-------|-------|
+| `admin@gmail.com` | Admin User | ADMIN | Sees all physicians on import |
+| `adminphy@gmail.com` | Ko Admin-Phy | ADMIN, PHYSICIAN | ADMIN behavior on import, can own patients |
+| `phy1@gmail.com` | Physician One | PHYSICIAN | Auto-assigned on import |
+| `phy2@gmail.com` | Physician Two | PHYSICIAN | Auto-assigned on import |
+| `staff1@gmail.com` | Staff One | STAFF | Assigned to Physician One only |
+| `staff2@gmail.com` | Staff Two | STAFF | Assigned to Physician One, Two, and Ko Admin-Phy |
+
+A system admin (`admin@clinic.com` / `changeme123`) is also created from env vars.
+
 4. **Start the development servers:**
 
 In terminal 1 (backend):

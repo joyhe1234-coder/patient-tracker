@@ -422,4 +422,171 @@ describe('Header', () => {
       expect(screen.getByText('(ADMIN)')).toBeInTheDocument();
     });
   });
+
+  describe('ADMIN+PHYSICIAN Dual Role Behavior', () => {
+    const adminPhyUser = {
+      id: 4,
+      email: 'adminphy@test.com',
+      displayName: 'Admin Doctor',
+      roles: ['ADMIN', 'PHYSICIAN'] as const,
+      isActive: true,
+      lastLoginAt: null,
+    };
+
+    const mockAssignments = [
+      { physicianId: 10, physicianName: 'Dr. Smith' },
+      { physicianId: 20, physicianName: 'Dr. Jones' },
+    ];
+
+    it('should show provider dropdown on Patient Grid (ADMIN behavior)', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: adminPhyUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: mockAssignments,
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      // ADMIN+PHYSICIAN gets ADMIN behavior: "Viewing provider:" label and dropdown
+      expect(screen.getByText('Viewing provider:')).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    it('should show "Unassigned patients" option (ADMIN behavior)', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: adminPhyUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: mockAssignments,
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      expect(screen.getByRole('option', { name: 'Unassigned patients' })).toBeInTheDocument();
+    });
+
+    it('should show Admin link in navigation', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: adminPhyUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: mockAssignments,
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Admin')).toBeInTheDocument();
+    });
+
+    it('should NOT show dropdown on non-grid pages', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: adminPhyUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: mockAssignments,
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/patient-management']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      expect(screen.queryByText('Viewing provider:')).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Navigation Visibility by Role', () => {
+    const roles = {
+      admin: {
+        user: { id: 1, email: 'admin@test.com', displayName: 'Admin', roles: ['ADMIN'] as const, isActive: true, lastLoginAt: null },
+        expectAdmin: true,
+      },
+      physician: {
+        user: { id: 2, email: 'phy@test.com', displayName: 'Doctor', roles: ['PHYSICIAN'] as const, isActive: true, lastLoginAt: null },
+        expectAdmin: false,
+      },
+      staff: {
+        user: { id: 3, email: 'staff@test.com', displayName: 'Staff', roles: ['STAFF'] as const, isActive: true, lastLoginAt: null },
+        expectAdmin: false,
+      },
+      adminPhysician: {
+        user: { id: 4, email: 'adminphy@test.com', displayName: 'Admin Doc', roles: ['ADMIN', 'PHYSICIAN'] as const, isActive: true, lastLoginAt: null },
+        expectAdmin: true,
+      },
+    };
+
+    it.each([
+      ['ADMIN', roles.admin],
+      ['PHYSICIAN', roles.physician],
+      ['STAFF', roles.staff],
+      ['ADMIN+PHYSICIAN', roles.adminPhysician],
+    ])('%s: Admin link visible=%s', (roleName, { user, expectAdmin }) => {
+      mockUseAuthStore.mockReturnValue({
+        user,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [{ physicianId: 10, physicianName: 'Dr. Smith' }],
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      if (expectAdmin) {
+        expect(screen.getByRole('link', { name: 'Admin' })).toBeInTheDocument();
+      } else {
+        expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
+      }
+    });
+
+    it('all roles see Patient Management link', () => {
+      for (const { user } of Object.values(roles)) {
+        vi.clearAllMocks();
+        mockUseAuthStore.mockReturnValue({
+          user,
+          isAuthenticated: true,
+          logout: mockLogout,
+          assignments: [{ physicianId: 10, physicianName: 'Dr. Smith' }],
+          selectedPhysicianId: 10,
+          setSelectedPhysicianId: mockSetSelectedPhysicianId,
+        });
+
+        const { unmount } = render(
+          <MemoryRouter initialEntries={['/']}>
+            <Header />
+          </MemoryRouter>
+        );
+
+        expect(screen.getByText('Patient Mgmt')).toBeInTheDocument();
+        unmount();
+      }
+    });
+  });
 });

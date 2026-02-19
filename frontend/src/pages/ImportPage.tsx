@@ -5,7 +5,7 @@ import axios from 'axios';
 import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { getApiErrorMessage } from '../utils/apiError';
-import { useAuthStore } from '../stores/authStore';
+import SheetSelector from '../components/import/SheetSelector';
 
 type ImportMode = 'replace' | 'merge';
 
@@ -23,11 +23,11 @@ interface Physician {
 
 const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
   { id: 'hill', name: 'Hill Healthcare' },
+  { id: 'sutter', name: 'Sutter/SIP' },
 ];
 
 export function ImportTabContent() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [systemId, setSystemId] = useState<string>('hill');
   const [mode, setMode] = useState<ImportMode>('merge');
   const [file, setFile] = useState<File | null>(null);
@@ -42,20 +42,19 @@ export function ImportTabContent() {
   }>>([]);
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
 
-  // Physician selection for STAFF/ADMIN
+  // Physicians for SheetSelector (loaded for all systems)
   const [physicians, setPhysicians] = useState<Physician[]>([]);
-  const [selectedPhysicianId, setSelectedPhysicianId] = useState<number | null>(null);
   const [loadingPhysicians, setLoadingPhysicians] = useState(false);
 
-  // Determine if user needs to select a physician
-  const needsPhysicianSelection = user?.roles.includes('STAFF') || user?.roles.includes('ADMIN');
+  // Sheet selection + physician assignment from SheetSelector (universal)
+  const [selectedSheetName, setSelectedSheetName] = useState<string | null>(null);
+  const [sheetPhysicianId, setSheetPhysicianId] = useState<number | null>(null);
+  const [_sheetError, setSheetError] = useState<string | null>(null);
 
-  // Load available physicians for STAFF/ADMIN users
+  // Load available physicians for SheetSelector
   useEffect(() => {
-    if (needsPhysicianSelection) {
-      loadPhysicians();
-    }
-  }, [needsPhysicianSelection]);
+    loadPhysicians();
+  }, []);
 
   const loadPhysicians = async () => {
     setLoadingPhysicians(true);
@@ -63,10 +62,6 @@ export function ImportTabContent() {
       const response = await api.get('/users/physicians');
       if (response.data.success) {
         setPhysicians(response.data.data);
-        // Auto-select if only one physician available
-        if (response.data.data.length === 1) {
-          setSelectedPhysicianId(response.data.data[0].id);
-        }
       }
     } catch (err) {
       logger.error('Failed to load physicians:', err);
@@ -130,9 +125,13 @@ export function ImportTabContent() {
       return;
     }
 
-    // Validate physician selection for STAFF/ADMIN
-    if (needsPhysicianSelection && !selectedPhysicianId) {
-      setError('Please select a physician to import patients for');
+    // Validate sheet and physician selection (universal for all systems)
+    if (!selectedSheetName) {
+      setError('Please select a tab from the workbook');
+      return;
+    }
+    if (!sheetPhysicianId) {
+      setError('Please select a physician for the import');
       return;
     }
 
@@ -162,10 +161,15 @@ export function ImportTabContent() {
       formData.append('systemId', systemId);
       formData.append('mode', mode);
 
-      // Build URL with physicianId for STAFF/ADMIN
+      // Always include sheetName from SheetSelector
+      if (selectedSheetName) {
+        formData.append('sheetName', selectedSheetName);
+      }
+
+      // Build URL with physicianId from SheetSelector
       let url = '/import/preview';
-      if (needsPhysicianSelection && selectedPhysicianId) {
-        url += `?physicianId=${selectedPhysicianId}`;
+      if (sheetPhysicianId) {
+        url += `?physicianId=${sheetPhysicianId}`;
       }
 
       const response = await api.post(url, formData, {
@@ -204,7 +208,33 @@ export function ImportTabContent() {
     setFile(null);
     setError(null);
     setValidationErrors([]);
+    // Reset sheet selection state
+    setSelectedSheetName(null);
+    setSheetPhysicianId(null);
+    setSheetError(null);
   };
+
+  // Handle SheetSelector callback
+  const handleSheetSelect = (sheetName: string, physicianId: number) => {
+    setSelectedSheetName(sheetName);
+    setSheetPhysicianId(physicianId);
+    setSheetError(null);
+  };
+
+  const handleSheetError = (errorMsg: string) => {
+    setSheetError(errorMsg);
+  };
+
+  // Step numbering:
+  // Step 1: Healthcare System
+  // Step 2: Import Mode
+  // Step 3: File Upload
+  // Step 4: Select Tab & Physician (shown after file upload)
+  const fileUploadStepNum = 3;
+  const sheetSelectorStepNum = 4;
+
+  // Determine if submit is allowed
+  const isSubmitDisabled = !file || loading || !selectedSheetName || !sheetPhysicianId;
 
   return (
     <>
@@ -218,7 +248,14 @@ export function ImportTabContent() {
         </div>
         <select
           value={systemId}
-          onChange={(e) => setSystemId(e.target.value)}
+          onChange={(e) => {
+            setSystemId(e.target.value);
+            // Reset sheet state when switching system
+            setSelectedSheetName(null);
+            setSheetPhysicianId(null);
+            setSheetError(null);
+          }}
+          aria-label="Healthcare system"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           {HEALTHCARE_SYSTEMS.map((system) => (
@@ -289,56 +326,11 @@ export function ImportTabContent() {
         </div>
       </div>
 
-      {/* Step 3: Physician Selection (STAFF/ADMIN only) */}
-      {needsPhysicianSelection && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-              3
-            </span>
-            <h2 className="text-lg font-semibold text-gray-900">Select Target Physician</h2>
-          </div>
-          {loadingPhysicians ? (
-            <div className="flex items-center gap-2 text-gray-500">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              Loading physicians...
-            </div>
-          ) : physicians.length === 0 ? (
-            <div className="text-gray-500">
-              No physicians available. {user?.roles.includes('STAFF') && 'You need to be assigned to at least one physician.'}
-            </div>
-          ) : (
-            <>
-              <select
-                value={selectedPhysicianId || ''}
-                onChange={(e) => setSelectedPhysicianId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">-- Select a physician --</option>
-                {physicians.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.displayName} {p.roles && p.roles.includes('ADMIN') && '(ADMIN)'}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-sm text-gray-500">
-                {user?.roles.includes('ADMIN')
-                  ? 'Imported patients will be assigned to the selected physician.'
-                  : 'You can only import for physicians you are assigned to.'}
-              </p>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Step {needsPhysicianSelection ? 4 : 3}: File Upload */}
+      {/* Step 3: File Upload */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-3 mb-4">
           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
-            {needsPhysicianSelection ? 4 : 3}
+            {fileUploadStepNum}
           </span>
           <h2 className="text-lg font-semibold text-gray-900">Upload File</h2>
         </div>
@@ -399,11 +391,41 @@ export function ImportTabContent() {
         )}
       </div>
 
+      {/* Step 4: Select Tab & Physician (universal, shown after file upload) */}
+      {file && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
+              {sheetSelectorStepNum}
+            </span>
+            <h2 className="text-lg font-semibold text-gray-900">Select Tab & Physician</h2>
+          </div>
+          {loadingPhysicians ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+              Loading...
+            </div>
+          ) : (
+            <SheetSelector
+              file={file}
+              systemId={systemId}
+              physicians={physicians}
+              onSelect={handleSheetSelect}
+              onError={handleSheetError}
+            />
+          )}
+        </div>
+      )}
+
+
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
           <div className="flex items-start gap-3">
-            <span className="text-red-500 text-xl">!</span>
+            <span className="text-red-500 text-xl" aria-hidden="true">!</span>
             <div className="flex-1">
               <div className="font-medium text-red-800">Error</div>
               <div className="text-sm text-red-700">{error}</div>
@@ -441,9 +463,9 @@ export function ImportTabContent() {
         </a>
         <button
           onClick={handleSubmitClick}
-          disabled={!file || loading || (needsPhysicianSelection && !selectedPhysicianId)}
+          disabled={isSubmitDisabled}
           className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            !file || loading || (needsPhysicianSelection && !selectedPhysicianId)
+            isSubmitDisabled
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}

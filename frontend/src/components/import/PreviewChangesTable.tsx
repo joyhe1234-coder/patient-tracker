@@ -1,3 +1,9 @@
+interface PreviewColumnDef {
+  field: string;
+  label: string;
+  source: string;
+}
+
 interface PreviewChange {
   action: 'INSERT' | 'UPDATE' | 'SKIP' | 'BOTH' | 'DELETE';
   memberName: string;
@@ -7,6 +13,7 @@ interface PreviewChange {
   oldStatus: string | null;
   newStatus: string | null;
   reason: string;
+  extraColumns?: Record<string, string | null>;
 }
 
 type ActionFilter = 'all' | 'INSERT' | 'UPDATE' | 'SKIP' | 'BOTH' | 'DELETE';
@@ -15,6 +22,7 @@ export interface PreviewChangesTableProps {
   changes: PreviewChange[];
   activeFilter: ActionFilter;
   totalChanges: number;
+  previewColumns?: PreviewColumnDef[];
 }
 
 function getActionColor(action: string): string {
@@ -42,10 +50,14 @@ export default function PreviewChangesTable({
   changes,
   activeFilter,
   totalChanges,
+  previewColumns,
 }: PreviewChangesTableProps) {
   const filteredChanges = changes.filter(
     change => activeFilter === 'all' || change.action === activeFilter
   );
+
+  const extraCols = previewColumns || [];
+  const totalCols = 7 + extraCols.length;
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -59,6 +71,11 @@ export default function PreviewChangesTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quality Measure</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Old Status</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">New Status</th>
+              {extraCols.map(col => (
+                <th key={col.field} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {col.label}
+                </th>
+              ))}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
             </tr>
           </thead>
@@ -95,12 +112,17 @@ export default function PreviewChangesTable({
                     </span>
                   ) : '-'}
                 </td>
+                {extraCols.map(col => (
+                  <td key={col.field} className="px-4 py-3 text-sm text-gray-600">
+                    {change.extraColumns?.[col.field] || '-'}
+                  </td>
+                ))}
                 <td className="px-4 py-3 text-xs text-gray-500">{change.reason}</td>
               </tr>
             ))}
             {filteredChanges.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={totalCols} className="px-4 py-8 text-center text-gray-500">
                   No changes match the selected filter.
                 </td>
               </tr>

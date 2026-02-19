@@ -42,6 +42,15 @@ export interface PatientReassignment {
 }
 
 /**
+ * Unmapped action from Sutter import.
+ * Action text that could not be matched to a quality measure.
+ */
+export interface UnmappedActionEntry {
+  actionText: string;
+  count: number;
+}
+
+/**
  * Cached preview entry
  */
 export interface PreviewEntry {
@@ -49,6 +58,10 @@ export interface PreviewEntry {
   systemId: string;
   mode: 'replace' | 'merge';
   fileName?: string;
+  /** Sheet/tab name selected for import (Sutter multi-sheet files) */
+  sheetName?: string;
+  /** Unmapped action texts from Sutter Quality rows that had no regex match */
+  unmappedActions?: UnmappedActionEntry[];
   diff: DiffResult;
   rows: TransformedRow[];
   validation: ValidationResult;

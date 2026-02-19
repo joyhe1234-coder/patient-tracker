@@ -692,6 +692,192 @@ describe('applyMergeLogic', () => {
   });
 });
 
+describe('notes/tracking1 propagation', () => {
+  describe('calculateReplaceAllDiff with notes/tracking1', () => {
+    it('should propagate notes from TransformedRow to INSERT changes', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({ notes: 'HCC action text here', memberName: 'Sutter Patient' }),
+      ];
+      const existingRecords: ExistingRecord[] = [];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, existingRecords, summary);
+
+      expect(changes).toHaveLength(1);
+      expect(changes[0].action).toBe('INSERT');
+      expect(changes[0].notes).toBe('HCC action text here');
+    });
+
+    it('should propagate tracking1 from TransformedRow to INSERT changes', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({ tracking1: '7.2', memberName: 'Sutter Patient' }),
+      ];
+      const existingRecords: ExistingRecord[] = [];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, existingRecords, summary);
+
+      expect(changes).toHaveLength(1);
+      expect(changes[0].tracking1).toBe('7.2');
+    });
+
+    it('should set notes/tracking1 to null when undefined in TransformedRow', () => {
+      const rows: TransformedRow[] = [
+        createMockRow(), // No notes or tracking1
+      ];
+      const existingRecords: ExistingRecord[] = [];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, existingRecords, summary);
+
+      expect(changes[0].notes).toBeNull();
+      expect(changes[0].tracking1).toBeNull();
+    });
+  });
+
+  describe('calculateMergeDiff with notes/tracking1', () => {
+    it('should propagate notes/tracking1 for INSERT actions (new patient)', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'New Sutter Patient',
+          notes: 'HCC coding review',
+          tracking1: '6.8',
+        }),
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes).toHaveLength(1);
+      expect(changes[0].action).toBe('INSERT');
+      expect(changes[0].notes).toBe('HCC coding review');
+      expect(changes[0].tracking1).toBe('6.8');
+    });
+
+    it('should propagate notes/tracking1 for UPDATE actions', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'John Smith',
+          memberDob: '1990-01-15',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'AWV completed',
+          notes: 'Updated notes',
+          tracking1: '120/80',
+        }),
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      existingByKey.set(
+        'John Smith|1990-01-15|AWV|Annual Wellness Visit',
+        createMockExistingRecord({ measureStatus: 'Not Addressed' })
+      );
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes[0].action).toBe('UPDATE');
+      expect(changes[0].notes).toBe('Updated notes');
+      expect(changes[0].tracking1).toBe('120/80');
+    });
+
+    it('should propagate notes/tracking1 for BOTH actions', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'John Smith',
+          memberDob: '1990-01-15',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'Declined',
+          notes: 'Downgrade notes',
+          tracking1: '5.5',
+        }),
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      existingByKey.set(
+        'John Smith|1990-01-15|AWV|Annual Wellness Visit',
+        createMockExistingRecord({ measureStatus: 'Completed' })
+      );
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes[0].action).toBe('BOTH');
+      expect(changes[0].notes).toBe('Downgrade notes');
+      expect(changes[0].tracking1).toBe('5.5');
+    });
+
+    it('should propagate notes/tracking1 for SKIP actions', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'John Smith',
+          memberDob: '1990-01-15',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'Completed',
+          notes: 'Some notes',
+          tracking1: 'Some tracking',
+        }),
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      existingByKey.set(
+        'John Smith|1990-01-15|AWV|Annual Wellness Visit',
+        createMockExistingRecord({ measureStatus: 'At Goal' })
+      );
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes[0].action).toBe('SKIP');
+      expect(changes[0].notes).toBe('Some notes');
+      expect(changes[0].tracking1).toBe('Some tracking');
+    });
+
+    it('should handle Hill imports with null/undefined notes/tracking1', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({ memberName: 'Hill Patient' }), // No notes/tracking1
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes[0].notes).toBeNull();
+      expect(changes[0].tracking1).toBeNull();
+    });
+  });
+
+  describe('applyMergeLogic with notes/tracking1', () => {
+    it('should include notes/tracking1 in baseChange spread', () => {
+      const row = createMockRow({
+        measureStatus: 'Completed',
+        notes: 'Test notes',
+        tracking1: 'Test tracking',
+      });
+      const existing = createMockExistingRecord({ measureStatus: 'Not Addressed' });
+
+      const result = applyMergeLogic(row, existing);
+
+      expect(result.notes).toBe('Test notes');
+      expect(result.tracking1).toBe('Test tracking');
+    });
+
+    it('should handle null notes/tracking1 in merge logic', () => {
+      const row = createMockRow({
+        measureStatus: 'Completed',
+        notes: null,
+        tracking1: null,
+      });
+      const existing = createMockExistingRecord({ measureStatus: 'Not Addressed' });
+
+      const result = applyMergeLogic(row, existing);
+
+      expect(result.notes).toBeNull();
+      expect(result.tracking1).toBeNull();
+    });
+  });
+});
+
 describe('Merge Logic Documentation', () => {
   /**
    * This describes the expected merge behavior for reference.

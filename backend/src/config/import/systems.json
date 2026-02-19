@@ -3,6 +3,10 @@
     "hill": {
       "name": "Hill Healthcare",
       "configFile": "hill.json"
+    },
+    "sutter": {
+      "name": "Sutter/SIP",
+      "configFile": "sutter.json"
     }
   },
   "default": "hill"

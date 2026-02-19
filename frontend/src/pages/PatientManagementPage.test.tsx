@@ -84,6 +84,14 @@ describe('PatientManagementPage', () => {
       expect(screen.getByText('Import Patients')).toBeInTheDocument();
       expect(screen.queryByText('Reassign Patients')).not.toBeInTheDocument();
     });
+
+    it('ADMIN+PHYSICIAN sees both "Import Patients" and "Reassign Patients" tabs', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['ADMIN', 'PHYSICIAN']) });
+      renderPage();
+
+      expect(screen.getByText('Import Patients')).toBeInTheDocument();
+      expect(screen.getByText('Reassign Patients')).toBeInTheDocument();
+    });
   });
 
   describe('Default tab behavior', () => {
@@ -184,6 +192,14 @@ describe('PatientManagementPage', () => {
       const importTab = screen.getByText('Import Patients');
       expect(importTab).toHaveClass('border-b-2', 'border-blue-600');
     });
+
+    it('?tab=reassign activates Reassign tab for ADMIN+PHYSICIAN', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['ADMIN', 'PHYSICIAN']) });
+      renderPage(['/patient-management?tab=reassign']);
+
+      const reassignTab = screen.getByText('Reassign Patients');
+      expect(reassignTab).toHaveClass('border-b-2', 'border-blue-600');
+    });
   });
 
   describe('Tab content mounting', () => {
@@ -201,6 +217,12 @@ describe('PatientManagementPage', () => {
       mockUseAuthStore.mockReturnValue({ user: makeUser(['STAFF']) });
       renderPage();
       expect(screen.queryByTestId('reassign-tab-content')).not.toBeInTheDocument();
+    });
+
+    it('Reassign tab content is rendered for ADMIN+PHYSICIAN', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['ADMIN', 'PHYSICIAN']) });
+      renderPage();
+      expect(screen.getByTestId('reassign-tab-content')).toBeInTheDocument();
     });
   });
 });

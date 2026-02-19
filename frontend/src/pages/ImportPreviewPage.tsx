@@ -4,6 +4,14 @@ import { api } from '../api/axios';
 import PreviewSummaryCards from '../components/import/PreviewSummaryCards';
 import PreviewChangesTable from '../components/import/PreviewChangesTable';
 import ImportResultsDisplay from '../components/import/ImportResultsDisplay';
+import UnmappedActionsBanner from '../components/import/UnmappedActionsBanner';
+import type { UnmappedAction } from '../components/import/UnmappedActionsBanner';
+
+interface PreviewColumnDef {
+  field: string;
+  label: string;
+  source: string;
+}
 
 interface PreviewChange {
   action: 'INSERT' | 'UPDATE' | 'SKIP' | 'BOTH' | 'DELETE';
@@ -14,6 +22,7 @@ interface PreviewChange {
   oldStatus: string | null;
   newStatus: string | null;
   reason: string;
+  extraColumns?: Record<string, string | null>;
 }
 
 interface ValidationWarning {
@@ -65,6 +74,16 @@ interface PreviewResult {
     limit: number;
     items: PreviewChange[];
   };
+  // Sutter-specific fields
+  sheetName?: string;
+  physicianName?: string;
+  unmappedActions?: UnmappedAction[];
+  unmappedActionsSummary?: {
+    totalTypes: number;
+    totalRows: number;
+  };
+  // Configurable preview columns
+  previewColumns?: PreviewColumnDef[];
 }
 
 interface ExecuteResult {
@@ -256,9 +275,20 @@ export default function ImportPreviewPage() {
         <div className="text-right text-sm text-gray-500">
           <div>File: <span className="font-medium">{preview?.fileName}</span></div>
           <div>Mode: <span className="font-medium uppercase">{preview?.mode}</span></div>
+          {preview?.sheetName && (
+            <div>Tab: <span className="font-medium">{preview.sheetName}</span></div>
+          )}
+          {preview?.physicianName && (
+            <div>Physician: <span className="font-medium">{preview.physicianName}</span></div>
+          )}
           <div>Expires: {preview && new Date(preview.expiresAt).toLocaleTimeString()}</div>
         </div>
       </div>
+
+      {/* Unmapped Actions Banner (Sutter imports) */}
+      {preview?.unmappedActions && preview.unmappedActions.length > 0 && (
+        <UnmappedActionsBanner unmappedActions={preview.unmappedActions} />
+      )}
 
       {/* Error display */}
       {error && (
@@ -359,6 +389,7 @@ export default function ImportPreviewPage() {
         changes={preview?.changes.items || []}
         activeFilter={actionFilter}
         totalChanges={preview?.totalChanges || 0}
+        previewColumns={preview?.previewColumns}
       />
 
       {/* Action Buttons */}

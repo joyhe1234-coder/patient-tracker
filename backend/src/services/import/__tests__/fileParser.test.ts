@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { parseCSV, parseExcel, parseFile, validateRequiredColumns } from '../fileParser.js';
+import { parseCSV, parseExcel, parseFile, validateRequiredColumns, getSheetNames, getWorkbookInfo, getSheetHeaders } from '../fileParser.js';
 import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -324,6 +324,366 @@ describe('fileParser', () => {
       const result = validateRequiredColumns(headers, required);
 
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('getSheetNames', () => {
+    function createMultiSheetBuffer(sheets: Record<string, unknown[][]>): Buffer {
+      const wb = XLSX.utils.book_new();
+      for (const [name, data] of Object.entries(sheets)) {
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    }
+
+    it('should return all sheet names from a multi-sheet workbook', () => {
+      const buffer = createMultiSheetBuffer({
+        'Dr Smith': [['Name', 'DOB'], ['John', '01/01/1990']],
+        'Dr Jones': [['Name', 'DOB'], ['Jane', '02/02/1985']],
+        'Dr Brown': [['Name', 'DOB'], ['Bob', '03/03/1970']],
+      });
+
+      const names = getSheetNames(buffer);
+
+      expect(names).toEqual(['Dr Smith', 'Dr Jones', 'Dr Brown']);
+    });
+
+    it('should return single-element array for single-sheet file', () => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([['Name'], ['Test']]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      const names = getSheetNames(buffer);
+
+      expect(names).toEqual(['Sheet1']);
+    });
+
+    it('should preserve sheet name order from workbook', () => {
+      const buffer = createMultiSheetBuffer({
+        'Zebra': [['A']],
+        'Alpha': [['B']],
+        'Mango': [['C']],
+      });
+
+      const names = getSheetNames(buffer);
+
+      expect(names).toEqual(['Zebra', 'Alpha', 'Mango']);
+    });
+  });
+
+  describe('parseExcel with options', () => {
+    function createMultiSheetBuffer(sheets: Record<string, unknown[][]>): Buffer {
+      const wb = XLSX.utils.book_new();
+      for (const [name, data] of Object.entries(sheets)) {
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    }
+
+    it('should select correct sheet when sheetName option provided', () => {
+      const buffer = createMultiSheetBuffer({
+        'Sheet1': [['Name', 'DOB'], ['Alice', '01/01/1990']],
+        'Dr Smith': [['Name', 'DOB'], ['Bob', '02/02/1985']],
+      });
+
+      const result = parseExcel(buffer, 'test.xlsx', { sheetName: 'Dr Smith' });
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0]['Name']).toBe('Bob');
+    });
+
+    it('should throw error for invalid sheetName', () => {
+      const buffer = createMultiSheetBuffer({
+        'Sheet1': [['Name'], ['Test']],
+      });
+
+      expect(() => parseExcel(buffer, 'test.xlsx', { sheetName: 'NonExistent' }))
+        .toThrow('Sheet "NonExistent" not found in workbook');
+    });
+
+    it('should use headerRow option to fix header row index', () => {
+      // Simulate Sutter format: 3 rows of junk, then headers at row index 3 (0-indexed)
+      const data = [
+        ['Report info'],
+        [''],
+        ['More info'],
+        ['Name', 'DOB', 'Phone'],
+        ['John', '01/01/1990', '5551234567'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      const result = parseExcel(buffer, 'test.xlsx', { headerRow: 3 });
+
+      expect(result.headers).toEqual(['Name', 'DOB', 'Phone']);
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0]['Name']).toBe('John');
+      expect(result.dataStartRow).toBe(5); // headerRow(3) + 1 for 1-index + 1 for data
+    });
+
+    it('should throw error for out-of-range headerRow', () => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([['Name'], ['Test']]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      expect(() => parseExcel(buffer, 'test.xlsx', { headerRow: 10 }))
+        .toThrow('Header row index 10 is out of range');
+    });
+
+    it('should use first sheet when no sheetName option provided', () => {
+      const buffer = createMultiSheetBuffer({
+        'First': [['Name', 'DOB'], ['Alice', '01/01/1990']],
+        'Second': [['Name', 'DOB'], ['Bob', '02/02/1985']],
+      });
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.rows[0]['Name']).toBe('Alice');
+    });
+
+    it('should auto-detect header row when no headerRow option provided', () => {
+      const data = [
+        ['Name', 'DOB', 'Phone'],
+        ['John', '01/01/1990', '5551234567'],
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      const result = parseExcel(buffer, 'test.xlsx');
+
+      expect(result.headers).toEqual(['Name', 'DOB', 'Phone']);
+      expect(result.dataStartRow).toBe(2);
+    });
+
+    it('should combine sheetName and headerRow options', () => {
+      const wb = XLSX.utils.book_new();
+      // First sheet with standard format
+      const ws1 = XLSX.utils.aoa_to_sheet([['Name'], ['Alice']]);
+      XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+      // Second sheet with Sutter format (header at row 3)
+      const ws2 = XLSX.utils.aoa_to_sheet([
+        ['Info1'],
+        ['Info2'],
+        ['Info3'],
+        ['Member Name', 'Member DOB'],
+        ['Bob Smith', '02/02/1985'],
+      ]);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Dr Smith');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      const result = parseExcel(buffer, 'test.xlsx', { sheetName: 'Dr Smith', headerRow: 3 });
+
+      expect(result.headers).toEqual(['Member Name', 'Member DOB']);
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0]['Member Name']).toBe('Bob Smith');
+    });
+  });
+
+  describe('getWorkbookInfo', () => {
+    function createMultiSheetBuffer(sheets: Record<string, unknown[][]>): Buffer {
+      const wb = XLSX.utils.book_new();
+      for (const [name, data] of Object.entries(sheets)) {
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+    }
+
+    it('should return correct sheet names from a multi-sheet workbook', () => {
+      const buffer = createMultiSheetBuffer({
+        'Dr Smith': [['Name', 'DOB'], ['John', '01/01/1990']],
+        'Dr Jones': [['Name', 'DOB'], ['Jane', '02/02/1985']],
+        'Dr Brown': [['Name', 'DOB'], ['Bob', '03/03/1970']],
+      });
+
+      const info = getWorkbookInfo(buffer);
+
+      expect(info.sheetNames).toEqual(['Dr Smith', 'Dr Jones', 'Dr Brown']);
+    });
+
+    it('should return a single sheet name for a single-sheet workbook', () => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([['Name'], ['Test']]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      const info = getWorkbookInfo(buffer);
+
+      expect(info.sheetNames).toEqual(['Sheet1']);
+    });
+
+    it('should return a valid workbook object with Sheets and SheetNames', () => {
+      const buffer = createMultiSheetBuffer({
+        'Alpha': [['Col1', 'Col2'], ['A', 'B']],
+        'Beta': [['Col1'], ['C']],
+      });
+
+      const info = getWorkbookInfo(buffer);
+
+      expect(info.workbook).toBeDefined();
+      expect(info.workbook.SheetNames).toEqual(['Alpha', 'Beta']);
+      expect(info.workbook.Sheets['Alpha']).toBeDefined();
+      expect(info.workbook.Sheets['Beta']).toBeDefined();
+    });
+
+    it('should preserve sheet name order from workbook', () => {
+      const buffer = createMultiSheetBuffer({
+        'Zebra': [['A']],
+        'Alpha': [['B']],
+        'Mango': [['C']],
+      });
+
+      const info = getWorkbookInfo(buffer);
+
+      expect(info.sheetNames).toEqual(['Zebra', 'Alpha', 'Mango']);
+    });
+  });
+
+  describe('getSheetHeaders', () => {
+    /**
+     * Helper to create a multi-sheet workbook object (not buffer)
+     * for use with getSheetHeaders which takes a workbook directly.
+     */
+    function createWorkbook(sheets: Record<string, unknown[][]>): XLSX.WorkBook {
+      const wb = XLSX.utils.book_new();
+      for (const [name, data] of Object.entries(sheets)) {
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+      return wb;
+    }
+
+    it('should return headers from the correct row (headerRowIndex = 0)', () => {
+      const wb = createWorkbook({
+        'Sheet1': [
+          ['Name', 'DOB', 'Phone'],
+          ['John', '01/01/1990', '5551234567'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Sheet1'], 0);
+
+      expect(headerMap.get('Sheet1')).toEqual(['Name', 'DOB', 'Phone']);
+    });
+
+    it('should return headers from headerRowIndex = 3 (Sutter format)', () => {
+      const wb = createWorkbook({
+        'Dr Smith': [
+          ['Report info line 1'],
+          ['Report info line 2'],
+          ['Report info line 3'],
+          ['Member Name', 'Member DOB', 'Member Telephone', 'Possible Actions Needed'],
+          ['Alice Smith', '03/15/1980', '5559876543', 'AWV scheduled'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Dr Smith'], 3);
+
+      expect(headerMap.get('Dr Smith')).toEqual([
+        'Member Name', 'Member DOB', 'Member Telephone', 'Possible Actions Needed'
+      ]);
+    });
+
+    it('should return headers for multiple sheets', () => {
+      const wb = createWorkbook({
+        'Dr Smith': [
+          ['Info'],
+          ['Info'],
+          ['Info'],
+          ['Name', 'DOB'],
+          ['Alice', '01/01/1990'],
+        ],
+        'Dr Jones': [
+          ['Info'],
+          ['Info'],
+          ['Info'],
+          ['Name', 'DOB', 'Phone'],
+          ['Bob', '02/02/1985', '5551234567'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Dr Smith', 'Dr Jones'], 3);
+
+      expect(headerMap.get('Dr Smith')).toEqual(['Name', 'DOB']);
+      expect(headerMap.get('Dr Jones')).toEqual(['Name', 'DOB', 'Phone']);
+    });
+
+    it('should return empty array for a sheet name not in the workbook', () => {
+      const wb = createWorkbook({
+        'Sheet1': [['Name', 'DOB'], ['John', '01/01/1990']],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['NonExistentSheet'], 0);
+
+      expect(headerMap.get('NonExistentSheet')).toEqual([]);
+    });
+
+    it('should return empty array for out-of-bounds row index (too large)', () => {
+      const wb = createWorkbook({
+        'Sheet1': [
+          ['Name', 'DOB'],
+          ['John', '01/01/1990'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Sheet1'], 100);
+
+      expect(headerMap.get('Sheet1')).toEqual([]);
+    });
+
+    it('should return empty array for negative row index', () => {
+      const wb = createWorkbook({
+        'Sheet1': [
+          ['Name', 'DOB'],
+          ['John', '01/01/1990'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Sheet1'], -1);
+
+      expect(headerMap.get('Sheet1')).toEqual([]);
+    });
+
+    it('should trim whitespace from header values', () => {
+      const wb = createWorkbook({
+        'Sheet1': [
+          ['  Name  ', '  DOB  ', '  Phone  '],
+          ['John', '01/01/1990', '5551234567'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Sheet1'], 0);
+
+      expect(headerMap.get('Sheet1')).toEqual(['Name', 'DOB', 'Phone']);
+    });
+
+    it('should handle a mix of valid sheets and missing sheets', () => {
+      const wb = createWorkbook({
+        'Sheet1': [['Name', 'DOB'], ['John', '01/01/1990']],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Sheet1', 'MissingSheet'], 0);
+
+      expect(headerMap.get('Sheet1')).toEqual(['Name', 'DOB']);
+      expect(headerMap.get('MissingSheet')).toEqual([]);
+    });
+
+    it('should handle empty sheet names array', () => {
+      const wb = createWorkbook({
+        'Sheet1': [['Name', 'DOB'], ['John', '01/01/1990']],
+      });
+
+      const headerMap = getSheetHeaders(wb, [], 0);
+
+      expect(headerMap.size).toBe(0);
     });
   });
 

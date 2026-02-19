@@ -535,6 +535,198 @@ describe('importExecutor', () => {
     });
   });
 
+  describe('notes/tracking1 persistence', () => {
+    it('should persist notes on INSERT action', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({
+            action: 'INSERT',
+            notes: 'HCC coding review needed',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockMeasureCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            notes: 'HCC coding review needed',
+          }),
+        })
+      );
+    });
+
+    it('should persist tracking1 on INSERT action', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({
+            action: 'INSERT',
+            tracking1: '7.2',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockMeasureCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tracking1: '7.2',
+          }),
+        })
+      );
+    });
+
+    it('should update notes on UPDATE action when non-null', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 1, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'UPDATE',
+            existingMeasureId: 10,
+            existingPatientId: 5,
+            notes: 'Updated HCC notes',
+            oldStatus: 'Not Addressed',
+            newStatus: 'Completed',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockMeasureUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            notes: 'Updated HCC notes',
+          }),
+        })
+      );
+    });
+
+    it('should update tracking1 on UPDATE action when non-null', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 1, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'UPDATE',
+            existingMeasureId: 10,
+            existingPatientId: 5,
+            tracking1: '6.5',
+            oldStatus: 'Not Addressed',
+            newStatus: 'Completed',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockMeasureUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tracking1: '6.5',
+          }),
+        })
+      );
+    });
+
+    it('should not include notes in UPDATE when null', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 1, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'UPDATE',
+            existingMeasureId: 10,
+            existingPatientId: 5,
+            notes: null,
+            tracking1: null,
+            oldStatus: 'Not Addressed',
+            newStatus: 'Completed',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      // When null, notes/tracking1 should NOT be in the update data
+      const updateCall = mockMeasureUpdate.mock.calls[0][0] as { data: Record<string, unknown> };
+      expect(updateCall.data).not.toHaveProperty('notes');
+      expect(updateCall.data).not.toHaveProperty('tracking1');
+    });
+
+    it('should pass tracking1 to calculateDueDate on INSERT', async () => {
+      const { calculateDueDate } = await import('../../dueDateCalculator.js');
+
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({
+            action: 'INSERT',
+            tracking1: '8.1',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      await executeImport('test-preview-123');
+
+      expect(calculateDueDate).toHaveBeenCalledWith(
+        expect.any(Date),
+        'AWV completed',
+        '8.1',  // tracking1 passed
+        null    // tracking2
+      );
+    });
+
+    it('should handle INSERT with both notes and tracking1', async () => {
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({
+            action: 'INSERT',
+            notes: 'HCC review',
+            tracking1: '7.0',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      expect(mockMeasureCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            notes: 'HCC review',
+            tracking1: '7.0',
+          }),
+        })
+      );
+    });
+  });
+
   describe('insuranceGroup', () => {
     it('should create patient with insuranceGroup from systemId', async () => {
       const preview = createMockPreview({

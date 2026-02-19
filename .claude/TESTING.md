@@ -451,6 +451,60 @@ npm run test:cli -- --save    # Save new baselines
 
 ---
 
+### Sutter Integration Tests (67 tests)
+
+**Location:** `backend/src/services/import/__tests__/sutter-integration.test.ts`
+
+Tests the full Sutter pipeline (parse → map → transform → validate → diff) using programmatically-generated Excel fixture files.
+
+**Fixture Generator:** `test-data/create-sutter-fixtures.ts`
+
+```bash
+# Generate fixtures (required before running tests)
+cd backend && npx tsx ../test-data/create-sutter-fixtures.ts
+
+# Run integration tests
+cd backend && node --experimental-vm-modules node_modules/jest/bin/jest.js sutter-integration --no-coverage
+```
+
+**Test Data:** `test-data/test-sutter-*.xlsx` (8 files)
+
+| File | Tests | Purpose |
+|------|-------|---------|
+| `test-sutter-valid.xlsx` | 13 | All 10 action patterns, AWV/APV merge, HCC notes, stats |
+| `test-sutter-duplicates.xlsx` | 6 | Duplicate merging (latest date, concat notes/actions) |
+| `test-sutter-edge-cases.xlsx` | 10 | Special chars, date formats, BP readings, missing fields |
+| `test-sutter-errors.xlsx` | 8 | Missing name/DOB, unknown request type, headers-only tab |
+| `test-sutter-skip-actions.xlsx` | 5 | 11 skip actions filtered, 2 valid mapped |
+| `test-sutter-unmapped.xlsx` | 5 | Unmapped aggregation, sorting, zero errors |
+| `test-sutter-merge.xlsx` | 8 | INSERT/SKIP/UPDATE diff against existing records |
+| `test-sutter-measure-details.xlsx` | 12 | All 12 parsing strategies (semicolon, comma, embedded, BP) |
+
+---
+
+### Sutter Import Visual Tests (22 tests)
+
+**Location:** `frontend/e2e/sutter-import-visual.spec.ts`
+
+Visual review tests for the Sutter import UI workflow with screenshots.
+
+**Fixture Helpers:** `frontend/e2e/fixtures/sutter-fixture-helper.ts`
+
+```bash
+cd frontend && npx playwright test sutter-import-visual
+```
+
+| Group | Tests | Covers |
+|-------|-------|--------|
+| System & Upload | 4 | Dropdown, file input, sheet selector, tab count |
+| Sheet & Physician | 4 | Tab filtering, auto-match, manual override, warnings |
+| Preview | 4 | Header info, unmapped banner, details toggle, changes table |
+| Role-Based Access | 4 | ADMIN, PHYSICIAN, ADMIN+PHY, STAFF |
+| Responsive | 3 | Mobile 375px, tablet 768px, desktop 1920px |
+| Error States | 3 | No valid tabs, empty tab, missing physician |
+
+---
+
 ## Test Coverage Summary
 
 | Area | Framework | Tests | Status |
@@ -476,9 +530,11 @@ npm run test:cli -- --save    # Save new baselines
 | Duplicate detection | Cypress | 15 | Complete |
 | Multi-select filter | Cypress | 18 | Complete |
 | UX improvements | Cypress | 10 | Complete |
+| Sutter file-based integration | Jest | 67 | Complete |
+| Sutter import visual | Playwright | 22 | Complete |
 | Visual/UX review | MCP Playwright | - | On-demand |
 
-**Total Automated Tests: ~1557** (701 Jest + 856 Vitest + ~43 Playwright + ~293 Cypress)
+**Total Automated Tests: ~2,548** (1,165 Jest + 1,025 Vitest + ~65 Playwright + ~293 Cypress)
 
 ---
 
