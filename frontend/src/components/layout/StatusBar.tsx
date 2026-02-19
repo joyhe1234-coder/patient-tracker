@@ -7,6 +7,7 @@ interface StatusBarProps {
   rowCount: number;
   totalRowCount?: number;
   filterSummary?: string;
+  pinnedRowId?: number | null;
 }
 
 function getStatusConfig(status: ConnectionStatus): {
@@ -30,7 +31,7 @@ function getStatusConfig(status: ConnectionStatus): {
   }
 }
 
-export default function StatusBar({ rowCount, totalRowCount, filterSummary }: StatusBarProps) {
+export default function StatusBar({ rowCount, totalRowCount, filterSummary, pinnedRowId }: StatusBarProps) {
   const connectionStatus = useRealtimeStore((s) => s.connectionStatus);
   const roomUsers = useRealtimeStore((s) => s.roomUsers);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -40,7 +41,10 @@ export default function StatusBar({ rowCount, totalRowCount, filterSummary }: St
   return (
     <div className="bg-gray-100 border-t border-gray-200 px-4 py-2 flex items-center justify-between text-sm text-gray-600">
       <div className="flex items-center gap-4">
-        <span>Showing {rowCount.toLocaleString()} of {(totalRowCount ?? rowCount).toLocaleString()} rows</span>
+        <span>
+          Showing {rowCount.toLocaleString()} of {(totalRowCount ?? rowCount).toLocaleString()} rows
+          {pinnedRowId != null && <span className="text-amber-600 italic" data-testid="status-bar-pinned"> (new row pinned)</span>}
+        </span>
         {filterSummary && (
           <span className="text-gray-500 border-l border-gray-300 pl-4">{filterSummary}</span>
         )}

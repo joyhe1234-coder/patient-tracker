@@ -71,7 +71,6 @@ export async function getPatientMeasures(req: Request, res: Response, next: Next
       statusDatePrompt: measure.statusDatePrompt,
       tracking1: measure.tracking1,
       tracking2: measure.tracking2,
-      tracking3: measure.tracking3,
       dueDate: measure.dueDate,
       timeIntervalDays: measure.timeIntervalDays,
       notes: measure.notes,
@@ -110,7 +109,6 @@ export async function createPatientMeasure(req: Request, res: Response, next: Ne
       statusDate,
       tracking1,
       tracking2,
-      tracking3,
       notes,
     } = req.body;
 
@@ -191,7 +189,6 @@ export async function createPatientMeasure(req: Request, res: Response, next: Ne
         statusDatePrompt,
         tracking1: tracking1 || null,
         tracking2: tracking2 || null,
-        tracking3: tracking3 || null,
         dueDate,
         timeIntervalDays,
         notes: notes || null,
@@ -239,7 +236,6 @@ export async function createPatientMeasure(req: Request, res: Response, next: Ne
         statusDatePrompt: updatedMeasure!.statusDatePrompt,
         tracking1: updatedMeasure!.tracking1,
         tracking2: updatedMeasure!.tracking2,
-        tracking3: updatedMeasure!.tracking3,
         dueDate: updatedMeasure!.dueDate,
         timeIntervalDays: updatedMeasure!.timeIntervalDays,
         notes: updatedMeasure!.notes,
@@ -284,7 +280,7 @@ export async function updatePatientMeasure(req: Request, res: Response, next: Ne
     const patientFields = ['memberName', 'memberDob', 'memberTelephone', 'memberAddress'];
     const measureFields = [
       'requestType', 'qualityMeasure', 'measureStatus', 'statusDate',
-      'statusDatePrompt', 'tracking1', 'tracking2', 'tracking3',
+      'statusDatePrompt', 'tracking1', 'tracking2',
       'dueDate', 'timeIntervalDays', 'notes', 'rowOrder',
       'hgba1cGoal', 'hgba1cGoalReachedYear', 'hgba1cDeclined',
     ];
@@ -565,7 +561,6 @@ export async function updatePatientMeasure(req: Request, res: Response, next: Ne
         statusDatePrompt: finalMeasure!.statusDatePrompt,
         tracking1: finalMeasure!.tracking1,
         tracking2: finalMeasure!.tracking2,
-        tracking3: finalMeasure!.tracking3,
         dueDate: finalMeasure!.dueDate,
         timeIntervalDays: finalMeasure!.timeIntervalDays,
         notes: finalMeasure!.notes,

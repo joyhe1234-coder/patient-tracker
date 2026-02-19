@@ -505,7 +505,6 @@ interface MeasureConfig {
   statusDate: Date | null;
   tracking1: string | null;
   tracking2: string | null;
-  tracking3: string | null;
   notes: string | null;
   hgba1cGoal: string | null;
   hgba1cGoalReachedYear: boolean;
@@ -525,7 +524,6 @@ function buildMeasure(
   let statusDate: Date | null = null;
   let tracking1: string | null = null;
   let tracking2: string | null = null;
-  let tracking3: string | null = null;
   let hgba1cGoal: string | null = null;
   let hgba1cGoalReachedYear = false;
   let hgba1cDeclined = false;
@@ -598,7 +596,6 @@ function buildMeasure(
     statusDate,
     tracking1,
     tracking2,
-    tracking3,
     notes: `Color: ${displayColor} | Status: ${measureStatus}${tracking1 ? ` | T1: ${tracking1}` : ''}${tracking2 ? ` | T2: ${tracking2}` : ''}${dueDate ? ` | Due: ${dueDate.toISOString().slice(0, 10)}` : ''}${timeIntervalDays ? ` | Interval: ${timeIntervalDays}d` : ''}`,
     hgba1cGoal,
     hgba1cGoalReachedYear,
@@ -963,7 +960,6 @@ async function main() {
           statusDate: measure.statusDate,
           tracking1: measure.tracking1,
           tracking2: measure.tracking2,
-          tracking3: measure.tracking3,
           dueDate,
           timeIntervalDays,
           notes: measure.notes,

@@ -412,7 +412,6 @@ interface MeasureConfig {
   statusDate: Date | null;
   tracking1: string | null;
   tracking2: string | null;
-  tracking3: string | null;
   notes: string | null;
   hgba1cGoal: string | null;
   hgba1cGoalReachedYear: boolean;
@@ -428,7 +427,6 @@ function buildMeasure(
   let statusDate: Date | null = null;
   let tracking1: string | null = null;
   let tracking2: string | null = null;
-  const tracking3: string | null = null;
   let hgba1cGoal: string | null = null;
   let hgba1cGoalReachedYear = false;
   const hgba1cDeclined = false;
@@ -490,7 +488,7 @@ function buildMeasure(
 
   return {
     requestType, qualityMeasure, measureStatus, statusDate,
-    tracking1, tracking2, tracking3,
+    tracking1, tracking2,
     notes: notesParts.join(' | '),
     hgba1cGoal, hgba1cGoalReachedYear, hgba1cDeclined,
   };
@@ -815,7 +813,6 @@ async function seedPatients(emailToId: Map<string, number>): Promise<void> {
           statusDate: measure.statusDate,
           tracking1: measure.tracking1,
           tracking2: measure.tracking2,
-          tracking3: measure.tracking3,
           dueDate,
           timeIntervalDays,
           notes: measure.notes,

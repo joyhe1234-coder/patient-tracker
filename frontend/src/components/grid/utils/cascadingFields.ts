@@ -23,13 +23,13 @@ export interface CascadeResult {
 /** Fields downstream from requestType (excluding qualityMeasure, handled separately) */
 const DOWNSTREAM_FROM_REQUEST_TYPE = [
   'measureStatus', 'statusDate', 'tracking1', 'tracking2',
-  'tracking3', 'dueDate', 'timeIntervalDays',
+  'dueDate', 'timeIntervalDays',
 ] as const;
 
 /** Fields downstream from measureStatus */
 const DOWNSTREAM_FROM_MEASURE_STATUS = [
   'statusDate', 'tracking1', 'tracking2',
-  'tracking3', 'dueDate', 'timeIntervalDays',
+  'dueDate', 'timeIntervalDays',
 ] as const;
 
 /**

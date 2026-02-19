@@ -43,7 +43,7 @@ export default function Toolbar({
           }`}
         >
           <Copy className="w-4 h-4" />
-          Duplicate Mbr
+          Copy Member
         </button>
 
         <button

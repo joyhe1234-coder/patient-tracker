@@ -17,7 +17,7 @@ export class MainPage {
     this.toolbar = page.locator('.flex.items-center.gap-2.p-2');
     this.filterBar = page.locator('.bg-gray-50.border-b.border-gray-200');
     this.addRowButton = page.locator('button:has-text("Add Row")');
-    this.duplicateButton = page.locator('button:has-text("Duplicate Mbr")');
+    this.duplicateButton = page.locator('button:has-text("Copy Member")');
     this.deleteButton = page.locator('button:has-text("Delete Row")');
     this.saveIndicator = page.locator('text=Saving, text=Saved, text=Error');
     this.statusBar = page.locator('.bg-gray-100.border-t');

@@ -29,12 +29,27 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.9.0):**
+**Test Coverage (as of Release 4.10.0):**
 - Layer 1 (Backend Jest): 1,165 tests passing (43 suites)
-- Layer 2 (Frontend Vitest): 1,025 tests passing (38 suites)
+- Layer 2 (Frontend Vitest): 1,037 tests passing (38 suites)
 - Layer 3 (Playwright E2E): 43 tests
 - Layer 4 (Cypress E2E): ~342 tests
 - Visual test plan v2.1: 427 test cases documented
+
+### Grid UX: Remove tracking3, Rename Copy Member, Pinned Row on Add/Duplicate
+
+**Status: Complete** (Feb 19, 2026)
+
+- [x] **Removed `tracking3` field** from entire stack (Prisma schema, migration, backend handlers/services/types/seeds, frontend grid/types/tests, cascading fields)
+- [x] **Renamed "Duplicate Mbr" to "Copy Member"** in Toolbar, tests, Playwright page object, Cypress tests
+- [x] **Pinned row on add/duplicate:** Newly created/duplicated rows bypass active filters (status color, measure, search) until user interacts with filters
+- [x] **StatusFilterBar pinned badge:** Amber "New row pinned -- click to unpin" button with hover effect
+- [x] **StatusBar pinned indicator:** "(new row pinned)" in amber italic
+- [x] **MainPage filter wrappers:** Clear pinnedRowId on any filter interaction
+- [x] **Import requirements Q4-Q8 resolved:** All open questions decided and documented
+- [x] **Smart Column Mapping spec:** Requirements drafted (`.claude/specs/smart-column-mapping/requirements.md`)
+
+**Tests:** +12 Vitest (5 StatusFilterBar pinned badge + 7 MainPage pinned row filter bypass)
 
 ### Sutter Import Enhancements: Duplicate Merging, Parsing, Role Tests
 
@@ -215,7 +230,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 **Status: Complete**
 
-- [x] AG Grid displaying 14 data columns
+- [x] AG Grid displaying 13 data columns (tracking3 removed Feb 19, 2026)
 - [x] Cell editing with double-click activation (changed from single-click to prevent accidental edits)
 - [x] Auto-save on cell edit with status indicator (Saving/Saved/Error)
 - [x] Delete Row with confirmation dialog
@@ -249,9 +264,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] Backend duplicate flag synchronization on create/update/delete
 - [x] API endpoint: POST `/api/data/check-duplicate` for pre-creation duplicate check
 - [x] Cascading field clearing when parent field changes:
-  - requestType → clears qualityMeasure (unless auto-fill), measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
-  - qualityMeasure → clears measureStatus, statusDate, tracking1/2/3, dueDate, timeInterval
-  - measureStatus → clears statusDate, tracking1/2/3, dueDate, timeInterval
+  - requestType → clears qualityMeasure (unless auto-fill), measureStatus, statusDate, tracking1/2, dueDate, timeInterval
+  - qualityMeasure → clears measureStatus, statusDate, tracking1/2, dueDate, timeInterval
+  - measureStatus → clears statusDate, tracking1/2, dueDate, timeInterval
   - Notes preserved (not cleared)
 - [x] Time interval manual override - editable for ALL statuses (allows overriding default from tracking)
 - [x] Duplicate row functionality (create copy of existing row)
@@ -326,7 +341,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 - [x] Preview before commit strategy (in-memory diff)
 - [x] Implementation plan with 13 phases and 11 modules
 - [x] API contracts defined (/preview, /execute)
-- [ ] Remaining questions: Q4-Q8
+- [x] Remaining questions: Q4-Q8 — All resolved (Feb 19, 2026)
 
 #### Implementation Phases
 - [x] 5a: Config files + Config Loader
@@ -481,9 +496,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
     - Dropdown (1-12 months) with dark gray prompt "Testing interval" for HgbA1c statuses
     - Free text with dark gray prompt "BP reading" for Hypertension call back statuses
     - Shows italic "N/A" for disabled statuses (inherits row color with diagonal stripe overlay, not editable)
-  - **Tracking #3:**
-    - Editable free text placeholder for future use
-    - Inherits row status color
+  - **~~Tracking #3~~:** Removed (Feb 19, 2026) — was an unused placeholder field
 - [x] Backend services layer:
   - `dueDateCalculator.ts` - Due date calculation logic
   - `duplicateDetector.ts` - Duplicate detection and flag management
@@ -519,7 +532,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 ### Component Testing (React Testing Library + Vitest)
 - [x] Phase 1: Setup (vitest.config.ts, setup.ts, npm scripts)
 - [x] Phase 4: Component tests (~752 tests total)
-  - StatusFilterBar.test.tsx (181 tests - compact chips, quality measure dropdown, combined filter logic, getRowStatusColor, row color accuracy, chip count integrity, search UI, multi-select, accessibility, attestation cascade)
+  - StatusFilterBar.test.tsx (186 tests - compact chips, quality measure dropdown, combined filter logic, getRowStatusColor, row color accuracy, chip count integrity, search UI, multi-select, accessibility, attestation cascade, pinned row badge)
   - StatusBar.test.tsx (7 tests - consistent display format, locale formatting, Connected status, filter summary)
   - Toolbar.test.tsx (15 tests)
   - AddRowModal.test.tsx (15 tests)
@@ -536,7 +549,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - ImportPreviewPage.test.tsx (31 tests - includes unmapped actions banner, sheetName/physicianName display)
   - SheetSelector.test.tsx (24 tests - sheet discovery, physician selection, error handling)
   - UnmappedActionsBanner.test.tsx (17 tests - rendering, expand/collapse, accessibility)
-  - MainPage.test.tsx (41 tests - search filtering, word-based search, multi-select filter logic, measure dropdown filtering)
+  - MainPage.test.tsx (48 tests - search filtering, word-based search, multi-select filter logic, measure dropdown filtering, pinned row filter bypass)
   - authStore.test.ts (25 tests)
   - PatientManagementPage.test.tsx (18 tests)
   - dropdownConfig.test.ts (45 tests - all mappings, helper functions, auto-fill, cascade chain integrity)
@@ -604,7 +617,7 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
 
 ### Backend Unit Testing (Jest)
 - [x] 1,165 tests passing (43 suites) — includes Sutter multi-system import, sheet validation, duplicate merging, role-based filtering
-- Total test count: ~2,575 automated tests across all frameworks (1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress)
+- Total test count: ~2,587 automated tests across all frameworks (1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
   - auth.routes.test.ts - 39 tests (login, registration, password reset, JWT, failed login audit logging)
@@ -947,6 +960,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 19, 2026 - Release 4.10.0: Remove tracking3 field (migration + full stack), rename "Duplicate Mbr" to "Copy Member", pinned row on add/duplicate (filter bypass with amber badge), import Q4-Q8 decisions resolved, smart column mapping spec. All tests passing: 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.
 February 18, 2026 - Release 4.9.0: Sutter duplicate merging, measureDetails parsing, role-based tests, seed users, universal sheet validation, configurable preview columns, ADMIN+PHYSICIAN dual role fix, CSV headerRow fix, SheetSelector a11y fix, Sutter/SIP multi-system import. All tests passing: 1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress = ~2,575 automated tests.
 February 14, 2026 - Sutter/SIP multi-system import: full pipeline (config, parser, routes, transformer, mapper, UI components). 253 new Jest + 61 new Vitest tests. All tests passing: 1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress = ~2,371 automated tests.
 February 13, 2026 - Release 4.6.0: Insurance group filter (REQ-IG), security hardening phases 1-3 (REQ-SEC-04/05/06/10). All tests passing: 777 Jest + 895 Vitest + 43 Playwright + ~342 Cypress = ~2,057 automated tests.

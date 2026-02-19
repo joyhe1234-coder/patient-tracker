@@ -81,7 +81,6 @@ export interface GridRow {
   statusDatePrompt: string | null;
   tracking1: string | null;
   tracking2: string | null;
-  tracking3: string | null;
   dueDate: string | null;
   timeIntervalDays: number | null;
   notes: string | null;
@@ -835,14 +834,6 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
         }
         return classes.length > 0 ? classes.join(' ') : '';
       },
-    },
-    {
-      field: 'tracking3',
-      headerName: 'Tracking #3',
-      headerTooltip: 'Tracking #3',
-      width: 150,
-      editable: true, // Placeholder for future use
-      cellClass: getRemoteEditCellClass,
     },
     {
       field: 'dueDate',

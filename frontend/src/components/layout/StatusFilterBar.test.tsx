@@ -1004,6 +1004,58 @@ describe('StatusFilterBar', () => {
   });
 });
 
+describe('Pinned Row Badge', () => {
+  const defaultCounts: Record<StatusColor, number> = {
+    all: 0, duplicate: 5, white: 20, yellow: 15, blue: 25,
+    green: 10, purple: 5, orange: 5, gray: 10, red: 5,
+  };
+
+  const baseProps = {
+    activeFilters: ['all'] as StatusColor[],
+    onFilterChange: vi.fn(),
+    rowCounts: defaultCounts,
+    searchText: '',
+    onSearchChange: vi.fn(),
+    selectedMeasure: 'All Measures',
+    onMeasureChange: vi.fn(),
+    measureOptions: Object.keys(QUALITY_MEASURE_TO_STATUS),
+    selectedInsuranceGroup: 'hill',
+    onInsuranceGroupChange: vi.fn(),
+    insuranceGroupOptions: [{ id: 'hill', name: 'Hill' }],
+  };
+
+  it('renders pinned badge when pinnedRowId is set', () => {
+    render(<StatusFilterBar {...baseProps} pinnedRowId={42} onUnpin={vi.fn()} />);
+    expect(screen.getByTestId('pinned-row-badge')).toBeInTheDocument();
+    expect(screen.getByText(/pinned/i)).toBeInTheDocument();
+  });
+
+  it('does not render badge when pinnedRowId is null', () => {
+    render(<StatusFilterBar {...baseProps} pinnedRowId={null} onUnpin={vi.fn()} />);
+    expect(screen.queryByTestId('pinned-row-badge')).not.toBeInTheDocument();
+  });
+
+  it('does not render badge when pinnedRowId is undefined', () => {
+    render(<StatusFilterBar {...baseProps} />);
+    expect(screen.queryByTestId('pinned-row-badge')).not.toBeInTheDocument();
+  });
+
+  it('calls onUnpin when badge is clicked', () => {
+    const handleUnpin = vi.fn();
+    render(<StatusFilterBar {...baseProps} pinnedRowId={42} onUnpin={handleUnpin} />);
+    fireEvent.click(screen.getByTestId('pinned-row-badge'));
+    expect(handleUnpin).toHaveBeenCalledTimes(1);
+  });
+
+  it('badge has amber styling', () => {
+    render(<StatusFilterBar {...baseProps} pinnedRowId={42} onUnpin={vi.fn()} />);
+    const badge = screen.getByTestId('pinned-row-badge');
+    expect(badge.className).toContain('bg-amber-100');
+    expect(badge.className).toContain('text-amber-700');
+    expect(badge.className).toContain('border-amber-400');
+  });
+});
+
 describe('getRowStatusColor', () => {
   // UTC-safe date helpers: construct dates as UTC midnight date-only strings.
   // The production code compares dueDate's UTC date against today's LOCAL date,

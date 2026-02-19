@@ -84,11 +84,11 @@ This document tracks planned features and enhancements for future development.
 - [x] Duplicate row visual requirements updated (left stripe + filter chip)
 - [x] Q2: Status Value Mapping (measure-specific mapping decided)
 - [x] Hill Measure Mapping page (`/hill-mapping`) with CSV export
-- [ ] Q4: Unmapped Patient Columns (Sex, MembID, LOB)
-- [ ] Q5: "Has Sticket" Column decision
-- [ ] Q6: Duplicate Measures handling (age-range sub-categories)
-- [ ] Q7: Column Mapping UI decision
-- [ ] Q8: Date Fields decision
+- [x] Q4: Unmapped Patient Columns — **Ignore all** (Age, Sex, MembID, LOB)
+- [x] Q5: "Has Sticket" Column — **Ignore**
+- [x] Q6: Duplicate Measures — **Import overall only** (skip age-specific sub-columns)
+- [x] Q7: Column Mapping UI — **Smart fuzzy mapping with admin management** (see `.claude/specs/smart-column-mapping/requirements.md`)
+- [x] Q8: Date Fields — **Use import date** as statusDate, auto-calculate dueDate
 - [x] Implementation: Phase 5a - Config Loader (systems registry, Hill config)
 - [x] Implementation: Phase 5b - File Parser (CSV/Excel) + Import Test Page
 - [x] Implementation: Phase 5c - Column Mapper + Transformer
@@ -307,14 +307,14 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 ## Grid Feature Requests (Feb 6, 2026)
 
 ### Duplicate Row UX Improvements
-- [ ] **"Duplicate Mbr" button label → "Copy Member"** when viewing a duplicate row
-  - When user is looking at a duplicate patient, the action button should say "Copy Member" instead of "Duplicate Mbr" to clarify intent
-- [ ] **Newly created/duplicated rows should remain visible when filters are active**
-  - If duplicate filter is ON and user duplicates a row, the new row should be visible (not hidden by the filter)
-  - Same applies to other filters (status color filters, search) — newly added rows should either:
-    - Temporarily bypass the active filter so the user can see their new row, OR
-    - Auto-clear filters after row creation with a toast notification
-  - Design consideration: what's the expected behavior when a row is created that doesn't match the active filter?
+- [x] **"Duplicate Mbr" button label → "Copy Member"** — DONE: renamed in Toolbar, tests, Playwright page object, Cypress tests
+- [x] **Newly created/duplicated rows should remain visible when filters are active** — DONE: pinned row bypass with amber badge
+  - Implemented as "pinned row" approach: new row ID stored in `pinnedRowId` state
+  - Pinned row passes through all filters (status color, quality measure, search)
+  - Amber "New row pinned -- click to unpin" badge in StatusFilterBar
+  - Pin auto-clears when user interacts with any filter (chips, measure dropdown, search, insurance group)
+  - StatusBar shows "(new row pinned)" indicator
+  - 12 new Vitest tests (5 badge + 7 filter bypass)
 
 ### Row Numbers Feature
 - [x] ~~**Add row numbers column to AG Grid**~~ — REMOVED: user found it confusing/invisible
@@ -335,8 +335,8 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ### Important UX Fixes
 - [x] Change single-click edit to double-click edit (prevents accidental edits with auto-save) — DONE: `singleClickEdit={false}`
-- [ ] Make tracking prompt cells ("Select test type") use row color + italic placeholder instead of dark olive background
-- [ ] Improve Member Info toggle active/inactive visual state (icon swap, filled background)
+- [x] Make tracking prompt cells ("Select test type") use row color + italic placeholder instead of dark olive background — DONE: `stripe-overlay` + `cell-prompt` classes
+- [x] ~~Improve Member Info toggle active/inactive visual state~~ — WONTFIX: current state is fine
 
 ### Accessibility (WCAG)
 - [ ] Add screen-reader-only grid structure summary for split pinned/scrollable headers
@@ -414,6 +414,20 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] REQ-SEC-09: Refresh Token Mechanism (8hr JWT sufficient)
 - [ ] REQ-SEC-11: Hide DB Port in Docker (deferred by user)
 - [ ] REQ-SEC-12: Field-Level Encryption for PHI (deferred by user)
+
+### Smart Column Mapping (REQ-SCM)
+**Spec:** `.claude/specs/smart-column-mapping/requirements.md`
+**Status:** Requirements drafted, pending design phase
+
+Replace fixed/exact-match column mapping with fuzzy matching + admin-managed UI:
+- [ ] REQ-SCM-01: Fuzzy header matching (similarity scoring for renamed columns)
+- [ ] REQ-SCM-02: Column change detection & warnings (new/missing/changed headers)
+- [ ] REQ-SCM-03: Admin inline conflict resolution during import
+- [ ] REQ-SCM-04: Dedicated admin mapping management page (`/admin/import-mapping`)
+- [ ] REQ-SCM-05: Non-admin warning (block import, direct to admin)
+- [ ] REQ-SCM-06: Sutter action pattern fuzzy matching
+- [ ] REQ-SCM-07: Database-backed mapping persistence (JSON as seed/fallback)
+- [ ] REQ-SCM-08: Import date as default statusDate (for spreadsheets without dates)
 
 ### Charting & Stats Analyzer
 - [ ] Dashboard view with summary statistics
@@ -500,7 +514,7 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 ## Test Coverage Improvement
 
 **Audit Report:** [TEST_AUDIT_REPORT.md](./TEST_AUDIT_REPORT.md) (February 10, 2026)
-**Current:** ~2,575 tests (1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress)
+**Current:** ~2,587 tests (1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress)
 **Added Feb 10-12, 2026:** +244 new tests (116 Jest + 115 Vitest + 13 Cypress), fixed 13 pre-existing failures, 3 bugs fixed, +22 Jest from code quality refactor, +104 Vitest from code quality refactor
 
 ### Priority 1: Critical Gaps (Zero Coverage)
@@ -567,6 +581,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 19, 2026 - Release 4.10.0: Remove tracking3, rename Copy Member, pinned row on add/duplicate, import Q4-Q8 decisions, smart column mapping spec. 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.
 February 18, 2026 - Release 4.9.0: Sutter duplicate merging, measureDetails parsing, role-based tests, universal sheet validation, configurable preview columns, bug fixes (ADMIN+PHYSICIAN dual role, CSV headerRow, SheetSelector a11y), Sutter/SIP multi-system import. 1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress = ~2,575 automated tests.
 February 14, 2026 - Sutter/SIP multi-system import: full pipeline (config, parser, routes, transformer, mapper, UI). 253 new Jest + 61 new Vitest. 1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress = ~2,371 automated tests.
 February 13, 2026 - Release 4.6.0: Insurance group filter (REQ-IG), security hardening phases 1-3 (REQ-SEC-04/05/06/10). 777 Jest + 895 Vitest + 43 Playwright + ~342 Cypress = ~2,057 automated tests.
