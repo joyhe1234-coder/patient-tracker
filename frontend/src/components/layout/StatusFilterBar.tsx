@@ -18,6 +18,8 @@ interface StatusFilterBarProps {
   selectedInsuranceGroup: string;
   onInsuranceGroupChange: (value: string) => void;
   insuranceGroupOptions: Array<{ id: string; name: string }>;
+  pinnedRowId?: number | null;
+  onUnpin?: () => void;
 }
 
 // Status category definitions
@@ -40,7 +42,7 @@ const STATUS_CATEGORIES: Array<{
   { id: 'gray', label: 'N/A', bgColor: 'bg-gray-200', textColor: 'text-gray-600', borderColor: 'border-gray-400' },
 ];
 
-export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts, searchText, onSearchChange, searchInputRef, selectedMeasure, onMeasureChange, measureOptions, selectedInsuranceGroup, onInsuranceGroupChange, insuranceGroupOptions }: StatusFilterBarProps) {
+export default function StatusFilterBar({ activeFilters, onFilterChange, rowCounts, searchText, onSearchChange, searchInputRef, selectedMeasure, onMeasureChange, measureOptions, selectedInsuranceGroup, onInsuranceGroupChange, insuranceGroupOptions, pinnedRowId, onUnpin }: StatusFilterBarProps) {
   const isAllSelected = activeFilters.includes('all') || activeFilters.length === 0;
 
   const handleChipClick = (id: StatusColor) => {
@@ -118,6 +120,17 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
           </button>
         );
       })}
+
+      {/* New row pinned badge */}
+      {pinnedRowId != null && (
+        <button
+          onClick={onUnpin}
+          data-testid="pinned-row-badge"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium italic whitespace-nowrap bg-amber-100 text-amber-700 border border-amber-400 cursor-pointer hover:bg-amber-200 transition-colors"
+        >
+          New row pinned — click to unpin
+        </button>
+      )}
 
       {/* Vertical divider */}
       <div className="w-px h-5 bg-gray-300 mx-1 self-center" />

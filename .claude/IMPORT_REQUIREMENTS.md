@@ -210,90 +210,51 @@ See `IMPORT_COLUMN_MAPPING.md` for complete mapping table.
 
 ---
 
-### Q4: Unmapped Patient Columns
+### Q4: Unmapped Patient Columns ✓
 
-These columns exist in the spreadsheet but not in our schema:
+**Decision:** **Option A - Ignore all** (Decided 2026-02-19)
 
-| Column | Current Schema | Options |
-|--------|----------------|---------|
-| Age | Not stored | A. Ignore (calculate from DOB) |
-| Sex | Not stored | A. Ignore / B. Add to schema |
-| MembID | Not stored | A. Ignore / B. Add to schema |
-| LOB | Not stored | A. Ignore / B. Add to schema |
-
-**Decision:** _______________
+All four columns (Age, Sex, MembID, LOB) are skipped during import. Age is derivable from DOB. The others are not needed in the patient grid.
 
 ---
 
-### Q5: "Has Sticket" Column
+### Q5: "Has Sticket" Column ✓
 
-**Values:** Y, N
+**Decision:** **Option A - Ignore** (Decided 2026-02-19)
 
-**Questions:**
-- What does "Sticket" mean? (Sticker?)
-- Is this relevant to track?
-- Should we add a field for this?
-
-**Options:**
-- **A. Ignore**: Don't import this column
-- **B. Add Field**: Add `hasSticker` boolean to Patient or PatientMeasure
-- **C. Notes**: Store in notes field
-
-**Decision:** _______________
+Column is skipped during import. Not relevant to track.
 
 ---
 
-### Q6: Duplicate Measures in Spreadsheet
+### Q6: Duplicate Measures in Spreadsheet ✓
 
-Some measures have age-range sub-categories that all map to the same quality measure:
+**Decision:** **Option C - Import overall only** (Decided 2026-02-19)
 
-**Example - Colorectal Cancer Screening:**
-- Colorectal Cancer Screening E (overall)
-- Colorectal Cancer Screening 45-50 Years E
-- Colorectal Cancer Screening 51-75 Years E
-
-All 3 columns → Screening / Colon Cancer Screening
-
-**How should we handle multiple columns mapping to the same measure?**
-
-**Options:**
-- **A. Import All**: Create separate rows for each (3 rows for same patient)
-- **B. Import First Non-Blank**: Only import one row per measure per patient
-- **C. Import Overall Only**: Only import the "E" or "Overall" version, skip age-specific
-
-**Decision:** _______________
+Only import the general/overall column (e.g., "Colorectal Cancer Screening E"). Skip all age-specific sub-columns (e.g., "45-50 Years E", "51-75 Years E"). This avoids cluttering the grid with near-duplicate rows.
 
 ---
 
-### Q7: Column Mapping UI
+### Q7: Column Mapping UI ✓
 
-**Should users be able to customize column mapping?**
+**Decision:** **Smart fuzzy mapping with admin management** (Decided 2026-02-19)
 
-**Options:**
-- **A. Fixed Mapping**: Hardcode column positions/names, no UI
-- **B. Auto-Detect**: Auto-match by column header names, allow manual override
-- **C. Full Mapping UI**: User maps each column manually
+Replace fixed exact-match with fuzzy matching + admin-managed UI:
+- Fuzzy matching detects renamed/changed headers and suggests matches
+- ADMIN users can resolve conflicts inline during import and via dedicated `/admin/import-mapping` page
+- Non-admin users see a warning banner directing them to contact admin
+- Mappings persisted to database (JSON config as seed/fallback)
+- Applies to both Hill headers and Sutter action patterns
+- No developer involvement needed for mapping changes
 
-**Decision:** _______________
+**Full requirements:** `.claude/specs/smart-column-mapping/requirements.md`
 
 ---
 
-### Q8: Date Fields
+### Q8: Date Fields ✓
 
-**Import only has compliance status, no dates.**
+**Decision:** **Option A - Use import date** (Decided 2026-02-19)
 
-Our system tracks:
-- statusDate (when status was recorded)
-- dueDate (when follow-up is due)
-
-**What dates should imported rows have?**
-
-**Options:**
-- **A. Import Date**: Set statusDate to import date, calculate dueDate from rules
-- **B. Null**: Leave dates empty, user fills in manually
-- **C. Prompt**: Ask user for a "status as of" date during import
-
-**Decision:** _______________
+Set statusDate to today's date (date of import). dueDate auto-calculates from existing DueDayRule logic. If the spreadsheet has date data (e.g., Sutter's Measure Details), extracted dates take precedence over import date.
 
 ---
 
@@ -613,9 +574,14 @@ Both Replace All and Merge modes show a preview before applying changes. User mu
 | 2026-01-22 | Preview Strategy | Option D - In-Memory Diff before commit |
 | 2026-01-22 | Multi-System Support | Healthcare system selector with per-system config |
 | 2026-01-22 | Implementation Plan | 13 phases defined with module breakdown |
+| 2026-02-19 | Q4: Unmapped Patient Columns | Ignore all (Age, Sex, MembID, LOB) |
+| 2026-02-19 | Q5: "Has Sticket" Column | Ignore |
+| 2026-02-19 | Q6: Duplicate Measures | Import overall only (skip age-specific) |
+| 2026-02-19 | Q7: Column Mapping UI | Smart fuzzy mapping with admin management |
+| 2026-02-19 | Q8: Date Fields | Use import date as statusDate |
 
 ---
 
 ## Last Updated
 
-January 22, 2026
+February 19, 2026

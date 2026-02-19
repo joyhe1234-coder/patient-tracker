@@ -43,7 +43,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-2, AC-3
 **Automation:** Automated - `smoke.spec.ts: "should display the patient grid"`, `Toolbar.test.tsx`
 **Steps:**
-1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Tracking #3, Notes
+1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Notes (13 columns; Tracking #3 removed in v4.10.0)
 
 **Expected:**
 - All columns render correctly
@@ -717,15 +717,16 @@ This document contains test cases for verifying system functionality. Each test 
 
 **Requirement Spec:** [`.claude/specs/row-operations/requirements.md`](specs/row-operations/requirements.md)
 
-### TC-9.0: Duplicate Row Button
+### TC-9.0: Copy Member Button (formerly "Duplicate Mbr")
 **Requirement:** AC-10
-**Automation:** Automated - `duplicate-member.spec.ts: "Duplicate button disabled without selection"`
+**Automation:** Automated - `duplicate-member.spec.ts: "Duplicate button disabled without selection"`, `Toolbar.test.tsx: "Copy Member"`
 **Steps:**
 1. Ensure no row is selected
-2. Observe "Duplicate" button in toolbar
+2. Observe "Copy Member" button in toolbar
 
 **Expected:**
-- Duplicate button is disabled (grayed out)
+- Copy Member button is disabled (grayed out)
+- Button label reads "Copy Member" (renamed from "Duplicate Mbr" in v4.10.0)
 
 ### TC-9.0b: Duplicate Row - Creates Copy Below
 **Requirement:** AC-11, AC-12, AC-13
@@ -754,6 +755,43 @@ This document contains test cases for verifying system functionality. Each test 
 - New row is still in the same position (below original)
 - Patient data is preserved
 - Row order is correct
+
+### TC-9.0d: Pinned Row on Add - Filter Bypass
+**Requirement:** New row should remain visible when filters are active
+**Automation:** Automated - `MainPage.test.tsx: "Pinned row behavior"` (7 tests)
+**Steps:**
+1. Apply a status color filter (e.g., Green only)
+2. Add a new row via "Add Row" button
+
+**Expected:**
+- New row is visible in the grid despite not matching the Green filter
+- Amber "New row pinned -- click to unpin" badge appears in filter bar
+- Status bar shows "(new row pinned)" indicator
+- Clicking any filter chip clears the pin (new row may disappear if it doesn't match)
+
+### TC-9.0e: Pinned Row on Duplicate - Filter Bypass
+**Requirement:** Duplicated row should remain visible when filters are active
+**Automation:** Automated - `MainPage.test.tsx: "Pinned row behavior"` (7 tests)
+**Steps:**
+1. Apply a quality measure filter (e.g., "Annual Wellness Visit")
+2. Select a row and click "Copy Member"
+
+**Expected:**
+- New duplicated row is visible despite having null quality measure
+- Amber badge appears in filter bar
+- Clicking the badge or interacting with filters clears the pin
+
+### TC-9.0f: Pinned Row Badge in StatusFilterBar
+**Requirement:** Visual indicator for pinned rows
+**Automation:** Automated - `StatusFilterBar.test.tsx: "Pinned Row Badge"` (5 tests)
+**Steps:**
+1. Trigger a pinned row (add or duplicate while filters active)
+
+**Expected:**
+- Badge has amber styling (bg-amber-100, text-amber-700, border-amber-400)
+- Badge text: "New row pinned -- click to unpin"
+- Clicking badge calls onUnpin callback
+- Badge not shown when no row is pinned
 
 ### TC-9.1: Add New Row - First Row Position
 **Requirement:** AC-1, AC-2, AC-3, AC-4

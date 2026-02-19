@@ -16,18 +16,20 @@ function filterRows(
   rowData: GridRow[],
   activeFilters: StatusColor[],
   searchText: string,
-  selectedMeasure: string = 'All Measures'
+  selectedMeasure: string = 'All Measures',
+  pinnedRowId: number | null = null
 ): GridRow[] {
   let filtered = rowData;
 
   // Apply quality measure filter
   if (selectedMeasure !== 'All Measures') {
-    filtered = filtered.filter(row => row.qualityMeasure === selectedMeasure);
+    filtered = filtered.filter(row => row.id === pinnedRowId || row.qualityMeasure === selectedMeasure);
   }
 
   // Apply status color filter
   if (!activeFilters.includes('all') && activeFilters.length > 0) {
     filtered = filtered.filter((row) => {
+      if (row.id === pinnedRowId) return true;
       if (activeFilters.includes('duplicate')) return row.isDuplicate;
       const color = getRowStatusColor(row);
       return activeFilters.includes(color);
@@ -38,6 +40,7 @@ function filterRows(
   if (searchText.trim()) {
     const searchWords = searchText.trim().toLowerCase().split(/\s+/);
     filtered = filtered.filter((row) => {
+      if (row.id === pinnedRowId) return true;
       const name = row.memberName?.toLowerCase() || '';
       return searchWords.every((word) => name.includes(word));
     });
@@ -82,7 +85,6 @@ function makeRow(overrides: Partial<GridRow> & { id: number; memberName: string 
     statusDatePrompt: null,
     tracking1: null,
     tracking2: null,
-    tracking3: null,
     dueDate: null,
     timeIntervalDays: null,
     notes: null,
@@ -695,5 +697,64 @@ describe('Insurance Group', () => {
       // Query params are different, which triggers useEffect re-fetch in MainPage
       expect(qs1).not.toBe(qs2);
     });
+  });
+});
+
+describe('Pinned row behavior', () => {
+  it('pinned row passes through color filter even if it does not match', () => {
+    // Row 3 (Johnson, Bob) is white status. Filter for green only.
+    const result = filterRows(sampleRows, ['green'], '', 'All Measures', 3);
+    // 3 green rows + pinned row 3
+    expect(result).toHaveLength(4);
+    expect(result.map(r => r.id)).toContain(3);
+  });
+
+  it('pinned row passes through measure filter even if it has null measure', () => {
+    // Row 3 has null qualityMeasure. Filter for AWV.
+    const result = filterRows(sampleRows, ['all'], '', 'Annual Wellness Visit', 3);
+    // 4 AWV rows + pinned row 3
+    expect(result).toHaveLength(5);
+    expect(result.map(r => r.id)).toContain(3);
+  });
+
+  it('pinned row passes through search filter even if name does not match', () => {
+    // Row 3 is "Johnson, Bob". Search for "smith".
+    const result = filterRows(sampleRows, ['all'], 'smith', 'All Measures', 3);
+    // 2 Smith rows + pinned row 3
+    expect(result).toHaveLength(3);
+    expect(result.map(r => r.id)).toContain(3);
+  });
+
+  it('pinned row passes through all combined filters', () => {
+    // Row 3: white status, null measure, name "Johnson, Bob"
+    // Filters: green + AWV + "smith" — row 3 matches none
+    const result = filterRows(sampleRows, ['green'], 'smith', 'Annual Wellness Visit', 3);
+    // 1 matching row (Smith, John) + pinned row 3
+    expect(result).toHaveLength(2);
+    expect(result.map(r => r.id)).toContain(3);
+    expect(result.map(r => r.id)).toContain(1);
+  });
+
+  it('no pin (null) means filters work normally', () => {
+    const result = filterRows(sampleRows, ['green'], '', 'All Measures', null);
+    expect(result).toHaveLength(3);
+  });
+
+  it('pinned row that already matches filters is not duplicated', () => {
+    // Row 1 (Smith, John) is green + AWV. Pin it and filter for green + AWV.
+    const result = filterRows(sampleRows, ['green'], '', 'Annual Wellness Visit', 1);
+    // Should still be 2 green AWV rows (1, 5) — row 1 not duplicated
+    expect(result).toHaveLength(2);
+    expect(result.filter(r => r.id === 1)).toHaveLength(1);
+  });
+
+  it('clearing pin (null) re-applies all filters and hides non-matching row', () => {
+    // Pinned: row 3 visible despite green filter
+    const pinned = filterRows(sampleRows, ['green'], '', 'All Measures', 3);
+    expect(pinned.map(r => r.id)).toContain(3);
+
+    // Unpinned: row 3 hidden (it's white, not green)
+    const unpinned = filterRows(sampleRows, ['green'], '', 'All Measures', null);
+    expect(unpinned.map(r => r.id)).not.toContain(3);
   });
 });

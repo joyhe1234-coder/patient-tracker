@@ -170,7 +170,6 @@ const sampleMeasure = {
   statusDatePrompt: null,
   tracking1: null,
   tracking2: null,
-  tracking3: null,
   dueDate: null,
   timeIntervalDays: null,
   notes: null,

@@ -47,6 +47,9 @@ export default function MainPage() {
   // Status color filters
   const [activeFilters, setActiveFilters] = useState<StatusColor[]>(['all']);
 
+  // Pin a newly created/duplicated row so it stays visible despite filters
+  const [pinnedRowId, setPinnedRowId] = useState<number | null>(null);
+
   // Patient name search
   const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -131,12 +134,13 @@ export default function MainPage() {
 
     // Apply quality measure filter
     if (selectedMeasure !== 'All Measures') {
-      filtered = filtered.filter(row => row.qualityMeasure === selectedMeasure);
+      filtered = filtered.filter(row => row.id === pinnedRowId || row.qualityMeasure === selectedMeasure);
     }
 
     // Apply status color filter
     if (!activeFilters.includes('all') && activeFilters.length > 0) {
       filtered = filtered.filter((row) => {
+        if (row.id === pinnedRowId) return true;
         if (activeFilters.includes('duplicate')) return row.isDuplicate;
         const color = getRowStatusColor(row);
         return activeFilters.includes(color);
@@ -148,13 +152,14 @@ export default function MainPage() {
     if (searchText.trim()) {
       const searchWords = searchText.trim().toLowerCase().split(/\s+/);
       filtered = filtered.filter((row) => {
+        if (row.id === pinnedRowId) return true;
         const name = row.memberName?.toLowerCase() || '';
         return searchWords.every((word) => name.includes(word));
       });
     }
 
     return filtered;
-  }, [rowData, selectedMeasure, activeFilters, searchText]);
+  }, [rowData, selectedMeasure, activeFilters, searchText, pinnedRowId]);
 
   // Build human-readable filter summary for status bar
   const STATUS_LABELS: Record<string, string> = {
@@ -185,6 +190,27 @@ export default function MainPage() {
 
     return parts.length > 0 ? parts.join(' | ') : undefined;
   }, [activeFilters, selectedMeasure, selectedInsuranceGroup, insuranceGroupOptions]);
+
+  // Wrap filter callbacks to clear pinned row on any filter interaction
+  const handleFilterChange = useCallback((filters: StatusColor[]) => {
+    setPinnedRowId(null);
+    setActiveFilters(filters);
+  }, []);
+
+  const handleSearchChange = useCallback((text: string) => {
+    setPinnedRowId(null);
+    setSearchText(text);
+  }, []);
+
+  const handleMeasureChange = useCallback((measure: string) => {
+    setPinnedRowId(null);
+    setSelectedMeasure(measure);
+  }, []);
+
+  const handleInsuranceGroupChange = useCallback((group: string) => {
+    setPinnedRowId(null);
+    setSelectedInsuranceGroup(group);
+  }, []);
 
   // Ctrl+F / Cmd+F to focus search input
   useEffect(() => {
@@ -301,6 +327,7 @@ export default function MainPage() {
       if (response.data.success) {
         // Insert new row at beginning (it has rowOrder: 0)
         setRowData((prev) => [response.data.data, ...prev]);
+        setPinnedRowId(response.data.data.id);
         setShowAddModal(false);
         setSaveStatus('saved');
         // Set newRowId to trigger focus on Request Type cell
@@ -356,6 +383,7 @@ export default function MainPage() {
 
         // Focus the new row
         setNewRowId(newRow.id);
+        setPinnedRowId(newRow.id);
         setSaveStatus('saved');
         clearTimeout(saveStatusTimerRef.current);
         saveStatusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
@@ -514,17 +542,19 @@ export default function MainPage() {
 
       <StatusFilterBar
         activeFilters={activeFilters}
-        onFilterChange={setActiveFilters}
+        onFilterChange={handleFilterChange}
         rowCounts={rowCounts}
         searchText={searchText}
-        onSearchChange={setSearchText}
+        onSearchChange={handleSearchChange}
         searchInputRef={searchInputRef}
         selectedMeasure={selectedMeasure}
-        onMeasureChange={setSelectedMeasure}
+        onMeasureChange={handleMeasureChange}
         measureOptions={measureOptions}
         selectedInsuranceGroup={selectedInsuranceGroup}
-        onInsuranceGroupChange={setSelectedInsuranceGroup}
+        onInsuranceGroupChange={handleInsuranceGroupChange}
         insuranceGroupOptions={insuranceGroupOptions}
+        pinnedRowId={pinnedRowId}
+        onUnpin={() => setPinnedRowId(null)}
       />
 
       <div className="flex-1 p-4">
@@ -543,7 +573,7 @@ export default function MainPage() {
         />
       </div>
 
-      <StatusBar rowCount={filteredRowData.length} totalRowCount={rowData.length} filterSummary={filterSummary} />
+      <StatusBar rowCount={filteredRowData.length} totalRowCount={rowData.length} filterSummary={filterSummary} pinnedRowId={pinnedRowId} />
 
       {/* Add Row Modal */}
       <AddRowModal

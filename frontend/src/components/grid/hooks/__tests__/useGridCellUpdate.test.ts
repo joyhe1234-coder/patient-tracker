@@ -66,7 +66,6 @@ function createMockRow(overrides: Partial<GridRow> = {}): GridRow {
     statusDatePrompt: null,
     tracking1: null,
     tracking2: null,
-    tracking3: null,
     dueDate: null,
     timeIntervalDays: null,
     notes: null,

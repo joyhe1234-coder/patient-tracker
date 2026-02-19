@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.10.0] - 2026-02-19
+
+### Added
+- **Pinned row on add/duplicate (filter bypass):** Newly created or duplicated rows are automatically "pinned" so they remain visible even when active filters (status color, quality measure, search) would otherwise hide them. Pinned row clears automatically when the user interacts with any filter. An amber "New row pinned -- click to unpin" badge appears in the StatusFilterBar. Status bar shows "(new row pinned)" indicator.
+- **StatusFilterBar `pinnedRowId` and `onUnpin` props:** Badge component with amber styling, click-to-dismiss behavior
+- **StatusBar `pinnedRowId` prop:** Shows "(new row pinned)" text in amber when a row is pinned
+- **MainPage filter wrappers:** `handleFilterChange`, `handleSearchChange`, `handleMeasureChange`, `handleInsuranceGroupChange` all clear pinnedRowId before applying the filter
+- **Smart Column Mapping requirements spec:** `.claude/specs/smart-column-mapping/requirements.md` (REQ-SCM-01 through REQ-SCM-08)
+- **Import requirements decisions (Q4-Q8):** All open questions resolved in `.claude/IMPORT_REQUIREMENTS.md`
+
+### Changed
+- **"Duplicate Mbr" button renamed to "Copy Member"** in Toolbar, Toolbar tests, Playwright page object, and Cypress duplicate-detection tests
+- **Removed `tracking3` field** from the entire stack:
+  - Prisma schema: dropped `tracking3` column from PatientMeasure model
+  - Database migration: `20260219120000_remove_tracking3` drops `tracking_3` column
+  - Backend: removed from dataHandlers (GET/POST/PUT), dataDuplicateHandler, versionCheck service, socket types, seed scripts (seed-200.ts, seedDev.ts)
+  - Frontend: removed from PatientGrid column definitions (14 -> 13 columns), GridRow interface, MeasureUpdatePayload type, socket types, cascadingFields downstream arrays, FIELD_DISPLAY_NAMES
+  - Tests: updated all mock objects and assertions (PatientGrid, useGridCellUpdate, cascadingFields, data.routes, versionCheck, MainPage)
+
+### Removed
+- `tracking3` field from PatientMeasure schema and all related code (was an unused placeholder)
+- `tracking3` column from AG Grid (grid now shows 13 data columns instead of 14)
+
+### Tests
+- Backend (Jest): 1,165 tests passing (43 suites)
+- Frontend (Vitest): 1,037 tests passing (38 suites) -- +12 from 4.9.0
+  - +5 StatusFilterBar pinned badge tests
+  - +7 MainPage pinned row filter bypass tests
+- Total automated: ~2,587 (1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress)
+
+---
+
 ## [4.9.0] - 2026-02-18
 
 ### Added

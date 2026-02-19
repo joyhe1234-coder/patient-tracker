@@ -39,7 +39,7 @@ describe('cascadingFields', () => {
         expect(result.updatePayload.statusDate).toBeNull();
         expect(result.updatePayload.tracking1).toBeNull();
         expect(result.updatePayload.tracking2).toBeNull();
-        expect(result.updatePayload.tracking3).toBeNull();
+
         expect(result.updatePayload.dueDate).toBeNull();
         expect(result.updatePayload.timeIntervalDays).toBeNull();
       });
@@ -76,7 +76,7 @@ describe('cascadingFields', () => {
         expect(calls).toContain('statusDate');
         expect(calls).toContain('tracking1');
         expect(calls).toContain('tracking2');
-        expect(calls).toContain('tracking3');
+
         expect(calls).toContain('dueDate');
         expect(calls).toContain('timeIntervalDays');
       });
@@ -90,7 +90,7 @@ describe('cascadingFields', () => {
         expect(keys).toContain('statusDate');
         expect(keys).toContain('tracking1');
         expect(keys).toContain('tracking2');
-        expect(keys).toContain('tracking3');
+
         expect(keys).toContain('dueDate');
         expect(keys).toContain('timeIntervalDays');
       });
@@ -104,7 +104,7 @@ describe('cascadingFields', () => {
         expect(result.updatePayload.statusDate).toBeNull();
         expect(result.updatePayload.tracking1).toBeNull();
         expect(result.updatePayload.tracking2).toBeNull();
-        expect(result.updatePayload.tracking3).toBeNull();
+
         expect(result.updatePayload.dueDate).toBeNull();
         expect(result.updatePayload.timeIntervalDays).toBeNull();
       });
@@ -124,7 +124,7 @@ describe('cascadingFields', () => {
         expect(mockNode.setDataValue).toHaveBeenCalledWith('statusDate', null);
         expect(mockNode.setDataValue).toHaveBeenCalledWith('tracking1', null);
         expect(mockNode.setDataValue).toHaveBeenCalledWith('tracking2', null);
-        expect(mockNode.setDataValue).toHaveBeenCalledWith('tracking3', null);
+
         expect(mockNode.setDataValue).toHaveBeenCalledWith('dueDate', null);
         expect(mockNode.setDataValue).toHaveBeenCalledWith('timeIntervalDays', null);
       });
@@ -137,7 +137,7 @@ describe('cascadingFields', () => {
         expect(result.updatePayload.statusDate).toBeNull();
         expect(result.updatePayload.tracking1).toBeNull();
         expect(result.updatePayload.tracking2).toBeNull();
-        expect(result.updatePayload.tracking3).toBeNull();
+
         expect(result.updatePayload.dueDate).toBeNull();
         expect(result.updatePayload.timeIntervalDays).toBeNull();
       });
@@ -155,7 +155,7 @@ describe('cascadingFields', () => {
         expect(mockNode.setDataValue).toHaveBeenCalledWith('statusDate', null);
         expect(mockNode.setDataValue).toHaveBeenCalledWith('tracking1', null);
         expect(mockNode.setDataValue).toHaveBeenCalledWith('tracking2', null);
-        expect(mockNode.setDataValue).toHaveBeenCalledWith('tracking3', null);
+
         expect(mockNode.setDataValue).toHaveBeenCalledWith('dueDate', null);
         expect(mockNode.setDataValue).toHaveBeenCalledWith('timeIntervalDays', null);
       });

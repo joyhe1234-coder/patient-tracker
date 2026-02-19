@@ -37,7 +37,6 @@ export const FIELD_DISPLAY_NAMES: Record<string, string> = {
   statusDate: 'Status Date',
   tracking1: 'Tracking #1',
   tracking2: 'Tracking #2',
-  tracking3: 'Tracking #3',
   dueDate: 'Due Date',
   timeIntervalDays: 'Time Interval',
   notes: 'Notes',

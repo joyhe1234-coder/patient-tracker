@@ -98,7 +98,6 @@ const createMockRow = (overrides: Partial<GridRow> = {}): GridRow => ({
   statusDatePrompt: null,
   tracking1: null,
   tracking2: null,
-  tracking3: null,
   dueDate: null,
   timeIntervalDays: null,
   notes: null,
@@ -149,9 +148,9 @@ describe('PatientGrid', () => {
 
       const columnDefs = capturedGridProps.columnDefs as { field?: string; headerName?: string }[];
       // Expected columns: requestType, memberName, memberDob, memberTelephone, memberAddress,
-      // qualityMeasure, measureStatus, statusDate, tracking1, tracking2, tracking3,
-      // dueDate, timeIntervalDays, notes = 14 columns
-      expect(columnDefs).toHaveLength(14);
+      // qualityMeasure, measureStatus, statusDate, tracking1, tracking2,
+      // dueDate, timeIntervalDays, notes = 13 columns
+      expect(columnDefs).toHaveLength(13);
     });
 
     it('includes all expected column fields', () => {
@@ -170,7 +169,6 @@ describe('PatientGrid', () => {
       expect(fields).toContain('statusDate');
       expect(fields).toContain('tracking1');
       expect(fields).toContain('tracking2');
-      expect(fields).toContain('tracking3');
       expect(fields).toContain('dueDate');
       expect(fields).toContain('timeIntervalDays');
       expect(fields).toContain('notes');
@@ -620,7 +618,6 @@ describe('PatientGrid', () => {
       expect(headerMap['statusDate']).toBe('Status Date');
       expect(headerMap['tracking1']).toBe('Tracking #1');
       expect(headerMap['tracking2']).toBe('Tracking #2');
-      expect(headerMap['tracking3']).toBe('Tracking #3');
       expect(headerMap['dueDate']).toBe('Due Date');
       expect(headerMap['timeIntervalDays']).toBe('Time Interval (Days)');
       expect(headerMap['notes']).toBe('Possible Actions Needed & Notes');

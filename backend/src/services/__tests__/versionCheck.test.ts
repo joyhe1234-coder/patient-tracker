@@ -48,7 +48,6 @@ function createMockMeasure(overrides: Record<string, unknown> = {}) {
     statusDatePrompt: null,
     tracking1: null,
     tracking2: null,
-    tracking3: null,
     dueDate: new Date('2026-03-01'),
     timeIntervalDays: 60,
     notes: null,

@@ -31,7 +31,6 @@ function toGridRowPayload(measure: {
   statusDatePrompt: string | null;
   tracking1: string | null;
   tracking2: string | null;
-  tracking3: string | null;
   dueDate: Date | null;
   timeIntervalDays: number | null;
   notes: string | null;
@@ -57,7 +56,6 @@ function toGridRowPayload(measure: {
     statusDatePrompt: measure.statusDatePrompt,
     tracking1: measure.tracking1,
     tracking2: measure.tracking2,
-    tracking3: measure.tracking3,
     dueDate: measure.dueDate ? measure.dueDate.toISOString() : null,
     timeIntervalDays: measure.timeIntervalDays,
     notes: measure.notes,

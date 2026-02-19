@@ -23,7 +23,7 @@ describe('Toolbar', () => {
       render(<Toolbar {...defaultProps} />);
 
       expect(screen.getByText('Add Row')).toBeInTheDocument();
-      expect(screen.getByText('Duplicate Mbr')).toBeInTheDocument();
+      expect(screen.getByText('Copy Member')).toBeInTheDocument();
       expect(screen.getByText('Delete Row')).toBeInTheDocument();
       expect(screen.getByText('Member Info')).toBeInTheDocument();
     });
@@ -40,14 +40,14 @@ describe('Toolbar', () => {
     it('is disabled when canDuplicate is false', () => {
       render(<Toolbar {...defaultProps} canDuplicate={false} />);
 
-      const duplicateButton = screen.getByText('Duplicate Mbr').closest('button');
+      const duplicateButton = screen.getByText('Copy Member').closest('button');
       expect(duplicateButton).toBeDisabled();
     });
 
     it('is enabled when canDuplicate is true', () => {
       render(<Toolbar {...defaultProps} canDuplicate={true} />);
 
-      const duplicateButton = screen.getByText('Duplicate Mbr').closest('button');
+      const duplicateButton = screen.getByText('Copy Member').closest('button');
       expect(duplicateButton).not.toBeDisabled();
     });
 
@@ -55,7 +55,7 @@ describe('Toolbar', () => {
       const onDuplicateRow = vi.fn();
       render(<Toolbar {...defaultProps} canDuplicate={true} onDuplicateRow={onDuplicateRow} />);
 
-      fireEvent.click(screen.getByText('Duplicate Mbr'));
+      fireEvent.click(screen.getByText('Copy Member'));
       expect(onDuplicateRow).toHaveBeenCalledTimes(1);
     });
 
@@ -63,7 +63,7 @@ describe('Toolbar', () => {
       const onDuplicateRow = vi.fn();
       render(<Toolbar {...defaultProps} canDuplicate={false} onDuplicateRow={onDuplicateRow} />);
 
-      fireEvent.click(screen.getByText('Duplicate Mbr'));
+      fireEvent.click(screen.getByText('Copy Member'));
       expect(onDuplicateRow).not.toHaveBeenCalled();
     });
   });

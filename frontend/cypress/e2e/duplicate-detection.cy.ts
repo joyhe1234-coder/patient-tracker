@@ -122,7 +122,7 @@ describe('Duplicate Detection', () => {
         // We need to find an existing row with a known requestType and qualityMeasure
         // for the same patient (patientId). Since addTestRow creates a new patient,
         // we first need to duplicate the member to get same patientId.
-        // Instead, use the Duplicate Mbr button to create a second row for an existing patient.
+        // Instead, use the Copy Member button to create a second row for an existing patient.
 
         // First, find an existing row with data (row 0 usually has data)
         cy.getAgGridCell(0, 'memberName').invoke('text').then((existingName) => {
@@ -133,8 +133,8 @@ describe('Duplicate Detection', () => {
                 cy.get(`[row-index="0"]`).first().click();
                 cy.wait(300);
 
-                // Click Duplicate Mbr button to create another row for the same patient
-                cy.contains('button', 'Duplicate Mbr').click();
+                // Click Copy Member button to create another row for the same patient
+                cy.contains('button', 'Copy Member').click();
                 cy.wait(1000);
 
                 // Find the new duplicate member row (it should appear near the original)
@@ -217,7 +217,7 @@ describe('Duplicate Detection', () => {
           return;
         }
 
-        cy.contains('button', 'Duplicate Mbr').click();
+        cy.contains('button', 'Copy Member').click();
         cy.wait(1000);
 
         // The new row should appear. Find it by looking for a row with same name but empty fields.
@@ -529,7 +529,7 @@ describe('Duplicate Detection', () => {
           // Duplicate the member to get a second row with the same patientId
           cy.get(`[row-index="0"]`).first().click();
           cy.wait(300);
-          cy.contains('button', 'Duplicate Mbr').click();
+          cy.contains('button', 'Copy Member').click();
           cy.wait(1000);
 
           // Find the new duplicated row
@@ -593,7 +593,7 @@ describe('Duplicate Detection', () => {
         // Duplicate the member
         cy.get(`[row-index="0"]`).first().click();
         cy.wait(300);
-        cy.contains('button', 'Duplicate Mbr').click();
+        cy.contains('button', 'Copy Member').click();
         cy.wait(1000);
 
         cy.getAgGridCell(0, 'memberName').invoke('text').then((memberName) => {

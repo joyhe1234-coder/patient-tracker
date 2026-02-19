@@ -97,7 +97,6 @@ model PatientMeasure {
   statusDatePrompt      String?   @map("status_date_prompt")
   tracking1             String?   @map("tracking_1")
   tracking2             String?   @map("tracking_2")
-  tracking3             String?   @map("tracking_3")
   dueDate               DateTime? @map("due_date") @db.Date
   timeIntervalDays      Int?      @map("time_interval_days")
   notes                 String?

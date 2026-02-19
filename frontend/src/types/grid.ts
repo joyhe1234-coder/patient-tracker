@@ -18,7 +18,6 @@ export interface MeasureUpdatePayload {
   statusDate?: string | null;
   tracking1?: string | null;
   tracking2?: string | null;
-  tracking3?: string | null;
   dueDate?: string | null;
   timeIntervalDays?: number | null;
   notes?: string | null;
