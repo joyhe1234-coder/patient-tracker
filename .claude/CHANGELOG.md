@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Tests
 - Backend (Jest): 1,165 tests passing (43 suites) — +101 from 4.8.0
 - Frontend (Vitest): 1,025 tests passing (38 suites) — +13 from 4.8.0
-- Total automated: ~2,190 unit/component tests
+- Total automated: ~2,575 (1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress)
 
 ---
 

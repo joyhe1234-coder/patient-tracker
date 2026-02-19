@@ -29,9 +29,11 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage:**
+**Test Coverage (as of Release 4.9.0):**
 - Layer 1 (Backend Jest): 1,165 tests passing (43 suites)
 - Layer 2 (Frontend Vitest): 1,025 tests passing (38 suites)
+- Layer 3 (Playwright E2E): 43 tests
+- Layer 4 (Cypress E2E): ~342 tests
 - Visual test plan v2.1: 427 test cases documented
 
 ### Sutter Import Enhancements: Duplicate Merging, Parsing, Role Tests
@@ -601,8 +603,8 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Note: Import execution tests modify database - reseed before cascading tests
 
 ### Backend Unit Testing (Jest)
-- [x] 1,030 tests passing (was 777; +253 from Sutter multi-system import)
-- Total test count: ~2,371 automated tests across all frameworks (1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress)
+- [x] 1,165 tests passing (43 suites) — includes Sutter multi-system import, sheet validation, duplicate merging, role-based filtering
+- Total test count: ~2,575 automated tests across all frameworks (1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress)
 - [x] Route tests (rewritten with `jest.unstable_mockModule` for ESM):
   - admin.routes.test.ts - 30 tests (CRUD, auth, bulk assign, unassigned patients)
   - auth.routes.test.ts - 39 tests (login, registration, password reset, JWT, failed login audit logging)
@@ -945,11 +947,9 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 18, 2026 - Release 4.9.0: Sutter duplicate merging, measureDetails parsing, role-based tests, seed users, universal sheet validation, configurable preview columns, ADMIN+PHYSICIAN dual role fix, CSV headerRow fix, SheetSelector a11y fix, Sutter/SIP multi-system import. All tests passing: 1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress = ~2,575 automated tests.
 February 14, 2026 - Sutter/SIP multi-system import: full pipeline (config, parser, routes, transformer, mapper, UI components). 253 new Jest + 61 new Vitest tests. All tests passing: 1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress = ~2,371 automated tests.
-February 13, 2026 - Security hardening phase 3: account lockout + temp password + forced password change (REQ-SEC-06). Prisma migration (3 fields), authService lockout functions, ForcePasswordChange modal, LoginPage warning, AdminPage send-temp-password. ~30 Jest + ~12 Vitest new tests. All tests passing: 763 Jest + 872 Vitest + 43 Playwright + ~342 Cypress = ~2,020 automated tests.
-February 13, 2026 - Security hardening phase 2: failed login audit logging (REQ-SEC-10). LOGIN_FAILED audit entries with reason/email/IP. Admin panel orange/red badges. Email service Ethereal integration tests. 15 new Jest + 5 new Vitest tests.
 February 13, 2026 - Release 4.6.0: Insurance group filter (REQ-IG), security hardening phases 1-3 (REQ-SEC-04/05/06/10). All tests passing: 777 Jest + 895 Vitest + 43 Playwright + ~342 Cypress = ~2,057 automated tests.
-February 12, 2026 - Security hardening phase 1: validateEnv() startup validation for JWT_SECRET, SMTP_HOST, ADMIN_EMAIL, ADMIN_PASSWORD. 26 new Jest tests. All tests passing: 726 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,967 automated tests.
 February 12, 2026 - Release 4.5.0: 10-phase code quality refactor, visual test plan v2.1 (232 tests executed, 0 failures). All tests passing: 701 Jest + 856 Vitest + 43 Playwright + ~342 Cypress = ~1,942 automated tests.
 February 11, 2026 - Date prepopulate (Option A "Today" button): StatusDateRenderer + DateCellEditor for statusDate column. Striped prompt replaces dark gray bg. Hover-reveal "Today" button. 22 new Vitest + ~36 new Cypress tests. Total: 679 Jest + ~752 Vitest + 43 Playwright + ~342 Cypress = ~1,816.
 February 11, 2026 - Auto-open dropdown editor: AutoOpenSelectEditor replaces agSelectCellEditor on all 5 dropdown columns. Single-click opens popup. Checkmark + (clear) styling. 22 new Vitest tests, 3 updated PatientGrid tests, Cypress commands updated. Total: 679 Jest + 730 Vitest + 43 Playwright + 306 Cypress = 1,758.
