@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.9.0] - 2026-02-18
+
+### Added
+- **Sutter Import Enhancements: Duplicate Merging, MeasureDetails Parsing, Role-Based Import Tests** (Feb 18, 2026)
+  - **Duplicate Row Merging in `sutterDataTransformer.ts`:** New `mergeDuplicateRows()` function merges rows with the same patient + requestType + qualityMeasure combination. Merge rules: latest statusDate wins, tracking1 from latest-date row, sourceActionText/notes concatenated with "; " separator. Stats reflect merged output count.
+  - **Improved `measureDetailsParser.ts`:**
+    - Reject lenient native Date parsing (`format: 'native'`) to prevent false positives (e.g., "8.9" no longer parsed as a date)
+    - Mixed date/non-date comma values now extract dates and keep non-date parts as tracking1 (e.g., "12/16/2025, 158/85" → statusDate=2025-12-16, tracking1=158/85)
+    - New `scanForEmbeddedDates()` — extracts MM/DD/YYYY dates from free text prose (e.g., "Last HgbA1c: 7.8 on 01/15/2025"). Requires 4-digit years to avoid matching blood pressure readings like "142/72".
+  - **"Not Addressed" status override:** All Sutter action mapper results now force `measureStatus = "Not Addressed"` regardless of config-defined status (previously HTN used "Not at goal", DM-HbA1c used "HgbA1c NOT at goal")
+  - **Updated `sutter.json` config:** HTN and DM-HbA1c patterns now have `measureStatus: "Not Addressed"` (matches runtime override)
+  - **Dev/test seed users:** 6 new users covering all role combinations (ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN) with staff assignments. Patients distributed round-robin across physicians.
+  - **Role-based data filtering tests:** 12 new backend Jest tests for `getPatientOwnerFilter` (PHYSICIAN auto-filter, ADMIN require physicianId, STAFF assignment check, ADMIN+PHYSICIAN dual role behavior)
+  - **ADMIN+PHYSICIAN dual role UI tests:** 13 new Vitest tests (Header dropdown/nav visibility, PatientManagementPage tab visibility and content rendering for dual-role users)
+  - **Sutter fixture helpers:** `getValidMultiMeasureFixturePath()` and `getSkipActionsFixturePath()` for all-10-patterns and skip-actions E2E fixtures
+  - **Jest config fix:** Added `testPathIgnorePatterns: ['/node_modules/', '/dist/']` to prevent stale compiled files in `dist/` from being picked up by test runner
+
+### Changed
+- `sutter.json`: HTN measureStatus changed from "Not at goal" to "Not Addressed"; DM-HbA1c measureStatus changed from "HgbA1c NOT at goal" to "Not Addressed"
+- `sutterDataTransformer.ts`: Now calls `mergeDuplicateRows()` before returning results; `measureStatus` forced to "Not Addressed" for all action matches
+- `measureDetailsParser.ts`: Mixed comma values now extract dates (previously treated entire value as tracking1); native date format rejected
+- `backend/jest.config.js`: Added `testPathIgnorePatterns` to exclude `dist/` directory
+
+### Fixed
+- **Jest picking up stale `dist/` test files:** `dist/config/__tests__/validateEnv.test.ts` was causing a test suite failure because it referenced files outside `rootDir`. Fixed by adding `testPathIgnorePatterns` to jest.config.js.
+- **Native Date false positives in measureDetailsParser:** Values like "8.9" were being parsed as dates via lenient native `Date()` constructor. Now rejected by checking for `format: 'native'`.
+
+### Tests
+- Backend (Jest): 1,165 tests passing (43 suites) — +101 from 4.8.0
+- Frontend (Vitest): 1,025 tests passing (38 suites) — +13 from 4.8.0
+- Total automated: ~2,190 unit/component tests
+
+---
+
 ## [4.8.0] - 2026-02-16
 
 ### Added

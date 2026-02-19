@@ -147,7 +147,7 @@ describe('sutterDataTransformer', () => {
       expect(result.rows[0].measureStatus).toBe('Not Addressed');
     });
 
-    it('should resolve Quality via action mapper for HTN BP', () => {
+    it('should resolve Quality via action mapper for HTN BP with "Not Addressed" override', () => {
       const rows: ParsedRow[] = [
         makeRow({
           'Request Type': 'Quality',
@@ -160,7 +160,7 @@ describe('sutterDataTransformer', () => {
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].requestType).toBe('Quality');
       expect(result.rows[0].qualityMeasure).toBe('Hypertension Management');
-      expect(result.rows[0].measureStatus).toBe('Not at goal');
+      expect(result.rows[0].measureStatus).toBe('Not Addressed');
     });
 
     it('should resolve Quality via action mapper for Vaccine', () => {
@@ -604,8 +604,9 @@ describe('sutterDataTransformer', () => {
       expect(result.rows[0].measureStatus).toBe('Not Addressed');
     });
 
-    it('should preserve explicit measureStatus from action match when present', () => {
-      // HTN BP action maps to Hypertension Management with measureStatus "Not at goal"
+    it('should override any config measureStatus to "Not Addressed"', () => {
+      // HTN BP action maps to Hypertension Management — previously had "Not at goal",
+      // now all statuses forced to "Not Addressed"
       const rows: ParsedRow[] = [
         makeRow({
           'Request Type': 'Quality',
@@ -616,17 +617,17 @@ describe('sutterDataTransformer', () => {
       const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
 
       expect(result.rows).toHaveLength(1);
-      expect(result.rows[0].measureStatus).toBe('Not at goal');
+      expect(result.rows[0].measureStatus).toBe('Not Addressed');
     });
 
     it('should handle mixed mapped and unmapped rows correctly', () => {
       const rows: ParsedRow[] = [
-        // Mapped: FOBT -> Screening / Colon Cancer Screening, status defaults to "Not Addressed"
+        // Mapped: FOBT -> Screening / Colon Cancer Screening
         makeRow({
           'Request Type': 'Quality',
           'Possible Actions Needed': 'FOBT in 2025 or colonoscopy in 2015-2025',
         }),
-        // Mapped: HTN -> Quality / Hypertension Management, status = "Not at goal"
+        // Mapped: HTN -> Quality / Hypertension Management (all forced to "Not Addressed")
         makeRow({
           'Member Name': 'Doe, Jane',
           'Request Type': 'Quality',
@@ -645,19 +646,34 @@ describe('sutterDataTransformer', () => {
       // Only the two mapped rows should produce output
       expect(result.rows).toHaveLength(2);
 
-      // First mapped row: defaulted status
+      // First mapped row
       const colonRow = result.rows.find(r => r.qualityMeasure === 'Colon Cancer Screening');
       expect(colonRow).toBeDefined();
       expect(colonRow!.measureStatus).toBe('Not Addressed');
 
-      // Second mapped row: explicit status from config
+      // Second mapped row: also "Not Addressed" (all statuses forced)
       const htnRow = result.rows.find(r => r.qualityMeasure === 'Hypertension Management');
       expect(htnRow).toBeDefined();
-      expect(htnRow!.measureStatus).toBe('Not at goal');
+      expect(htnRow!.measureStatus).toBe('Not Addressed');
 
       // Unmapped row should be in unmappedActions, not errors
       expect(result.unmappedActions).toHaveLength(1);
       expect(result.unmappedActions[0].actionText).toBe('Some completely unmapped action');
+    });
+
+    it('should force "Not Addressed" for DM-HbA1c action (previously "HgbA1c NOT at goal")', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'DM - Most recent 2025 HbA1c less than 9.0',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].qualityMeasure).toBe('Diabetes Control');
+      expect(result.rows[0].measureStatus).toBe('Not Addressed');
     });
 
     it('should NOT set measureStatus for AWV rows (direct mapping, not action match)', () => {
@@ -685,6 +701,190 @@ describe('sutterDataTransformer', () => {
       expect(result.rows).toHaveLength(1);
       // HCC uses direct config mapping; measureStatus is null
       expect(result.rows[0].measureStatus).toBeNull();
+    });
+  });
+
+  describe('duplicate row merging', () => {
+    it('should merge 2 rows with same patient+measure, concatenating action texts', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+          'Measure Details': '01/15/2025; 150/90',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+          'Measure Details': '03/20/2025; 138/85',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].qualityMeasure).toBe('Hypertension Management');
+      // Action texts concatenated
+      const row = result.rows[0] as any;
+      expect(row.sourceActionText).toContain('HTN - Most recent 2025 BP less than 140/90');
+      // Latest statusDate picked
+      expect(result.rows[0].statusDate).toBe('2025-03-20');
+      // tracking1 from the row with latest date
+      expect(row.tracking1).toBe('138/85');
+    });
+
+    it('should merge 3 rows into 1', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'DM - Most recent 2025 HbA1c less than 9.0',
+          'Measure Details': '01/10/2025; 8.5',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'DM - Most recent 2025 HbA1c less than 9.0',
+          'Measure Details': '06/15/2025; 7.2',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'DM - Most recent 2025 HbA1c less than 9.0',
+          'Measure Details': '03/20/2025; 7.8',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].statusDate).toBe('2025-06-15');
+      expect((result.rows[0] as any).tracking1).toBe('7.2');
+    });
+
+    it('should NOT merge rows with different quality measures', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'DM - Most recent 2025 HbA1c less than 9.0',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(2);
+    });
+
+    it('should NOT merge rows with different patients', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+        }),
+        makeRow({
+          'Member Name': 'Doe, Jane',
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(2);
+    });
+
+    it('should pick the latest statusDate from merged rows', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'FOBT in 2025 or colonoscopy in 2015-2025',
+          'Measure Details': '06/15/2025',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'FOBT in 2025 or colonoscopy in 2015-2025',
+          'Measure Details': '01/10/2025',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].statusDate).toBe('2025-06-15');
+    });
+
+    it('should concatenate HCC notes from merged rows', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'HCC',
+          'Possible Actions Needed': 'Diabetes Type 2, E11.65',
+        }),
+        makeRow({
+          'Request Type': 'HCC',
+          'Possible Actions Needed': 'Heart Failure, I50.9',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect((result.rows[0] as any).notes).toBe('Diabetes Type 2, E11.65; Heart Failure, I50.9');
+    });
+
+    it('should reflect merged count in stats.outputRows', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+          'Measure Details': '01/15/2025; 150/90',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+          'Measure Details': '03/20/2025; 138/85',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.stats.inputRows).toBe(2);
+      expect(result.stats.outputRows).toBe(1);
+    });
+
+    it('should leave single rows unchanged', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'AWV',
+          'Measure Details': '01/15/2025',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].memberName).toBe('Smith, John');
+      expect(result.rows[0].statusDate).toBe('2025-01-15');
+    });
+
+    it('should handle merge when only some rows have statusDate', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+          'Measure Details': '',
+        }),
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'HTN - Most recent 2025 BP less than 140/90',
+          'Measure Details': '03/20/2025; 138/85',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].statusDate).toBe('2025-03-20');
+      expect((result.rows[0] as any).tracking1).toBe('138/85');
     });
   });
 

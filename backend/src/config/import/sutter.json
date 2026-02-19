@@ -38,7 +38,7 @@
       "pattern": "^HTN - Most recent \\d{4} BP less than",
       "requestType": "Quality",
       "qualityMeasure": "Hypertension Management",
-      "measureStatus": "Not at goal"
+      "measureStatus": "Not Addressed"
     },
     {
       "pattern": "^DM - Urine albumin/creatine? ratio",
@@ -50,7 +50,7 @@
       "pattern": "^DM - Most recent \\d{4} HbA1c",
       "requestType": "Quality",
       "qualityMeasure": "Diabetes Control",
-      "measureStatus": "HgbA1c NOT at goal"
+      "measureStatus": "Not Addressed"
     },
     {
       "pattern": "^DM - Eye exam in \\d{4}",

@@ -131,7 +131,7 @@ describe('actionMapper', () => {
       expect(result).not.toBeNull();
       expect(result!.requestType).toBe('Quality');
       expect(result!.qualityMeasure).toBe('Hypertension Management');
-      expect(result!.measureStatus).toBe('Not at goal');
+      expect(result!.measureStatus).toBe('Not Addressed');
       expect(result!.patternIndex).toBe(1);
     });
 
@@ -151,7 +151,7 @@ describe('actionMapper', () => {
       expect(result).not.toBeNull();
       expect(result!.requestType).toBe('Quality');
       expect(result!.qualityMeasure).toBe('Diabetes Control');
-      expect(result!.measureStatus).toBe('HgbA1c NOT at goal');
+      expect(result!.measureStatus).toBe('Not Addressed');
       expect(result!.patternIndex).toBe(3);
     });
 

@@ -586,7 +586,7 @@ async function main() {
   console.log('Initialized edit lock');
 
   // ============================================
-  // INITIAL ADMIN USER
+  // INITIAL ADMIN USER (env-configurable)
   // ============================================
 
   // Read admin credentials from environment (with defaults for development)
@@ -597,7 +597,6 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash(adminPassword, BCRYPT_SALT_ROUNDS);
 
   // Create admin user (upsert to avoid duplicates)
-  // Pure ADMIN role (to also have patients, would need [ADMIN, PHYSICIAN])
   // Only set password on create; don't overwrite if user already exists
   await prisma.user.upsert({
     where: { email: adminEmail },
@@ -614,6 +613,72 @@ async function main() {
   console.log(`Initialized admin user: ${adminEmail}`);
 
   // ============================================
+  // DEV/TEST USERS — all roles for local testing
+  // ============================================
+  // Password for all dev users: welcome100
+  // These cover every role combination for import/RBAC testing:
+  //   ADMIN (pure)         — sees all physicians, no patients
+  //   PHYSICIAN (pure)     — auto-assigned on import, owns patients
+  //   STAFF (single-phy)   — dropdown with 1 physician
+  //   STAFF (multi-phy)    — dropdown with multiple physicians
+  //   ADMIN+PHYSICIAN      — ADMIN behavior on import, can own patients
+
+  const devPassword = 'welcome100';
+  const devPasswordHash = await bcrypt.hash(devPassword, BCRYPT_SALT_ROUNDS);
+
+  const devUsers = [
+    { email: 'admin@gmail.com',     displayName: 'Admin User',    roles: ['ADMIN'] as const },
+    { email: 'adminphy@gmail.com',  displayName: 'Ko Admin-Phy',  roles: ['ADMIN', 'PHYSICIAN'] as const },
+    { email: 'phy1@gmail.com',      displayName: 'Physician One', roles: ['PHYSICIAN'] as const },
+    { email: 'phy2@gmail.com',      displayName: 'Physician Two', roles: ['PHYSICIAN'] as const },
+    { email: 'staff1@gmail.com',    displayName: 'Staff One',     roles: ['STAFF'] as const },
+    { email: 'staff2@gmail.com',    displayName: 'Staff Two',     roles: ['STAFF'] as const },
+  ];
+
+  const createdDevUsers: Record<string, number> = {};
+
+  for (const u of devUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      create: {
+        email: u.email,
+        passwordHash: devPasswordHash,
+        displayName: u.displayName,
+        roles: u.roles as any,
+        isActive: true,
+      },
+      update: {},
+    });
+    createdDevUsers[u.email] = user.id;
+  }
+
+  console.log(`Initialized ${devUsers.length} dev users (password: ${devPassword})`);
+
+  // Staff assignments:
+  //   Staff One  → Physician One only (single-physician staff)
+  //   Staff Two  → Physician One + Physician Two + Ko Admin-Phy (multi-physician staff)
+  const staffAssignments = [
+    { staffEmail: 'staff1@gmail.com', physicianEmail: 'phy1@gmail.com' },
+    { staffEmail: 'staff2@gmail.com', physicianEmail: 'phy1@gmail.com' },
+    { staffEmail: 'staff2@gmail.com', physicianEmail: 'phy2@gmail.com' },
+    { staffEmail: 'staff2@gmail.com', physicianEmail: 'adminphy@gmail.com' },
+  ];
+
+  for (const sa of staffAssignments) {
+    const staffId = createdDevUsers[sa.staffEmail];
+    const physicianId = createdDevUsers[sa.physicianEmail];
+    if (staffId && physicianId) {
+      await prisma.staffAssignment.upsert({
+        where: { staffId_physicianId: { staffId, physicianId } },
+        create: { staffId, physicianId },
+        update: {},
+      });
+    }
+  }
+
+  console.log(`Initialized ${staffAssignments.length} staff-physician assignments`);
+
+  // ============================================
   // COMPREHENSIVE SAMPLE DATA (all combinations)
   // ============================================
   // Only create sample data if no patients exist (first-time setup only)
@@ -625,6 +690,13 @@ async function main() {
   }
 
   console.log('No patients found - creating sample data for initial setup...');
+
+  // Assign sample patients across physicians (round-robin: Phy One, Phy Two, Admin-Phy)
+  const physicianIds = [
+    createdDevUsers['phy1@gmail.com'],
+    createdDevUsers['phy2@gmail.com'],
+    createdDevUsers['adminphy@gmail.com'],
+  ].filter(Boolean);
 
   // Helper to create dates relative to today
   const today = new Date();
@@ -843,10 +915,17 @@ async function main() {
   ];
 
   // Create patients and measures
+  // Track patient index for round-robin physician assignment
+  let patientIndex = 0;
   let rowOrder = 1;
   for (const config of measureConfigs) {
     const patientData = testPatients.find(p => p.name === config.patientName);
     if (!patientData) continue;
+
+    // Assign physician via round-robin across available physicians
+    const assignedOwnerId = physicianIds.length > 0
+      ? physicianIds[patientIndex % physicianIds.length]
+      : undefined;
 
     // Create or get patient
     const patient = await prisma.patient.upsert({
@@ -862,8 +941,10 @@ async function main() {
         memberDob: patientData.dob,
         memberTelephone: patientData.phone,
         memberAddress: patientData.address,
+        ...(assignedOwnerId ? { ownerId: assignedOwnerId } : {}),
       },
     });
+    patientIndex++;
 
     // Check if this patient already has measures (for duplicates)
     const existingMeasures = await prisma.patientMeasure.count({

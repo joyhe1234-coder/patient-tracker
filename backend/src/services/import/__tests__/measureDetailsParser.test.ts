@@ -118,12 +118,26 @@ describe('measureDetailsParser', () => {
       expect(result.tracking1).toBe('abc, def');
     });
 
-    it('should treat mixed date/non-date comma values as tracking1', () => {
-      // If not ALL parts are dates, treat entire value as tracking1
+    it('should extract date and non-date parts from mixed comma values', () => {
+      // "12/16/2025, 158/85" -> date extracted, reading as tracking1
+      const result = parseMeasureDetails('12/16/2025, 158/85');
+
+      expect(result.statusDate).toBe('2025-12-16');
+      expect(result.tracking1).toBe('158/85');
+    });
+
+    it('should extract date from mixed comma values with text', () => {
       const result = parseMeasureDetails('01/15/2025, not-a-date');
 
-      expect(result.statusDate).toBeNull();
-      expect(result.tracking1).toBe('01/15/2025, not-a-date');
+      expect(result.statusDate).toBe('2025-01-15');
+      expect(result.tracking1).toBe('not-a-date');
+    });
+
+    it('should pick latest date and collect non-date parts from mixed comma values', () => {
+      const result = parseMeasureDetails('01/15/2025, 06/20/2025, 158/85');
+
+      expect(result.statusDate).toBe('2025-06-20');
+      expect(result.tracking1).toBe('158/85');
     });
   });
 
@@ -151,14 +165,13 @@ describe('measureDetailsParser', () => {
       expect(result.tracking1).toBe('15.3');
     });
 
-    it('should handle small decimals as native-parseable date (actual behavior)', () => {
-      // "8.9" is interpreted by native Date as August 9 (2001-08-09)
-      // This is expected behavior: tryParseAsDate only rejects pure integers
+    it('should treat small decimals as tracking1 (native Date parsing rejected)', () => {
+      // "8.9" would be interpreted by native Date as August 9, but native format
+      // is rejected in tryParseAsDate to avoid false positives for free text
       const result = parseMeasureDetails('8.9');
 
-      // The native Date parser interprets "8.9" as a valid date
-      expect(result.statusDate).not.toBeNull();
-      expect(result.tracking1).toBeNull();
+      expect(result.statusDate).toBeNull();
+      expect(result.tracking1).toBe('8.9');
     });
   });
 
@@ -232,6 +245,71 @@ describe('measureDetailsParser', () => {
 
       expect(result.statusDate).toBeNull();
       expect(result.tracking1).toBe('44927');
+    });
+  });
+
+  describe('embedded dates in free text (strategy 5)', () => {
+    it('should extract date from prose text with reading', () => {
+      const result = parseMeasureDetails('Last HgbA1c: 7.8 on 01/15/2025');
+
+      expect(result.statusDate).toBe('2025-01-15');
+      expect(result.tracking1).toBe('Last HgbA1c: 7.8 on');
+    });
+
+    it('should pick the latest date when multiple dates in text', () => {
+      const result = parseMeasureDetails('Screened 01/15/2025 and 06/20/2025 for follow-up');
+
+      expect(result.statusDate).toBe('2025-06-20');
+      expect(result.tracking1).toBe('Screened and for follow-up');
+    });
+
+    it('should return null for text with no dates (falls through to tracking1)', () => {
+      const result = parseMeasureDetails('Pending review next quarter');
+
+      expect(result.statusDate).toBeNull();
+      expect(result.tracking1).toBe('Pending review next quarter');
+    });
+
+    it('should NOT mistake blood pressure "142/72" for a date', () => {
+      const result = parseMeasureDetails('BP reading 142/72 today');
+
+      expect(result.statusDate).toBeNull();
+      expect(result.tracking1).toBe('BP reading 142/72 today');
+    });
+
+    it('should NOT mistake "120/80" for a date', () => {
+      const result = parseMeasureDetails('120/80');
+
+      expect(result.statusDate).toBeNull();
+      expect(result.tracking1).toBe('120/80');
+    });
+
+    it('should not affect existing semicolon format', () => {
+      const result = parseMeasureDetails('01/15/2025; 7.5');
+
+      expect(result.statusDate).toBe('2025-01-15');
+      expect(result.tracking1).toBe('7.5');
+    });
+
+    it('should not affect existing comma-separated dates', () => {
+      const result = parseMeasureDetails('01/15/2025, 03/20/2025');
+
+      expect(result.statusDate).toBe('2025-03-20');
+      expect(result.tracking1).toBeNull();
+    });
+
+    it('should extract single embedded date and keep remaining text as tracking1', () => {
+      const result = parseMeasureDetails('Completed colonoscopy 03/20/2025');
+
+      expect(result.statusDate).toBe('2025-03-20');
+      expect(result.tracking1).toBe('Completed colonoscopy');
+    });
+
+    it('should handle date at start of prose text', () => {
+      const result = parseMeasureDetails('01/15/2025 result was 8.2%');
+
+      expect(result.statusDate).toBe('2025-01-15');
+      expect(result.tracking1).toBe('result was 8.2%');
     });
   });
 

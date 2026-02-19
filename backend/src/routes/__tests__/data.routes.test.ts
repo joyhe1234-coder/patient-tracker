@@ -619,4 +619,191 @@ describe('Data Routes', () => {
       expect(res.body.data[0]).toHaveProperty('insuranceGroup', 'hill');
     });
   });
+
+  // ── Role-based data filtering ───────────────────────────────────
+
+  describe('Role-based data filtering (getPatientOwnerFilter)', () => {
+    let app: Express;
+
+    beforeEach(() => {
+      app = createTestApp();
+      authBlocked = false;
+      mockPrisma.patientMeasure.findMany.mockResolvedValue([]);
+    });
+
+    describe('PHYSICIAN role', () => {
+      beforeEach(() => {
+        testUser.id = 1;
+        testUser.roles = ['PHYSICIAN'];
+      });
+
+      afterEach(() => {
+        testUser.roles = ['PHYSICIAN'];
+        testUser.id = 1;
+      });
+
+      it('auto-filters to own patients (no physicianId param needed)', async () => {
+        await request(app).get('/api/data').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: 1,
+              }),
+            }),
+          })
+        );
+      });
+
+      it('ignores physicianId query param (always uses own ID)', async () => {
+        await request(app).get('/api/data?physicianId=999').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: 1,  // Uses own ID, not 999
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    describe('ADMIN role', () => {
+      beforeEach(() => {
+        testUser.roles = ['ADMIN'];
+      });
+
+      afterEach(() => {
+        testUser.roles = ['PHYSICIAN'];
+      });
+
+      it('requires physicianId param', async () => {
+        const res = await request(app).get('/api/data').expect(400);
+
+        expect(res.body.error.code).toBe('MISSING_PHYSICIAN_ID');
+      });
+
+      it('can view any physician by ID', async () => {
+        await request(app).get('/api/data?physicianId=42').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: 42,
+              }),
+            }),
+          })
+        );
+      });
+
+      it('can view unassigned patients (physicianId=unassigned)', async () => {
+        await request(app).get('/api/data?physicianId=unassigned').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: null,
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    describe('STAFF role', () => {
+      beforeEach(() => {
+        testUser.roles = ['STAFF'];
+      });
+
+      afterEach(() => {
+        testUser.roles = ['PHYSICIAN'];
+      });
+
+      it('requires physicianId param', async () => {
+        const res = await request(app).get('/api/data').expect(400);
+
+        expect(res.body.error.code).toBe('MISSING_PHYSICIAN_ID');
+      });
+
+      it('can view assigned physician data', async () => {
+        // isStaffAssignedToPhysician is mocked to return true by default
+        await request(app).get('/api/data?physicianId=10').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: 10,
+              }),
+            }),
+          })
+        );
+      });
+
+      it('cannot view unassigned patients (403)', async () => {
+        const res = await request(app).get('/api/data?physicianId=unassigned').expect(403);
+
+        expect(res.body.error.code).toBe('FORBIDDEN');
+      });
+
+      it('cannot view non-assigned physician data (403)', async () => {
+        // Need to dynamically change the mock return value
+        const { isStaffAssignedToPhysician } = await import('../../services/authService.js');
+        (isStaffAssignedToPhysician as any).mockResolvedValueOnce(false);
+
+        const res = await request(app).get('/api/data?physicianId=999').expect(403);
+
+        expect(res.body.error.code).toBe('NOT_ASSIGNED');
+      });
+    });
+
+    describe('ADMIN+PHYSICIAN dual role', () => {
+      beforeEach(() => {
+        testUser.roles = ['ADMIN', 'PHYSICIAN'];
+      });
+
+      afterEach(() => {
+        testUser.roles = ['PHYSICIAN'];
+      });
+
+      it('gets ADMIN behavior (checks ADMIN branch first)', async () => {
+        await request(app).get('/api/data?physicianId=42').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: 42,
+              }),
+            }),
+          })
+        );
+      });
+
+      it('can view unassigned patients (ADMIN behavior)', async () => {
+        await request(app).get('/api/data?physicianId=unassigned').expect(200);
+
+        expect(mockPrisma.patientMeasure.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              patient: expect.objectContaining({
+                ownerId: null,
+              }),
+            }),
+          })
+        );
+      });
+
+      it('requires physicianId param (ADMIN behavior)', async () => {
+        const res = await request(app).get('/api/data').expect(400);
+
+        expect(res.body.error.code).toBe('MISSING_PHYSICIAN_ID');
+      });
+    });
+  });
 });

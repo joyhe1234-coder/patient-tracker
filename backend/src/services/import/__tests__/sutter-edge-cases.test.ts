@@ -304,7 +304,7 @@ describe('Sutter Edge Cases', () => {
     it('should match DM HbA1c pattern with any year', () => {
       const match = matchAction('DM - Most recent 2026 HbA1c is above 8.0', cache);
       expect(match?.qualityMeasure).toBe('Diabetes Control');
-      expect(match?.measureStatus).toBe('HgbA1c NOT at goal');
+      expect(match?.measureStatus).toBe('Not Addressed');
     });
 
     it('should match DM Eye exam pattern with any year', () => {

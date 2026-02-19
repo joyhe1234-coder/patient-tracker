@@ -107,6 +107,15 @@ This document tracks planned features and enhancements for future development.
   - SheetSelector rewritten as universal component (was Sutter-only)
   - Default "Not Addressed" for unmapped Sutter actions
   - Configurable preview columns (Sutter shows Status Date + Possible Actions Needed)
+- [x] Implementation: Phase 5n - Sutter Duplicate Merging + MeasureDetails Parsing + Role Tests (Feb 18, 2026)
+  - `mergeDuplicateRows()` merges same patient+measure Sutter rows (latest date, concat notes/actions)
+  - `scanForEmbeddedDates()` extracts dates from free-text prose
+  - Mixed comma values extract dates (was all-or-nothing)
+  - Native Date false positives rejected (e.g., "8.9")
+  - All action matches force "Not Addressed" status
+  - 6 dev/test seed users (ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN)
+  - Role-based filtering tests (+12 Jest, +13 Vitest)
+  - Jest config fix: `testPathIgnorePatterns` for `dist/`
 
 ### UI Testing
 - [x] Phase 1: React Testing Library + Vitest setup

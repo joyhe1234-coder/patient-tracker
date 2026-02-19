@@ -30,9 +30,27 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
 **Test Coverage:**
-- Layer 1 (Backend Jest): 1,064 tests passing
-- Layer 2 (Frontend Vitest): 1,012 tests passing
+- Layer 1 (Backend Jest): 1,165 tests passing (43 suites)
+- Layer 2 (Frontend Vitest): 1,025 tests passing (38 suites)
 - Visual test plan v2.1: 427 test cases documented
+
+### Sutter Import Enhancements: Duplicate Merging, Parsing, Role Tests
+
+**Status: Complete** (Feb 18, 2026)
+
+- [x] `mergeDuplicateRows()` in `sutterDataTransformer.ts` — merges same patient+measure rows (latest statusDate, concat sourceActionText/notes)
+- [x] `scanForEmbeddedDates()` in `measureDetailsParser.ts` — extracts MM/DD/YYYY from free text (requires 4-digit years to avoid BP false positives)
+- [x] Mixed comma values now extract dates + non-date parts (was treating entire value as tracking1)
+- [x] Native Date format rejected in `tryParseAsDate()` (prevents "8.9" being parsed as date)
+- [x] All Sutter action matches force `measureStatus = "Not Addressed"` (was config-defined per pattern)
+- [x] Dev/test seed users: 6 users covering ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN roles with staff assignments
+- [x] Patients distributed round-robin across physicians in seed data
+- [x] 12 new backend Jest tests: role-based data filtering (`getPatientOwnerFilter`)
+- [x] 13 new Vitest tests: ADMIN+PHYSICIAN dual role (Header dropdown, nav visibility, PatientManagementPage tabs)
+- [x] Sutter E2E fixture helpers: `getValidMultiMeasureFixturePath()`, `getSkipActionsFixturePath()`
+- [x] Jest config fix: `testPathIgnorePatterns` excludes `dist/` directory
+
+**Tests:** +101 Jest, +13 Vitest
 
 ### Universal Sheet Validation & Configurable Preview Columns
 

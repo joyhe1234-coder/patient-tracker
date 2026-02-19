@@ -42,7 +42,12 @@ function tryParseAsDate(value: string): string | null {
   }
 
   const parsed = parseDate(trimmed);
-  if (parsed.date && parsed.format !== 'excel-serial' && parsed.format !== 'invalid') {
+  if (
+    parsed.date &&
+    parsed.format !== 'excel-serial' &&
+    parsed.format !== 'invalid' &&
+    parsed.format !== 'native' // Reject lenient native Date parsing (false positives for free text)
+  ) {
     return toISODateString(parsed.date);
   }
 
@@ -107,7 +112,16 @@ export function parseMeasureDetails(
       return { statusDate: parsedDates[0].iso, tracking1: null };
     }
 
-    // If not all parts are dates, treat the entire value as tracking1
+    // If some parts are dates and some aren't (e.g., "12/16/2025, 158/85"),
+    // extract the latest date as statusDate and the non-date parts as tracking1
+    if (parsedDates.length > 0) {
+      parsedDates.sort((a, b) => b.date.getTime() - a.date.getTime());
+      const nonDateParts = parts.filter(p => !tryParseAsDate(p));
+      const tracking1 = nonDateParts.length > 0 ? nonDateParts.join(', ') : null;
+      return { statusDate: parsedDates[0].iso, tracking1 };
+    }
+
+    // No dates found at all — treat the entire value as tracking1
     return { statusDate: null, tracking1: trimmed };
   }
 
@@ -117,6 +131,74 @@ export function parseMeasureDetails(
     return { statusDate: dateResult, tracking1: null };
   }
 
+  // 5. Scan for embedded dates in free text (e.g., "Last HgbA1c: 7.8 on 01/15/2025")
+  const embeddedResult = scanForEmbeddedDates(trimmed);
+  if (embeddedResult) {
+    return embeddedResult;
+  }
+
   // Not a date -- store as tracking1
   return { statusDate: null, tracking1: trimmed };
+}
+
+/**
+ * Scan free text for embedded dates in MM/DD/YYYY format.
+ * Extracts all date matches, validates each, picks the latest.
+ * Remaining text (dates removed, cleaned up) becomes tracking1.
+ *
+ * Requires dates to have 4-digit years to avoid matching blood pressure
+ * readings like "142/72" or other numeric ratios.
+ *
+ * @param text - The raw text to scan
+ * @returns MeasureDetailsResult if dates found, null otherwise
+ */
+function scanForEmbeddedDates(text: string): MeasureDetailsResult | null {
+  // Match MM/DD/YYYY or M/D/YYYY patterns with 4-digit years only
+  const datePattern = /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/g;
+  const matches: string[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = datePattern.exec(text)) !== null) {
+    matches.push(match[1]);
+  }
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  // Validate each match as a real date and collect valid ones
+  const validDates: { iso: string; date: Date }[] = [];
+  for (const m of matches) {
+    const iso = tryParseAsDate(m);
+    if (iso) {
+      const parsed = parseDate(m);
+      if (parsed.date) {
+        validDates.push({ iso, date: parsed.date });
+      }
+    }
+  }
+
+  if (validDates.length === 0) {
+    return null;
+  }
+
+  // Pick the latest date
+  validDates.sort((a, b) => b.date.getTime() - a.date.getTime());
+  const statusDate = validDates[0].iso;
+
+  // Remove all matched date strings from the text and clean up
+  let remaining = text;
+  for (const m of matches) {
+    remaining = remaining.replace(m, '');
+  }
+  // Clean up: collapse multiple spaces, trim, remove trailing/leading punctuation artifacts
+  remaining = remaining
+    .replace(/\s{2,}/g, ' ')
+    .replace(/[,;]\s*$/g, '')
+    .replace(/^\s*[,;]\s*/g, '')
+    .trim();
+
+  const tracking1 = remaining.length > 0 ? remaining : null;
+
+  return { statusDate, tracking1 };
 }

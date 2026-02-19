@@ -2286,17 +2286,20 @@ npm run cypress:headed  # Run with browser visible
 - Message: "No physicians assigned"
 - Empty patient grid or message indicating no data access
 
-### TC-26.11: ADMIN Role - Cannot See Patients
+### TC-26.11: ADMIN Role - Patient Grid Access via Physician Dropdown
 **Requirement:** See patient-ownership spec AC-9
-**Automation:** Automated - `role-access-control.cy.ts: "ADMIN" tests`
+**Automation:** Automated - `role-access-control.cy.ts: "ADMIN" tests`, `Header.test.tsx`
 **Steps:**
-1. Login as ADMIN user
-2. Attempt to navigate to patient grid (/)
+1. Login as pure ADMIN user
+2. Navigate to patient grid (/)
+3. Observe physician dropdown in header
 
 **Expected:**
-- Redirected to admin dashboard
-- Cannot access patient data routes
-- Error if trying to access /api/data/patients directly
+- Physician dropdown visible with ALL physicians + "Unassigned patients" option
+- Must select a physician to view data
+- Can switch between any physician's patients
+- Can view unassigned patients (ownerId = null)
+- Full grid edit capabilities (add, delete, duplicate, edit cells)
 
 ### TC-26.12: ADMIN Role - User Management
 **Requirement:** See admin-dashboard spec AC-1
@@ -3397,6 +3400,331 @@ npm run cypress:headed  # Run with browser visible
 **Steps:** Upload file, verify Step 4 appears, select tab and physician, submit
 **Expected:** Step 4 "Select Tab & Physician" visible after upload; tab dropdown or text display; physician dropdown; submit enabled only when both selected
 
+### TC-36.16: Import — ADMIN Role (Pure)
+**Automation:** Automated - `SheetSelector.test.tsx` (physician dropdown tests), `ImportPage.test.tsx`
+**Steps:**
+1. Login as user with roles `['ADMIN']`
+2. Navigate to Import page, select system, upload file
+3. Observe Step 4 physician selector
+
+**Expected:**
+- Tab selector: dropdown (multi-tab) or text (single-tab) — same for all roles
+- Physician selector: dropdown showing ALL physicians in the system
+- No auto-assignment; must manually select a physician
+- "Preview Import" enabled only after both tab and physician are selected
+
+### TC-36.17: Import — PHYSICIAN Role (Pure)
+**Automation:** Automated - `SheetSelector.test.tsx` (PHYSICIAN auto-assign test)
+**Steps:**
+1. Login as user with roles `['PHYSICIAN']` only
+2. Navigate to Import page, select system, upload file
+3. Observe Step 4 physician selector
+
+**Expected:**
+- Tab selector: same as all roles
+- Physician selector: auto-assigned to self — shows "Importing for: {name}" text, no dropdown
+- Cannot change physician assignment
+- "Preview Import" enabled automatically after tab is selected (physician already assigned)
+
+### TC-36.18: Import — STAFF Role
+**Automation:** Automated - `SheetSelector.test.tsx` (STAFF physician dropdown), `ImportPage.test.tsx`
+**Steps:**
+1. Login as user with roles `['STAFF']`
+2. Navigate to Import page, select system, upload file
+3. Observe Step 4 physician selector
+
+**Expected:**
+- Tab selector: same as all roles
+- Physician selector: dropdown showing only assigned physicians (not all)
+- Must manually select a physician from filtered list
+- "Preview Import" enabled only after both tab and physician selected
+
+### TC-36.19: Import — ADMIN+PHYSICIAN Dual Role
+**Automation:** Automated - `SheetSelector.test.tsx` (ADMIN+PHYSICIAN dual role test)
+**Steps:**
+1. Login as user with roles `['ADMIN', 'PHYSICIAN']`
+2. Navigate to Import page, select system, upload file
+3. Observe Step 4 physician selector
+
+**Expected:**
+- Tab selector: same as all roles
+- Physician selector: dropdown showing ALL physicians (ADMIN behavior takes precedence)
+- NOT auto-assigned to self — user must manually select
+- Auto-match from tab name still works (suggested physician pre-selected)
+- "Preview Import" enabled only after both tab and physician selected
+
+---
+
+## 37. Comprehensive Role-Based Use Cases (Cross-Page Workflows)
+
+**Purpose:** End-to-end role behavior across Patient Grid, Patient Management, and Admin pages. Covers gaps not addressed by Section 28 (basic RBAC access control) or Section 36 (import-specific role tests).
+
+**Seed Data (Local Dev):**
+
+| Email | Name | Roles | Staff Assignments | Password |
+|-------|------|-------|-------------------|----------|
+| `admin@gmail.com` | Admin User | ADMIN | — | `welcome100` |
+| `adminphy@gmail.com` | Ko Admin-Phy | ADMIN, PHYSICIAN | — | `welcome100` |
+| `phy1@gmail.com` | Physician One | PHYSICIAN | — | `welcome100` |
+| `phy2@gmail.com` | Physician Two | PHYSICIAN | — | `welcome100` |
+| `staff1@gmail.com` | Staff One | STAFF | → Physician One only | `welcome100` |
+| `staff2@gmail.com` | Staff Two | STAFF | → Physician One, Two, Ko Admin-Phy | `welcome100` |
+
+### TC-37.1: ADMIN — Patient Grid Workflow
+**Automation:** Partial - `Header.test.tsx`, `role-access-control.cy.ts`
+**Steps:**
+1. Login as Admin User (`admin@gmail.com`)
+2. Navigate to patient grid (/)
+3. Observe header physician dropdown
+4. Select "Physician One" from dropdown
+5. Edit a cell, add a row, delete a row
+6. Switch to "Physician Two"
+7. Select "Unassigned patients"
+
+**Expected:**
+- Physician dropdown visible with ALL physicians + "Unassigned patients"
+- Selecting physician loads that physician's patients
+- Full edit capabilities (add, delete, duplicate, edit cells)
+- Switching physician refreshes grid with new data
+- "Unassigned patients" shows patients with no owner
+- Search, status filter, insurance filter all work
+- Member info toggle works
+
+### TC-37.2: ADMIN — Patient Management Workflow
+**Automation:** Partial - `PatientManagementPage.test.tsx`, `PatientAssignmentPage.test.tsx`
+**Steps:**
+1. Login as Admin User
+2. Navigate to /patient-management
+3. Verify both tabs visible: "Import Patients" and "Reassign Patients"
+4. On Import tab: upload file, verify physician dropdown shows ALL physicians
+5. Switch to Reassign tab: verify unassigned patients visible
+6. Select patients and assign to a physician
+
+**Expected:**
+- Both tabs visible (Import + Reassign)
+- Import physician dropdown: all physicians, no auto-assignment
+- Reassign: can view unassigned patients, select target physician, bulk-assign
+- After reassign: patient count updates, assigned physician sees patients on grid
+
+### TC-37.3: ADMIN — Admin Page Full Access
+**Automation:** Automated - `AdminPage.test.tsx`, `admin.routes.test.ts`
+**Steps:**
+1. Login as Admin User
+2. Navigate to /admin
+3. Verify Users tab: see all users, role badges, action buttons
+4. Create a new PHYSICIAN user
+5. Create a new STAFF user with physician assignments
+6. Edit a user's role
+7. Reset a user's password
+8. Switch to Audit Log tab
+9. Verify audit entries for actions taken
+
+**Expected:**
+- Users tab: all users listed with roles, status, patient counts
+- Can create users with any valid role combo
+- Can edit roles, staff assignments, deactivate users
+- Cannot deactivate self
+- Audit log: all entries visible with timestamps, action types, details
+
+### TC-37.4: PHYSICIAN — Patient Grid Workflow
+**Automation:** Partial - `role-access-control.cy.ts: "PHYSICIAN auto-filters"`
+**Steps:**
+1. Login as Physician One (`phy1@gmail.com`)
+2. Navigate to patient grid (/)
+3. Observe NO physician dropdown in header
+4. Verify only own patients visible
+5. Edit a cell, add a row, delete a row
+6. Use search, status filter, insurance filter
+
+**Expected:**
+- NO physician dropdown (auto-filtered)
+- Only patients where ownerId = Physician One's ID
+- Full edit capabilities on own patients
+- All toolbar actions work (add, delete, duplicate, member info toggle)
+- All filters work on own patient subset
+- Cannot see other physicians' patients or unassigned patients
+
+### TC-37.5: PHYSICIAN — Patient Management (Import Only)
+**Automation:** Partial - `SheetSelector.test.tsx`, TC-36.17
+**Steps:**
+1. Login as Physician One
+2. Navigate to /patient-management
+3. Verify only "Import Patients" tab visible (NO Reassign tab)
+4. Upload file, verify auto-assigned to self
+
+**Expected:**
+- Only Import tab visible (Reassign tab hidden)
+- Import: shows "Importing for: Physician One" — no physician dropdown
+- Cannot change physician assignment
+- Imported patients get ownerId = Physician One
+
+### TC-37.6: PHYSICIAN — Admin Page Blocked
+**Automation:** Automated - `role-access-control.cy.ts: "PHYSICIAN no admin"`
+**Steps:**
+1. Login as Physician One
+2. Check navigation bar
+3. Try to navigate to /admin directly
+
+**Expected:**
+- No "Admin" link in navigation
+- Navigating to /admin redirects to /
+- API calls to /api/admin/* return 403
+
+### TC-37.7: STAFF (Single Assignment) — Patient Grid Workflow
+**Automation:** Partial - `Header.test.tsx`, `role-access-control.cy.ts`
+**Steps:**
+1. Login as Staff One (`staff1@gmail.com`, assigned to Physician One only)
+2. Navigate to patient grid (/)
+3. Observe physician dropdown in header
+
+**Expected:**
+- Physician dropdown visible with ONLY "Physician One"
+- NO "Unassigned patients" option
+- Grid shows Physician One's patients
+- Full edit capabilities on selected physician's patients
+- All toolbar and filter actions available
+
+### TC-37.8: STAFF (Multi Assignment) — Patient Grid Physician Switching
+**Automation:** Partial - `role-access-control.cy.ts`, `Header.test.tsx`
+**Steps:**
+1. Login as Staff Two (`staff2@gmail.com`, assigned to Physician One, Two, Ko Admin-Phy)
+2. Navigate to patient grid (/)
+3. Select "Physician One" from dropdown
+4. Switch to "Physician Two"
+5. Switch to "Ko Admin-Phy"
+
+**Expected:**
+- Dropdown shows exactly 3 physicians (assigned only)
+- NO "Unassigned patients" option
+- Switching physician refreshes grid with that physician's patients
+- Data isolation maintained between physicians
+- Cannot manually add physicianId for non-assigned physician to API
+
+### TC-37.9: STAFF — No Assignments
+**Automation:** Manual - not yet tested
+**Steps:**
+1. Login as a STAFF user with zero physician assignments
+2. Navigate to patient grid (/)
+
+**Expected:**
+- Message displayed: "No physicians assigned" or similar
+- Empty grid or no data accessible
+- Should prompt to contact administrator
+
+### TC-37.10: STAFF — Patient Management (Import Only)
+**Automation:** Partial - `PatientManagementPage.test.tsx`, TC-36.18
+**Steps:**
+1. Login as Staff Two
+2. Navigate to /patient-management
+3. Verify only "Import Patients" tab visible (NO Reassign tab)
+4. Upload file, verify physician dropdown shows assigned physicians only
+
+**Expected:**
+- Only Import tab visible (Reassign tab hidden)
+- Import physician dropdown: only assigned physicians
+- Cannot import for non-assigned physician
+- Must select physician before "Preview Import" enabled
+
+### TC-37.11: STAFF — Admin Page Blocked
+**Automation:** Automated - `role-access-control.cy.ts: "STAFF Cannot Access Admin"`
+**Steps:**
+1. Login as Staff One
+2. Check navigation bar
+3. Try to navigate to /admin directly
+
+**Expected:**
+- No "Admin" link in navigation
+- Navigating to /admin redirects to /
+- API calls to /api/admin/* return 403
+
+### TC-37.12: ADMIN+PHYSICIAN — Patient Grid (ADMIN Behavior)
+**Automation:** Automated - `Header.test.tsx` (4 ADMIN+PHYSICIAN tests), `data.routes.test.ts` (3 dual-role tests)
+**Steps:**
+1. Login as Ko Admin-Phy (`adminphy@gmail.com`, roles: ADMIN + PHYSICIAN)
+2. Navigate to patient grid (/)
+3. Observe header physician dropdown
+
+**Expected:**
+- Physician dropdown visible with ALL physicians + "Unassigned patients" (ADMIN behavior)
+- Label: "Viewing provider:" (same as pure ADMIN)
+- Can switch between any physician's patients
+- Can view unassigned patients
+- Full edit capabilities
+- Backend: `getPatientOwnerFilter` checks ADMIN first, so ADMIN+PHYSICIAN hits ADMIN branch
+
+### TC-37.13: ADMIN+PHYSICIAN — Patient Management (ADMIN Behavior)
+**Automation:** Automated - `PatientManagementPage.test.tsx` (3 ADMIN+PHYSICIAN tests), `SheetSelector.test.tsx` (dual role test)
+**Steps:**
+1. Login as Ko Admin-Phy
+2. Navigate to /patient-management
+3. Verify both tabs visible: "Import Patients" and "Reassign Patients"
+4. On Import tab: verify physician dropdown shows ALL physicians (not auto-assigned)
+
+**Expected:**
+- Both tabs visible (Import + Reassign) — ADMIN behavior
+- Import: physician dropdown shows ALL physicians — NOT auto-assigned to self
+- Auto-match from tab name may pre-select a suggestion
+- Reassign: full access to bulk-assign unassigned patients
+
+### TC-37.14: ADMIN+PHYSICIAN — Admin Page Full Access
+**Automation:** Partial - `AdminPage.test.tsx`
+**Steps:**
+1. Login as Ko Admin-Phy
+2. Navigate to /admin
+3. Verify full admin access
+
+**Expected:**
+- "Admin" link visible in navigation
+- Full access to Users tab and Audit Log tab
+- Same capabilities as pure ADMIN on admin page
+
+### TC-37.15: Cross-Role Data Isolation — API Level
+**Automation:** Automated - `data.routes.test.ts` (12 role-based filtering tests), `users.routes.test.ts`, `auth.test.ts`
+**Steps:**
+1. PHYSICIAN calls `/api/data?physicianId=other` → should ignore param, return own data
+2. STAFF calls `/api/data?physicianId=unassigned` → should 403
+3. STAFF calls `/api/data?physicianId=non-assigned-physician` → should 403
+4. Non-admin calls `/api/admin/users` → should 403
+5. Non-admin calls `/api/admin/audit-log` → should 403
+
+**Expected:**
+- PHYSICIAN: API forces ownerId filter regardless of query params
+- STAFF: 403 Forbidden for non-assigned physicians and unassigned
+- Non-admin: 403 Forbidden for all admin endpoints
+- 401 Unauthorized without valid token
+
+### TC-37.16: Role-Based Navigation Visibility
+**Automation:** Automated - `Header.test.tsx` (26 tests including 5 nav visibility + 4 dual-role), `role-access-control.cy.ts`
+**Steps:**
+1. Login as each role, check navigation links
+2. Verify physician dropdown presence/absence
+3. Verify "Admin" link presence/absence
+
+**Expected:**
+
+| Element | ADMIN | PHYSICIAN | STAFF | ADMIN+PHYSICIAN |
+|---------|-------|-----------|-------|-----------------|
+| Patient Grid link | Yes | Yes | Yes | Yes |
+| Patient Management link | Yes | Yes | Yes | Yes |
+| Admin link | Yes | No | No | Yes |
+| Physician dropdown | Yes (all + unassigned) | No | Yes (assigned only) | No |
+| User menu (name + role badge) | Yes | Yes | Yes | Yes |
+| Change Password | Yes | Yes | Yes | Yes |
+| Logout | Yes | Yes | Yes | Yes |
+
+### TC-37.17: Role-Based Patient Management Tab Visibility
+**Automation:** Automated - `PatientManagementPage.test.tsx` (21 tests including 3 ADMIN+PHYSICIAN dual-role)
+**Steps:**
+1. Login as each role, navigate to /patient-management
+2. Observe visible tabs
+
+**Expected:**
+
+| Tab | ADMIN | PHYSICIAN | STAFF | ADMIN+PHYSICIAN |
+|-----|-------|-----------|-------|-----------------|
+| Import Patients | Yes | Yes | Yes | Yes |
+| Reassign Patients | Yes | No | No | Yes |
+
 ---
 
 ## Automation Summary
@@ -3429,15 +3757,21 @@ npm run cypress:headed  # Run with browser visible
 | 33. Security: Env Validation | 10 | 10 | 0 | 0 | 100% |
 | 34. Security: Account Lockout | 10 | 10 | 0 | 0 | 100% |
 | 35. Insurance Group Filter | 10 | 10 | 0 | 0 | 100% |
-| 36. Sutter/SIP Import + Universal Sheet Validation | 15 | 15 | 0 | 0 | 100% |
+| 36. Sutter/SIP Import + Universal Sheet Validation | 19 | 19 | 0 | 0 | 100% |
+| 37. Cross-Page Role Workflows | 17 | 10 | 4 | 3 | 82% |
 
 ### Top Priority Gaps
 
 | Priority | Area | Gap | Recommended Framework |
 |----------|------|-----|----------------------|
+| HIGH | Role Workflows | ADMIN+PHYSICIAN grid behavior not E2E tested (TC-37.12) | Cypress |
+| HIGH | Role Workflows | STAFF no-assignments empty state not tested (TC-37.9) | Cypress |
+| HIGH | Role Workflows | Cross-role data isolation at API level (TC-37.15) | Jest + Cypress |
 | HIGH | Cell Editing | 0 automated E2E tests for cell edit workflow | Cypress |
 | HIGH | Time Interval | 0 automated tests for editability/override | Cypress |
 | HIGH | Duplicate Detection | Edit-creates-duplicate flow not tested | Cypress |
+| MEDIUM | Role Workflows | ADMIN grid workflow with physician switching (TC-37.1) | Cypress |
+| MEDIUM | Role Workflows | STAFF multi-physician switching (TC-37.8) | Cypress |
 | MEDIUM | Sorting | Post-edit sort suppression not tested | Cypress |
 | MEDIUM | Row Colors | Overdue logic (completed expiry, terminal exclusion) | Cypress |
 | MEDIUM | Tracking Fields | N/A display, free text prompts not tested | Cypress |
@@ -3447,8 +3781,97 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 38. Sutter Import File-Based Integration Tests
+
+**Purpose:** Integration tests using programmatically-generated Excel fixture files exercising the full Sutter pipeline (parse → map → transform → validate → diff).
+
+**Fixtures:** `test-data/test-sutter-*.xlsx` (8 files, generated by `test-data/create-sutter-fixtures.ts`)
+
+### TC-38.1: Happy Path — All 10 Action Patterns
+**Automation:** Automated - `sutter-integration.test.ts` (13 tests)
+**Steps:** Process `test-sutter-valid.xlsx` through full pipeline for both physician tabs
+**Expected:** All 10 action patterns mapped correctly, AWV+APV merged, HCC notes preserved, Vaccine rows merged, measure details parsed, correct stats, all INSERTs on diff
+
+### TC-38.2: Duplicate Row Merging
+**Automation:** Automated - `sutter-integration.test.ts` (6 tests)
+**Steps:** Process `test-sutter-duplicates.xlsx` — same patient+measure rows
+**Expected:** Duplicates merged (latest statusDate picked, sourceActionText/notes concatenated), different measures NOT merged
+
+### TC-38.3: Edge Cases
+**Automation:** Automated - `sutter-integration.test.ts` (10 tests)
+**Steps:** Process `test-sutter-edge-cases.xlsx` — special chars, date formats, BP readings, missing fields
+**Expected:** Apostrophes/accented chars in names preserved, ISO/M/D/YYYY dates parsed, BP not confused with dates, whitespace trimmed, Excel serials not converted
+
+### TC-38.4: Error Handling
+**Automation:** Automated - `sutter-integration.test.ts` (8 tests)
+**Steps:** Process `test-sutter-errors.xlsx` — missing name, missing DOB, unknown request type, headers-only tab
+**Expected:** Errors reported per field, valid rows still processed, headers-only tab returns empty result
+
+### TC-38.5: Skip Actions
+**Automation:** Automated - `sutter-integration.test.ts` (5 tests)
+**Steps:** Process `test-sutter-skip-actions.xlsx` — all 11 config skipActions + 2 valid
+**Expected:** Only 2 valid mapped rows produced, skip actions appear as unmapped
+
+### TC-38.6: Unmapped Action Aggregation
+**Automation:** Automated - `sutter-integration.test.ts` (5 tests)
+**Steps:** Process `test-sutter-unmapped.xlsx` — 3 custom unmapped + skip actions + 2 valid
+**Expected:** 3 distinct unmapped actions sorted by count desc, 2 valid rows produced, zero errors
+
+### TC-38.7: Merge/Replace Diff
+**Automation:** Automated - `sutter-integration.test.ts` (8 tests)
+**Steps:** Process `test-sutter-merge.xlsx` with mock existing records
+**Expected:** INSERT for new combos, SKIP for matching, UPDATE/BOTH for status changes, HCC notes preserved
+
+### TC-38.8: Measure Details Parsing
+**Automation:** Automated - `sutter-integration.test.ts` (12 tests)
+**Steps:** Process `test-sutter-measure-details.xlsx` — 12 parsing strategies
+**Expected:** Semicolons parsed (date+reading), comma-separated dates (latest wins), embedded dates extracted, text-only as tracking1, Excel serials not converted, ISO dates parsed, BP as tracking1
+
+---
+
+## 39. Sutter Import Visual Tests (Playwright)
+
+**Purpose:** Visual review tests for the Sutter import UI workflow — system selection, sheet/physician selection, preview page, role-based access, responsive layouts, error states.
+
+### TC-39.1: System Selection & Upload
+**Automation:** Automated - `sutter-import-visual.spec.ts` (4 tests)
+**Steps:** Select Sutter, upload multi-measure file, verify sheet selector and tab count
+**Expected:** Sutter/SIP in dropdown, file input visible, sheet selector step appears, "2 physician tabs" displayed
+
+### TC-39.2: Sheet & Physician Selection
+**Automation:** Automated - `sutter-import-visual.spec.ts` (4 tests)
+**Steps:** Upload file, verify tab filtering, auto-match, manual override, missing physician warning
+**Expected:** Skip tabs filtered, suggested label on auto-match, manual override changes selection, warning on empty physician
+
+### TC-39.3: Preview Page
+**Automation:** Automated - `sutter-import-visual.spec.ts` (4 tests)
+**Steps:** Navigate to preview, verify header, unmapped banner, details expand/collapse, changes table
+**Expected:** Sheet name + physician in header, unmapped banner visible, details toggle works, changes table rendered
+
+### TC-39.4: Role-Based Access
+**Automation:** Automated - `sutter-import-visual.spec.ts` (4 tests)
+**Steps:** Test ADMIN, PHYSICIAN, ADMIN+PHYSICIAN, STAFF roles on import page
+**Expected:** ADMIN sees full dropdown, PHYSICIAN auto-assigned, ADMIN+PHY sees dropdown with auto-select, STAFF sees filtered dropdown
+
+### TC-39.5: Responsive Layouts
+**Automation:** Automated - `sutter-import-visual.spec.ts` (3 tests)
+**Steps:** Resize to 375px, 768px, 1920px after Sutter upload
+**Expected:** Layout adapts correctly at each breakpoint (screenshots captured)
+
+### TC-39.6: Error States
+**Automation:** Automated - `sutter-import-visual.spec.ts` (3 tests)
+**Steps:** Test no valid tabs, empty tab, missing physician
+**Expected:** Appropriate error messages and warnings displayed
+
+---
+
 ## Last Updated
 
+February 18, 2026 - Sutter duplicate merging, measureDetails parsing improvements, "Not Addressed" status override, dev seed users, Jest config fix. Total: 1,165 Jest + 1,025 Vitest.
+February 18, 2026 - Added Section 38: Sutter File-Based Integration Tests (TC-38.1 to TC-38.8, 67 Jest tests using 8 fixture files). Added Section 39: Sutter Import Visual Tests (TC-39.1 to TC-39.6, 22 Playwright tests).
+February 18, 2026 - Added automated tests for Section 37: +12 backend Jest tests (getPatientOwnerFilter role filtering), +13 frontend Vitest tests (ADMIN+PHYSICIAN dropdown/nav/tabs). Total: 1,077 Jest + 1,025 Vitest.
+February 16, 2026 - Added Section 37: Cross-Page Role Workflows (TC-37.1 to TC-37.17). Comprehensive per-role use cases across Patient Grid, Patient Management, and Admin pages. 17 test cases, 56% automated. Fixed TC-26.11 (ADMIN CAN access patient grid via physician dropdown, not blocked). Fixed TC-37.12 (ADMIN+PHYSICIAN gets ADMIN behavior on grid, NOT PHYSICIAN).
+February 16, 2026 - Added role-based import test cases (TC-36.16 to TC-36.19: ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN dual role). 19 test cases total in Section 36, 100% automated.
 February 16, 2026 - Updated Section 36: Universal Sheet Validation + Configurable Preview Columns (TC-36.13 to TC-36.15 added, TC-36.2/36.3/36.9 updated for universal behavior). 15 test cases, 100% automated. Total: 1,064 Jest + 1,012 Vitest + 8 Cypress.
 February 14, 2026 - Added Section 36: Sutter/SIP Multi-System Import (TC-36.1 to TC-36.12, all automated). 12 test cases, 100% automated. Total: 1,030 Jest + 956 Vitest.
 February 13, 2026 - Added Section 35: Insurance Group Filter (TC-35.1 to TC-35.10, all automated). 10 test cases, 100% automated. Total: 777 Jest + 895 Vitest + 12 Cypress.

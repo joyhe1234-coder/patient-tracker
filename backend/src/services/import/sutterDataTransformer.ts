@@ -174,7 +174,7 @@ export function transformSutterData(
       // Use mapped values from action matcher; default to "Not Addressed" if empty
       requestType = match.requestType;
       qualityMeasure = match.qualityMeasure;
-      measureStatus = match.measureStatus || 'Not Addressed';
+      measureStatus = 'Not Addressed';
     }
 
     // 4. Parse Measure Details for statusDate and tracking1
@@ -207,13 +207,16 @@ export function transformSutterData(
     transformedRows.push(transformedRow as TransformedRow);
   }
 
+  // Merge duplicate patient+measure rows (same patient, requestType, qualityMeasure)
+  const mergedRows = mergeDuplicateRows(transformedRows);
+
   // Convert unmapped actions map to sorted array (count descending)
   const unmappedActions: UnmappedAction[] = Array.from(unmappedActionsMap.entries())
     .map(([actionText, count]) => ({ actionText, count }))
     .sort((a, b) => b.count - a.count);
 
   return {
-    rows: transformedRows,
+    rows: mergedRows,
     errors,
     patientsWithNoMeasures,
     mapping,
@@ -221,12 +224,100 @@ export function transformSutterData(
     unmappedActions,
     stats: {
       inputRows: rows.length,
-      outputRows: transformedRows.length,
+      outputRows: mergedRows.length,
       errorCount: errors.length,
       measuresPerPatient: 0, // Not applicable for long format (1:1 mapping)
       patientsWithNoMeasures: patientsWithNoMeasures.length,
     },
   };
+}
+
+/**
+ * Merge duplicate rows with the same patient + measure combination.
+ * Key: memberName|memberDob|requestType|qualityMeasure
+ *
+ * Merge rules:
+ * - sourceActionText: concatenate all with "; " separator
+ * - notes: concatenate all with "; " separator (for HCC)
+ * - statusDate: pick the latest (ISO string comparison)
+ * - tracking1: keep from the row with the latest statusDate
+ * - Patient data + sourceRowIndex: keep from first row
+ */
+function mergeDuplicateRows(rows: TransformedRow[]): TransformedRow[] {
+  if (rows.length <= 1) return rows;
+
+  // Group rows by merge key, preserving insertion order
+  const groups = new Map<string, TransformedRow[]>();
+
+  for (const row of rows) {
+    const key = `${row.memberName}|${row.memberDob || ''}|${row.requestType}|${row.qualityMeasure}`;
+    const group = groups.get(key);
+    if (group) {
+      group.push(row);
+    } else {
+      groups.set(key, [row]);
+    }
+  }
+
+  const merged: TransformedRow[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      merged.push(group[0]);
+      continue;
+    }
+
+    // Start with the first row as base
+    const base = { ...group[0] } as TransformedRow & {
+      notes?: string | null;
+      tracking1?: string | null;
+      sourceActionText?: string | null;
+    };
+
+    // Concatenate sourceActionText from all rows
+    const actionTexts = group
+      .map(r => (r as any).sourceActionText)
+      .filter((t): t is string => !!t);
+    if (actionTexts.length > 0) {
+      base.sourceActionText = actionTexts.join('; ');
+    }
+
+    // Concatenate notes from all rows (for HCC)
+    const allNotes = group
+      .map(r => (r as any).notes)
+      .filter((n): n is string => !!n);
+    if (allNotes.length > 0) {
+      base.notes = allNotes.join('; ');
+    }
+
+    // Pick the latest statusDate and keep tracking1 from that row
+    let latestDate: string | null = null;
+    let latestTracking1: string | null = null;
+
+    for (const row of group) {
+      const rowDate = row.statusDate;
+      const rowTracking1 = (row as any).tracking1 || null;
+
+      if (rowDate) {
+        if (!latestDate || rowDate > latestDate) {
+          latestDate = rowDate;
+          latestTracking1 = rowTracking1;
+        }
+      }
+    }
+
+    base.statusDate = latestDate;
+    if (latestTracking1 !== null) {
+      base.tracking1 = latestTracking1;
+    } else if (latestDate && !(base as any).tracking1) {
+      // If we picked a latestDate but it had no tracking1,
+      // and the base didn't have tracking1 either, leave it unset
+    }
+
+    merged.push(base as TransformedRow);
+  }
+
+  return merged;
 }
 
 /**
