@@ -29,12 +29,31 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.10.0):**
-- Layer 1 (Backend Jest): 1,165 tests passing (43 suites)
-- Layer 2 (Frontend Vitest): 1,037 tests passing (38 suites)
-- Layer 3 (Playwright E2E): 43 tests
-- Layer 4 (Cypress E2E): ~342 tests
+**Test Coverage (as of Release 4.11.0):**
+- Layer 1 (Backend Jest): 1,387 tests passing (47 suites)
+- Layer 2 (Frontend Vitest): 1,138 tests passing (43 suites)
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests
+- Layer 4 (Cypress E2E): ~283 tests
 - Visual test plan v2.1: 427 test cases documented
+
+### Smart Column Mapping + Import E2E Tests
+
+**Status: Complete** (Feb 22, 2026)
+**Spec:** `.claude/specs/smart-column-mapping/` (requirements, design, tasks)
+
+- [x] **Conflict Detection Pipeline:** `conflictDetector.ts` — 7-step classification (normalize, duplicate, lookup, fuzzy match, missing, severity, wrong-file check)
+- [x] **Fuzzy Matcher:** `fuzzyMatcher.ts` — Dice coefficient with abbreviation expansion (rx, tx, awv, mgmt, etc.) + header normalization
+- [x] **Mapping Service:** `mappingService.ts` — DB override CRUD with audit logging, loadMergedConfig combining JSON seed + DB overrides
+- [x] **Admin Resolution UI:** `ConflictResolutionStep.tsx` — Interactive dropdowns per conflict, progress tracking, Save & Continue
+- [x] **Non-Admin Banner:** `ConflictBanner.tsx` — Read-only with "contact your administrator", Cancel, Copy Details
+- [x] **Mapping Management Page:** `MappingManagementPage.tsx` — Admin column/action mapping configuration
+- [x] **REST API:** `mapping.routes.ts` — GET/PUT for column and action mapping overrides
+- [x] **Database Migration:** ColumnMappingOverride, ActionPatternOverride, AuditLog tables
+- [x] **Import E2E Tests:** 13 Playwright tests (Hill/Sutter x Admin/Physician/Staff/Admin+Physician) covering valid imports + conflict role-based UI
+- [x] **Test Data Renamed:** All CSV/XLSX/expected-JSON files renamed with `hill-`/`sutter-` prefixes
+- [x] **Defect Fixes:** ESM compatibility, flaky perf thresholds, Promise.race fragility, fragile selectors, timeout constants, null safety
+
+**Tests:** +222 Jest, +101 Vitest, +13 Playwright E2E
 
 ### Grid UX: Remove tracking3, Rename Copy Member, Pinned Row on Add/Duplicate
 
@@ -372,9 +391,9 @@ Requirements documented in `.claude/IMPORT_REQUIREMENTS.md`
   - Action filter dropdown for changes table
   - Changes table with member, measure, action, old/new status, reason
 - [x] Merge Logic Integration Tests
-  - `mergeLogic.test.ts` - 12 integration tests for merge-test-cases.csv
+  - `mergeLogic.test.ts` - 12 integration tests for test-hill-merge-cases.csv
   - Tests all 6 merge cases (INSERT, UPDATE, SKIP, BOTH for merge mode; DELETE for replace mode)
-  - Test data file: `test-data/merge-test-cases.csv`
+  - Test data file: `test-data/test-hill-merge-cases.csv`
 - [x] 5h: Import Executor (Replace All + Merge)
   - `importExecutor.ts` - Execute import operations based on previewed diff
   - Replace mode: Delete all existing records, insert all new

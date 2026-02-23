@@ -59,23 +59,35 @@ export class ImportPage {
 
   /**
    * Navigate to the Patient Management page (Import tab).
-   * Handles login if needed.
+   * Handles login if needed (each Playwright test gets a fresh browser context).
    */
-  async goto(email = 'ko037291@gmail.com', password = 'welcome100') {
-    await this.page.goto('/patient-management');
+  async goto(email = 'admin@gmail.com', password = 'welcome100') {
+    // Navigate to /login directly — avoids race with React client-side redirect
+    await this.page.goto('/login');
 
-    // Handle login redirect if needed
-    const emailInput = this.page.locator('input[name="email"]');
-    const needsLogin = await emailInput.isVisible({ timeout: 3000 }).catch(() => false);
+    // Wait for login form OR redirect (if already authenticated)
+    const emailInput = this.page.locator('#email');
+    const needsLogin = await emailInput.waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true)
+      .catch(() => false);
+
     if (needsLogin) {
       await emailInput.fill(email);
-      await this.page.locator('input[name="password"]').fill(password);
+      await this.page.locator('#password').fill(password);
       await this.page.locator('button[type="submit"]').click();
-      await this.page.waitForURL(/\/patient-management/, { timeout: 10000 });
+
+      // Wait for navigation away from /login (app redirects to '/' after login)
+      await this.page.waitForURL(
+        (url) => !url.pathname.includes('/login'),
+        { timeout: 15000 },
+      );
     }
 
-    // Ensure we're on the Import tab
-    await this.page.locator('text=Select Healthcare System').waitFor({ state: 'visible', timeout: 10000 });
+    // Navigate to patient-management page
+    await this.page.goto('/patient-management');
+
+    // Wait for the import page content to render
+    await this.page.locator('text=Select Healthcare System').waitFor({ state: 'visible', timeout: 15000 });
   }
 
   /**

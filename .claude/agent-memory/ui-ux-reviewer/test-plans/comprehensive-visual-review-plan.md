@@ -439,7 +439,7 @@
 | UX-23 | Import | Nice-to-have | Replace mode warning could be more prominent | Add warning triangle icon |
 | UX-24 | Import | Nice-to-have | No file size limit displayed | Add "Maximum file size: X MB" text |
 | UX-25 | Import | UX-Suggestion | Preview Import enabled without physician selection | Disable button until all required fields set |
-| UX-26 | Import | UX-Suggestion | Filename not shown in preview header metadata | Display "File: test-valid.csv" in header |
+| UX-26 | Import | UX-Suggestion | Filename not shown in preview header metadata | Display "File: test-hill-valid.csv" in header |
 | UX-27 | Import | Important | Preview changes table breaks on mobile (375px) | Add `overflow-x: auto` to table container |
 | UX-28 | Import | Important | Mobile header overflows (title wraps 4 lines) | Use shorter title or hamburger menu on mobile |
 | UX-29 | Import | Nice-to-have | No loading indicator during preview generation | Add spinner for larger file imports |

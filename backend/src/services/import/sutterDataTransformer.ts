@@ -181,13 +181,28 @@ export function transformSutterData(
     const measureDetailsValue = measureDetailsCol ? row[measureDetailsCol] : undefined;
     const measureDetails = parseMeasureDetails(measureDetailsValue);
 
+    // Determine statusDate and its source:
+    // If Measure Details contained a parseable date, use it (source: 'file')
+    // Otherwise, default to today's import date (source: 'default')
+    let statusDate: string | null;
+    let statusDateSource: 'file' | 'default';
+
+    if (measureDetails.statusDate) {
+      statusDate = measureDetails.statusDate;
+      statusDateSource = 'file';
+    } else {
+      statusDate = new Date().toISOString().slice(0, 10);
+      statusDateSource = 'default';
+    }
+
     // Build the TransformedRow
     const transformedRow: TransformedRow & { notes?: string | null; tracking1?: string | null; sourceActionText?: string | null } = {
       ...patientData,
       requestType,
       qualityMeasure,
       measureStatus: measureStatus,
-      statusDate: measureDetails.statusDate,
+      statusDate,
+      statusDateSource,
       sourceRowIndex: rowIndex,
       sourceMeasureColumn: actionsNeededCol || requestTypeCol || '',
     };
@@ -290,23 +305,27 @@ function mergeDuplicateRows(rows: TransformedRow[]): TransformedRow[] {
       base.notes = allNotes.join('; ');
     }
 
-    // Pick the latest statusDate and keep tracking1 from that row
+    // Pick the latest statusDate and keep tracking1 + statusDateSource from that row
     let latestDate: string | null = null;
     let latestTracking1: string | null = null;
+    let latestStatusDateSource: 'file' | 'default' = 'default';
 
     for (const row of group) {
       const rowDate = row.statusDate;
       const rowTracking1 = (row as any).tracking1 || null;
+      const rowSource = row.statusDateSource || 'default';
 
       if (rowDate) {
         if (!latestDate || rowDate > latestDate) {
           latestDate = rowDate;
           latestTracking1 = rowTracking1;
+          latestStatusDateSource = rowSource;
         }
       }
     }
 
     base.statusDate = latestDate;
+    base.statusDateSource = latestStatusDateSource;
     if (latestTracking1 !== null) {
       base.tracking1 = latestTracking1;
     } else if (latestDate && !(base as any).tracking1) {

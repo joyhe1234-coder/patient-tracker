@@ -63,6 +63,7 @@
 | 2026-02-13 | Insurance Group Filter | `reviews/insurance-group-filter-2026-02-13.md` | 12 screenshots, 6 scenarios ALL PASS. Visual parity with QM dropdown. Touch target too small (pre-existing). Seed data limitation prevents visual filter verification. |
 | 2026-02-14 | Sutter Import Flow | `reviews/sutter-import-flow-2026-02-14.md` | 12 screenshots. BUG: duplicate error banners, nested card-in-card. Missing aria-label on system select, no role=alert on errors. UnmappedActionsBanner good a11y. Step numbering correct. |
 | 2026-02-15 | Universal SheetSelector | `reviews/universal-sheet-selector-2026-02-15.md` | 11 screenshots, 13 scenarios ALL PASS. Nested card + duplicate error bugs FIXED. Amber-600 hint fails AA contrast. Orphaned label for single-tab. PHYSICIAN auto-assign works correctly. |
+| 2026-02-20 | Smart Column Mapping UI | (inline report) | Backend 404 blocks data display. Navigation gap (no link to /admin/import-mapping). Duplicate H1. Error banner missing role=alert. Code review of 6 components. |
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.
@@ -131,6 +132,23 @@ frontend/src/components/auth/
 - Tracking #2: Dropdown 1-12 months testing interval for HGBA1C_STATUSES
 - Time Interval: Auto-calculated from Tracking #2 month (locked, not manually editable)
 - Non-HgbA1c rows: Tracking #1 and #2 show "N/A" with disabled striped styling
+
+## Smart Column Mapping Component Structure (added Feb 20)
+```
+frontend/src/pages/MappingManagementPage.tsx         # Admin mapping management (729 lines)
+frontend/src/components/import/
+  MappingTable.tsx                                    # Reusable mapping table: view/edit/resolve modes (444 lines)
+  ActionPatternTable.tsx                              # Sutter action regex patterns + skip actions (397 lines)
+  ConflictResolutionStep.tsx                          # Admin inline conflict resolution (492 lines)
+  ConflictBanner.tsx                                  # Non-admin read-only blocking banner (193 lines)
+frontend/src/types/import-mapping.ts                  # TypeScript types for mapping system
+```
+- Route: `/admin/import-mapping` (ADMIN only, ProtectedRoute)
+- `/hill-mapping` redirects to `/admin/import-mapping?system=hill`
+- Conflict badges: blue=NEW, amber=CHANGED, red=MISSING/DUPLICATE/AMBIGUOUS
+- MappingTable badge colors: purple=MEASURE, blue=PATIENT, green=DATA, gray=IGNORED, amber=Override
+- ConflictResolutionStep has good a11y: role=alert on errors, aria-live on progress, progressbar with ARIA
+- Backend `/api/import/mappings/:systemId` NOT YET IMPLEMENTED (404) -- blocks all data display
 
 ## Import Page Component Structure (updated Feb 15 w/ Universal SheetSelector)
 ```

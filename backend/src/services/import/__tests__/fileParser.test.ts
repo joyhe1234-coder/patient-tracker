@@ -685,18 +685,53 @@ describe('fileParser', () => {
 
       expect(headerMap.size).toBe(0);
     });
+
+    it('should skip title row and return headers from row 1 when headerRowIndex is 0', () => {
+      // Simulates a Hill-format file with a report title on row 0
+      const wb = createWorkbook({
+        'Sheet1': [
+          ['Test Data | Mock | ALL (2025) -- Report generated 01/22/2026'],
+          ['Patient', 'DOB', 'Age', 'Eye Exam', 'BP Control'],
+          ['Smith, John', '01/01/1980', '46', 'Met', 'Not Addressed'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Sheet1'], 0);
+
+      // Should skip the title row and return actual headers from row 1
+      expect(headerMap.get('Sheet1')).toEqual(['Patient', 'DOB', 'Age', 'Eye Exam', 'BP Control']);
+    });
+
+    it('should not skip title row when headerRowIndex is explicitly > 0', () => {
+      // For Sutter (headerRow = 3), title detection should not interfere
+      const wb = createWorkbook({
+        'Dr Smith': [
+          ['Title -- report info'],
+          ['Info line 2'],
+          ['Info line 3'],
+          ['Member Name', 'Member DOB', 'Possible Actions Needed'],
+          ['Alice Smith', '03/15/1980', 'AWV scheduled'],
+        ],
+      });
+
+      const headerMap = getSheetHeaders(wb, ['Dr Smith'], 3);
+
+      expect(headerMap.get('Dr Smith')).toEqual([
+        'Member Name', 'Member DOB', 'Possible Actions Needed'
+      ]);
+    });
   });
 
   describe('with test data files', () => {
-    it('should parse test-valid.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-valid.csv');
+    it('should parse test-hill-valid.csv correctly', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-valid.csv not found');
+        console.log('Skipping: test-hill-valid.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = parseCSV(buffer, 'test-valid.csv');
+      const result = parseCSV(buffer, 'test-hill-valid.csv');
 
       expect(result.totalRows).toBe(10);
       expect(result.headers).toContain('Patient');
@@ -704,30 +739,30 @@ describe('fileParser', () => {
       expect(result.dataStartRow).toBe(2); // No title row
     });
 
-    it('should parse test-validation-errors.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-validation-errors.csv');
+    it('should parse test-hill-validation-errors.csv correctly', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-validation-errors.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-validation-errors.csv not found');
+        console.log('Skipping: test-hill-validation-errors.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = parseCSV(buffer, 'test-validation-errors.csv');
+      const result = parseCSV(buffer, 'test-hill-validation-errors.csv');
 
       expect(result.totalRows).toBe(10);
       // Row 3 should have empty name
       expect(result.rows[1]['Patient']).toBeUndefined();
     });
 
-    it('should parse test-no-measures.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-no-measures.csv');
+    it('should parse test-hill-no-measures.csv correctly', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-no-measures.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-no-measures.csv not found');
+        console.log('Skipping: test-hill-no-measures.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = parseCSV(buffer, 'test-no-measures.csv');
+      const result = parseCSV(buffer, 'test-hill-no-measures.csv');
 
       expect(result.totalRows).toBe(10);
       // Check that some rows have empty measure columns

@@ -347,12 +347,14 @@ describe('test-sutter-edge-cases.xlsx', () => {
     expect((dateTest2 as any).tracking1).toBe('negative');
   });
 
-  it('should NOT parse BP reading (120/80) as a date', () => {
+  it('should NOT parse BP reading (120/80) as a date, defaults statusDate to today', () => {
     const result = pipeline(buffer, 'Edge Cases');
     const bpTest = result.rows.find(r => r.memberName === 'BPTest, Patient');
     expect(bpTest).toBeDefined();
-    // BP reading should go to tracking1, not statusDate
-    expect(bpTest!.statusDate).toBeNull();
+    // BP reading should go to tracking1, statusDate defaults to today
+    const today = new Date().toISOString().slice(0, 10);
+    expect(bpTest!.statusDate).toBe(today);
+    expect(bpTest!.statusDateSource).toBe('default');
     expect((bpTest as any).tracking1).toBe('120/80');
   });
 
@@ -370,11 +372,14 @@ describe('test-sutter-edge-cases.xlsx', () => {
     expect(wsTest!.qualityMeasure).toBe('Colon Cancer Screening');
   });
 
-  it('should NOT parse Excel serial number (45678) as a date', () => {
+  it('should NOT parse Excel serial number (45678) as a date, defaults statusDate to today', () => {
     const result = pipeline(buffer, 'Edge Cases');
     const serialTest = result.rows.find(r => r.memberName === 'Serial, Number');
     expect(serialTest).toBeDefined();
-    expect(serialTest!.statusDate).toBeNull();
+    // Excel serial is not a date -> statusDate defaults to today
+    const today = new Date().toISOString().slice(0, 10);
+    expect(serialTest!.statusDate).toBe(today);
+    expect(serialTest!.statusDateSource).toBe('default');
     expect((serialTest as any).tracking1).toBe('45678');
   });
 
@@ -723,27 +728,36 @@ describe('test-sutter-measure-details.xlsx', () => {
     expect((row as any).tracking1).toBeDefined();
   });
 
-  it('should handle text-only (Pending review) as tracking1', () => {
+  it('should handle text-only (Pending review) as tracking1, defaults statusDate to today', () => {
     const result = pipeline(buffer, 'Details Test');
     const row = result.rows.find(r => r.memberName === 'MD, Patient06');
     expect(row).toBeDefined();
-    expect(row!.statusDate).toBeNull();
+    // Text-only Measure Details -> statusDate defaults to today
+    const today = new Date().toISOString().slice(0, 10);
+    expect(row!.statusDate).toBe(today);
+    expect(row!.statusDateSource).toBe('default');
     expect((row as any).tracking1).toBe('Pending review');
   });
 
-  it('should handle numeric-only (7.2) as tracking1, not date', () => {
+  it('should handle numeric-only (7.2) as tracking1, defaults statusDate to today', () => {
     const result = pipeline(buffer, 'Details Test');
     const row = result.rows.find(r => r.memberName === 'MD, Patient07');
     expect(row).toBeDefined();
-    expect(row!.statusDate).toBeNull();
+    // Numeric-only Measure Details -> statusDate defaults to today
+    const today = new Date().toISOString().slice(0, 10);
+    expect(row!.statusDate).toBe(today);
+    expect(row!.statusDateSource).toBe('default');
     expect((row as any).tracking1).toBe('7.2');
   });
 
-  it('should handle empty string -> both null', () => {
+  it('should handle empty string -> statusDate defaults to today, tracking1 null', () => {
     const result = pipeline(buffer, 'Details Test');
     const row = result.rows.find(r => r.memberName === 'MD, Patient08');
     expect(row).toBeDefined();
-    expect(row!.statusDate).toBeNull();
+    // Empty Measure Details -> statusDate defaults to today (import date)
+    const today = new Date().toISOString().slice(0, 10);
+    expect(row!.statusDate).toBe(today);
+    expect(row!.statusDateSource).toBe('default');
     // tracking1 should be null or undefined
     expect((row as any).tracking1 ?? null).toBeNull();
   });
@@ -757,11 +771,14 @@ describe('test-sutter-measure-details.xlsx', () => {
     expect(tracking1).toContain('7.5');
   });
 
-  it('should NOT parse Excel serial (45678) as date', () => {
+  it('should NOT parse Excel serial (45678) as date, defaults statusDate to today', () => {
     const result = pipeline(buffer, 'Details Test');
     const row = result.rows.find(r => r.memberName === 'MD, Patient10');
     expect(row).toBeDefined();
-    expect(row!.statusDate).toBeNull();
+    // Excel serial is not parsed as date -> statusDate defaults to today
+    const today = new Date().toISOString().slice(0, 10);
+    expect(row!.statusDate).toBe(today);
+    expect(row!.statusDateSource).toBe('default');
     expect((row as any).tracking1).toBe('45678');
   });
 
@@ -772,11 +789,14 @@ describe('test-sutter-measure-details.xlsx', () => {
     expect(row!.statusDate).toBe('2025-01-15');
   });
 
-  it('should handle BP reading (120/80) as tracking1, not date', () => {
+  it('should handle BP reading (120/80) as tracking1, defaults statusDate to today', () => {
     const result = pipeline(buffer, 'Details Test');
     const row = result.rows.find(r => r.memberName === 'MD, Patient12');
     expect(row).toBeDefined();
-    expect(row!.statusDate).toBeNull();
+    // BP reading is not a date -> statusDate defaults to today
+    const today = new Date().toISOString().slice(0, 10);
+    expect(row!.statusDate).toBe(today);
+    expect(row!.statusDateSource).toBe('default');
     expect((row as any).tracking1).toBe('120/80');
   });
 });

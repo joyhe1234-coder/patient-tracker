@@ -21,43 +21,54 @@ enum UserRole {
   ADMIN
 }
 
+enum ImportTargetType {
+  PATIENT
+  MEASURE
+  DATA
+  IGNORED
+}
+
 model User {
-  id              Int        @id @default(autoincrement())
-  email           String     @unique
-  passwordHash    String     @map("password_hash")
-  displayName     String     @map("display_name")
-  roles           UserRole[] @default([PHYSICIAN])
-  isActive        Boolean    @default(true) @map("is_active")
-  lastLoginAt     DateTime?  @map("last_login_at")
-  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime? @map("locked_until")
-  mustChangePassword  Boolean   @default(false) @map("must_change_password")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  id                  Int        @id @default(autoincrement())
+  email               String     @unique
+  passwordHash        String     @map("password_hash")
+  displayName         String     @map("display_name")
+  roles               UserRole[] @default([PHYSICIAN])
+  isActive            Boolean    @default(true) @map("is_active")
+  lastLoginAt         DateTime?  @map("last_login_at")
+  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?  @map("locked_until")
+  mustChangePassword  Boolean    @default(false) @map("must_change_password")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
 
   // Patients owned by this physician
-  patients        Patient[]
+  patients Patient[]
 
   // Staff assignments (for STAFF role - which physicians they cover)
-  assignedPhysicians  StaffAssignment[] @relation("StaffUser")
+  assignedPhysicians StaffAssignment[] @relation("StaffUser")
   // Staff assigned to this physician (for PHYSICIAN role)
-  assignedStaff       StaffAssignment[] @relation("PhysicianUser")
+  assignedStaff      StaffAssignment[] @relation("PhysicianUser")
 
   // Audit log entries created by this user
-  auditLogs       AuditLog[]
+  auditLogs AuditLog[]
+
+  // Import mapping overrides created by this admin
+  mappingOverrides ImportMappingOverride[] @relation("MappingCreator")
+  actionOverrides  ImportActionOverride[]  @relation("ActionCreator")
 
   @@map("users")
 }
 
 // Many-to-many: Staff can cover multiple Physicians
 model StaffAssignment {
-  id            Int      @id @default(autoincrement())
-  staffId       Int      @map("staff_id")
-  physicianId   Int      @map("physician_id")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id          Int      @id @default(autoincrement())
+  staffId     Int      @map("staff_id")
+  physicianId Int      @map("physician_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  staff         User     @relation("StaffUser", fields: [staffId], references: [id], onDelete: Cascade)
-  physician     User     @relation("PhysicianUser", fields: [physicianId], references: [id], onDelete: Cascade)
+  staff     User @relation("StaffUser", fields: [staffId], references: [id], onDelete: Cascade)
+  physician User @relation("PhysicianUser", fields: [physicianId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, physicianId])
   @@map("staff_assignments")
@@ -87,29 +98,29 @@ model Patient {
 }
 
 model PatientMeasure {
-  id                    Int       @id @default(autoincrement())
-  patientId             Int       @map("patient_id")
-  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  requestType           String?   @map("request_type")
-  qualityMeasure        String?   @map("quality_measure")
-  measureStatus         String?   @map("measure_status")
-  statusDate            DateTime? @map("status_date") @db.Date
-  statusDatePrompt      String?   @map("status_date_prompt")
-  tracking1             String?   @map("tracking_1")
-  tracking2             String?   @map("tracking_2")
-  dueDate               DateTime? @map("due_date") @db.Date
-  timeIntervalDays      Int?      @map("time_interval_days")
-  notes                 String?
-  rowOrder              Int       @default(0) @map("row_order")
-  isDuplicate           Boolean   @default(false) @map("is_duplicate")
+  id               Int       @id @default(autoincrement())
+  patientId        Int       @map("patient_id")
+  patient          Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  requestType      String?   @map("request_type")
+  qualityMeasure   String?   @map("quality_measure")
+  measureStatus    String?   @map("measure_status")
+  statusDate       DateTime? @map("status_date") @db.Date
+  statusDatePrompt String?   @map("status_date_prompt")
+  tracking1        String?   @map("tracking_1")
+  tracking2        String?   @map("tracking_2")
+  dueDate          DateTime? @map("due_date") @db.Date
+  timeIntervalDays Int?      @map("time_interval_days")
+  notes            String?
+  rowOrder         Int       @default(0) @map("row_order")
+  isDuplicate      Boolean   @default(false) @map("is_duplicate")
 
   // HgbA1c Goal Configuration Fields
-  hgba1cGoal            String?   @map("hgba1c_goal")
-  hgba1cGoalReachedYear Boolean   @default(false) @map("hgba1c_goal_reached_year")
-  hgba1cDeclined        Boolean   @default(false) @map("hgba1c_declined")
+  hgba1cGoal            String? @map("hgba1c_goal")
+  hgba1cGoalReachedYear Boolean @default(false) @map("hgba1c_goal_reached_year")
+  hgba1cDeclined        Boolean @default(false) @map("hgba1c_declined")
 
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([patientId])
   @@index([qualityMeasure])
@@ -174,8 +185,8 @@ model TrackingOption {
   measureStatusId Int           @map("measure_status_id")
   measureStatus   MeasureStatus @relation(fields: [measureStatusId], references: [id], onDelete: Cascade)
   trackingNumber  Int           @map("tracking_number") // 1, 2, or 3
-  optionValue     String?       @map("option_value")    // null = free text
-  defaultText     String?       @map("default_text")    // placeholder text
+  optionValue     String?       @map("option_value") // null = free text
+  defaultText     String?       @map("default_text") // placeholder text
   sortOrder       Int           @default(0) @map("sort_order")
 
   @@map("config_tracking_options")
@@ -185,7 +196,7 @@ model DueDayRule {
   id              Int           @id @default(autoincrement())
   measureStatusId Int           @map("measure_status_id")
   measureStatus   MeasureStatus @relation(fields: [measureStatusId], references: [id], onDelete: Cascade)
-  trackingValue   String?       @map("tracking_value")  // null = use base_due_days
+  trackingValue   String?       @map("tracking_value") // null = use base_due_days
   dueDays         Int           @map("due_days")
 
   @@unique([measureStatusId, trackingValue])
@@ -253,11 +264,11 @@ model AuditLog {
   userId    Int?     @map("user_id")
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   userEmail String?  @map("user_email") // Kept for when user is deleted
-  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOCK', 'UNLOCK', 'ACCOUNT_LOCKED', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI', 'SEND_TEMP_PASSWORD'
-  entity    String?  // 'patient_measure', 'patient', 'user', etc.
+  action    String // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOCK', 'UNLOCK', 'ACCOUNT_LOCKED', 'PASSWORD_CHANGE', 'PASSWORD_RESET_CLI', 'SEND_TEMP_PASSWORD'
+  entity    String? // 'patient_measure', 'patient', 'user', etc.
   entityId  Int?     @map("entity_id")
-  changes   Json?    // Field-level changes: { fields: [{ field, old, new }] }
-  details   Json?    // Additional context (kept for backwards compatibility)
+  changes   Json? // Field-level changes: { fields: [{ field, old, new }] }
+  details   Json? // Additional context (kept for backwards compatibility)
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -281,4 +292,45 @@ model PasswordResetToken {
   @@index([token])
   @@index([email])
   @@map("password_reset_tokens")
+}
+
+// ============================================
+// IMPORT MAPPING OVERRIDES
+// ============================================
+
+model ImportMappingOverride {
+  id             Int              @id @default(autoincrement())
+  systemId       String           @map("system_id")
+  sourceColumn   String           @map("source_column")
+  targetType     ImportTargetType @map("target_type")
+  targetField    String?          @map("target_field")
+  requestType    String?          @map("request_type")
+  qualityMeasure String?          @map("quality_measure")
+  isActive       Boolean          @default(true) @map("is_active")
+  createdBy      Int              @map("created_by")
+  creator        User             @relation("MappingCreator", fields: [createdBy], references: [id])
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@unique([systemId, sourceColumn])
+  @@index([systemId])
+  @@map("import_mapping_overrides")
+}
+
+model ImportActionOverride {
+  id             Int      @id @default(autoincrement())
+  systemId       String   @map("system_id")
+  pattern        String
+  requestType    String   @map("request_type")
+  qualityMeasure String   @map("quality_measure")
+  measureStatus  String   @map("measure_status")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdBy      Int      @map("created_by")
+  creator        User     @relation("ActionCreator", fields: [createdBy], references: [id])
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([systemId, pattern])
+  @@index([systemId])
+  @@map("import_action_overrides")
 }

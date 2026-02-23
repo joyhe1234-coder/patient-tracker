@@ -1,0 +1,6 @@
+Employee ID,Department,Salary,Hire Date,Manager,Title,Location,Bonus,Rating
+E001,Engineering,95000,01/15/2020,M.Smith,Software Engineer,Building A,5000,4.5
+E002,Marketing,78000,03/22/2019,J.Doe,Marketing Manager,Building B,3000,4.0
+E003,Sales,85000,07/04/2021,B.Johnson,Sales Rep,Building C,7000,4.8
+E004,Engineering,102000,11/30/2018,M.Smith,Senior Engineer,Building A,6000,4.2
+E005,HR,72000,09/12/2022,R.Williams,HR Specialist,Building D,2500,3.9

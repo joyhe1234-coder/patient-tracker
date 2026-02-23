@@ -264,7 +264,7 @@ describe('sutterDataTransformer', () => {
   });
 
   describe('Measure Details parsing integration', () => {
-    it('should parse semicolon Measure Details into statusDate and tracking1', () => {
+    it('should parse semicolon Measure Details into statusDate and tracking1 with file source', () => {
       const rows: ParsedRow[] = [
         makeRow({
           'Request Type': 'Quality',
@@ -277,10 +277,11 @@ describe('sutterDataTransformer', () => {
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].statusDate).toBe('2025-01-15');
+      expect(result.rows[0].statusDateSource).toBe('file');
       expect((result.rows[0] as any).tracking1).toBe('7.5');
     });
 
-    it('should parse single date Measure Details into statusDate', () => {
+    it('should parse single date Measure Details into statusDate with file source', () => {
       const rows: ParsedRow[] = [
         makeRow({
           'Request Type': 'AWV',
@@ -291,10 +292,11 @@ describe('sutterDataTransformer', () => {
       const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
 
       expect(result.rows[0].statusDate).toBe('2025-03-20');
+      expect(result.rows[0].statusDateSource).toBe('file');
       expect((result.rows[0] as any).tracking1).toBeUndefined();
     });
 
-    it('should handle empty Measure Details gracefully', () => {
+    it('should default statusDate to today when Measure Details is empty', () => {
       const rows: ParsedRow[] = [
         makeRow({
           'Request Type': 'AWV',
@@ -304,10 +306,13 @@ describe('sutterDataTransformer', () => {
 
       const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
 
-      expect(result.rows[0].statusDate).toBeNull();
+      // Empty Measure Details -> statusDate defaults to today
+      const today = new Date().toISOString().slice(0, 10);
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
     });
 
-    it('should set tracking1 from non-date Measure Details', () => {
+    it('should set tracking1 from non-date Measure Details and default statusDate to today', () => {
       // Use a value that cannot be parsed as a date (large decimal)
       const rows: ParsedRow[] = [
         makeRow({
@@ -319,8 +324,105 @@ describe('sutterDataTransformer', () => {
 
       const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
 
-      expect(result.rows[0].statusDate).toBeNull();
+      // Non-date Measure Details -> statusDate defaults to today, tracking1 gets the value
+      const today = new Date().toISOString().slice(0, 10);
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
       expect((result.rows[0] as any).tracking1).toBe('142/72');
+    });
+
+    it('should use Measure Details date for HCC rows with statusDateSource file', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'HCC',
+          'Possible Actions Needed': 'Diabetes Type 2, E11.65',
+          'Measure Details': '02/14/2025',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].statusDate).toBe('2025-02-14');
+      expect(result.rows[0].statusDateSource).toBe('file');
+    });
+
+    it('should default statusDate to today for AWV with invalid Measure Details text', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'AWV',
+          'Measure Details': 'not-a-date-value',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      const today = new Date().toISOString().slice(0, 10);
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
+    });
+
+    it('should default statusDate to today when Measure Details has whitespace only', () => {
+      const rows: ParsedRow[] = [
+        makeRow({
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'FOBT in 2025 or colonoscopy in 2015-2025',
+          'Measure Details': '   ',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      const today = new Date().toISOString().slice(0, 10);
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
+    });
+
+    it('should set statusDate and statusDateSource on every row in a multi-row batch', () => {
+      const rows: ParsedRow[] = [
+        // AWV with valid Measure Details date
+        makeRow({
+          'Request Type': 'AWV',
+          'Measure Details': '05/01/2025',
+        }),
+        // HCC with empty Measure Details -> defaults to today
+        makeRow({
+          'Member Name': 'Doe, Jane',
+          'Request Type': 'HCC',
+          'Possible Actions Needed': 'Heart Failure, I50.9',
+          'Measure Details': '',
+        }),
+        // Quality with semicolon Measure Details
+        makeRow({
+          'Member Name': 'Brown, Bob',
+          'Request Type': 'Quality',
+          'Possible Actions Needed': 'DM - Most recent 2025 HbA1c less than 9.0',
+          'Measure Details': '03/15/2025; 8.2',
+        }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(3);
+
+      // AWV: file date
+      const awvRow = result.rows.find(r => r.qualityMeasure === 'Annual Wellness Visit');
+      expect(awvRow).toBeDefined();
+      expect(awvRow!.statusDate).toBe('2025-05-01');
+      expect(awvRow!.statusDateSource).toBe('file');
+
+      // HCC: default date
+      const today = new Date().toISOString().slice(0, 10);
+      const hccRow = result.rows.find(r => r.qualityMeasure === 'Chronic Diagnosis Code');
+      expect(hccRow).toBeDefined();
+      expect(hccRow!.statusDate).toBe(today);
+      expect(hccRow!.statusDateSource).toBe('default');
+
+      // Quality/DM: file date from semicolon format
+      const dmRow = result.rows.find(r => r.qualityMeasure === 'Diabetes Control');
+      expect(dmRow).toBeDefined();
+      expect(dmRow!.statusDate).toBe('2025-03-15');
+      expect(dmRow!.statusDateSource).toBe('file');
     });
   });
 
@@ -866,7 +968,7 @@ describe('sutterDataTransformer', () => {
       expect(result.rows[0].statusDate).toBe('2025-01-15');
     });
 
-    it('should handle merge when only some rows have statusDate', () => {
+    it('should handle merge when only some rows have file statusDate', () => {
       const rows: ParsedRow[] = [
         makeRow({
           'Request Type': 'Quality',
@@ -883,8 +985,13 @@ describe('sutterDataTransformer', () => {
       const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
 
       expect(result.rows).toHaveLength(1);
-      expect(result.rows[0].statusDate).toBe('2025-03-20');
-      expect((result.rows[0] as any).tracking1).toBe('138/85');
+      // First row has empty Measure Details -> defaults to today (import date)
+      // Second row has file date 2025-03-20
+      // Merge picks the latest date, which is today (default)
+      const today = new Date().toISOString().slice(0, 10);
+      expect(result.rows[0].statusDate).toBe(today);
+      // statusDateSource from the row with latest date (today = default)
+      expect(result.rows[0].statusDateSource).toBe('default');
     });
   });
 

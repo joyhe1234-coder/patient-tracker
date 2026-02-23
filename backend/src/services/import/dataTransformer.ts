@@ -26,6 +26,13 @@ export interface TransformedRow {
   statusDate: string | null;
 
   /**
+   * Indicates where the statusDate value came from:
+   * - 'file': extracted from the source file (e.g., Measure Details column in Sutter, Q1 column in Hill)
+   * - 'default': defaulted to the import date (today) because the file had no parseable date
+   */
+  statusDateSource?: 'file' | 'default';
+
+  /**
    * Free-text notes associated with the measure.
    * Used by Sutter imports to store HCC action text.
    * Null/undefined for Hill imports.
@@ -296,12 +303,20 @@ function transformMeasureRow(
     }
   }
 
-  // Check if any Q1 columns have data
+  // Check if any Q1 columns have data and try to extract a date from Q1 values
   let hasQ1Data = false;
+  let q1DateString: string | null = null;
   for (const col of measureGroup.q1Columns) {
-    if (row[col] && row[col].trim()) {
+    const q1Value = row[col]?.trim();
+    if (q1Value) {
       hasQ1Data = true;
-      break;
+      // Try to parse Q1 value as a date (for statusDate extraction)
+      if (!q1DateString) {
+        const parsed = parseDate(q1Value);
+        if (parsed.date && parsed.format !== 'invalid') {
+          q1DateString = toISODateString(parsed.date);
+        }
+      }
     }
   }
 
@@ -352,9 +367,19 @@ function transformMeasureRow(
     measureStatus = q2Values[0];
   }
 
-  // Status date is set to import date (today) when we have measure status data
-  // This represents when the compliance data was imported/recorded
-  const statusDate = measureStatus ? getTodayISOString() : null;
+  // Determine statusDate and its source:
+  // 1. If Q1 columns contain a parseable date, use it (source: 'file')
+  // 2. Otherwise, default to today's import date (source: 'default')
+  let statusDate: string | null;
+  let statusDateSource: 'file' | 'default';
+
+  if (q1DateString) {
+    statusDate = q1DateString;
+    statusDateSource = 'file';
+  } else {
+    statusDate = getTodayISOString();
+    statusDateSource = 'default';
+  }
 
   return {
     ...patientData,
@@ -362,6 +387,7 @@ function transformMeasureRow(
     qualityMeasure: measureGroup.qualityMeasure,
     measureStatus,
     statusDate,
+    statusDateSource,
     sourceRowIndex: rowIndex,
     sourceMeasureColumn: primaryQ2Column || measureGroup.q1Columns[0] || '',
   };

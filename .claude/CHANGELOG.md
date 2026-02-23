@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.11.0] - 2026-02-22
+
+### Added
+- **Smart Column Mapping feature:** Fuzzy matching, conflict detection (NEW/CHANGED/MISSING/DUPLICATE/AMBIGUOUS), admin-only resolution UI, role-based conflict display
+  - `conflictDetector.ts` — 7-step conflict classification pipeline with WRONG_FILE_THRESHOLD, AMBIGUOUS_SCORE_RANGE
+  - `fuzzyMatcher.ts` — Dice coefficient with abbreviation expansion + normalization
+  - `mappingService.ts` — DB override CRUD with audit logging
+  - `mappingTypes.ts` — Shared types for conflict/resolution/merged config
+  - `ConflictResolutionStep.tsx` — Admin interactive conflict resolution with dropdowns, progress tracking, Save & Continue
+  - `ConflictBanner.tsx` — Non-admin read-only banner with "contact administrator", Cancel, Copy Details
+  - `MappingManagementPage.tsx` — Admin mapping configuration page with column/action tables
+  - `MappingTable.tsx`, `ActionPatternTable.tsx` — Editable mapping tables
+  - `mapping.routes.ts` — REST API for GET/PUT column/action mapping overrides
+  - Prisma migration `20260220183125_add_import_mapping_overrides` — ColumnMappingOverride, ActionPatternOverride, AuditLog tables
+- **Comprehensive import E2E tests** (`frontend/e2e/import-all-roles.spec.ts`): 13 Playwright tests covering Hill + Sutter imports across all 4 roles (admin, physician, staff, admin+physician) with valid files and conflict scenarios
+- **Test data files renamed** with `hill-` / `sutter-` prefixes for clarity (all CSV, XLSX, expected JSON files)
+
+### Fixed
+- **ESM compatibility** in `sutter-fixture-helper.ts`: Added `fileURLToPath`/`createRequire` for `__dirname`/`require` in Playwright ESM context
+- **Flaky performance test thresholds** in `sutter-performance.test.ts`: Added `PERF_MULTIPLIER` (3x local, 5x CI) to avoid timing failures on busy machines
+- **Promise.race fragility** in import E2E tests: Replaced with `waitForAnyVisible()` using `Promise.any` + descriptive error messages
+- **Fragile CSS badge selectors**: Replaced Tailwind class selectors (`.bg-amber-100`) with text-based selectors for conflict type labels
+- **Hardcoded timeouts**: Extracted all magic numbers into named `TIMEOUT` constants
+- **File existence checks**: Added upfront validation for test data files
+- **getAttribute null safety**: Fixed `getAttribute('value')` null handling in dropdown selection
+
+### Tests
+- Backend (Jest): 1,387 tests passing (47 suites)
+- Frontend (Vitest): 1,138 tests passing (43 suites)
+- Playwright E2E: 13 import-all-roles tests
+- Total automated: ~2,821+ (1,387 Jest + 1,138 Vitest + 13+ Playwright + ~283 Cypress)
+
+---
+
 ## [4.10.0] - 2026-02-19
 
 ### Added
@@ -555,7 +589,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Import with warnings handling
     - Multiple file imports with different results
     - Cancel and navigation flows
-  - NEW: `test-import-warnings.csv` fixture for validation testing
+  - NEW: `test-hill-import-warnings.csv` fixture for validation testing
   - `newOwnerName` field added to PatientReassignment interface
   - Import preview now shows actual physician name instead of "New physician"
   - Backend unit tests: 54 new tests for diffCalculator, validator, reassignment
@@ -785,7 +819,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Warnings include row number, member name, and message
   - Orange highlighting when warnings exist, gray when none
 - **Test Data for BOTH Action**
-  - Added `test-data/test-both-kept.csv` for testing duplicate/both-kept scenarios
+  - Added `test-data/test-hill-both-kept.csv` for testing duplicate/both-kept scenarios
 
 ### Changed
 - **Phase 5j: Import UI - Upload Page** (`/import`)
@@ -810,13 +844,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Vitest component tests: ImportPage.test.tsx (26 tests)
   - Vitest component tests: ImportPreviewPage.test.tsx (23 tests, including warnings display)
   - Cypress E2E tests: import-flow.cy.ts (29 tests)
-  - Test fixture: cypress/fixtures/test-import.csv
+  - Test fixture: cypress/fixtures/test-hill-import.csv
 
 ### Fixed
 - **Cypress Import E2E test stability**
   - Added `force: true` to file upload commands for reliable execution
   - Fixed filter card assertion (ring-2 class is on button, not parent)
-  - Fixed test-import.csv fixture with correct column names (Annual Wellness Visit, etc.)
+  - Fixed test-hill-import.csv fixture with correct column names (Annual Wellness Visit, etc.)
   - Removed flaky "Processing..." loading state check
 - **Quality Measure Addition Checklist** (`.claude/ADDING_QUALITY_MEASURES.md`)
   - Complete 12-file checklist for adding new quality measures
@@ -917,8 +951,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Tests merge mode (INSERT, UPDATE, SKIP, BOTH) and replace mode (DELETE all + INSERT)
   - Edge case tests for blank values and case-insensitive status matching
 - **Merge Test Data File**
-  - `test-data/merge-test-cases.csv` - 15 rows covering all 6 merge cases
-  - `test-data/MERGE-TEST-CASES-README.md` - Documentation with expected results
+  - `test-data/test-hill-merge-cases.csv` - 15 rows covering all 6 merge cases
+  - `test-data/TEST-HILL-MERGE-CASES-README.md` - Documentation with expected results
   - Expected counts: 9 INSERT, 4 UPDATE, 5 SKIP, 2 BOTH, 0 DELETE
 - **Phase 5h: Import Executor**
   - `backend/src/services/import/importExecutor.ts` - Execute database operations

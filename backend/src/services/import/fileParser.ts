@@ -91,7 +91,7 @@ export function parseCSV(buffer: Buffer, fileName: string): ParseResult {
  * Detect if a row is a title/report info row (not actual headers)
  * Title rows typically have content only in the first cell
  */
-function isTitleRow(row: unknown[]): boolean {
+export function isTitleRow(row: unknown[]): boolean {
   if (!row || row.length === 0) return false;
 
   // Check if first cell looks like a title (contains report info patterns)
@@ -259,7 +259,15 @@ export function getSheetHeaders(
         continue;
       }
 
-      const headerRow = jsonData[headerRowIndex] as unknown[];
+      // Apply the same title-row heuristic used by parseExcel():
+      // when headerRowIndex is 0 and the first row looks like a report
+      // title, advance to row 1 so validation matches actual parsing.
+      let effectiveIndex = headerRowIndex;
+      if (effectiveIndex === 0 && isTitleRow(jsonData[0] as unknown[]) && jsonData.length > 1) {
+        effectiveIndex = 1;
+      }
+
+      const headerRow = jsonData[effectiveIndex] as unknown[];
       const headers = headerRow.map(h => String(h || '').trim());
       headerMap.set(sheetName, headers);
     } catch (error) {

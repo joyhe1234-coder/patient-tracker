@@ -1720,7 +1720,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-33
 **Automation:** Automated - `validator.test.ts: row number tests`, `errorReporter.test.ts`
 **Steps:**
-1. Upload `test-validation-errors.csv` (no title row)
+1. Upload `test-hill-validation-errors.csv` (no title row)
 2. Click Validate
 3. Check error row numbers
 
@@ -1756,7 +1756,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-33
 **Automation:** Automated - `dataTransformer.test.ts`, `errorReporter.test.ts`
 **Steps:**
-1. Upload `test-no-measures.csv`
+1. Upload `test-hill-no-measures.csv`
 2. Click Validate or Transform
 3. Check "Patients with No Measures" section row numbers
 
@@ -1775,7 +1775,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Automation:** Automated - `import-flow.cy.ts: preview tests`, `ImportPreviewPage.test.tsx`
 **Steps:**
 1. Navigate to Import Test page
-2. Upload a CSV file (test-data/merge-test-cases.csv)
+2. Upload a CSV file (test-data/test-hill-merge-cases.csv)
 3. Select "Merge Mode" from dropdown
 4. Click "Preview Import" button
 
@@ -1788,7 +1788,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-34, AC-39
 **Automation:** Automated - `diffCalculator.test.ts` (104 tests), `mergeLogic.test.ts` (37 tests), `import-flow.cy.ts`
 **Steps:**
-1. Upload merge-test-cases.csv
+1. Upload test-hill-merge-cases.csv
 2. Preview in Merge mode
 
 **Expected:**
@@ -1868,7 +1868,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-36
 **Automation:** Automated - `diffCalculator.test.ts: replace mode tests`, `import-flow.cy.ts: mode tests`
 **Steps:**
-1. Upload merge-test-cases.csv
+1. Upload test-hill-merge-cases.csv
 2. Select "Replace All" mode
 3. Click "Preview Import"
 
@@ -2076,14 +2076,14 @@ This document contains test cases for verifying system functionality. Each test 
 
 | File | Description | Use For Tests |
 |------|-------------|---------------|
-| `test-valid.csv` | 10 patients, all valid data, various measures | TC-15.*, TC-16.1-16.4, TC-20.5 |
-| `test-dates.csv` | Rows with various date formats | TC-17.* |
-| `test-multi-column.csv` | Multiple columns per measure (age brackets) | TC-18.* |
-| `test-validation-errors.csv` | Missing/invalid fields | TC-19.* |
-| `test-duplicates.csv` | Duplicate patient+measure rows | TC-19.10, TC-20.4 |
-| `test-no-measures.csv` | Patients with all empty measure columns | TC-16.5, TC-21.7 |
-| `test-warnings.csv` | Valid data with warnings (missing phone) | TC-20.3, TC-20.6, TC-20.9 |
-| `merge-test-cases.csv` | All 6 merge logic cases (INSERT/UPDATE/SKIP/BOTH/DELETE) | TC-22.* |
+| `test-hill-valid.csv` | 10 patients, all valid data, various measures | TC-15.*, TC-16.1-16.4, TC-20.5 |
+| `test-hill-dates.csv` | Rows with various date formats | TC-17.* |
+| `test-hill-multi-column.csv` | Multiple columns per measure (age brackets) | TC-18.* |
+| `test-hill-validation-errors.csv` | Missing/invalid fields | TC-19.* |
+| `test-hill-duplicates.csv` | Duplicate patient+measure rows | TC-19.10, TC-20.4 |
+| `test-hill-no-measures.csv` | Patients with all empty measure columns | TC-16.5, TC-21.7 |
+| `test-hill-warnings.csv` | Valid data with warnings (missing phone) | TC-20.3, TC-20.6, TC-20.9 |
+| `test-hill-merge-cases.csv` | All 6 merge logic cases (INSERT/UPDATE/SKIP/BOTH/DELETE) | TC-22.* |
 
 ---
 

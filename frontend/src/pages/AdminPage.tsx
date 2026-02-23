@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, FileText, Plus, Edit2, Trash2, Key, Check, X,
-  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope, Mail, Copy } from 'lucide-react';
+  ChevronDown, ChevronUp, Shield, UserCircle, Stethoscope, Mail, Copy, Settings } from 'lucide-react';
 import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { useAuthStore, UserRole } from '../stores/authStore';
@@ -244,6 +244,13 @@ export default function AdminPage() {
             >
               <FileText className="w-4 h-4" />
               Audit Log
+            </button>
+            <button
+              onClick={() => navigate('/admin/import-mapping')}
+              className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"
+            >
+              <Settings className="w-4 h-4" />
+              Import Mapping
             </button>
           </nav>
         </div>

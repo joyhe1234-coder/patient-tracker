@@ -261,15 +261,15 @@ describe('validator', () => {
   });
 
   describe('with test data files', () => {
-    it('should validate test-valid.csv with no errors', () => {
-      const csvPath = path.join(testDataDir, 'test-valid.csv');
+    it('should validate test-hill-valid.csv with no errors', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-valid.csv not found');
+        console.log('Skipping: test-hill-valid.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-valid.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-valid.csv');
       const transformResult = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
       const result = validateRows(transformResult.rows);
 
@@ -277,15 +277,15 @@ describe('validator', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('should find errors in test-validation-errors.csv', () => {
-      const csvPath = path.join(testDataDir, 'test-validation-errors.csv');
+    it('should find errors in test-hill-validation-errors.csv', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-validation-errors.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-validation-errors.csv not found');
+        console.log('Skipping: test-hill-validation-errors.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-validation-errors.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-validation-errors.csv');
       const transformResult = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
       const result = validateRows(transformResult.rows);
 
@@ -297,30 +297,30 @@ describe('validator', () => {
       expect(dobErrors.length).toBeGreaterThan(0);
     });
 
-    it('should find duplicates in test-duplicates.csv', () => {
-      const csvPath = path.join(testDataDir, 'test-duplicates.csv');
+    it('should find duplicates in test-hill-duplicates.csv', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-duplicates.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-duplicates.csv not found');
+        console.log('Skipping: test-hill-duplicates.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-duplicates.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-duplicates.csv');
       const transformResult = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
       const result = validateRows(transformResult.rows);
 
       expect(result.duplicates.length).toBeGreaterThan(0);
     });
 
-    it('should have warnings but pass for test-warnings.csv', () => {
-      const csvPath = path.join(testDataDir, 'test-warnings.csv');
+    it('should have warnings but pass for test-hill-warnings.csv', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-warnings.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-warnings.csv not found');
+        console.log('Skipping: test-hill-warnings.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-warnings.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-warnings.csv');
       const transformResult = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
       const result = validateRows(transformResult.rows);
 

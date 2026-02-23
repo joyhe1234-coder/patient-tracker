@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dropdown Cell UX Prototypes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; color: #1f2937; }
+
+  .header { background: #1e40af; color: white; padding: 20px 32px; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header p { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+
+  .container { max-width: 1100px; margin: 24px auto; padding: 0 24px; }
+
+  .current-problem { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+  .current-problem h3 { color: #991b1b; font-size: 14px; margin-bottom: 6px; }
+  .current-problem p { color: #7f1d1d; font-size: 13px; line-height: 1.5; }
+
+  .design-card {
+    background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 24px; overflow: hidden; border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .design-card:hover { border-color: #93c5fd; }
+  .design-card.selected { border-color: #2563eb; }
+
+  .design-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background: #f9fafb;
+  }
+  .design-header h2 { font-size: 16px; font-weight: 600; }
+  .design-tag {
+    font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 500;
+  }
+  .tag-recommended { background: #dcfce7; color: #166534; }
+  .tag-subtle { background: #e0e7ff; color: #3730a3; }
+  .tag-bold { background: #fef3c7; color: #92400e; }
+  .tag-hybrid { background: #f3e8ff; color: #6b21a8; }
+  .tag-native { background: #ecfdf5; color: #065f46; }
+
+  .design-body { padding: 20px; }
+  .design-desc { font-size: 13px; color: #6b7280; margin-bottom: 16px; line-height: 1.5; }
+
+  .demo-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600; }
+
+  /* --- Mock Grid --- */
+  .mock-grid {
+    border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden;
+    font-size: 13px;
+  }
+  .mock-grid-header {
+    display: grid; background: #f3f4f6; border-bottom: 1px solid #d1d5db;
+    font-weight: 600; color: #374151; font-size: 12px;
+  }
+  .mock-grid-row {
+    display: grid; border-bottom: 1px solid #e5e7eb;
+    transition: background 0.1s;
+  }
+  .mock-grid-row:last-child { border-bottom: none; }
+  .mock-grid-row:hover { background: #f9fafb; }
+
+  .grid-4col .mock-grid-header,
+  .grid-4col .mock-grid-row {
+    grid-template-columns: 120px 160px 200px 1fr;
+  }
+
+  .mock-cell {
+    padding: 8px 10px; border-right: 1px solid #e5e7eb;
+    display: flex; align-items: center; min-height: 36px;
+    position: relative; cursor: default;
+  }
+  .mock-cell:last-child { border-right: none; }
+
+  /* --- Design A: Chevron indicator --- */
+  .cell-chevron {
+    cursor: pointer; position: relative;
+  }
+  .cell-chevron::after {
+    content: '';
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid #9ca3af;
+    transition: opacity 0.15s;
+    opacity: 0.5;
+  }
+  .cell-chevron:hover::after { opacity: 1; }
+  .cell-chevron:hover { background: #eff6ff; }
+
+  /* --- Design B: Hover-reveal dropdown --- */
+  .cell-hover-reveal {
+    cursor: pointer; position: relative;
+  }
+  .cell-hover-reveal .reveal-arrow {
+    display: none; position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    background: #dbeafe; border-radius: 3px; width: 20px; height: 20px;
+    align-items: center; justify-content: center; color: #2563eb;
+  }
+  .cell-hover-reveal:hover .reveal-arrow { display: flex; }
+  .cell-hover-reveal:hover { background: #f0f9ff; }
+
+  /* --- Design C: Always-visible select style --- */
+  .cell-select-style {
+    cursor: pointer;
+    background: white; border: 1px solid #d1d5db; border-radius: 4px;
+    margin: 3px 4px; padding: 4px 24px 4px 8px !important;
+    min-height: 28px !important;
+    position: relative;
+  }
+  .cell-select-style::after {
+    content: '';
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid #6b7280;
+  }
+  .cell-select-style:hover { border-color: #93c5fd; background: #f0f9ff; }
+  .cell-select-style:focus-within { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+
+  /* --- Design D: Inline dropdown (click to expand) --- */
+  .cell-inline { cursor: pointer; position: relative; }
+  .cell-inline .cell-text { flex: 1; }
+  .cell-inline:hover { background: #f0fdf4; }
+  .cell-inline .inline-options {
+    display: none; position: absolute; top: 100%; left: -1px; right: -1px;
+    background: white; border: 1px solid #d1d5db; border-top: none;
+    border-radius: 0 0 6px 6px; z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 180px; overflow-y: auto;
+  }
+  .cell-inline.open .inline-options { display: block; }
+  .cell-inline .inline-option {
+    padding: 6px 10px; cursor: pointer; font-size: 13px;
+  }
+  .cell-inline .inline-option:hover { background: #eff6ff; color: #1d4ed8; }
+  .cell-inline .inline-option.selected { background: #dbeafe; font-weight: 500; }
+
+  /* --- Design E: Single-click edit with highlight --- */
+  .cell-single-click {
+    cursor: pointer; position: relative;
+  }
+  .cell-single-click .sc-underline {
+    border-bottom: 1px dashed #93c5fd; padding-bottom: 1px;
+  }
+  .cell-single-click:hover { background: #eff6ff; }
+  .cell-single-click:hover .sc-underline { border-bottom-color: #2563eb; }
+
+  /* --- Shared popup dropdown --- */
+  .popup-dropdown {
+    display: none; position: absolute; top: 100%; left: -1px; min-width: 100%;
+    background: white; border: 1px solid #d1d5db; border-radius: 0 0 6px 6px;
+    z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    max-height: 200px; overflow-y: auto;
+  }
+  .popup-dropdown.open { display: block; }
+  .popup-option {
+    padding: 7px 12px; cursor: pointer; font-size: 13px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .popup-option:last-child { border-bottom: none; }
+  .popup-option:hover { background: #eff6ff; color: #1d4ed8; }
+  .popup-option.active { background: #dbeafe; font-weight: 500; }
+
+  /* Pros/Cons */
+  .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .pros, .cons { font-size: 12px; line-height: 1.6; }
+  .pros h4 { color: #166534; margin-bottom: 4px; }
+  .cons h4 { color: #991b1b; margin-bottom: 4px; }
+  .pros li, .cons li { margin-left: 16px; color: #374151; }
+
+  /* Vote buttons */
+  .vote-section { text-align: center; padding: 28px; background: #f9fafb; border-top: 1px solid #e5e7eb; }
+  .vote-btn {
+    display: inline-block; padding: 10px 28px; margin: 0 6px;
+    border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;
+    border: 2px solid; transition: all 0.15s;
+  }
+  .vote-btn:hover { transform: translateY(-1px); }
+  .vote-btn-primary { background: #2563eb; color: white; border-color: #2563eb; }
+  .vote-btn-primary:hover { background: #1d4ed8; }
+  .vote-btn-outline { background: white; color: #374151; border-color: #d1d5db; }
+  .vote-btn-outline:hover { border-color: #93c5fd; background: #f0f9ff; }
+  .vote-btn.chosen { background: #16a34a; color: white; border-color: #16a34a; }
+
+  .footer-note { text-align: center; color: #9ca3af; font-size: 12px; padding: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Dropdown Cell UX Prototypes</h1>
+  <p>Compare 5 designs for making AG Grid dropdown cells more discoverable. Click cells to interact.</p>
+</div>
+
+<div class="container">
+
+  <div class="current-problem">
+    <h3>Current Problem</h3>
+    <p>Users must <strong>double-click</strong> a dropdown cell to enter edit mode, then <strong>click again</strong> to open the dropdown list. That's 3 clicks for a single selection. There's no visual hint that a cell contains a dropdown.</p>
+  </div>
+
+  <!-- ============ DESIGN A ============ -->
+  <div class="design-card" id="card-a">
+    <div class="design-header">
+      <h2>Design A: Chevron Indicator + Single Click</h2>
+      <span class="design-tag tag-recommended">Recommended</span>
+    </div>
+    <div class="design-body">
+      <p class="design-desc">
+        A small down-arrow chevron is always visible on dropdown cells (faded when idle, solid on hover).
+        <strong>Single click</strong> opens the dropdown immediately. Non-dropdown cells still use double-click.
+      </p>
+      <div class="demo-label">Try it &mdash; single click any dropdown cell</div>
+      <div class="mock-grid grid-4col">
+        <div class="mock-grid-header">
+          <div class="mock-cell">Request Type</div>
+          <div class="mock-cell">Quality Measure</div>
+          <div class="mock-cell">Measure Status</div>
+          <div class="mock-cell">Notes</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-chevron" data-options="AWV,Chronic DX,Quality,Screening" data-current="AWV" onclick="openDropdownA(this)">AWV</div>
+          <div class="mock-cell cell-chevron" data-options="Annual Wellness Visit" data-current="Annual Wellness Visit" onclick="openDropdownA(this)">Annual Wellness Visit</div>
+          <div class="mock-cell cell-chevron" data-options="Not Addressed,Patient called to schedule AWV,AWV scheduled,AWV completed,Patient declined AWV" data-current="AWV scheduled" onclick="openDropdownA(this)">AWV scheduled</div>
+          <div class="mock-cell">Follow up in 2 weeks</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-chevron" data-options="AWV,Chronic DX,Quality,Screening" data-current="Quality" onclick="openDropdownA(this)">Quality</div>
+          <div class="mock-cell cell-chevron" data-options="Diabetic Eye Exam,GC/Chlamydia Screening,Diabetic Nephropathy,Hypertension Management" data-current="Diabetic Eye Exam" onclick="openDropdownA(this)">Diabetic Eye Exam</div>
+          <div class="mock-cell cell-chevron" data-options="Not Addressed,Diabetic eye exam discussed,Diabetic eye exam referral made,Diabetic eye exam scheduled,Diabetic eye exam completed" data-current="Not Addressed" onclick="openDropdownA(this)">Not Addressed</div>
+          <div class="mock-cell">Needs referral</div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Minimal visual change from current grid</li>
+          <li>Chevron is universal "dropdown" signal</li>
+          <li>1 click instead of 3</li>
+          <li>Non-dropdown cells unaffected</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Subtle &mdash; new users may still miss it</li>
+          <li>Chevron takes some horizontal space</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESIGN B ============ -->
+  <div class="design-card" id="card-b">
+    <div class="design-header">
+      <h2>Design B: Hover-Reveal Button</h2>
+      <span class="design-tag tag-subtle">Minimal</span>
+    </div>
+    <div class="design-body">
+      <p class="design-desc">
+        Cell looks completely normal at rest. On <strong>hover</strong>, a small blue dropdown button appears on the right side.
+        Clicking the button (or the cell) opens the dropdown in one click.
+      </p>
+      <div class="demo-label">Hover over dropdown cells, then click</div>
+      <div class="mock-grid grid-4col">
+        <div class="mock-grid-header">
+          <div class="mock-cell">Request Type</div>
+          <div class="mock-cell">Quality Measure</div>
+          <div class="mock-cell">Measure Status</div>
+          <div class="mock-cell">Notes</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-hover-reveal" data-options="AWV,Chronic DX,Quality,Screening" data-current="AWV" onclick="openDropdownA(this)">AWV<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Annual Wellness Visit,BMI Screening,Depression Screening,Fall Risk Assessment,Tobacco Screening,Alcohol Screening,Advance Care Planning,Statin Therapy" data-current="Annual Wellness Visit" onclick="openDropdownA(this)">Annual Wellness Visit<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Not Addressed,Patient called to schedule AWV,AWV scheduled,AWV completed,Patient declined AWV,Left voicemail,Sent letter,No answer - will retry,Appointment cancelled,Rescheduled" data-current="AWV completed" onclick="openDropdownA(this)">AWV completed<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell">Regular checkup</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-hover-reveal" data-options="AWV,Chronic DX,Quality,Screening" data-current="Screening" onclick="openDropdownA(this)">Screening<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Breast Cancer Screening,Colon Cancer Screening,Cervical Cancer Screening,Diabetic Eye Exam,Diabetic Nephropathy,GC/Chlamydia Screening,Hypertension Management,ACE/ARB in DM or CAD" data-current="Colon Cancer Screening" onclick="openDropdownA(this)">Colon Cancer Screening<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Not Addressed,Referral made,Screening scheduled,Screening completed,Patient declined,Results pending,Results received - normal,Results received - abnormal,Follow-up needed,Insurance verification" data-current="Referral made" onclick="openDropdownA(this)">Referral made<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell">Due in March</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-hover-reveal" data-options="AWV,Chronic DX,Quality,Screening" data-current="Quality" onclick="openDropdownA(this)">Quality<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Diabetic Eye Exam,Diabetic Nephropathy,Hypertension Management,ACE/ARB in DM or CAD,Vaccination,Diabetes Control,Statin Therapy,Depression Follow-up" data-current="Diabetic Eye Exam" onclick="openDropdownA(this)">Diabetic Eye Exam<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Not Addressed,Discussed with patient,Referral made,Exam scheduled,Exam completed,Patient declined,Results pending,Results received,At goal,Not at goal" data-current="Discussed with patient" onclick="openDropdownA(this)">Discussed with patient<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell">Needs referral to ophthalmology</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-hover-reveal" data-options="AWV,Chronic DX,Quality,Screening" data-current="Chronic DX" onclick="openDropdownA(this)">Chronic DX<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Chronic Diagnosis Code,BMI Follow-up,Tobacco Cessation,Fall Risk Follow-up,Depression Follow-up,Alcohol Brief Intervention,Advance Care Planning,Statin Therapy" data-current="Chronic Diagnosis Code" onclick="openDropdownA(this)">Chronic Diagnosis Code<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell cell-hover-reveal" data-options="Not Addressed,Code submitted,Code verified,Completed,Pending review,Sent to coding,Rejected - resubmit,Under review,Approved,Documentation needed" data-current="Code submitted" onclick="openDropdownA(this)">Code submitted<span class="reveal-arrow">&#9662;</span></div>
+          <div class="mock-cell">Review at next visit</div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Cleanest appearance at rest</li>
+          <li>Zero visual clutter when not interacting</li>
+          <li>1 click to open dropdown</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>No indication until hover &mdash; still discoverable only by mouse</li>
+          <li>Touch/tablet users won't see the hint</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESIGN C ============ -->
+  <div class="design-card" id="card-c">
+    <div class="design-header">
+      <h2>Design C: Always-Visible Select Box</h2>
+      <span class="design-tag tag-bold">Most Obvious</span>
+    </div>
+    <div class="design-body">
+      <p class="design-desc">
+        Dropdown cells are styled as a bordered select/input field with a permanent down-arrow, like a standard HTML select.
+        <strong>Single click</strong> opens options. It's immediately obvious which cells are dropdowns.
+      </p>
+      <div class="demo-label">Click any bordered cell to open</div>
+      <div class="mock-grid grid-4col">
+        <div class="mock-grid-header">
+          <div class="mock-cell">Request Type</div>
+          <div class="mock-cell">Quality Measure</div>
+          <div class="mock-cell">Measure Status</div>
+          <div class="mock-cell">Notes</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell"><div class="cell-select-style" data-options="AWV,Chronic DX,Quality,Screening" data-current="AWV" onclick="openDropdownC(this)">AWV</div></div>
+          <div class="mock-cell"><div class="cell-select-style" data-options="Annual Wellness Visit" data-current="Annual Wellness Visit" onclick="openDropdownC(this)">Annual Wellness Visit</div></div>
+          <div class="mock-cell"><div class="cell-select-style" data-options="Not Addressed,Patient called to schedule AWV,AWV scheduled,AWV completed" data-current="Patient called to schedule AWV" onclick="openDropdownC(this)">Patient called to schedule AWV</div></div>
+          <div class="mock-cell" style="font-size:13px; color:#6b7280;">Appointment pending</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell"><div class="cell-select-style" data-options="AWV,Chronic DX,Quality,Screening" data-current="Chronic DX" onclick="openDropdownC(this)">Chronic DX</div></div>
+          <div class="mock-cell"><div class="cell-select-style" data-options="Chronic Diagnosis Code" data-current="Chronic Diagnosis Code" onclick="openDropdownC(this)">Chronic Diagnosis Code</div></div>
+          <div class="mock-cell"><div class="cell-select-style" data-options="Not Addressed,Code submitted,Code verified,Completed" data-current="Code submitted" onclick="openDropdownC(this)">Code submitted</div></div>
+          <div class="mock-cell" style="font-size:13px; color:#6b7280;">Review at next visit</div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Most discoverable &mdash; impossible to miss</li>
+          <li>Familiar form-control pattern</li>
+          <li>Works on touch devices too</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Visually busy &mdash; lots of borders in every row</li>
+          <li>Breaks the "clean spreadsheet" look</li>
+          <li>May feel less like a grid, more like a form</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESIGN D ============ -->
+  <div class="design-card" id="card-d">
+    <div class="design-header">
+      <h2>Design D: Inline Expand (Accordion-Style)</h2>
+      <span class="design-tag tag-hybrid">Unique</span>
+    </div>
+    <div class="design-body">
+      <p class="design-desc">
+        Single click on a dropdown cell expands the options directly below the cell as an inline list, no popup needed.
+        Click an option to select, or click outside to close. Feels like expanding a section.
+      </p>
+      <div class="demo-label">Click a dropdown cell to see options expand below</div>
+      <div class="mock-grid grid-4col">
+        <div class="mock-grid-header">
+          <div class="mock-cell">Request Type</div>
+          <div class="mock-cell">Quality Measure</div>
+          <div class="mock-cell">Measure Status</div>
+          <div class="mock-cell">Notes</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-inline" onclick="toggleInline(this)" data-options="AWV,Chronic DX,Quality,Screening" data-current="AWV">
+            <span class="cell-text">AWV</span>
+            <div class="inline-options"></div>
+          </div>
+          <div class="mock-cell cell-inline" onclick="toggleInline(this)" data-options="Annual Wellness Visit" data-current="Annual Wellness Visit">
+            <span class="cell-text">Annual Wellness Visit</span>
+            <div class="inline-options"></div>
+          </div>
+          <div class="mock-cell cell-inline" onclick="toggleInline(this)" data-options="Not Addressed,Patient called to schedule AWV,AWV scheduled,AWV completed,Patient declined AWV" data-current="AWV completed">
+            <span class="cell-text">AWV completed</span>
+            <div class="inline-options"></div>
+          </div>
+          <div class="mock-cell">All good</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-inline" onclick="toggleInline(this)" data-options="AWV,Chronic DX,Quality,Screening" data-current="Quality">
+            <span class="cell-text">Quality</span>
+            <div class="inline-options"></div>
+          </div>
+          <div class="mock-cell cell-inline" onclick="toggleInline(this)" data-options="Diabetic Eye Exam,GC/Chlamydia Screening,Diabetic Nephropathy,Hypertension Management,ACE/ARB in DM or CAD,Vaccination,Diabetes Control" data-current="Hypertension Management">
+            <span class="cell-text">Hypertension Management</span>
+            <div class="inline-options"></div>
+          </div>
+          <div class="mock-cell cell-inline" onclick="toggleInline(this)" data-options="Not Addressed,BP discussed,Medication adjusted,Follow-up scheduled,At goal" data-current="BP discussed">
+            <span class="cell-text">BP discussed</span>
+            <div class="inline-options"></div>
+          </div>
+          <div class="mock-cell">Check BP next visit</div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>No floating popup &mdash; options appear in context</li>
+          <li>Easy to see all options at a glance</li>
+          <li>Single click interaction</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Pushes content down &mdash; can shift grid layout</li>
+          <li>Unusual pattern for spreadsheet UX</li>
+          <li>Long option lists can take lots of vertical space</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESIGN E ============ -->
+  <div class="design-card" id="card-e">
+    <div class="design-header">
+      <h2>Design E: Underline Hint + Single Click Popup</h2>
+      <span class="design-tag tag-native">Balanced</span>
+    </div>
+    <div class="design-body">
+      <p class="design-desc">
+        Dropdown cell text has a subtle <strong>dashed underline</strong> (like a link hint), signaling it's interactive.
+        <strong>Single click</strong> opens a popup dropdown. The underline disappears during editing.
+      </p>
+      <div class="demo-label">Notice the dashed underline &mdash; click to open</div>
+      <div class="mock-grid grid-4col">
+        <div class="mock-grid-header">
+          <div class="mock-cell">Request Type</div>
+          <div class="mock-cell">Quality Measure</div>
+          <div class="mock-cell">Measure Status</div>
+          <div class="mock-cell">Notes</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-single-click" data-options="AWV,Chronic DX,Quality,Screening" data-current="Screening" onclick="openDropdownA(this)"><span class="sc-underline">Screening</span></div>
+          <div class="mock-cell cell-single-click" data-options="Breast Cancer Screening,Colon Cancer Screening,Cervical Cancer Screening" data-current="Breast Cancer Screening" onclick="openDropdownA(this)"><span class="sc-underline">Breast Cancer Screening</span></div>
+          <div class="mock-cell cell-single-click" data-options="Not Addressed,Mammogram ordered,Mammogram scheduled,Mammogram completed,Patient declined" data-current="Mammogram ordered" onclick="openDropdownA(this)"><span class="sc-underline">Mammogram ordered</span></div>
+          <div class="mock-cell">Due next month</div>
+        </div>
+        <div class="mock-grid-row">
+          <div class="mock-cell cell-single-click" data-options="AWV,Chronic DX,Quality,Screening" data-current="AWV" onclick="openDropdownA(this)"><span class="sc-underline">AWV</span></div>
+          <div class="mock-cell cell-single-click" data-options="Annual Wellness Visit" data-current="Annual Wellness Visit" onclick="openDropdownA(this)"><span class="sc-underline">Annual Wellness Visit</span></div>
+          <div class="mock-cell cell-single-click" data-options="Not Addressed,Patient called to schedule AWV,AWV scheduled,AWV completed" data-current="Not Addressed" onclick="openDropdownA(this)"><span class="sc-underline">Not Addressed</span></div>
+          <div class="mock-cell">New patient</div>
+        </div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Subtle visual hint without adding borders/icons</li>
+          <li>Familiar "clickable" signal (like links)</li>
+          <li>Grid stays clean and spreadsheet-like</li>
+          <li>Single click to open</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Underline might be confused with links</li>
+          <li>Subtler than chevron &mdash; some users may miss it</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Close all open dropdowns when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.popup-dropdown') && !e.target.closest('.cell-chevron') &&
+        !e.target.closest('.cell-hover-reveal') && !e.target.closest('.cell-single-click') &&
+        !e.target.closest('.cell-select-style') && !e.target.closest('.cell-inline')) {
+      closeAllDropdowns();
+    }
+  });
+
+  function closeAllDropdowns() {
+    document.querySelectorAll('.popup-dropdown').forEach(d => { d.classList.remove('open'); d.remove(); });
+    document.querySelectorAll('.cell-inline.open').forEach(c => c.classList.remove('open'));
+  }
+
+  // Design A/B/E: Popup dropdown attached to cell
+  function openDropdownA(cell) {
+    closeAllDropdowns();
+    const options = cell.dataset.options.split(',');
+    const current = cell.dataset.current;
+
+    const dd = document.createElement('div');
+    dd.className = 'popup-dropdown open';
+    options.forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'popup-option' + (opt === current ? ' active' : '');
+      div.textContent = opt;
+      div.onclick = (e) => {
+        e.stopPropagation();
+        cell.dataset.current = opt;
+        // Update display text
+        const textEl = cell.querySelector('.sc-underline') || cell.querySelector('.cell-text') || cell;
+        if (cell.querySelector('.reveal-arrow')) {
+          cell.childNodes[0].textContent = opt;
+        } else if (textEl === cell) {
+          cell.childNodes[0].textContent = opt;
+        } else {
+          textEl.textContent = opt;
+        }
+        closeAllDropdowns();
+        // Brief flash to show selection
+        cell.style.background = '#dcfce7';
+        setTimeout(() => cell.style.background = '', 400);
+      };
+      dd.appendChild(div);
+    });
+    cell.style.position = 'relative';
+    cell.appendChild(dd);
+  }
+
+  // Design C: Select-style dropdown
+  function openDropdownC(selectEl) {
+    closeAllDropdowns();
+    const options = selectEl.dataset.options.split(',');
+    const current = selectEl.dataset.current;
+    const parentCell = selectEl.parentElement;
+
+    const dd = document.createElement('div');
+    dd.className = 'popup-dropdown open';
+    dd.style.left = '0';
+    dd.style.right = '0';
+    dd.style.top = '100%';
+    dd.style.borderRadius = '0 0 6px 6px';
+    options.forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'popup-option' + (opt === current ? ' active' : '');
+      div.textContent = opt;
+      div.onclick = (e) => {
+        e.stopPropagation();
+        selectEl.dataset.current = opt;
+        selectEl.childNodes[0].textContent = opt;
+        closeAllDropdowns();
+        selectEl.style.borderColor = '#16a34a';
+        setTimeout(() => selectEl.style.borderColor = '', 400);
+      };
+      dd.appendChild(div);
+    });
+    selectEl.style.position = 'relative';
+    selectEl.appendChild(dd);
+  }
+
+  // Design D: Inline expand
+  function toggleInline(cell) {
+    const wasOpen = cell.classList.contains('open');
+    closeAllDropdowns();
+    if (wasOpen) return;
+
+    const options = cell.dataset.options.split(',');
+    const current = cell.dataset.current;
+    const container = cell.querySelector('.inline-options');
+    container.innerHTML = '';
+
+    options.forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'inline-option' + (opt === current ? ' selected' : '');
+      div.textContent = opt;
+      div.onclick = (e) => {
+        e.stopPropagation();
+        cell.dataset.current = opt;
+        cell.querySelector('.cell-text').textContent = opt;
+        cell.classList.remove('open');
+        cell.style.background = '#dcfce7';
+        setTimeout(() => cell.style.background = '', 400);
+      };
+      container.appendChild(div);
+    });
+    cell.classList.add('open');
+  }
+</script>
+
+</body>
+</html>
