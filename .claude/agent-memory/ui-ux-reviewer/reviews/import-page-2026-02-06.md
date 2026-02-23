@@ -145,7 +145,7 @@ The header metadata shows "File:" but the filename appears to be missing or trun
 **Screenshot**: `import-review-04-preview-top.png` (top-right shows "Fi..." truncated)
 
 **Recommendation**:
-- Ensure the filename is displayed: "File: test-valid.csv"
+- Ensure the filename is displayed: "File: test-hill-valid.csv"
 - The filename helps users confirm they're previewing the correct file
 
 ---

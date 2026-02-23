@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import type { MergedSystemConfig } from './mappingTypes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -235,4 +236,22 @@ export function getRequiredColumns(config: HillSystemConfig | SutterSystemConfig
     dataColumns,
     minDataColumns: 1,
   };
+}
+
+/**
+ * Load a system configuration with DB overrides merged on top of the JSON seed.
+ *
+ * Returns a `MergedSystemConfig` where each column/action mapping is annotated
+ * with `isOverride` (true when the value comes from a DB ColumnMappingOverride
+ * record, false when it comes from the static JSON config file).
+ *
+ * Uses a lazy dynamic import of `mappingService` to avoid a circular dependency
+ * (since `mappingService` statically imports `configLoader`).
+ *
+ * @param systemId - The system identifier (e.g., "hill", "sutter")
+ * @returns The merged configuration combining JSON seed defaults with DB overrides
+ */
+export async function loadMergedConfig(systemId: string): Promise<MergedSystemConfig> {
+  const { loadMergedConfig: loadMerged } = await import('./mappingService.js');
+  return loadMerged(systemId);
 }

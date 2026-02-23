@@ -1,0 +1,3 @@
+"<script>alert('XSS')</script>",DOB,Phone,Address,"<img src=x onerror=alert(1)>",BP Control
+"Smith, John",01/15/1965,(555) 123-4567,123 Main St,Compliant,Compliant
+"Doe, Jane",03/22/1978,(555) 234-5678,456 Oak Ave,Non Compliant,Non Compliant

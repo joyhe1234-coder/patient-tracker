@@ -80,14 +80,47 @@ const mockGetRequiredColumns = jest.fn<any>().mockReturnValue({
   dataColumns: ['Annual Wellness Visit'],
   minDataColumns: 1,
 });
+const mockLoadMergedConfig = jest.fn<any>().mockResolvedValue({
+  systemId: 'hill',
+  systemName: 'Hill Healthcare',
+  format: 'wide' as const,
+  patientColumns: [
+    { sourceColumn: 'Patient', targetType: 'PATIENT', targetField: 'memberName', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+    { sourceColumn: 'DOB', targetType: 'PATIENT', targetField: 'memberDob', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+  ],
+  measureColumns: [
+    { sourceColumn: 'Annual Wellness Visit', targetType: 'MEASURE', targetField: null, requestType: 'AWV', qualityMeasure: 'AWV', isOverride: false, isActive: true, overrideId: null },
+  ],
+  dataColumns: [],
+  skipColumns: [],
+  actionMappings: [],
+  skipActions: [],
+  statusMapping: {},
+  lastModifiedAt: null,
+  lastModifiedBy: null,
+});
 
 jest.unstable_mockModule('../../services/import/configLoader.js', () => ({
   listSystems: mockListSystems,
   systemExists: mockSystemExists,
   loadSystemConfig: mockLoadSystemConfig,
+  loadMergedConfig: mockLoadMergedConfig,
   isHillConfig: (config: any) => config?.format !== 'long',
   isSutterConfig: (config: any) => config?.format === 'long',
   getRequiredColumns: mockGetRequiredColumns,
+}));
+
+// Mock conflictDetector
+const mockDetectConflicts = jest.fn<any>().mockReturnValue({
+  systemId: 'hill',
+  conflicts: [],
+  summary: { total: 0, new: 0, missing: 0, changed: 0, duplicate: 0, ambiguous: 0, blocking: 0, warnings: 0 },
+  hasBlockingConflicts: false,
+  isWrongFile: false,
+});
+
+jest.unstable_mockModule('../../services/import/conflictDetector.js', () => ({
+  detectConflicts: mockDetectConflicts,
 }));
 
 // Mock fileParser
@@ -320,6 +353,32 @@ describe('Import Routes', () => {
       patientColumns: ['Patient', 'DOB'],
       dataColumns: ['Annual Wellness Visit'],
       minDataColumns: 1,
+    });
+    mockLoadMergedConfig.mockResolvedValue({
+      systemId: 'hill',
+      systemName: 'Hill Healthcare',
+      format: 'wide' as const,
+      patientColumns: [
+        { sourceColumn: 'Patient', targetType: 'PATIENT', targetField: 'memberName', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+        { sourceColumn: 'DOB', targetType: 'PATIENT', targetField: 'memberDob', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+      ],
+      measureColumns: [
+        { sourceColumn: 'Annual Wellness Visit', targetType: 'MEASURE', targetField: null, requestType: 'AWV', qualityMeasure: 'AWV', isOverride: false, isActive: true, overrideId: null },
+      ],
+      dataColumns: [],
+      skipColumns: [],
+      actionMappings: [],
+      skipActions: [],
+      statusMapping: {},
+      lastModifiedAt: null,
+      lastModifiedBy: null,
+    });
+    mockDetectConflicts.mockReturnValue({
+      systemId: 'hill',
+      conflicts: [],
+      summary: { total: 0, new: 0, missing: 0, changed: 0, duplicate: 0, ambiguous: 0, blocking: 0, warnings: 0 },
+      hasBlockingConflicts: false,
+      isWrongFile: false,
     });
     mockParseFile.mockReturnValue({
       fileName: 'test.csv',
@@ -1203,6 +1262,235 @@ describe('Import Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.totalEntries).toBe(1);
+    });
+  });
+
+  // ── Integration: merged config + conflict detection (Task 38) ──
+
+  describe('POST /api/import/preview (merged config + conflict detection)', () => {
+    it('returns normal preview when headers exactly match merged config (no conflicts)', async () => {
+      // Scenario: valid Hill file, headers match merged config exactly
+      // detectConflicts returns empty conflicts array -> full preview pipeline runs
+      mockDetectConflicts.mockReturnValue({
+        systemId: 'hill',
+        conflicts: [],
+        summary: { total: 0, new: 0, missing: 0, changed: 0, duplicate: 0, ambiguous: 0, blocking: 0, warnings: 0 },
+        hasBlockingConflicts: false,
+        isWrongFile: false,
+      });
+
+      const res = await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'test.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      // Normal preview data should be returned
+      expect(res.body.data.previewId).toBe('preview-id-123');
+      expect(res.body.data.summary).toBeDefined();
+      expect(res.body.data.summary.inserts).toBe(1);
+      expect(res.body.data.changes).toBeDefined();
+      // hasConflicts should NOT be present in a clean preview
+      expect(res.body.data.hasConflicts).toBeUndefined();
+      // loadMergedConfig and detectConflicts should have been called
+      expect(mockLoadMergedConfig).toHaveBeenCalledWith('hill');
+      expect(mockDetectConflicts).toHaveBeenCalledWith(
+        ['Patient', 'DOB', 'Annual Wellness Visit Q2'],
+        expect.objectContaining({ systemId: 'hill' }),
+        'hill'
+      );
+    });
+
+    it('respects DB override when file matches the overridden column name (no conflicts)', async () => {
+      // Scenario: DB override renamed "Patient" -> "Member Name" in merged config
+      // File has "Member Name" header which matches the override -> no conflicts
+      mockLoadMergedConfig.mockResolvedValue({
+        systemId: 'hill',
+        systemName: 'Hill Healthcare',
+        format: 'wide' as const,
+        patientColumns: [
+          { sourceColumn: 'Member Name', targetType: 'PATIENT', targetField: 'memberName', requestType: null, qualityMeasure: null, isOverride: true, isActive: true, overrideId: 42 },
+          { sourceColumn: 'DOB', targetType: 'PATIENT', targetField: 'memberDob', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+        ],
+        measureColumns: [
+          { sourceColumn: 'Annual Wellness Visit', targetType: 'MEASURE', targetField: null, requestType: 'AWV', qualityMeasure: 'AWV', isOverride: false, isActive: true, overrideId: null },
+        ],
+        dataColumns: [],
+        skipColumns: [],
+        actionMappings: [],
+        skipActions: [],
+        statusMapping: {},
+        lastModifiedAt: new Date('2026-01-15'),
+        lastModifiedBy: 'admin@example.com',
+      });
+
+      // File headers include "Member Name" which matches the DB override
+      mockParseFile.mockReturnValue({
+        fileName: 'hill-report.csv',
+        fileType: 'csv',
+        totalRows: 2,
+        headers: ['Member Name', 'DOB', 'Annual Wellness Visit Q2'],
+        rows: [
+          ['Smith, John', '01/15/1990', 'Compliant'],
+          ['Doe, Jane', '05/20/1985', 'Non Compliant'],
+        ],
+        dataStartRow: 2,
+      });
+
+      // detectConflicts returns no conflicts because file matches merged config
+      mockDetectConflicts.mockReturnValue({
+        systemId: 'hill',
+        conflicts: [],
+        summary: { total: 0, new: 0, missing: 0, changed: 0, duplicate: 0, ambiguous: 0, blocking: 0, warnings: 0 },
+        hasBlockingConflicts: false,
+        isWrongFile: false,
+      });
+
+      const res = await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'hill-report.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.previewId).toBe('preview-id-123');
+      expect(res.body.data.summary).toBeDefined();
+      expect(res.body.data.hasConflicts).toBeUndefined();
+      // Verify loadMergedConfig was called (which returns the DB override)
+      expect(mockLoadMergedConfig).toHaveBeenCalledWith('hill');
+      // Verify detectConflicts received the file headers and merged config with override
+      expect(mockDetectConflicts).toHaveBeenCalledWith(
+        ['Member Name', 'DOB', 'Annual Wellness Visit Q2'],
+        expect.objectContaining({
+          systemId: 'hill',
+          patientColumns: expect.arrayContaining([
+            expect.objectContaining({ sourceColumn: 'Member Name', isOverride: true }),
+          ]),
+        }),
+        'hill'
+      );
+    });
+
+    it('returns hasConflicts: true when file has a renamed column', async () => {
+      // Scenario: file has "Patient Name" instead of "Patient"
+      // detectConflicts returns a CHANGED conflict
+      mockParseFile.mockReturnValue({
+        fileName: 'hill-renamed.csv',
+        fileType: 'csv',
+        totalRows: 2,
+        headers: ['Patient Name', 'DOB', 'Annual Wellness Visit Q2'],
+        rows: [
+          ['Smith, John', '01/15/1990', 'Compliant'],
+          ['Doe, Jane', '05/20/1985', 'Non Compliant'],
+        ],
+        dataStartRow: 2,
+      });
+
+      mockDetectConflicts.mockReturnValue({
+        systemId: 'hill',
+        conflicts: [
+          {
+            id: 'conflict-0',
+            type: 'CHANGED',
+            severity: 'BLOCKING',
+            category: 'PATIENT',
+            sourceHeader: 'Patient Name',
+            configColumn: 'Patient',
+            suggestions: [{ columnName: 'Patient', score: 0.88, targetType: 'PATIENT' }],
+            resolution: null,
+            message: 'Header "Patient Name" appears to be a renamed version of "Patient" (88% match).',
+          },
+        ],
+        summary: { total: 1, new: 0, missing: 0, changed: 1, duplicate: 0, ambiguous: 0, blocking: 1, warnings: 0 },
+        hasBlockingConflicts: true,
+        isWrongFile: false,
+      });
+
+      const res = await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'hill-renamed.csv');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.hasConflicts).toBe(true);
+      expect(res.body.data.conflicts).toBeDefined();
+      expect(res.body.data.conflicts.conflicts).toHaveLength(1);
+      expect(res.body.data.conflicts.conflicts[0].type).toBe('CHANGED');
+      expect(res.body.data.conflicts.conflicts[0].sourceHeader).toBe('Patient Name');
+      expect(res.body.data.conflicts.conflicts[0].configColumn).toBe('Patient');
+      // Normal preview fields (previewId, summary, changes) should NOT be present
+      expect(res.body.data.previewId).toBeUndefined();
+      expect(res.body.data.summary).toBeUndefined();
+      expect(res.body.data.changes).toBeUndefined();
+    });
+
+    it('returns 400 WRONG_FILE when file is from a completely different system', async () => {
+      // Scenario: upload an Excel from a different system with unrecognizable columns
+      mockParseFile.mockReturnValue({
+        fileName: 'wrong-system.csv',
+        fileType: 'csv',
+        totalRows: 5,
+        headers: ['Employee ID', 'Department', 'Salary', 'Hire Date', 'Manager'],
+        rows: [
+          ['E001', 'Engineering', '120000', '2020-01-15', 'M. Boss'],
+          ['E002', 'Marketing', '95000', '2019-06-01', 'J. Lead'],
+        ],
+        dataStartRow: 2,
+      });
+
+      mockDetectConflicts.mockReturnValue({
+        systemId: 'hill',
+        conflicts: [],
+        summary: { total: 0, new: 0, missing: 0, changed: 0, duplicate: 0, ambiguous: 0, blocking: 0, warnings: 0 },
+        hasBlockingConflicts: false,
+        isWrongFile: true,
+        wrongFileMessage: 'No recognizable columns found. Only 0 of 3 expected columns matched. This file may not be from the selected insurance system.',
+      });
+
+      const res = await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'wrong-system.csv');
+
+      expect(res.status).toBe(400);
+      // The route creates a WRONG_FILE error via createError
+      expect(res.body.error).toBeDefined();
+      expect(res.body.error.code).toBe('WRONG_FILE');
+      expect(res.body.error.message).toContain('No recognizable columns');
+    });
+
+    it('calls detectConflicts with the correct arguments from loadMergedConfig', async () => {
+      // Verify that the merged config from loadMergedConfig is passed to detectConflicts
+      const mergedConfig = {
+        systemId: 'hill',
+        systemName: 'Hill Healthcare',
+        format: 'wide' as const,
+        patientColumns: [
+          { sourceColumn: 'Patient', targetType: 'PATIENT', targetField: 'memberName', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+          { sourceColumn: 'DOB', targetType: 'PATIENT', targetField: 'memberDob', requestType: null, qualityMeasure: null, isOverride: false, isActive: true, overrideId: null },
+        ],
+        measureColumns: [
+          { sourceColumn: 'Annual Wellness Visit', targetType: 'MEASURE', targetField: null, requestType: 'AWV', qualityMeasure: 'AWV', isOverride: false, isActive: true, overrideId: null },
+        ],
+        dataColumns: [],
+        skipColumns: [],
+        actionMappings: [],
+        skipActions: [],
+        statusMapping: {},
+        lastModifiedAt: null,
+        lastModifiedBy: null,
+      };
+      mockLoadMergedConfig.mockResolvedValue(mergedConfig);
+
+      await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'test.csv');
+
+      // Verify loadMergedConfig was awaited and its result passed to detectConflicts
+      expect(mockLoadMergedConfig).toHaveBeenCalledWith('hill');
+      expect(mockDetectConflicts).toHaveBeenCalledWith(
+        ['Patient', 'DOB', 'Annual Wellness Visit Q2'],
+        mergedConfig,
+        'hill'
+      );
     });
   });
 });

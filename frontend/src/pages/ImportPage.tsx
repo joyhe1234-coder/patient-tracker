@@ -6,6 +6,9 @@ import { api } from '../api/axios';
 import { logger } from '../utils/logger';
 import { getApiErrorMessage } from '../utils/apiError';
 import SheetSelector from '../components/import/SheetSelector';
+import { ConflictResolutionStep } from '../components/import/ConflictResolutionStep';
+import { useAuthStore, isAdmin as checkIsAdmin } from '../stores/authStore';
+import type { ColumnConflict, MergedSystemConfig } from '../types/import-mapping';
 
 type ImportMode = 'replace' | 'merge';
 
@@ -26,8 +29,48 @@ const HEALTHCARE_SYSTEMS: HealthcareSystem[] = [
   { id: 'sutter', name: 'Sutter/SIP' },
 ];
 
+/**
+ * Build a clipboard-ready text summary of column mapping conflicts.
+ * Used by the "Copy Details" button for non-admin users to share
+ * conflict information with administrators.
+ */
+export function buildConflictSummaryText(
+  conflicts: ColumnConflict[],
+  systemId: string,
+  fileName: string,
+): string {
+  const systemName =
+    HEALTHCARE_SYSTEMS.find((s) => s.id === systemId)?.name ?? systemId;
+  const lines: string[] = [];
+  lines.push(`Column Mapping Conflicts`);
+  lines.push(`System: ${systemName}`);
+  lines.push(`File: ${fileName}`);
+  lines.push(`Total conflicts: ${conflicts.length}`);
+  lines.push('');
+
+  for (const conflict of conflicts) {
+    lines.push(`[${conflict.type}] "${conflict.sourceHeader}"`);
+    if (conflict.configColumn) {
+      lines.push(`  Config column: ${conflict.configColumn}`);
+    }
+    lines.push(`  Severity: ${conflict.severity}`);
+    lines.push(`  Message: ${conflict.message}`);
+    if (conflict.suggestions.length > 0) {
+      lines.push(`  Suggestions:`);
+      for (const s of conflict.suggestions) {
+        lines.push(`    - ${s.columnName} (${Math.round(s.score * 100)}% match)`);
+      }
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
 export function ImportTabContent() {
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const userIsAdmin = checkIsAdmin(user);
   const [systemId, setSystemId] = useState<string>('hill');
   const [mode, setMode] = useState<ImportMode>('merge');
   const [file, setFile] = useState<File | null>(null);
@@ -41,6 +84,9 @@ export function ImportTabContent() {
     memberName?: string;
   }>>([]);
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
+
+  // Column mapping conflict state (set when preview response indicates conflicts)
+  const [conflicts, setConflicts] = useState<ColumnConflict[] | null>(null);
 
   // Physicians for SheetSelector (loaded for all systems)
   const [physicians, setPhysicians] = useState<Physician[]>([]);
@@ -177,8 +223,14 @@ export function ImportTabContent() {
       });
 
       if (response.data.success) {
-        const previewId = response.data.data.previewId;
-        navigate(`/patient-management/preview/${previewId}`);
+        // Check if the response indicates column mapping conflicts
+        if (response.data.data.hasConflicts === true) {
+          setConflicts(response.data.data.conflicts.conflicts);
+          // Do NOT navigate to preview -- user must resolve conflicts first
+        } else {
+          const previewId = response.data.data.previewId;
+          navigate(`/patient-management/preview/${previewId}`);
+        }
       } else {
         // Check for validation errors
         const errors = response.data.data?.validation?.errors;
@@ -208,6 +260,7 @@ export function ImportTabContent() {
     setFile(null);
     setError(null);
     setValidationErrors([]);
+    setConflicts(null);
     // Reset sheet selection state
     setSelectedSheetName(null);
     setSheetPhysicianId(null);
@@ -225,6 +278,29 @@ export function ImportTabContent() {
     setSheetError(errorMsg);
   };
 
+  // Conflict resolution: admin resolved all conflicts -- re-submit preview
+  const handleConflictsResolved = useCallback(
+    async (_updatedMapping: MergedSystemConfig) => {
+      setConflicts(null);
+      // Re-submit the preview request -- mappings have been updated, so
+      // the backend should now find no conflicts and return the preview data.
+      await handleSubmit();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [file, systemId, mode, selectedSheetName, sheetPhysicianId],
+  );
+
+  // Conflict cancellation: return user to the file upload step
+  const handleConflictsCancel = useCallback(() => {
+    setConflicts(null);
+    setFile(null);
+    setError(null);
+    setValidationErrors([]);
+    setSelectedSheetName(null);
+    setSheetPhysicianId(null);
+    setSheetError(null);
+  }, []);
+
   // Step numbering:
   // Step 1: Healthcare System
   // Step 2: Import Mode
@@ -234,7 +310,7 @@ export function ImportTabContent() {
   const sheetSelectorStepNum = 4;
 
   // Determine if submit is allowed
-  const isSubmitDisabled = !file || loading || !selectedSheetName || !sheetPhysicianId;
+  const isSubmitDisabled = !file || loading || !selectedSheetName || !sheetPhysicianId || conflicts !== null;
 
   return (
     <>
@@ -392,7 +468,7 @@ export function ImportTabContent() {
       </div>
 
       {/* Step 4: Select Tab & Physician (universal, shown after file upload) */}
-      {file && (
+      {file && !conflicts && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
@@ -420,9 +496,21 @@ export function ImportTabContent() {
         </div>
       )}
 
+      {/* Step 4.5: Conflict Resolution (shown only when conflicts detected) */}
+      {conflicts && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <ConflictResolutionStep
+            conflicts={conflicts}
+            systemId={systemId}
+            isAdmin={userIsAdmin}
+            onResolved={handleConflictsResolved}
+            onCancel={handleConflictsCancel}
+          />
+        </div>
+      )}
 
-      {/* Error Display */}
-      {error && (
+      {/* Error Display (hidden during conflict resolution) */}
+      {error && !conflicts && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
           <div className="flex items-start gap-3">
             <span className="text-red-500 text-xl" aria-hidden="true">!</span>
@@ -453,46 +541,50 @@ export function ImportTabContent() {
         </div>
       )}
 
-      {/* Submit Button */}
-      <div className="flex items-center justify-between">
-        <a
-          href="/"
-          className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          Cancel
-        </a>
-        <button
-          onClick={handleSubmitClick}
-          disabled={isSubmitDisabled}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            isSubmitDisabled
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              Processing...
-            </span>
-          ) : (
-            'Preview Import'
-          )}
-        </button>
-      </div>
+      {/* Submit Button and Info Box (hidden during conflict resolution) */}
+      {!conflicts && (
+        <>
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Cancel
+            </a>
+            <button
+              onClick={handleSubmitClick}
+              disabled={isSubmitDisabled}
+              className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                isSubmitDisabled
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Preview Import'
+              )}
+            </button>
+          </div>
 
-      {/* Info Box */}
-      <div className="mt-8 bg-gray-50 rounded-lg p-4">
-        <h3 className="font-medium text-gray-900 mb-2">What happens next?</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>1. Your file will be validated for errors</li>
-          <li>2. You'll see a preview of all changes before they're applied</li>
-          <li>3. Review and approve the changes to complete the import</li>
-        </ul>
-      </div>
+          {/* Info Box */}
+          <div className="mt-8 bg-gray-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-2">What happens next?</h3>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>1. Your file will be validated for errors</li>
+              <li>2. You'll see a preview of all changes before they're applied</li>
+              <li>3. Review and approve the changes to complete the import</li>
+            </ul>
+          </div>
+        </>
+      )}
 
       {/* Replace All Warning Modal */}
       {showReplaceWarning && (

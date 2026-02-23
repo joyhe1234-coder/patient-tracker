@@ -172,8 +172,8 @@ describe('columnMapper', () => {
   });
 
   describe('with test data headers', () => {
-    it('should map test-valid.csv headers correctly', () => {
-      // Headers from test-valid.csv
+    it('should map test-hill-valid.csv headers correctly', () => {
+      // Headers from test-hill-valid.csv
       const headers = [
         'Patient', 'DOB', 'Phone', 'Address',
         'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2',

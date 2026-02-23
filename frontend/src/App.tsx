@@ -5,7 +5,8 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import AdminPage from './pages/AdminPage';
 import PatientManagementPage from './pages/PatientManagementPage';
-import HillMeasureMapping from './pages/HillMeasureMapping';
+// HillMeasureMapping import removed -- /hill-mapping now redirects to /admin/import-mapping?system=hill
+import { MappingManagementPage } from './pages/MappingManagementPage';
 import ImportTestPage from './pages/ImportTestPage';
 import ImportPreviewPage from './pages/ImportPreviewPage';
 import Header from './components/layout/Header';
@@ -41,6 +42,21 @@ function App() {
           }
         />
 
+        {/* Admin route: Import Mapping Management (ADMIN only) */}
+        <Route
+          path="/admin/import-mapping"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <div className="min-h-screen bg-gray-50 flex flex-col">
+                <Header />
+                <main className="flex-1 flex flex-col">
+                  <MappingManagementPage />
+                </main>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Redirects for old URLs */}
         <Route path="/admin/patient-assignment" element={<Navigate to="/patient-management?tab=reassign" replace />} />
         <Route path="/import" element={<Navigate to="/patient-management" replace />} />
@@ -56,7 +72,7 @@ function App() {
                 <main className="flex-1 flex flex-col">
                   <Routes>
                     <Route path="/" element={<MainPage />} />
-                    <Route path="/hill-mapping" element={<HillMeasureMapping />} />
+                    <Route path="/hill-mapping" element={<Navigate to="/admin/import-mapping?system=hill" replace />} />
                     <Route path="/import-test" element={<ImportTestPage />} />
                     <Route path="/patient-management" element={<PatientManagementPage />} />
                     <Route path="/patient-management/preview/:previewId" element={<ImportPreviewPage />} />

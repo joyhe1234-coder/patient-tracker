@@ -5,6 +5,7 @@
 
 import { loadSystemConfig, isSutterConfig, type HillSystemConfig } from './configLoader.js';
 import { mapSutterColumns } from './sutterColumnMapper.js';
+import type { MergedSystemConfig } from './mappingTypes.js';
 
 export interface ColumnMapping {
   // Source column name from CSV/Excel
@@ -49,27 +50,41 @@ export interface MappingResult {
  * Loads the system configuration and dispatches to the appropriate mapper:
  * - Sutter (long format) -> mapSutterColumns
  * - Hill (wide format)   -> mapHillColumns
+ *
+ * When mergedConfig is provided, its column sets are used instead of the
+ * raw JSON config. This allows the import pipeline to use DB overrides.
  */
-export function mapColumns(headers: string[], systemId: string): MappingResult {
+export function mapColumns(headers: string[], systemId: string, mergedConfig?: MergedSystemConfig): MappingResult {
   const config = loadSystemConfig(systemId);
 
   if (isSutterConfig(config)) {
-    return mapSutterColumns(headers, config);
+    return mapSutterColumns(headers, config, mergedConfig);
   }
 
-  return mapHillColumns(headers, config as HillSystemConfig);
+  return mapHillColumns(headers, config as HillSystemConfig, mergedConfig);
 }
 
 /**
  * Hill-specific column mapping logic.
  * Maps patient columns, skip columns, and measure columns with Q1/Q2 suffix matching.
- * Exported for use by the system-aware dispatcher (task 6).
+ * When mergedConfig is provided, its column sets override the JSON config lookups.
  */
-export function mapHillColumns(headers: string[], config: HillSystemConfig): MappingResult {
+export function mapHillColumns(headers: string[], config: HillSystemConfig, mergedConfig?: MergedSystemConfig): MappingResult {
   const mappedColumns: ColumnMapping[] = [];
   const skippedColumns: string[] = [];
   const unmappedColumns: string[] = [];
   const missingRequired: string[] = [];
+
+  // Build lookups from mergedConfig if provided, otherwise from raw config
+  const patientLookup: Record<string, string> = mergedConfig
+    ? Object.fromEntries(
+        mergedConfig.patientColumns.filter(c => c.isActive).map(c => [c.sourceColumn, c.targetField ?? ''])
+      )
+    : config.patientColumns;
+
+  const skipSet: Set<string> = mergedConfig
+    ? new Set(mergedConfig.skipColumns.filter(c => c.isActive).map(c => c.sourceColumn))
+    : new Set(config.skipColumns);
 
   // Track which patient columns we found
   const foundPatientColumns = new Set<string>();
@@ -81,7 +96,7 @@ export function mapHillColumns(headers: string[], config: HillSystemConfig): Map
     if (!trimmedHeader) continue;
 
     // Check if it's a patient column
-    const patientField = config.patientColumns[trimmedHeader];
+    const patientField = patientLookup[trimmedHeader];
     if (patientField) {
       mappedColumns.push({
         sourceColumn: trimmedHeader,
@@ -93,13 +108,15 @@ export function mapHillColumns(headers: string[], config: HillSystemConfig): Map
     }
 
     // Check if it's a skip column
-    if (config.skipColumns.includes(trimmedHeader)) {
+    if (skipSet.has(trimmedHeader)) {
       skippedColumns.push(trimmedHeader);
       continue;
     }
 
     // Check if it's a measure column (could be Q1 or Q2 suffixed)
-    const measureMapping = findMeasureMapping(trimmedHeader, config);
+    const measureMapping = mergedConfig
+      ? findMergedMeasureMapping(trimmedHeader, mergedConfig)
+      : findMeasureMapping(trimmedHeader, config);
     if (measureMapping) {
       mappedColumns.push({
         sourceColumn: trimmedHeader,
@@ -118,9 +135,11 @@ export function mapHillColumns(headers: string[], config: HillSystemConfig): Map
   }
 
   // Check for missing required patient columns
-  const requiredPatientColumns = Object.keys(config.patientColumns).filter(
-    col => col === 'Patient' || col === 'DOB' // Name and DOB are required
-  );
+  const requiredPatientColumns = mergedConfig
+    ? mergedConfig.patientColumns
+        .filter(c => c.isActive && (c.targetField === 'memberName' || c.targetField === 'memberDob'))
+        .map(c => c.sourceColumn)
+    : Object.keys(config.patientColumns).filter(col => col === 'Patient' || col === 'DOB');
   for (const required of requiredPatientColumns) {
     if (!foundPatientColumns.has(required)) {
       missingRequired.push(required);
@@ -183,6 +202,46 @@ function findMeasureMapping(
       requestType: measureConfig.requestType,
       qualityMeasure: measureConfig.qualityMeasure,
     };
+  }
+
+  return null;
+}
+
+/**
+ * Find measure mapping using mergedConfig's measureColumns array.
+ * Handles Q1 (date) and Q2 (status) suffixes, same as findMeasureMapping.
+ */
+function findMergedMeasureMapping(
+  header: string,
+  mergedConfig: MergedSystemConfig
+): { field: 'statusDate' | 'complianceStatus'; requestType: string; qualityMeasure: string } | null {
+  const activeMeasures = mergedConfig.measureColumns.filter(c => c.isActive);
+
+  // Build a lookup by sourceColumn for quick matching
+  const measureLookup = new Map(activeMeasures.map(c => [c.sourceColumn, c]));
+
+  // Check for Q1 suffix (date column)
+  if (header.endsWith(' Q1')) {
+    const baseName = header.slice(0, -3);
+    const measure = measureLookup.get(baseName);
+    if (measure && measure.requestType && measure.qualityMeasure) {
+      return { field: 'statusDate', requestType: measure.requestType, qualityMeasure: measure.qualityMeasure };
+    }
+  }
+
+  // Check for Q2 suffix (compliance status column)
+  if (header.endsWith(' Q2')) {
+    const baseName = header.slice(0, -3);
+    const measure = measureLookup.get(baseName);
+    if (measure && measure.requestType && measure.qualityMeasure) {
+      return { field: 'complianceStatus', requestType: measure.requestType, qualityMeasure: measure.qualityMeasure };
+    }
+  }
+
+  // Check exact match (for columns without Q1/Q2 suffix)
+  const measure = measureLookup.get(header);
+  if (measure && measure.requestType && measure.qualityMeasure) {
+    return { field: 'complianceStatus', requestType: measure.requestType, qualityMeasure: measure.qualityMeasure };
   }
 
   return null;

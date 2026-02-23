@@ -211,7 +211,7 @@ describe('dataTransformer', () => {
   });
 
   describe('status date handling', () => {
-    it('should set statusDate to today (import date)', () => {
+    it('should use Q1 date as statusDate when Q1 column has a valid date', () => {
       const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2'];
       const rows = [{
         'Patient': 'Test',
@@ -222,12 +222,28 @@ describe('dataTransformer', () => {
 
       const result = transformData(headers, rows, systemId, 2);
 
-      // Status date should be today's date in ISO format
-      const today = new Date().toISOString().split('T')[0];
-      expect(result.rows[0].statusDate).toBe(today);
+      // Status date should be extracted from Q1 column
+      expect(result.rows[0].statusDate).toBe('2026-01-10');
+      expect(result.rows[0].statusDateSource).toBe('file');
     });
 
-    it('should set statusDate to null when no compliance status', () => {
+    it('should default statusDate to today when Q1 has no parseable date', () => {
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'Test',
+        'DOB': '01/01/1990',
+        'Annual Wellness Visit Q1': 'non-date-value',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      const today = new Date().toISOString().split('T')[0];
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
+    });
+
+    it('should default statusDate to today when no compliance status but Q1 has data', () => {
       const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2'];
       const rows = [{
         'Patient': 'Test',
@@ -238,10 +254,107 @@ describe('dataTransformer', () => {
 
       const result = transformData(headers, rows, systemId, 2);
 
-      // Row is generated (because Q1 has data) but with null measureStatus and statusDate
+      // Row is generated (because Q1 has data) but with null measureStatus;
+      // statusDate is extracted from Q1 column date
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].measureStatus).toBeNull();
-      expect(result.rows[0].statusDate).toBeNull();
+      expect(result.rows[0].statusDate).toBe('2026-01-10');
+      expect(result.rows[0].statusDateSource).toBe('file');
+    });
+
+    it('should set statusDateSource to default when Q1 has no date value', () => {
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'Test',
+        'DOB': '01/01/1990',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      const today = new Date().toISOString().split('T')[0];
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
+    });
+
+    it('should default statusDate to today when Q1 column exists but value is empty string', () => {
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'Test',
+        'DOB': '01/01/1990',
+        'Annual Wellness Visit Q1': '',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      const today = new Date().toISOString().split('T')[0];
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
+    });
+
+    it('should set statusDate and statusDateSource on every measure row from the same patient', () => {
+      const headers = [
+        'Patient', 'DOB',
+        'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2',
+        'Eye Exam Q1', 'Eye Exam Q2',
+      ];
+      const rows = [{
+        'Patient': 'Multi Measure',
+        'DOB': '06/15/1975',
+        'Annual Wellness Visit Q1': '02/10/2026',
+        'Annual Wellness Visit Q2': 'Compliant',
+        'Eye Exam Q1': '',
+        'Eye Exam Q2': 'Non Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      expect(result.rows).toHaveLength(2);
+
+      // AWV has a valid Q1 date -> file source
+      const awvRow = result.rows.find(r => r.qualityMeasure === 'Annual Wellness Visit');
+      expect(awvRow).toBeDefined();
+      expect(awvRow!.statusDate).toBe('2026-02-10');
+      expect(awvRow!.statusDateSource).toBe('file');
+
+      // Eye Exam has empty Q1 -> defaults to today
+      const today = new Date().toISOString().split('T')[0];
+      const eyeRow = result.rows.find(r => r.qualityMeasure === 'Diabetic Eye Exam');
+      expect(eyeRow).toBeDefined();
+      expect(eyeRow!.statusDate).toBe(today);
+      expect(eyeRow!.statusDateSource).toBe('default');
+    });
+
+    it('should parse Q1 date in M/D/YYYY format and use as statusDate with file source', () => {
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'Test Date Format',
+        'DOB': '01/01/1990',
+        'Annual Wellness Visit Q1': '3/5/2026',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      expect(result.rows[0].statusDate).toBe('2026-03-05');
+      expect(result.rows[0].statusDateSource).toBe('file');
+    });
+
+    it('should default statusDate to today when Q1 has whitespace-only value', () => {
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q1', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'Test Whitespace',
+        'DOB': '01/01/1990',
+        'Annual Wellness Visit Q1': '   ',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      const today = new Date().toISOString().split('T')[0];
+      expect(result.rows[0].statusDate).toBe(today);
+      expect(result.rows[0].statusDateSource).toBe('default');
     });
   });
 
@@ -277,15 +390,15 @@ describe('dataTransformer', () => {
   });
 
   describe('with test data files', () => {
-    it('should transform test-valid.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-valid.csv');
+    it('should transform test-hill-valid.csv correctly', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-valid.csv not found');
+        console.log('Skipping: test-hill-valid.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-valid.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-valid.csv');
       const result = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
 
       expect(result.stats.inputRows).toBe(10);
@@ -294,30 +407,30 @@ describe('dataTransformer', () => {
       expect(result.patientsWithNoMeasures).toHaveLength(0);
     });
 
-    it('should transform test-no-measures.csv and identify patients with no measures', () => {
-      const csvPath = path.join(testDataDir, 'test-no-measures.csv');
+    it('should transform test-hill-no-measures.csv and identify patients with no measures', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-no-measures.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-no-measures.csv not found');
+        console.log('Skipping: test-hill-no-measures.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-no-measures.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-no-measures.csv');
       const result = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
 
       // Should have 5 patients with no measures (rows 2, 4, 5, 7, 9 per README)
       expect(result.patientsWithNoMeasures.length).toBe(5);
     });
 
-    it('should handle test-dates.csv with various date formats', () => {
-      const csvPath = path.join(testDataDir, 'test-dates.csv');
+    it('should handle test-hill-dates.csv with various date formats', () => {
+      const csvPath = path.join(testDataDir, 'test-hill-dates.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-dates.csv not found');
+        console.log('Skipping: test-hill-dates.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const parseResult = parseCSV(buffer, 'test-dates.csv');
+      const parseResult = parseCSV(buffer, 'test-hill-dates.csv');
       const result = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
 
       // Should have some parse errors for invalid dates

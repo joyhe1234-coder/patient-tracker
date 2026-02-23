@@ -1,0 +1,21 @@
+Member Name,Member DOB,Member Telephone,Member Home Address,Health Plans,Race-Ethnicity,Possible Actions Needed,Request Type,Measure Details,High Priority
+"Smith, John",01/15/1965,(555) 123-4567,123 Main St,Blue Shield,White,"FOBT in 2026 or colonoscopy in the past 10 years",Quality,"Status Date: 01/15/2026; Tracking: Lab order placed",Yes
+"Doe, Jane",03/22/1978,(555) 234-5678,456 Oak Ave,Aetna,Hispanic,"HTN - Most recent 2026 BP less than 140/90",Quality,"Status Date: 02/01/2026; Tracking: BP check scheduled",No
+"Johnson, Bob",07/04/1950,(555) 345-6789,789 Pine Rd,United,Black,"DM - Urine albumin/creatine ratio in 2026",Quality,"Status Date: 01/20/2026; Tracking: Nephrology referral",Yes
+"Williams, Mary",11/30/1985,(555) 456-7890,321 Elm Blvd,Blue Shield,Asian,"DM - Most recent 2026 HbA1c less than 8.0",Quality,"Status Date: 02/10/2026; Tracking: A1C test ordered",No
+"Brown, James",09/12/1972,(555) 567-8901,654 Maple Dr,Cigna,White,"DM - Eye exam in 2026",Quality,"Status Date: 01/28/2026; Tracking: Ophthalmology appt",Yes
+"Garcia, Maria",05/19/1988,(555) 678-9012,987 Cedar Ln,Aetna,Hispanic,"Pap in 2023 - 2026 -OR- Pap & HPV co-test in 2021 - 2026",Quality,"Status Date: 02/05/2026; Tracking: GYN referral",No
+"Davis, Robert",12/03/1955,(555) 789-0123,147 Birch Way,United,White,"Mammogram in 2025 or 2026",Quality,"Status Date: 01/30/2026; Tracking: Imaging scheduled",Yes
+"Martinez, Ana",08/27/1992,(555) 890-1234,258 Spruce Ct,Blue Shield,Hispanic,"Chlamydia test in 2026",Quality,"Status Date: 02/12/2026; Tracking: Lab order",No
+"Wilson, Tom",04/14/1968,(555) 901-2345,369 Walnut Pl,Cigna,Black,"Need dispensing events for RAS Antagonists in 2026",Quality,"Status Date: 01/25/2026; Tracking: Pharmacy check",Yes
+"Anderson, Sue",10/08/1975,(555) 012-3456,741 Ash Ave,United,White,"Vaccine: Flu shot needed for 2026",Quality,"Status Date: 02/08/2026; Tracking: Vaccination scheduled",No
+"Taylor, Pat",02/28/1960,(555) 111-2222,852 Oak Ct,Aetna,Asian,,AWV,,,Yes
+"Lee, Chris",06/15/1983,(555) 222-3333,963 Pine Ave,Blue Shield,White,,APV,,,No
+"Harris, Kim",08/01/1970,(555) 333-4444,174 Elm St,United,Black,,HCC,"Status Date: 01/15/2026; Tracking: ICD-10 review",Yes
+"Clark, Alex",04/20/1995,(555) 444-5555,285 Maple Rd,Cigna,Hispanic,"Some completely unknown action text here",Quality,,No
+"Lewis, Sam",11/11/1958,(555) 555-6666,396 Cedar Dr,Aetna,White,"Another unmapped action pattern",Quality,"Status Date: 02/15/2026",Yes
+"Walker, Jo",03/07/1982,(555) 666-7777,507 Birch Ln,Blue Shield,Asian,"FOBT in 2025 or colonoscopy in the past 10 years",Quality,"Status Date: 01/10/2026; Tracking: Follow-up needed",No
+"Hall, Morgan",09/25/1973,(555) 777-8888,618 Spruce Way,United,White,"DM - Most recent 2025 HbA1c less than 8.0",Quality,"Status Date: 12/15/2025; Tracking: Retest needed",Yes
+"Young, Riley",12/12/1990,(555) 888-9999,729 Walnut Ave,Cigna,Black,"HTN - Most recent 2025 BP less than 140/90",Quality,"Status Date: 12/20/2025; Tracking: Follow-up",No
+"King, Casey",07/18/1967,(555) 999-0000,840 Ash Blvd,Aetna,White,"DM - Urine albumin/creatine ratio in 2025",Quality,"Status Date: 12/01/2025",Yes
+"Wright, Avery",01/30/1987,(555) 000-1111,951 Oak Pl,Blue Shield,Hispanic,"Mammogram in 2024 or 2025",Quality,"Status Date: 11/30/2025; Tracking: Overdue",No

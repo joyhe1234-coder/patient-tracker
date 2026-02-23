@@ -41,7 +41,7 @@ function uploadAndSelectPhysician(
 /**
  * Helper: full flow from visit → upload → physician → preview page
  */
-function navigateToPreview(filePath = 'cypress/fixtures/test-import.csv') {
+function navigateToPreview(filePath = 'cypress/fixtures/test-hill-import.csv') {
   cy.visit('/patient-management');
   uploadAndSelectPhysician(filePath);
   cy.contains('button', 'Preview Import').click();
@@ -158,38 +158,38 @@ describe('Import Flow', () => {
 
   describe('Universal Sheet Selector', () => {
     it('shows Select Tab & Physician step after file upload', () => {
-      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-hill-import.csv', { force: true });
       cy.contains('Select Tab & Physician', { timeout: 10000 }).should('be.visible');
     });
 
     it('shows step number 4 for sheet selector', () => {
-      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-hill-import.csv', { force: true });
       cy.contains('Select Tab & Physician', { timeout: 10000 }).should('be.visible');
       // Step badge "4" should be visible
       cy.get('.rounded-full').contains('4').should('be.visible');
     });
 
     it('auto-selects single tab and shows Importing from text', () => {
-      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-hill-import.csv', { force: true });
       // Single-tab CSV should show static text instead of dropdown
       cy.contains('Importing from:', { timeout: 10000 }).should('be.visible');
     });
 
     it('shows physician dropdown after tab auto-select', () => {
-      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-hill-import.csv', { force: true });
       cy.contains('Assign to Physician', { timeout: 10000 }).should('be.visible');
       cy.get('#physician-selector').should('be.visible');
     });
 
     it('keeps submit button disabled until physician is selected', () => {
-      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-hill-import.csv', { force: true });
       cy.contains('Assign to Physician', { timeout: 10000 }).should('be.visible');
       // Before selecting physician, button should be disabled
       cy.contains('button', 'Preview Import').should('be.disabled');
     });
 
     it('enables submit after physician selection', () => {
-      uploadAndSelectPhysician('cypress/fixtures/test-import.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import.csv');
       cy.contains('button', 'Preview Import').should('not.be.disabled');
     });
 
@@ -206,7 +206,7 @@ describe('Import Flow', () => {
     });
 
     it('resets sheet state when switching healthcare system', () => {
-      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-import.csv', { force: true });
+      cy.get('input[type="file"]').selectFile('cypress/fixtures/test-hill-import.csv', { force: true });
       cy.contains('Select Tab & Physician', { timeout: 10000 }).should('be.visible');
 
       // Switch to Sutter
@@ -218,7 +218,7 @@ describe('Import Flow', () => {
 
   describe('Import Preview Flow', () => {
     it('navigates to preview page after file upload and physician selection', () => {
-      uploadAndSelectPhysician('cypress/fixtures/test-import.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import.csv');
       cy.contains('button', 'Preview Import').click();
       cy.url({ timeout: 10000 }).should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
@@ -269,7 +269,7 @@ describe('Import Flow', () => {
     beforeEach(() => {
       cy.visit('/patient-management');
       cy.contains('label', 'Replace All').click();
-      uploadAndSelectPhysician('cypress/fixtures/test-import.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import.csv');
       cy.contains('button', 'Preview Import').click();
       cy.contains('Delete All Existing Data?').should('be.visible');
       cy.contains('button', 'Yes, Delete All').click();
@@ -337,7 +337,7 @@ describe('Import Flow', () => {
       // First, do a Replace All import to establish baseline
       cy.visit('/patient-management');
       cy.contains('label', 'Replace All').click();
-      uploadAndSelectPhysician('cypress/fixtures/test-import.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import.csv');
       cy.contains('button', 'Preview Import').click();
       cy.contains('button', 'Yes, Delete All').click();
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
@@ -374,7 +374,7 @@ describe('Import Flow', () => {
     });
 
     it('displays file info in header', () => {
-      cy.contains('test-import.csv').should('be.visible');
+      cy.contains('test-hill-import.csv').should('be.visible');
     });
 
     it('displays expiration time', () => {
@@ -407,7 +407,7 @@ describe('Import Flow', () => {
   describe('Import with Warnings', () => {
     it('shows warnings section when file has validation warnings', () => {
       cy.visit('/patient-management');
-      uploadAndSelectPhysician('cypress/fixtures/test-import-warnings.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import-warnings.csv');
       cy.contains('button', 'Preview Import').click();
       cy.url().should('include', '/patient-management/preview/');
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
@@ -419,7 +419,7 @@ describe('Import Flow', () => {
       // First import in Replace mode
       cy.visit('/patient-management');
       cy.contains('label', 'Replace All').click();
-      uploadAndSelectPhysician('cypress/fixtures/test-import.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import.csv');
       cy.contains('button', 'Preview Import').click();
       cy.contains('button', 'Yes, Delete All').click();
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
@@ -431,7 +431,7 @@ describe('Import Flow', () => {
 
       // Second import of same file in Merge mode
       cy.contains('button', 'Import More').click();
-      uploadAndSelectPhysician('cypress/fixtures/test-import.csv');
+      uploadAndSelectPhysician('cypress/fixtures/test-hill-import.csv');
       cy.contains('button', 'Preview Import').click();
       cy.contains('Import Preview', { timeout: 10000 }).should('be.visible');
 

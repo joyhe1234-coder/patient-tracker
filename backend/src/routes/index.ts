@@ -6,6 +6,7 @@ import usersRoutes from './users.routes.js';
 import dataRoutes from './data.routes.js';
 import configRoutes from './config.routes.js';
 import importRoutes from './import.routes.js';
+import mappingRoutes from './mapping.routes.js';
 
 const router = Router();
 
@@ -26,6 +27,10 @@ router.use('/data', dataRoutes);
 
 // Configuration data - protected
 router.use('/config', configRoutes);
+
+// Import mapping management - protected (ADMIN for writes)
+// Must be mounted BEFORE /import so /import/mappings/:systemId is not swallowed
+router.use('/import/mappings', mappingRoutes);
 
 // Import data - protected
 router.use('/import', importRoutes);

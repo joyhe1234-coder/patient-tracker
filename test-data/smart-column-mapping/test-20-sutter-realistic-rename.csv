@@ -1,0 +1,6 @@
+Patient Name,Member Date of Birth,Member Telephone,Member Home Address,Health Plans,Race-Ethnicity,Possible Actions Needed,Request Type,Measure Details,High Priority
+"Smith, John",01/15/1965,(555) 123-4567,123 Main St,Blue Shield,White,"FOBT in 2026 or colonoscopy in the past 10 years",Quality,"Status Date: 01/15/2026; Tracking: Lab order",Yes
+"Doe, Jane",03/22/1978,(555) 234-5678,456 Oak Ave,Aetna,Hispanic,"HTN - Most recent 2026 BP less than 140/90",Quality,"Status Date: 02/01/2026",No
+"Johnson, Bob",07/04/1950,(555) 345-6789,789 Pine Rd,United,Black,,AWV,,Yes
+"Williams, Mary",11/30/1985,(555) 456-7890,321 Elm Blvd,Blue Shield,Asian,"DM - Most recent 2026 HbA1c less than 8.0",Quality,"Status Date: 02/10/2026",No
+"Brown, James",09/12/1972,(555) 567-8901,654 Maple Dr,Cigna,White,"DM - Eye exam in 2026",Quality,"Status Date: 01/28/2026",Yes

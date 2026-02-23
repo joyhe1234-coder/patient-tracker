@@ -10,6 +10,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
 /**
  * Resolve the xlsx module from the backend's node_modules.
@@ -17,12 +23,10 @@ import * as path from 'path';
  */
 function getXLSX(): any {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require('xlsx');
   } catch {
     // Fallback: resolve from backend directory relative to this file
     const backendXlsx = path.resolve(__dirname, '..', '..', '..', 'backend', 'node_modules', 'xlsx');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(backendXlsx);
   }
 }

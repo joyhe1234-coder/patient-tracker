@@ -52,16 +52,16 @@ function runFullPipeline(buffer: Buffer, fileName: string) {
 }
 
 describe('Import Pipeline Integration', () => {
-  describe('full pipeline with test-valid.csv', () => {
+  describe('full pipeline with test-hill-valid.csv', () => {
     it('should process valid file end-to-end with no errors', () => {
-      const csvPath = path.join(testDataDir, 'test-valid.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-valid.csv not found');
+        console.log('Skipping: test-hill-valid.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-valid.csv');
+      const result = runFullPipeline(buffer, 'test-hill-valid.csv');
 
       // Parse should succeed
       expect(result.parse.totalRows).toBe(10);
@@ -85,16 +85,16 @@ describe('Import Pipeline Integration', () => {
     });
   });
 
-  describe('full pipeline with test-validation-errors.csv', () => {
+  describe('full pipeline with test-hill-validation-errors.csv', () => {
     it('should detect validation errors and propagate to report', () => {
-      const csvPath = path.join(testDataDir, 'test-validation-errors.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-validation-errors.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-validation-errors.csv not found');
+        console.log('Skipping: test-hill-validation-errors.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-validation-errors.csv');
+      const result = runFullPipeline(buffer, 'test-hill-validation-errors.csv');
 
       // Should have validation errors
       expect(result.validation.valid).toBe(false);
@@ -110,16 +110,16 @@ describe('Import Pipeline Integration', () => {
     });
   });
 
-  describe('full pipeline with test-duplicates.csv', () => {
+  describe('full pipeline with test-hill-duplicates.csv', () => {
     it('should detect duplicates and include in report', () => {
-      const csvPath = path.join(testDataDir, 'test-duplicates.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-duplicates.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-duplicates.csv not found');
+        console.log('Skipping: test-hill-duplicates.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-duplicates.csv');
+      const result = runFullPipeline(buffer, 'test-hill-duplicates.csv');
 
       // Should detect duplicates
       expect(result.validation.duplicates.length).toBeGreaterThan(0);
@@ -129,16 +129,16 @@ describe('Import Pipeline Integration', () => {
     });
   });
 
-  describe('full pipeline with test-warnings.csv', () => {
+  describe('full pipeline with test-hill-warnings.csv', () => {
     it('should detect warnings but allow proceed', () => {
-      const csvPath = path.join(testDataDir, 'test-warnings.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-warnings.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-warnings.csv not found');
+        console.log('Skipping: test-hill-warnings.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-warnings.csv');
+      const result = runFullPipeline(buffer, 'test-hill-warnings.csv');
 
       // Should be valid (no errors)
       expect(result.validation.valid).toBe(true);
@@ -152,16 +152,16 @@ describe('Import Pipeline Integration', () => {
     });
   });
 
-  describe('full pipeline with test-no-measures.csv', () => {
+  describe('full pipeline with test-hill-no-measures.csv', () => {
     it('should track patients with no measures', () => {
-      const csvPath = path.join(testDataDir, 'test-no-measures.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-no-measures.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-no-measures.csv not found');
+        console.log('Skipping: test-hill-no-measures.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-no-measures.csv');
+      const result = runFullPipeline(buffer, 'test-hill-no-measures.csv');
 
       // Should identify patients with no measures
       expect(result.transform.patientsWithNoMeasures.length).toBe(5);
@@ -171,16 +171,16 @@ describe('Import Pipeline Integration', () => {
     });
   });
 
-  describe('full pipeline with test-multi-column.csv', () => {
+  describe('full pipeline with test-hill-multi-column.csv', () => {
     it('should apply any-non-compliant-wins logic', () => {
-      const csvPath = path.join(testDataDir, 'test-multi-column.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-multi-column.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-multi-column.csv not found');
+        console.log('Skipping: test-hill-multi-column.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-multi-column.csv');
+      const result = runFullPipeline(buffer, 'test-hill-multi-column.csv');
 
       // Should transform successfully
       expect(result.transform.errors).toHaveLength(0);
@@ -207,14 +207,14 @@ describe('Import Pipeline Integration', () => {
 
   describe('error propagation', () => {
     it('should maintain error context through pipeline', () => {
-      const csvPath = path.join(testDataDir, 'test-validation-errors.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-validation-errors.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-validation-errors.csv not found');
+        console.log('Skipping: test-hill-validation-errors.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-validation-errors.csv');
+      const result = runFullPipeline(buffer, 'test-hill-validation-errors.csv');
 
       // Errors should have meaningful context
       for (const error of result.validation.errors) {
@@ -232,14 +232,14 @@ describe('Import Pipeline Integration', () => {
 
   describe('row number consistency', () => {
     it('should track source row indices through transform and validate', () => {
-      const csvPath = path.join(testDataDir, 'test-valid.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-valid.csv not found');
+        console.log('Skipping: test-hill-valid.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-valid.csv');
+      const result = runFullPipeline(buffer, 'test-hill-valid.csv');
 
       // Every transformed row should have a valid sourceRowIndex
       for (const row of result.transform.rows) {
@@ -255,14 +255,14 @@ describe('Import Pipeline Integration', () => {
 
   describe('condensed report', () => {
     it('should provide limited results for API responses', () => {
-      const csvPath = path.join(testDataDir, 'test-validation-errors.csv');
+      const csvPath = path.join(testDataDir, 'test-hill-validation-errors.csv');
       if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-validation-errors.csv not found');
+        console.log('Skipping: test-hill-validation-errors.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = runFullPipeline(buffer, 'test-validation-errors.csv');
+      const result = runFullPipeline(buffer, 'test-hill-validation-errors.csv');
 
       // Condensed report should have summary
       expect(result.condensedReport.summary).toBeDefined();

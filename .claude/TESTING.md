@@ -323,7 +323,7 @@ npm run e2e:report        # View HTML report
 - Cancel at preview page returns to import
 - Browser back works from preview page
 
-**Test Data:** `frontend/cypress/fixtures/test-import.csv`
+**Test Data:** `frontend/cypress/fixtures/test-hill-import.csv`
 
 **Sorting & Filtering Tests (55 tests):**
 
@@ -431,13 +431,13 @@ Tests the full import transformation pipeline with real CSV files.
 
 | File | Rows | Purpose |
 |------|------|---------|
-| `test-valid.csv` | 10 | Happy path, all valid data |
-| `test-dates.csv` | 8 | Date format variations |
-| `test-multi-column.csv` | 8 | Multiple columns → same measure |
-| `test-validation-errors.csv` | 10 | Missing/invalid fields |
-| `test-duplicates.csv` | 8 | Duplicate detection |
-| `test-no-measures.csv` | 10 | Empty measure columns |
-| `test-warnings.csv` | 10 | Warnings only (missing phone) |
+| `test-hill-valid.csv` | 10 | Happy path, all valid data |
+| `test-hill-dates.csv` | 8 | Date format variations |
+| `test-hill-multi-column.csv` | 8 | Multiple columns → same measure |
+| `test-hill-validation-errors.csv` | 10 | Missing/invalid fields |
+| `test-hill-duplicates.csv` | 8 | Duplicate detection |
+| `test-hill-no-measures.csv` | 10 | Empty measure columns |
+| `test-hill-warnings.csv` | 10 | Warnings only (missing phone) |
 
 **Running CLI Tests:**
 

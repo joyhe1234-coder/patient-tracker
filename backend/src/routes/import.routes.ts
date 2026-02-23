@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { listSystems, loadSystemConfig, systemExists, isHillConfig, isSutterConfig, getRequiredColumns } from '../services/import/configLoader.js';
+import { listSystems, loadSystemConfig, loadMergedConfig, systemExists, isHillConfig, isSutterConfig, getRequiredColumns } from '../services/import/configLoader.js';
 import { parseFile, parseExcel, validateRequiredColumns, getSheetNames, getWorkbookInfo, getSheetHeaders } from '../services/import/fileParser.js';
 import { mapColumns } from '../services/import/columnMapper.js';
 import { transformData, groupByPatient } from '../services/import/dataTransformer.js';
@@ -14,6 +14,7 @@ import { requireAuth, requirePatientDataAccess } from '../middleware/auth.js';
 import { isStaffAssignedToPhysician } from '../services/authService.js';
 import { socketIdMiddleware } from '../middleware/socketIdMiddleware.js';
 import { broadcastToRoom, getRoomName } from '../services/socketManager.js';
+import { detectConflicts } from '../services/import/conflictDetector.js';
 import type { SutterSystemConfig, SkipTabPattern, RequiredColumns, PreviewColumnDef } from '../services/import/configLoader.js';
 import type { TransformedRow } from '../services/import/dataTransformer.js';
 import type { SutterTransformResult } from '../services/import/sutterDataTransformer.js';
@@ -563,6 +564,31 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
     // Task 26c: Validate selected tab has data rows
     if (parseResult.totalRows === 0) {
       return next(createError('Selected tab has no patient data rows', 400, 'EMPTY_TAB'));
+    }
+
+    // Step 1b: Conflict detection -- compare file headers against merged config
+    const mergedConfig = await loadMergedConfig(systemId);
+    const conflictReport = detectConflicts(parseResult.headers, mergedConfig, systemId);
+
+    // Wrong-file check: file does not match the selected system at all
+    if (conflictReport.isWrongFile) {
+      return next(createError(
+        'No recognizable columns found. This file may not be from the selected insurance system.',
+        400,
+        'WRONG_FILE'
+      ));
+    }
+
+    // If BLOCKING conflicts exist, return early with the conflict report
+    // WARNING/INFO conflicts (e.g., skip column variations) don't block the import
+    if (conflictReport.hasBlockingConflicts) {
+      return res.json({
+        success: true,
+        data: {
+          hasConflicts: true,
+          conflicts: conflictReport,
+        },
+      });
     }
 
     // Step 2: Transform the data

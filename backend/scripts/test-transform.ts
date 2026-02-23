@@ -4,7 +4,7 @@
  *
  * Usage:
  *   npm run test:cli                           # Run all test files
- *   npm run test:cli -- test-valid.csv         # Run specific file
+ *   npm run test:cli -- test-hill-valid.csv     # Run specific file
  *   npm run test:cli -- --save                 # Save results as expected
  *   npm run test:cli -- --compare              # Compare against expected
  *
@@ -26,13 +26,13 @@ const systemId = 'hill';
 
 // Test files to process
 const testFiles = [
-  'test-valid.csv',
-  'test-dates.csv',
-  'test-multi-column.csv',
-  'test-validation-errors.csv',
-  'test-duplicates.csv',
-  'test-no-measures.csv',
-  'test-warnings.csv',
+  'test-hill-valid.csv',
+  'test-hill-dates.csv',
+  'test-hill-multi-column.csv',
+  'test-hill-validation-errors.csv',
+  'test-hill-duplicates.csv',
+  'test-hill-no-measures.csv',
+  'test-hill-warnings.csv',
 ];
 
 interface TestResult {

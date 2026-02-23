@@ -1,6 +1,6 @@
 /**
  * Integration tests for merge logic in import preview
- * Tests all 6 merge cases using merge-test-cases.csv
+ * Tests all 6 merge cases using test-hill-merge-cases.csv
  *
  * Requires database to be seeded with test data before running:
  *   npx prisma migrate reset --force
@@ -102,7 +102,7 @@ async function runPreviewPipeline(buffer: Buffer, fileName: string, mode: 'merge
 }
 
 describe('Merge Logic Integration Tests', () => {
-  const csvPath = path.join(testDataDir, 'merge-test-cases.csv');
+  const csvPath = path.join(testDataDir, 'test-hill-merge-cases.csv');
 
   // Skip all tests if file doesn't exist
   const fileExists = fs.existsSync(csvPath);
@@ -120,19 +120,19 @@ describe('Merge Logic Integration Tests', () => {
     if (prisma) await prisma.$disconnect();
   });
 
-  describe('merge mode with merge-test-cases.csv', () => {
+  describe('merge mode with test-hill-merge-cases.csv', () => {
     it('should process merge test file successfully', async () => {
       if (!hasDatabaseUrl) {
         console.log('Skipping: DATABASE_URL not set (integration test requires database)');
         return;
       }
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       // Parse should succeed
       expect(result.parse.totalRows).toBeGreaterThan(0);
@@ -146,7 +146,7 @@ describe('Merge Logic Integration Tests', () => {
 
     it('should correctly identify INSERT actions for new patients', async () => {
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
       if (!dbHasTestData) {
@@ -155,7 +155,7 @@ describe('Merge Logic Integration Tests', () => {
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       const inserts = filterChangesByAction(result.diff.changes, 'INSERT');
 
@@ -186,7 +186,7 @@ describe('Merge Logic Integration Tests', () => {
 
     it('should correctly identify UPDATE actions (non-compliant → compliant)', async () => {
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
       if (!dbHasTestData) {
@@ -195,7 +195,7 @@ describe('Merge Logic Integration Tests', () => {
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       const updates = filterChangesByAction(result.diff.changes, 'UPDATE');
 
@@ -216,7 +216,7 @@ describe('Merge Logic Integration Tests', () => {
 
     it('should correctly identify SKIP actions for same compliance status', async () => {
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
       if (!dbHasTestData) {
@@ -225,7 +225,7 @@ describe('Merge Logic Integration Tests', () => {
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       const skips = filterChangesByAction(result.diff.changes, 'SKIP');
 
@@ -243,7 +243,7 @@ describe('Merge Logic Integration Tests', () => {
 
     it('should correctly identify BOTH actions for downgrades (compliant → non-compliant)', async () => {
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
       if (!dbHasTestData) {
@@ -252,7 +252,7 @@ describe('Merge Logic Integration Tests', () => {
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       const bothActions = filterChangesByAction(result.diff.changes, 'BOTH');
 
@@ -272,12 +272,12 @@ describe('Merge Logic Integration Tests', () => {
         return;
       }
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       const { summary, changes } = result.diff;
 
@@ -295,7 +295,7 @@ describe('Merge Logic Integration Tests', () => {
 
     it('should correctly count new vs existing patients', async () => {
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
       if (!dbHasTestData) {
@@ -304,7 +304,7 @@ describe('Merge Logic Integration Tests', () => {
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       // Total should be non-negative
       expect(result.diff.newPatients).toBeGreaterThanOrEqual(0);
@@ -320,12 +320,12 @@ describe('Merge Logic Integration Tests', () => {
         return;
       }
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
       const modifying = getModifyingChanges(result.diff.changes);
       const skips = filterChangesByAction(result.diff.changes, 'SKIP');
@@ -338,10 +338,10 @@ describe('Merge Logic Integration Tests', () => {
     });
   });
 
-  describe('replace mode with merge-test-cases.csv', () => {
+  describe('replace mode with test-hill-merge-cases.csv', () => {
     it('should delete all existing and insert all new in replace mode', async () => {
       if (!fileExists) {
-        console.log('Skipping: merge-test-cases.csv not found');
+        console.log('Skipping: test-hill-merge-cases.csv not found');
         return;
       }
       if (!dbHasTestData) {
@@ -350,7 +350,7 @@ describe('Merge Logic Integration Tests', () => {
       }
 
       const buffer = fs.readFileSync(csvPath);
-      const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'replace');
+      const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'replace');
 
       const { summary, changes } = result.diff;
 
@@ -432,7 +432,7 @@ describe('Merge Logic Integration Tests', () => {
 });
 
 describe('Diff Change Structure', () => {
-  const csvPath = path.join(testDataDir, 'merge-test-cases.csv');
+  const csvPath = path.join(testDataDir, 'test-hill-merge-cases.csv');
   const fileExists = fs.existsSync(csvPath);
 
   afterAll(async () => {
@@ -445,12 +445,12 @@ describe('Diff Change Structure', () => {
       return;
     }
     if (!fileExists) {
-      console.log('Skipping: merge-test-cases.csv not found');
+      console.log('Skipping: test-hill-merge-cases.csv not found');
       return;
     }
 
     const buffer = fs.readFileSync(csvPath);
-    const result = await runPreviewPipeline(buffer, 'merge-test-cases.csv', 'merge');
+    const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
 
     for (const change of result.diff.changes) {
       // Required fields

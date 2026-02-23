@@ -647,7 +647,7 @@ async function main() {
         roles: u.roles as any,
         isActive: true,
       },
-      update: {},
+      update: { passwordHash: devPasswordHash, displayName: u.displayName, roles: u.roles as any },
     });
     createdDevUsers[u.email] = user.id;
   }
