@@ -10,12 +10,7 @@ describe('Compact Filter Bar — Grid Integration', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
-
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
     cy.wait(1000);
@@ -38,7 +33,7 @@ describe('Compact Filter Bar — Grid Integration', () => {
         if (qualityMeasureCell.length > 0) {
           const text = qualityMeasureCell.text().trim();
           if (text) {
-            expect(text).to.equal('Annual Wellness Visit');
+            expect(text.replace(/▾/g, '').trim()).to.equal('Annual Wellness Visit');
           }
         }
       });

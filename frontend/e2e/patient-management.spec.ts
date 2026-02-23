@@ -5,8 +5,8 @@ import { LoginPage } from './pages/login-page';
 const ADMIN_EMAIL = 'ko037291@gmail.com';
 const ADMIN_PASSWORD = 'welcome100';
 // Physician credentials (from seed data)
-const PHYSICIAN_EMAIL = 'dr.smith@hillclinic.com';
-const PHYSICIAN_PASSWORD = 'password123';
+const PHYSICIAN_EMAIL = 'phy1@gmail.com';
+const PHYSICIAN_PASSWORD = 'welcome100';
 
 test.describe('Patient Management Page', () => {
   test.describe('Navigation & Tab Display (ADMIN)', () => {

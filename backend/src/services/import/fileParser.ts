@@ -140,11 +140,14 @@ export function parseExcel(buffer: Buffer, fileName: string, options?: ParseOpti
     throw new Error('Could not read worksheet');
   }
 
-  // Convert to JSON with header row, preserving raw string values
+  // Convert to JSON with header row, preserving raw string values.
+  // blankrows: true preserves physical row positions so headerRowIndex
+  // (e.g., Sutter headerRow=3) points to the correct row even when
+  // blank rows exist between the title rows and the header row.
   const jsonData = XLSX.utils.sheet_to_json(worksheet, {
     header: 1,
     defval: '',
-    blankrows: false,
+    blankrows: true,
     raw: true  // Preserve raw cell values (prevent date auto-conversion)
   }) as unknown[][];
 
@@ -176,18 +179,23 @@ export function parseExcel(buffer: Buffer, fileName: string, options?: ParseOpti
   const headerRow = jsonData[headerRowIndex] as unknown[];
   const headers = headerRow.map(h => String(h || '').trim());
 
-  // Remaining rows are data
-  const rows: ParsedRow[] = jsonData.slice(headerRowIndex + 1).map(row => {
-    const rowArray = row as unknown[];
-    const obj: ParsedRow = {};
-    headers.forEach((header, index) => {
-      const value = rowArray[index];
-      obj[header] = value !== undefined && value !== null && value !== ''
-        ? String(value).trim()
-        : undefined;
+  // Remaining rows are data (filter out completely blank rows from blankrows: true)
+  const rows: ParsedRow[] = jsonData.slice(headerRowIndex + 1)
+    .filter(row => {
+      const arr = row as unknown[];
+      return arr.some(cell => cell !== undefined && cell !== null && cell !== '');
+    })
+    .map(row => {
+      const rowArray = row as unknown[];
+      const obj: ParsedRow = {};
+      headers.forEach((header, index) => {
+        const value = rowArray[index];
+        obj[header] = value !== undefined && value !== null && value !== ''
+          ? String(value).trim()
+          : undefined;
+      });
+      return obj;
     });
-    return obj;
-  });
 
   return {
     headers,
@@ -245,11 +253,13 @@ export function getSheetHeaders(
         continue;
       }
 
-      // Read sheet data using sheet_to_json with header: 1 to get raw arrays
+      // Read sheet data using sheet_to_json with header: 1 to get raw arrays.
+      // blankrows: true preserves physical row positions so headerRowIndex
+      // maps correctly even when blank rows exist before the header.
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
         header: 1,
         defval: '',
-        blankrows: false,
+        blankrows: true,
         raw: true,
       }) as unknown[][];
 

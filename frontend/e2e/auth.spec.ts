@@ -47,7 +47,7 @@ test.describe('Authentication', () => {
       await loginPage.goto();
 
       // Use test credentials (assumes these exist in the seeded database)
-      await loginPage.loginAndWaitForRedirect('dr.smith@hillclinic.com', 'password123');
+      await loginPage.loginAndWaitForRedirect('phy1@gmail.com', 'welcome100');
 
       // Verify we're on the main page
       const mainPage = new MainPage(page);
@@ -59,8 +59,8 @@ test.describe('Authentication', () => {
       await loginPage.goto();
 
       // Fill in credentials and click
-      await loginPage.emailInput.fill('dr.smith@hillclinic.com');
-      await loginPage.passwordInput.fill('password123');
+      await loginPage.emailInput.fill('phy1@gmail.com');
+      await loginPage.passwordInput.fill('welcome100');
       await loginPage.signInButton.click();
 
       // The loading state may be brief, but button should be disabled
@@ -71,7 +71,8 @@ test.describe('Authentication', () => {
 
   test.describe('Protected Routes', () => {
     test('redirects to login when not authenticated', async ({ page }) => {
-      // Clear any existing auth state
+      // Navigate to app first so localStorage is accessible
+      await page.goto('/login');
       await page.context().clearCookies();
       await page.evaluate(() => localStorage.clear());
 
@@ -83,7 +84,8 @@ test.describe('Authentication', () => {
     });
 
     test('redirects to login when accessing admin page unauthenticated', async ({ page }) => {
-      // Clear any existing auth state
+      // Navigate to app first so localStorage is accessible
+      await page.goto('/login');
       await page.context().clearCookies();
       await page.evaluate(() => localStorage.clear());
 
@@ -100,24 +102,18 @@ test.describe('Authentication', () => {
       // First login
       const loginPage = new LoginPage(page);
       await loginPage.goto();
-      await loginPage.loginAndWaitForRedirect('dr.smith@hillclinic.com', 'password123');
+      await loginPage.loginAndWaitForRedirect('phy1@gmail.com', 'welcome100');
 
       // Verify we're logged in
       const mainPage = new MainPage(page);
       await expect(mainPage.grid).toBeVisible({ timeout: 10000 });
 
-      // Click logout button in header
-      const logoutButton = page.getByRole('button', { name: /logout|sign out/i });
-      if (await logoutButton.isVisible()) {
-        await logoutButton.click();
-      } else {
-        // May be in a dropdown menu
-        const userMenu = page.locator('[data-testid="user-menu"], button:has-text("Dr.")');
-        if (await userMenu.isVisible()) {
-          await userMenu.click();
-          await page.locator('text=Logout, text=Sign out').first().click();
-        }
-      }
+      // Open user menu dropdown (button with user's name and ChevronDown icon)
+      const userMenuButton = page.locator('header button:has(svg)').last();
+      await userMenuButton.click();
+
+      // Click Logout in the dropdown menu
+      await page.getByText('Logout').click();
 
       // Should redirect to login
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
@@ -129,7 +125,7 @@ test.describe('Authentication', () => {
       // First login
       const loginPage = new LoginPage(page);
       await loginPage.goto();
-      await loginPage.loginAndWaitForRedirect('dr.smith@hillclinic.com', 'password123');
+      await loginPage.loginAndWaitForRedirect('phy1@gmail.com', 'welcome100');
 
       // Verify we're logged in
       const mainPage = new MainPage(page);

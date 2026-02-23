@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.11.1] - 2026-02-23
+
+### Fixed
+- **Wrong-file false positives** in `conflictDetector.ts`: Added dual-ratio check — files where >= 50% of file columns match config are no longer flagged as wrong file, even if they cover < 10% of config columns (fixes partial/small files being rejected)
+- **MISSING conflict false positives** in `conflictDetector.ts`: Skip MISSING conflicts for config columns whose `targetField` is already covered by another matched or fuzzy-matched column (e.g., "Patient Full Name" CHANGED to "Patient" no longer also generates a MISSING for the original)
+- **Patient field auto-population** in `ConflictResolutionStep.tsx`: ACCEPT_SUGGESTION for patient columns now auto-populates `targetPatientField` from `patientFieldInfo` (was only auto-populating measure columns)
+- **Sutter header row alignment** in `fileParser.ts`: Changed `blankrows: false` to `blankrows: true` in `sheet_to_json` so physical row positions are preserved — `headerRow` config index (e.g., row 3) now correctly points to the header even when blank rows exist before it
+- **Blank row filtering** in `fileParser.ts`: After switching to `blankrows: true`, added post-parse filter to strip completely blank data rows
+- **Sheet validation fuzzy fallback** in `import.routes.ts`: `validateSheetHeaders()` now uses fuzzy matching (0.70 threshold) as fallback for patient column presence — renamed columns no longer cause false "missing patient columns" rejection
+- **Sheet validation Q1/Q2 suffix matching** in `import.routes.ts`: Data column matching now also checks with ` q1`/` q2` suffixes, fixing Hill files where headers like "Breast Cancer Screening E Q1" didn't match config key "Breast Cancer Screening E"
+- **`patientFieldInfo` in FuzzySuggestion type**: Added to both backend `conflictDetector.ts` and frontend `import-mapping.ts` types for patient column suggestion metadata
+
+### Changed
+- **Cypress test hardening** across 20+ spec files:
+  - Extracted `cy.login()` custom command replacing repeated login boilerplate in `beforeEach` blocks
+  - Fixed dropdown option counting to exclude `(clear)` placeholder option
+  - Replaced `.ag-cell-edit-wrapper input` selector with `.date-cell-editor` for date input cells
+  - Breast Cancer Screening tests now search for existing row before setting up (avoids 409 duplicate errors)
+  - Various stability improvements (longer waits, better selectors, retry patterns)
+- **Playwright test hardening** across 10+ spec and page-object files:
+  - Updated page objects for improved selectors and wait strategies
+  - Aligned with current UI state after conflict detection improvements
+
+### Tests
+- Backend (Jest): 1,387 tests passing (47 suites)
+- Frontend (Vitest): 1,138 tests passing (43 suites)
+- Regression test plan: Added sections 38-42 (56 test cases, 100% automated)
+- Total automated: ~2,525+ (1,387 Jest + 1,138 Vitest + Playwright + Cypress)
+
+---
+
 ## [4.11.0] - 2026-02-22
 
 ### Added

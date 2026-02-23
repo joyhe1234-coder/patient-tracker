@@ -51,6 +51,9 @@ export interface FuzzySuggestion {
     requestType: string;
     qualityMeasure: string;
   };
+  patientFieldInfo?: {
+    targetField: string;
+  };
 }
 
 export interface ConflictResolution {
@@ -167,7 +170,7 @@ export function detectConflicts(
     }
 
     // Duplicate headers are a blocking error -- return early with the report
-    return buildReport(systemId, conflicts, 0, 0);
+    return buildReport(systemId, conflicts, 0, 0, fileHeaders.length);
   }
 
   // Step 3: Build lookup sets from merged config
@@ -348,11 +351,28 @@ export function detectConflicts(
 
   // Step 5: For each config column NOT matched by any file header -> MISSING conflict
   // Skip columns are excluded: a missing skip column is harmless (nothing to skip).
+  // Also skip config columns whose targetField is already covered by a matched column
+  // (e.g., "Patient Full Name" is CHANGED → "Patient", so "Patient Full Name" is not truly missing).
+  const coveredTargetFields = new Set<string>();
+  for (const matchInfo of headerMatches) {
+    if (matchInfo.exactMatch && matchInfo.matchedConfigColumn) {
+      const configCol = normalizedConfigMap.get(normalizeHeader(matchInfo.matchedConfigColumn));
+      if (configCol?.targetField) coveredTargetFields.add(configCol.targetField);
+    }
+    // Also count fuzzy-matched columns that will be resolved via CHANGED conflicts
+    if (!matchInfo.exactMatch && matchInfo.matchedConfigColumn) {
+      const configCol = normalizedConfigMap.get(normalizeHeader(matchInfo.matchedConfigColumn));
+      if (configCol?.targetField) coveredTargetFields.add(configCol.targetField);
+    }
+  }
+
   for (const configCol of configColumns) {
     if (configCol.category === 'SKIP') continue; // Skip columns don't need MISSING conflicts
 
     const normalizedConfigCol = normalizeHeader(configCol.sourceColumn);
     if (!matchedConfigColumns.has(normalizedConfigCol)) {
+      // If another column already covers this targetField, skip the MISSING conflict
+      if (configCol.targetField && coveredTargetFields.has(configCol.targetField)) continue;
       const severity = classifyMissingSeverity(configCol);
 
       conflicts.push({
@@ -375,7 +395,7 @@ export function detectConflicts(
   // Step 7: Wrong-file check
   const matchedCount = matchedConfigColumns.size;
 
-  return buildReport(systemId, conflicts, matchedCount, totalConfigColumns);
+  return buildReport(systemId, conflicts, matchedCount, totalConfigColumns, fileHeaders.length);
 }
 
 // ---- Internal helpers ----
@@ -488,6 +508,10 @@ function buildSuggestions(
       };
     }
 
+    if (configInfo?.category === 'PATIENT' && configInfo.targetField) {
+      suggestion.patientFieldInfo = { targetField: configInfo.targetField };
+    }
+
     return suggestion;
   });
 }
@@ -551,7 +575,8 @@ function buildReport(
   systemId: string,
   conflicts: ColumnConflict[],
   matchedCount: number,
-  totalConfigColumns: number
+  totalConfigColumns: number,
+  totalFileColumns: number
 ): ConflictReport {
   const summary = {
     total: conflicts.length,
@@ -567,8 +592,13 @@ function buildReport(
   const hasBlockingConflicts = summary.blocking > 0;
 
   // Step 7: Wrong-file check -- matched < 10% of config columns
+  // Exception: if >= 50% of the FILE's columns matched config columns,
+  // it's clearly the right system (just a small/partial file).
+  const configRatio = totalConfigColumns > 0 ? matchedCount / totalConfigColumns : 0;
+  const fileRatio = totalFileColumns > 0 ? matchedCount / totalFileColumns : 0;
   const isWrongFile = totalConfigColumns > 0 &&
-    (matchedCount / totalConfigColumns) < WRONG_FILE_THRESHOLD;
+    configRatio < WRONG_FILE_THRESHOLD &&
+    fileRatio < 0.50;
 
   const report: ConflictReport = {
     systemId,

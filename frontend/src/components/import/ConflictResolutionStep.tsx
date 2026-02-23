@@ -164,6 +164,9 @@ function ConflictRow({
           qualityMeasure: topSuggestion.measureInfo.qualityMeasure,
         };
       }
+      if (topSuggestion.patientFieldInfo) {
+        newResolution.targetPatientField = topSuggestion.patientFieldInfo.targetField;
+      }
     }
 
     onResolve(conflict.id, newResolution);

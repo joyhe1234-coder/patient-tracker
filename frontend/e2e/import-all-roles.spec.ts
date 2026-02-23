@@ -70,10 +70,10 @@ async function waitForAnyVisible(
 // ---------------------------------------------------------------------------
 // Test users (from seed data — passwords fixed via DB update)
 // ---------------------------------------------------------------------------
-const ADMIN = { email: 'admin@gmail.com', password: 'welcome100' };
+const ADMIN = { email: 'ko037291@gmail.com', password: 'welcome100' };
 const PHYSICIAN = { email: 'phy1@gmail.com', password: 'welcome100' };
 const STAFF = { email: 'staff1@gmail.com', password: 'welcome100' };
-const ADMIN_PHY = { email: 'adminphy@gmail.com', password: 'welcome100' };
+const ADMIN_PHY = { email: 'ko037291@gmail.com', password: 'welcome100' };
 
 // ---------------------------------------------------------------------------
 // Test data file paths

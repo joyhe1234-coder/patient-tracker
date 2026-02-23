@@ -19,11 +19,7 @@ const adminCredentials = {
 
 /** Login as admin. */
 function loginAsAdmin() {
-  cy.visit('/login');
-  cy.get('input[type="email"]').type(adminCredentials.email);
-  cy.get('input[type="password"]').type(adminCredentials.password);
-  cy.get('button[type="submit"]').click();
-  cy.url().should('not.include', '/login', { timeout: 10000 });
+  cy.login(adminCredentials.email, adminCredentials.password);
 }
 
 /**
@@ -99,10 +95,33 @@ function stubResolveConflictsResponse() {
 }
 
 /**
+ * Stub the /api/import/sheets endpoint so that sheet discovery succeeds
+ * even with a CSV that has renamed column headers. This test focuses on
+ * the ConflictResolutionStep UI, not backend validation.
+ */
+function stubSheetsDiscovery() {
+  cy.intercept('POST', '/api/import/sheets*', {
+    statusCode: 200,
+    body: {
+      success: true,
+      data: {
+        sheets: ['Sheet1'],
+        totalSheets: 1,
+        filteredSheets: 1,
+        skippedSheets: [],
+        invalidSheets: [],
+      },
+    },
+  }).as('sheetsDiscovery');
+}
+
+/**
  * Upload a CSV with a renamed column header to trigger conflict detection.
  * Uses inline content to avoid needing a fixture file with specific headers.
  */
 function uploadFileWithRenamedColumn() {
+  stubSheetsDiscovery();
+
   cy.get('input[type="file"]').selectFile({
     contents: Cypress.Buffer.from(
       'Patient,DOB,Annual Wellness Vist,Brand New Column\n"Smith, John",1/15/1965,Compliant,SomeValue',

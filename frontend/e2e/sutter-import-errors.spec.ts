@@ -73,15 +73,8 @@ test.describe('Sutter Import - Error Scenarios', () => {
     const warningVisible = await importPage.isPhysicianWarningVisible();
     expect(warningVisible).toBe(true);
 
-    // Try clicking Preview Import
-    await importPage.clickPreview();
-
-    // Should show an error about missing physician
-    // Wait a moment for error to display
-    await page.waitForTimeout(500);
-
-    const errorText = await importPage.getErrorText();
-    expect(errorText).toContain('physician');
+    // Preview Import button should be disabled (no physician selected)
+    expect(await importPage.isPreviewDisabled()).toBe(true);
   });
 
   test('missing tab selection prevents preview submission', async ({ page }) => {
@@ -94,14 +87,8 @@ test.describe('Sutter Import - Error Scenarios', () => {
     // Do NOT select a tab (leave on placeholder)
     // The physician dropdown won't appear until tab is selected
 
-    // Try clicking Preview Import
-    await importPage.clickPreview();
-
-    // Should show an error about missing tab
-    await page.waitForTimeout(500);
-
-    const errorText = await importPage.getErrorText();
-    expect(errorText).toContain('tab');
+    // Preview Import button should be disabled (no tab selected)
+    expect(await importPage.isPreviewDisabled()).toBe(true);
   });
 
   test('empty physician tab shows error on preview', async ({ page }) => {

@@ -41,7 +41,7 @@ export class MappingPage {
     this.page = page;
 
     // Page heading
-    this.heading = page.locator('h1:has-text("Import Column Mapping")');
+    this.heading = page.locator('h2:has-text("Import Column Mapping")');
 
     // System selector dropdown
     this.systemSelector = page.locator('#system-selector');
@@ -71,7 +71,7 @@ export class MappingPage {
    * Navigate to the mapping management page.
    * Handles login if redirected.
    */
-  async goto(email = 'admin@gmail.com', password = 'welcome100') {
+  async goto(email = 'ko037291@gmail.com', password = 'welcome100') {
     await this.page.goto('/admin/import-mapping');
 
     // Handle login redirect if needed
@@ -81,7 +81,13 @@ export class MappingPage {
       await emailInput.fill(email);
       await this.page.locator('input[name="password"]').fill(password);
       await this.page.locator('button[type="submit"]').click();
-      await this.page.waitForURL(/\/admin\/import-mapping/, { timeout: 10000 });
+
+      // After login, app redirects to '/' — navigate to the admin page explicitly
+      await this.page.waitForURL(
+        (url) => !url.pathname.includes('/login'),
+        { timeout: 15000 },
+      );
+      await this.page.goto('/admin/import-mapping');
     }
 
     // Wait for the page to load

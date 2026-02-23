@@ -12,13 +12,7 @@ describe('Insurance Group Filter', () => {
 
   beforeEach(() => {
     // Login as admin
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
-
-    // Wait for grid to load
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
     cy.wait(1000);

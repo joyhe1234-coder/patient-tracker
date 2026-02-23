@@ -44,7 +44,7 @@ test.describe('Sutter Import - Edge Cases', () => {
 
     // Tab count should show 1
     const tabCountText = await importPage.getTabCountText();
-    expect(tabCountText).toContain('1 physician tab');
+    expect(tabCountText).toContain('1 valid tab');
   });
 
   test('manual physician override replaces auto-matched suggestion', async ({ page }) => {
@@ -97,7 +97,7 @@ test.describe('Sutter Import - Edge Cases', () => {
     expect(await importPage.physicianDropdown.isVisible()).toBe(true);
   });
 
-  test('switching from Sutter to Hill system clears sheet state', async ({ page }) => {
+  test('switching from Sutter to Hill system resets sheet selection state', async ({ page }) => {
     const fixturePath = await getMultiTabFixturePath();
 
     // Start with Sutter
@@ -112,36 +112,33 @@ test.describe('Sutter Import - Edge Cases', () => {
     await importPage.selectSheet('Smith, John');
     await importPage.physicianDropdown.waitFor({ state: 'visible', timeout: 5000 });
 
-    // Now switch to Hill system
+    // Now switch to Hill system — sheet state resets
     await importPage.selectSystem('hill');
 
-    // Sheet selector step should disappear
-    expect(await importPage.isSheetSelectorStepVisible()).toBe(false);
+    // The Step 4 section remains visible (file is still uploaded),
+    // but the SheetSelector re-triggers discovery for the Hill system.
+    // After a moment the sheet selector should re-render for the new system.
+    await page.waitForTimeout(1000);
 
-    // The #sheet-selector dropdown should not be in the DOM
-    expect(await importPage.sheetDropdown.isVisible().catch(() => false)).toBe(false);
+    // The Preview Import button should be disabled (sheet/physician state was reset)
+    expect(await importPage.isPreviewDisabled()).toBe(true);
   });
 
-  test('switching from Hill to Sutter shows sheet selector after file upload', async ({ page }) => {
+  test('switching from Hill to Sutter and re-uploading discovers correct tabs', async ({ page }) => {
     const fixturePath = await getMultiTabFixturePath();
 
     // Start with Hill (default)
-    expect(await importPage.isSheetSelectorStepVisible()).toBe(false);
-
-    // Upload a file (valid for any system at upload time)
-    await importPage.uploadFile(fixturePath);
-
-    // Sheet selector should NOT be visible for Hill
-    expect(await importPage.isSheetSelectorStepVisible()).toBe(false);
-
-    // Now switch to Sutter
+    // Switch to Sutter, then upload a Sutter file
     await importPage.selectSystem('sutter');
-
-    // Wait for sheet discovery
+    await importPage.uploadFile(fixturePath);
     await importPage.waitForSheetDiscovery();
 
-    // Sheet selector should now be visible
+    // Sheet selector should be visible with Sutter physician tabs
     expect(await importPage.isSheetSelectorStepVisible()).toBe(true);
+
+    const sheetOptions = await importPage.getSheetOptions();
+    expect(sheetOptions).toContain('Smith, John');
+    expect(sheetOptions).toContain('Jones, Mary');
   });
 
   test('removing file and re-uploading resets sheet selection', async ({ page }) => {

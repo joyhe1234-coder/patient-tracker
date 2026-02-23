@@ -3797,6 +3797,11 @@ npm run cypress:headed  # Run with browser visible
 | 35. Insurance Group Filter | 10 | 10 | 0 | 0 | 100% |
 | 36. Sutter/SIP Import + Universal Sheet Validation | 19 | 19 | 0 | 0 | 100% |
 | 37. Cross-Page Role Workflows | 17 | 10 | 4 | 3 | 82% |
+| 38. Sutter File-Based Integration | 8 | 8 | 0 | 0 | 100% |
+| 39. Sutter Import Visual Tests | 6 | 6 | 0 | 0 | 100% |
+| 40. Smart Column Mapping — Backend | 19 | 19 | 0 | 0 | 100% |
+| 41. Smart Column Mapping — UI | 11 | 11 | 0 | 0 | 100% |
+| 42. Smart Column Mapping — Admin Mgmt | 12 | 12 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3903,8 +3908,237 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 40. Smart Column Mapping — Fuzzy Matching & Conflict Detection (Backend)
+
+**Requirement Spec:** [`.claude/specs/smart-column-mapping/requirements.md`](specs/smart-column-mapping/requirements.md)
+
+### TC-40.1: Header Normalization
+**Automation:** Automated - `fuzzyMatcher.test.ts` (17 tests)
+**Steps:** normalizeHeader() trims, lowercases, strips suffixes (E, Q1, Q2), collapses spaces, expands abbreviations (BP, DOB, IMM, RX, TX, AWV, MGMT, etc.)
+**Expected:** All transformations applied correctly, idempotent
+
+### TC-40.2: Jaro-Winkler Similarity
+**Automation:** Automated - `fuzzyMatcher.test.ts` (6 tests)
+**Steps:** Score identical, empty, different, typo, and partial-match strings
+**Expected:** Identical=1.0, empty=0.0, prefix bonus applied, correct range [0,1]
+
+### TC-40.3: Jaccard Token Similarity
+**Automation:** Automated - `fuzzyMatcher.test.ts` (7 tests)
+**Steps:** Score token overlap between header pairs
+**Expected:** Identical=1.0, no overlap=0.0, rearranged tokens=1.0, duplicates handled
+
+### TC-40.4: Composite Score (60/40 Weighting)
+**Automation:** Automated - `fuzzyMatcher.test.ts` (7 tests)
+**Steps:** compositeScore() combines 60% Jaro-Winkler + 40% Jaccard token similarity
+**Expected:** Correct weighting, normalization applied before scoring
+
+### TC-40.5: Fuzzy Match Function
+**Automation:** Automated - `fuzzyMatcher.test.ts` (13 tests)
+**Steps:** fuzzyMatch() returns top candidates above threshold, deduplicates, normalizes
+**Expected:** Threshold enforcement, top-3 results, abbreviation/suffix matching
+
+### TC-40.6: Abbreviation Expansion Coverage
+**Automation:** Automated - `fuzzyMatcher.test.ts` (8 tests)
+**Steps:** Test all abbreviation expansions (DOB→date of birth, PT→patient, BP→blood pressure, etc.)
+**Expected:** All abbreviations expanded correctly, trailing punctuation stripped
+
+### TC-40.7: Exact Match Detection (UC1)
+**Automation:** Automated - `conflictDetector.test.ts` (4 tests)
+**Steps:** File headers that exactly match config columns (case-insensitive, whitespace-tolerant)
+**Expected:** No conflict generated, reordered columns accepted
+
+### TC-40.8: Renamed Column Detection (UC2)
+**Automation:** Automated - `conflictDetector.test.ts` (3 tests)
+**Steps:** File header fuzzy-matches config column at >= 80% similarity
+**Expected:** CHANGED conflict with WARNING severity, score in message, real fuzzy scoring
+
+### TC-40.9: Low Similarity / Unrecognized Column (UC3-4)
+**Automation:** Automated - `conflictDetector.test.ts` (3 tests)
+**Steps:** File header does not match any config column above threshold
+**Expected:** NEW conflict with INFO severity, broader suggestions included
+
+### TC-40.10: Missing Measure Column (UC5)
+**Automation:** Automated - `conflictDetector.test.ts` (2 tests)
+**Steps:** Config measure column not found in file headers
+**Expected:** MISSING conflict with WARNING severity, measure info in message
+
+### TC-40.11: Missing Required Patient Column (UC6)
+**Automation:** Automated - `conflictDetector.test.ts` (5 tests)
+**Steps:** Required patient columns (memberName, memberDob) not in file headers
+**Expected:** MISSING conflict with BLOCKING severity; optional columns not BLOCKING
+
+### TC-40.12: Required Patient Column Renamed (UC7)
+**Automation:** Automated - `conflictDetector.test.ts` (2 tests)
+**Steps:** Required patient column fuzzy-matches but is renamed
+**Expected:** CHANGED conflict with BLOCKING severity for memberName and memberDob
+
+### TC-40.13: Duplicate Headers (UC8, UC14)
+**Automation:** Automated - `conflictDetector.test.ts` (6 tests)
+**Steps:** Two file headers match same config column, or exact duplicate headers in file
+**Expected:** DUPLICATE conflict with BLOCKING severity, both headers reported
+
+### TC-40.14: Ambiguous Match (UC9)
+**Automation:** Automated - `conflictDetector.test.ts` (2 tests)
+**Steps:** File header fuzzy-matches multiple config columns equally
+**Expected:** AMBIGUOUS conflict with BLOCKING severity, suggestions included
+
+### TC-40.15: Suffix Normalization (UC12)
+**Automation:** Automated - `conflictDetector.test.ts` (5 tests)
+**Steps:** Headers with E, Q1, Q2 suffixes match base column names
+**Expected:** Suffix stripped before matching, Q1+Q2 detected as duplicates
+
+### TC-40.16: Wrong File Detection (UC13)
+**Automation:** Automated - `conflictDetector.test.ts` (4 tests)
+**Steps:** File with zero or <10% header matches
+**Expected:** isWrongFile=true, count displayed, threshold enforcement
+
+### TC-40.17: Conflict Report Metadata
+**Automation:** Automated - `conflictDetector.test.ts` (11 tests)
+**Steps:** Report includes summary counts, hasBlockingConflicts, unique IDs, systemId
+**Expected:** Correct counts by type, blocking flag, sequential IDs, null resolutions
+
+### TC-40.18: Edge Cases & Fail-Open
+**Automation:** Automated - `conflictDetector.test.ts` (8 tests)
+**Steps:** Empty headers, empty config, inactive columns, per-header error recovery
+**Expected:** Graceful handling, inactive columns ignored, errors classified as NEW (fail-open)
+
+### TC-40.19: Suggestions in Conflicts
+**Automation:** Automated - `conflictDetector.test.ts` (4 tests)
+**Steps:** Fuzzy suggestions include measure info, limited to top 3, NEW columns get broader suggestions
+**Expected:** Correct suggestion structure, measure info populated, MISSING has empty suggestions
+
+---
+
+## 41. Smart Column Mapping — Conflict Resolution UI (Frontend)
+
+**Requirement Spec:** [`.claude/specs/smart-column-mapping/requirements.md`](specs/smart-column-mapping/requirements.md)
+
+### TC-41.1: Admin Conflict Resolution Form
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (4 tests), `import-conflict-admin.cy.ts` (8 tests)
+**Steps:** Admin uploads file with renamed columns → conflict step renders
+**Expected:** Dropdown per conflict, color-coded count chips, summary banner, suggestion badges with scores
+
+### TC-41.2: Save Button State Management
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (3 tests), `import-conflict-admin.cy.ts` (1 test)
+**Steps:** Resolve 0, some, then all conflicts
+**Expected:** Save disabled at 0/N and partial, enabled at N/N
+
+### TC-41.3: Save & Continue API Call
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (2 tests), `import-conflict-resolution.spec.ts` (1 test)
+**Steps:** Resolve all conflicts, click Save & Continue
+**Expected:** POST with resolution IDs/actions, onResolved called, navigates to preview
+
+### TC-41.4: Cancel Without Saving
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (1 test), `import-conflict-admin.cy.ts` (1 test), `import-conflict-resolution.spec.ts` (1 test)
+**Steps:** Click Cancel on conflict resolution step
+**Expected:** Returns to file upload, no API call made
+
+### TC-41.5: Non-Admin Conflict Banner
+**Automation:** Automated - `ConflictBanner.test.tsx` (18 tests), `import-conflict-nonadmin.cy.ts` (6 tests)
+**Steps:** Non-admin (PHYSICIAN/STAFF) uploads file triggering conflicts
+**Expected:** Read-only ConflictBanner with role="alert", no dropdowns, no Save button, color-coded badges, Cancel and Copy Details buttons
+
+### TC-41.6: Progress Tracking
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (2 tests), `import-conflict-admin.cy.ts` (2 tests), `import-conflict-resolution.spec.ts` (1 test)
+**Steps:** Resolve conflicts one by one
+**Expected:** Progress bar and aria-live region update (0→1→N of N)
+
+### TC-41.7: ACCEPT_SUGGESTION Auto-Population
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (1 test)
+**Steps:** Select ACCEPT_SUGGESTION from dropdown
+**Expected:** targetMeasure or targetPatientField auto-populated from suggestion info
+
+### TC-41.8: Loading and Error States
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (4 tests)
+**Steps:** Trigger save, simulate API failure, simulate 409 conflict
+**Expected:** "Saving..." shown during call, error message on failure, 409 shows retry message, error cleared on new resolution
+
+### TC-41.9: DUPLICATE and AMBIGUOUS Resolution
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (3 tests)
+**Steps:** Resolve DUPLICATE and AMBIGUOUS conflicts via dropdowns
+**Expected:** Correct resolution options shown, saves correctly
+
+### TC-41.10: Role-Based Import Flow (All Roles)
+**Automation:** Automated - `import-all-roles.spec.ts` (13 tests)
+**Steps:** ADMIN, PHYSICIAN, STAFF, and ADMIN+PHYSICIAN upload valid and conflict files for Hill and Sutter systems
+**Expected:** Admin sees resolution form, non-admin sees banner, all roles can reach preview with valid files, dual-role users get admin form
+
+### TC-41.11: Full Conflict Resolution E2E Flow
+**Automation:** Automated - `import-conflict-resolution.spec.ts` (6 tests)
+**Steps:** Admin uploads Hill file with renamed columns, views conflicts with fuzzy suggestions, resolves all, saves, navigates to preview
+**Expected:** Conflict step appears, suggestions shown with scores, Save enables after all resolved, navigation to preview on save, Cancel returns to upload
+
+---
+
+## 42. Smart Column Mapping — Admin Mapping Management
+
+**Requirement Spec:** [`.claude/specs/smart-column-mapping/requirements.md`](specs/smart-column-mapping/requirements.md)
+
+### TC-42.1: System Selector and Config Loading
+**Automation:** Automated - `MappingManagementPage.test.tsx` (3 tests), `smart-column-mapping.spec.ts` (2 tests), `mapping-management.cy.ts` (2 tests)
+**Steps:** Navigate to /admin/import-mapping, select Hill or Sutter system
+**Expected:** System selector populated, switching triggers new GET, correct config loaded
+
+### TC-42.2: Hill System — Column Tables
+**Automation:** Automated - `MappingManagementPage.test.tsx` (3 tests), `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** Select Hill system, view mapping tables
+**Expected:** Patient and Measure Column Mappings sections visible, Action Pattern section hidden (wide-format)
+
+### TC-42.3: Sutter System — Action Pattern Table
+**Automation:** Automated - `MappingManagementPage.test.tsx` (1 test), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Select Sutter system
+**Expected:** Action Pattern Configuration section visible (long-format)
+
+### TC-42.4: Edit Mode
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** Click "Edit Mappings", make changes, click "Done Editing"
+**Expected:** Edit mode toggles, table becomes editable, returns to view mode
+
+### TC-42.5: Add Mapping
+**Automation:** Automated - `mapping-management.cy.ts` (2 tests), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Click "Add Mapping", fill source column, save
+**Expected:** Inline form opens, new mapping saved and displayed in table
+
+### TC-42.6: Reset to Defaults
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Click "Reset to Defaults", cancel, then confirm
+**Expected:** Confirmation modal shown, cancel dismisses, confirm deletes overrides, "Using Default Configuration" banner appears
+
+### TC-42.7: Default Configuration Banner
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `mapping-management.cy.ts` (1 test)
+**Steps:** View system with no DB overrides
+**Expected:** "Using Default Configuration" banner visible, Reset button hidden
+
+### TC-42.8: Last Modified Metadata
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** View system config with overrides
+**Expected:** "Last modified: <date> by <admin>" displayed; "Never modified" when null
+
+### TC-42.9: Non-Admin Access Control
+**Automation:** Automated - `MappingManagementPage.test.tsx` (1 test), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Non-admin navigates to /admin/import-mapping
+**Expected:** Admin content not visible, ProtectedRoute blocks access
+
+### TC-42.10: System Switching Loads Different Configs
+**Automation:** Automated - `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** Switch Hill → Sutter → Hill
+**Expected:** Action pattern appears/disappears, correct config for each system
+
+### TC-42.11: Ignored Columns Section
+**Automation:** Automated - `mapping-management.cy.ts` (1 test)
+**Steps:** View system with skip columns configured
+**Expected:** "Ignored Columns" section visible
+
+### TC-42.12: Loading and Error States
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests)
+**Steps:** Trigger loading and API failure states
+**Expected:** Spinner during load, error message on failure
+
+---
+
 ## Last Updated
 
+February 23, 2026 - Added Sections 40-42: Smart Column Mapping (TC-40.1 to TC-42.12). 40 test cases, 100% automated. Backend: 56 Jest (fuzzyMatcher) + 64 Jest (conflictDetector). Frontend: 27 Vitest (ConflictResolutionStep) + 17 Vitest (ConflictBanner) + 18 Vitest (MappingManagementPage). E2E: 6 Playwright (import-conflict-resolution) + 8 Playwright (smart-column-mapping) + 13 Playwright (import-all-roles) + 8 Cypress (import-conflict-admin) + 6 Cypress (import-conflict-nonadmin) + 9 Cypress (mapping-management). Total: 1,387 Jest + 1,138 Vitest + 130 Playwright + 369 Cypress.
 February 18, 2026 - Sutter duplicate merging, measureDetails parsing improvements, "Not Addressed" status override, dev seed users, Jest config fix. Total: 1,165 Jest + 1,025 Vitest.
 February 18, 2026 - Added Section 38: Sutter File-Based Integration Tests (TC-38.1 to TC-38.8, 67 Jest tests using 8 fixture files). Added Section 39: Sutter Import Visual Tests (TC-39.1 to TC-39.6, 22 Playwright tests).
 February 18, 2026 - Added automated tests for Section 37: +12 backend Jest tests (getPatientOwnerFilter role filtering), +13 frontend Vitest tests (ADMIN+PHYSICIAN dropdown/nav/tabs). Total: 1,077 Jest + 1,025 Vitest.

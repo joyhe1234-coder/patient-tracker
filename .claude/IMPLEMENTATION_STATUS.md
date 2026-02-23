@@ -29,12 +29,13 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.11.0):**
+**Test Coverage (as of Release 4.11.1):**
 - Layer 1 (Backend Jest): 1,387 tests passing (47 suites)
 - Layer 2 (Frontend Vitest): 1,138 tests passing (43 suites)
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests
 - Layer 4 (Cypress E2E): ~283 tests
 - Visual test plan v2.1: 427 test cases documented
+- Regression test plan: 42 sections, 56 new test cases in sections 38-42 (100% automated)
 
 ### Smart Column Mapping + Import E2E Tests
 
@@ -52,6 +53,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Import E2E Tests:** 13 Playwright tests (Hill/Sutter x Admin/Physician/Staff/Admin+Physician) covering valid imports + conflict role-based UI
 - [x] **Test Data Renamed:** All CSV/XLSX/expected-JSON files renamed with `hill-`/`sutter-` prefixes
 - [x] **Defect Fixes:** ESM compatibility, flaky perf thresholds, Promise.race fragility, fragile selectors, timeout constants, null safety
+- [x] **Post-release fixes (4.11.1):** Wrong-file false positives (dual-ratio check), MISSING conflict false positives (covered targetField), patient field auto-population, Sutter blank row header alignment, sheet validation fuzzy fallback + Q1/Q2 suffix matching, Cypress test hardening (cy.login, clear option, date editor, BCS row lookup), Playwright test hardening
 
 **Tests:** +222 Jest, +101 Vitest, +13 Playwright E2E
 
@@ -979,6 +981,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 23, 2026 - Release 4.11.1: Conflict detection fixes (wrong-file dual-ratio, MISSING covered targetField, patient field auto-population), Sutter file parser blank row alignment, sheet validation fuzzy fallback + Q1/Q2 suffix matching, Cypress + Playwright test hardening. All tests passing: 1,387 Jest + 1,138 Vitest + Playwright + Cypress = ~2,525+ automated tests.
 February 19, 2026 - Release 4.10.0: Remove tracking3 field (migration + full stack), rename "Duplicate Mbr" to "Copy Member", pinned row on add/duplicate (filter bypass with amber badge), import Q4-Q8 decisions resolved, smart column mapping spec. All tests passing: 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.
 February 18, 2026 - Release 4.9.0: Sutter duplicate merging, measureDetails parsing, role-based tests, seed users, universal sheet validation, configurable preview columns, ADMIN+PHYSICIAN dual role fix, CSV headerRow fix, SheetSelector a11y fix, Sutter/SIP multi-system import. All tests passing: 1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress = ~2,575 automated tests.
 February 14, 2026 - Sutter/SIP multi-system import: full pipeline (config, parser, routes, transformer, mapper, UI components). 253 new Jest + 61 new Vitest tests. All tests passing: 1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress = ~2,371 automated tests.

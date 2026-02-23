@@ -61,7 +61,7 @@ export class ImportPage {
    * Navigate to the Patient Management page (Import tab).
    * Handles login if needed (each Playwright test gets a fresh browser context).
    */
-  async goto(email = 'admin@gmail.com', password = 'welcome100') {
+  async goto(email = 'ko037291@gmail.com', password = 'welcome100') {
     // Navigate to /login directly — avoids race with React client-side redirect
     await this.page.goto('/login');
 
@@ -79,7 +79,7 @@ export class ImportPage {
       // Wait for navigation away from /login (app redirects to '/' after login)
       await this.page.waitForURL(
         (url) => !url.pathname.includes('/login'),
-        { timeout: 15000 },
+        { timeout: 30000 },
       );
     }
 
@@ -122,10 +122,22 @@ export class ImportPage {
   }
 
   /**
+   * Check if the sheet selector is a dropdown (multi-tab) or static text (single-tab).
+   */
+  async isSheetDropdown(): Promise<boolean> {
+    const tagName = await this.sheetDropdown.evaluate((el) => el.tagName.toLowerCase());
+    return tagName === 'select';
+  }
+
+  /**
    * Select a sheet/tab from the SheetSelector dropdown.
+   * For single-tab files, the tab is auto-selected (no-op).
    */
   async selectSheet(sheetName: string) {
-    await this.sheetDropdown.selectOption(sheetName);
+    if (await this.isSheetDropdown()) {
+      await this.sheetDropdown.selectOption(sheetName);
+    }
+    // Single-tab: already auto-selected, nothing to do
   }
 
   /**
@@ -139,16 +151,28 @@ export class ImportPage {
    * Get all available sheet options from the dropdown.
    */
   async getSheetOptions(): Promise<string[]> {
-    const options = await this.sheetDropdown.locator('option').allInnerTexts();
-    // Filter out the placeholder option
-    return options.filter((o) => !o.startsWith('--'));
+    if (await this.isSheetDropdown()) {
+      const options = await this.sheetDropdown.locator('option').allInnerTexts();
+      // Filter out the placeholder option
+      return options.filter((o) => !o.startsWith('--'));
+    }
+    // Single-tab: extract name from "Importing from: SheetName"
+    const text = await this.sheetDropdown.innerText();
+    const match = text.match(/Importing from:\s*(.+)/);
+    return match ? [match[1].trim()] : [];
   }
 
   /**
    * Get the currently selected sheet value.
    */
   async getSelectedSheet(): Promise<string> {
-    return await this.sheetDropdown.inputValue();
+    if (await this.isSheetDropdown()) {
+      return await this.sheetDropdown.inputValue();
+    }
+    // Single-tab: extract name from static text
+    const text = await this.sheetDropdown.innerText();
+    const match = text.match(/Importing from:\s*(.+)/);
+    return match ? match[1].trim() : '';
   }
 
   /**
@@ -234,10 +258,10 @@ export class ImportPage {
   }
 
   /**
-   * Get the tab count text from SheetSelector (e.g., "2 physician tabs found in workbook").
+   * Get the tab count text from SheetSelector (e.g., "2 valid tabs found in workbook").
    */
   async getTabCountText(): Promise<string> {
-    const tabCountEl = this.page.locator('text=/\\d+ physician tab/');
+    const tabCountEl = this.page.locator('text=/\\d+ valid tab/');
     if (await tabCountEl.isVisible().catch(() => false)) {
       return await tabCountEl.innerText();
     }

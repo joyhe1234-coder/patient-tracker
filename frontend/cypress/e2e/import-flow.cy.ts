@@ -51,6 +51,7 @@ function navigateToPreview(filePath = 'cypress/fixtures/test-hill-import.csv') {
 
 describe('Import Flow', () => {
   beforeEach(() => {
+    cy.login('ko037291@gmail.com', 'welcome100');
     cy.visit('/patient-management');
   });
 
@@ -392,8 +393,18 @@ describe('Import Flow', () => {
       cy.contains('button', 'Insert').click();
       cy.contains('button', 'Insert').should('have.class', 'ring-2');
 
-      cy.get('table tbody tr').each(($row) => {
-        cy.wrap($row).contains('INSERT').should('be.visible');
+      // If there are INSERT rows, each should show INSERT action.
+      // If there are 0 inserts (all patients already exist), the
+      // table will show "No changes match the selected filter."
+      cy.get('table tbody').then(($tbody) => {
+        const rows = $tbody.find('tr');
+        if (rows.length > 0 && !$tbody.text().includes('No changes match')) {
+          cy.get('table tbody tr').each(($row) => {
+            cy.wrap($row).contains('INSERT').should('be.visible');
+          });
+        } else {
+          cy.contains('No changes match the selected filter').should('be.visible');
+        }
       });
     });
 

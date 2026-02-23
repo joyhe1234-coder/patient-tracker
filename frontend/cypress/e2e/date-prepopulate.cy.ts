@@ -19,29 +19,38 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
   };
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.waitForAgGrid();
+
+    // Ensure row 0 is in a state where cell-prompt shows:
+    // 1. requestType must be set (AWV)
+    // 2. measureStatus must have a datePrompt (e.g. "AWV scheduled" → "Date Scheduled")
+    // 3. statusDate must be empty
+    cy.selectAgGridDropdown(0, 'requestType', 'AWV');
+    cy.wait(500);
+    cy.selectAgGridDropdown(0, 'measureStatus', 'AWV scheduled');
+    cy.wait(500);
+
+    // Clear the statusDate if it has a value so the cell-prompt appears
+    cy.getAgGridCell(0, 'statusDate').then(($cell) => {
+      if (!$cell.hasClass('cell-prompt')) {
+        cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
+        cy.get('.date-cell-editor').clear().type('{enter}');
+        cy.wait(1000);
+      }
+    });
+    // Verify cell-prompt is showing before each test
+    cy.getAgGridCell(0, 'statusDate').should('have.class', 'cell-prompt');
   });
 
   describe('Empty Cell Display', () => {
     it('should show prompt text with stripe pattern on empty statusDate cell', () => {
-      // Set up a row so statusDate prompt appears
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
-      // Cell should have the prompt class (stripe pattern)
+      // beforeEach already set requestType=AWV and cleared statusDate
       cy.getAgGridCell(0, 'statusDate').should('have.class', 'cell-prompt');
     });
 
     it('should show "Today" button on hover', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
       // Hover over the cell
       cy.getAgGridCell(0, 'statusDate').trigger('mouseover');
       cy.wait(200);
@@ -54,9 +63,6 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
   describe('Today Button Click', () => {
     it('should stamp today\'s date on Today button click', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
       // Click the Today button
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
@@ -68,9 +74,6 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     });
 
     it('should remove prompt class after stamping today', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
       cy.wait(500);
@@ -82,10 +85,7 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
   describe('Manual Date Entry (Double-Click)', () => {
     it('should open text editor on double-click', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
-      cy.getAgGridCell(0, 'statusDate').dblclick();
+      cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
       cy.wait(200);
 
       // Editor input should appear
@@ -93,10 +93,7 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     });
 
     it('should save custom date on Enter', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
-      cy.getAgGridCell(0, 'statusDate').dblclick();
+      cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
       cy.wait(200);
 
       cy.get('.date-cell-editor').type('1/15/2026{enter}');
@@ -106,10 +103,7 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     });
 
     it('should cancel on Escape', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-
-      cy.getAgGridCell(0, 'statusDate').dblclick();
+      cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
       cy.wait(200);
 
       cy.get('.date-cell-editor').type('{esc}');
@@ -122,9 +116,7 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
   describe('Filled Cell Behavior', () => {
     it('should show date without Today button for filled cells', () => {
-      // First stamp a date
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
+      // Stamp a date first
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
       cy.wait(500);
@@ -138,14 +130,12 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
     it('should show existing date on double-click edit of filled cell', () => {
       // Stamp today first
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
       cy.wait(500);
 
       // Double-click to edit
-      cy.getAgGridCell(0, 'statusDate').dblclick();
+      cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
       cy.wait(200);
 
       // Input should show the existing date
@@ -156,18 +146,17 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
   describe('Due Date Recalculation', () => {
     it('should trigger due date calculation after Today button click', () => {
-      cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-      cy.wait(500);
-      cy.selectAgGridDropdown(0, 'measureStatus', 'Scheduled');
-      cy.wait(500);
-
+      // beforeEach already set measureStatus to "AWV scheduled" which has a datePrompt.
       // Click Today to stamp date
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
       cy.wait(1000);
 
-      // Due date should now have a value
-      cy.getAgGridCellWithScroll(0, 'dueDate').should('not.have.text', '');
+      // Due date should now have a value (recalculated from the status date)
+      cy.getAgGridCellWithScroll(0, 'dueDate').invoke('text').then((text) => {
+        // Due date might show a date or "N/A" — just verify the cell was updated
+        expect(text.trim().length).to.be.greaterThan(0);
+      });
     });
   });
 });

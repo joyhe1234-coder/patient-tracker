@@ -14,11 +14,7 @@ describe('Cascading Dropdowns', () => {
   const testRowIndex = 0;
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.waitForAgGrid();
   });
@@ -32,7 +28,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('Quality');
         expect(options).to.include('Screening');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(4);
       });
     });
@@ -69,7 +65,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('Diabetes Control');
         expect(options).to.include('Annual Serum K&Cr');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(8);
       });
     });
@@ -85,7 +81,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('Colon Cancer Screening');
         expect(options).to.include('Cervical Cancer Screening');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(3);
       });
     });
@@ -108,7 +104,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('Will call later to schedule');
         expect(options).to.include('No longer applicable');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(7);
       });
     });
@@ -147,15 +143,43 @@ describe('Cascading Dropdowns', () => {
   });
 
   describe('Breast Cancer Screening', () => {
-    beforeEach(() => {
-      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-      cy.wait(300);
+    // Use a dedicated row index for Breast Cancer Screening tests.
+    // This avoids 409 duplicate errors when another row of the same patient
+    // already has (Screening, Breast Cancer Screening) from a prior test run.
+    let bcRowIndex = testRowIndex;
+
+    beforeEach(function () {
+      // Find a row that already has Breast Cancer Screening to avoid duplicate 409
+      cy.get('.ag-center-cols-container').then(($container) => {
+        const cells = $container.find('[col-id="qualityMeasure"]');
+        let foundRow = -1;
+        cells.each((_, cell) => {
+          const text = Cypress.$(cell).text().replace(/[✓▾]/g, '').trim();
+          if (text === 'Breast Cancer Screening') {
+            const rowEl = Cypress.$(cell).closest('[row-index]');
+            foundRow = parseInt(rowEl.attr('row-index') || '-1', 10);
+            return false; // break
+          }
+        });
+
+        if (foundRow >= 0) {
+          // Use the existing row — just ensure requestType is Screening
+          bcRowIndex = foundRow;
+          cy.getAgGridCell(bcRowIndex, 'requestType').should('contain.text', 'Screening');
+        } else {
+          // No existing row — set up row 0
+          bcRowIndex = testRowIndex;
+          cy.selectAgGridDropdown(bcRowIndex, 'requestType', 'Screening');
+          cy.wait(1000);
+          cy.selectAgGridDropdown(bcRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+          cy.wait(1000);
+          cy.getAgGridCell(bcRowIndex, 'qualityMeasure').should('contain.text', 'Breast Cancer Screening');
+        }
+      });
     });
 
     it('Breast Cancer Screening has 8 status options', () => {
-      cy.openAgGridDropdown(testRowIndex, 'measureStatus');
+      cy.openAgGridDropdown(bcRowIndex, 'measureStatus');
       cy.getAgGridDropdownOptions().then((options) => {
         expect(options).to.include('Not Addressed');
         expect(options).to.include('Screening discussed');
@@ -166,41 +190,41 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('No longer applicable');
         expect(options).to.include('Screening unnecessary');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(8);
       });
     });
 
     it('Screening test ordered shows Tracking #1 options', () => {
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening test ordered');
+      cy.selectAgGridDropdown(bcRowIndex, 'measureStatus', 'Screening test ordered');
       cy.wait(300);
 
-      cy.openAgGridDropdown(testRowIndex, 'tracking1');
+      cy.openAgGridDropdown(bcRowIndex, 'tracking1');
       cy.getAgGridDropdownOptions().then((options) => {
         expect(options).to.include('Mammogram');
         expect(options).to.include('Breast Ultrasound');
         expect(options).to.include('Breast MRI');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(3);
       });
     });
 
     it('can select Mammogram tracking', () => {
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening test ordered');
+      cy.selectAgGridDropdown(bcRowIndex, 'measureStatus', 'Screening test ordered');
       cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'Mammogram');
+      cy.selectAgGridDropdown(bcRowIndex, 'tracking1', 'Mammogram');
       cy.wait(300);
 
-      cy.getAgGridCell(testRowIndex, 'tracking1')
+      cy.getAgGridCell(bcRowIndex, 'tracking1')
         .should('contain.text', 'Mammogram');
     });
 
     it('Screening test completed shows green row', () => {
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening test completed');
+      cy.selectAgGridDropdown(bcRowIndex, 'measureStatus', 'Screening test completed');
       cy.wait(500);
 
-      cy.get(`[row-index="${testRowIndex}"]`).first()
+      cy.get(`[row-index="${bcRowIndex}"]`).first()
         .should('have.class', 'row-status-green');
     });
   });
@@ -220,7 +244,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('Chronic diagnosis invalid');
         expect(options).to.include('No longer applicable');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(5);
       });
     });
@@ -234,7 +258,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('Attestation not sent');
         expect(options).to.include('Attestation sent');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(2);
       });
     });
@@ -305,8 +329,8 @@ describe('Cascading Dropdowns', () => {
       pastDate.setDate(pastDate.getDate() - 30);
       const formattedDate = `${String(pastDate.getMonth() + 1).padStart(2, '0')}/${String(pastDate.getDate()).padStart(2, '0')}/${pastDate.getFullYear()}`;
       cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
-      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.get('.date-cell-editor').clear().type(formattedDate);
+      cy.get('.date-cell-editor').type('{enter}');
       cy.wait(1000);
 
       // Select Attestation not sent → backend calculates dueDate 14 days from past statusDate
@@ -326,8 +350,8 @@ describe('Cascading Dropdowns', () => {
       pastDate.setDate(pastDate.getDate() - 30);
       const formattedDate = `${String(pastDate.getMonth() + 1).padStart(2, '0')}/${String(pastDate.getDate()).padStart(2, '0')}/${pastDate.getFullYear()}`;
       cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
-      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.get('.date-cell-editor').clear().type(formattedDate);
+      cy.get('.date-cell-editor').type('{enter}');
       cy.wait(1000);
 
       // Attestation sent → GREEN (no DueDayRule, so no dueDate, can never be overdue)
@@ -357,8 +381,8 @@ describe('Cascading Dropdowns', () => {
       const today = new Date();
       const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
       cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
-      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.get('.date-cell-editor').clear().type(formattedDate);
+      cy.get('.date-cell-editor').type('{enter}');
       cy.wait(1000);
 
       // Verify due date is set (timeIntervalDays column should have value 7)
@@ -430,7 +454,7 @@ describe('Cascading Dropdowns', () => {
         expect(options).to.include('6 months');
         expect(options).to.include('12 months');
 
-        const nonEmpty = options.filter(opt => opt.trim() !== '');
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
         expect(nonEmpty.length).to.equal(12);
       });
     });
@@ -444,8 +468,8 @@ describe('Cascading Dropdowns', () => {
       const today = new Date();
       const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
       cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
-      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.get('.date-cell-editor').clear().type(formattedDate);
+      cy.get('.date-cell-editor').type('{enter}');
       cy.wait(1000);
 
       // Select 1 month interval
@@ -476,8 +500,8 @@ describe('Cascading Dropdowns', () => {
       const today = new Date();
       const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
       cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
-      cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+      cy.get('.date-cell-editor').clear().type(formattedDate);
+      cy.get('.date-cell-editor').type('{enter}');
       cy.wait(1000);
 
       // Due date should be empty without tracking2 (even with status date)
@@ -506,7 +530,8 @@ describe('Cascading Dropdowns', () => {
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
       cy.wait(300);
       cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetic Eye Exam');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Diabetic Eye Exam');
+      cy.wait(500);
       cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Diabetic eye exam completed');
       cy.wait(300);
 
@@ -520,15 +545,15 @@ describe('Cascading Dropdowns', () => {
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
       cy.wait(500);
 
-      // Quality Measure should be cleared
+      // Quality Measure should be cleared (strip dropdown arrow '▾' from text)
       cy.getAgGridCell(testRowIndex, 'qualityMeasure')
         .invoke('text')
-        .should('satisfy', (text: string) => text.trim() === '');
+        .should('satisfy', (text: string) => text.replace(/▾/g, '').trim() === '');
 
       // Measure Status should be cleared
       cy.getAgGridCell(testRowIndex, 'measureStatus')
         .invoke('text')
-        .should('satisfy', (text: string) => text.trim() === '');
+        .should('satisfy', (text: string) => text.replace(/▾/g, '').trim() === '');
     });
 
     it('changing Quality Measure clears Measure Status', () => {
@@ -547,10 +572,10 @@ describe('Cascading Dropdowns', () => {
       cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Vaccination');
       cy.wait(500);
 
-      // Measure Status should be cleared
+      // Measure Status should be cleared (strip dropdown arrow '▾' from text)
       cy.getAgGridCell(testRowIndex, 'measureStatus')
         .invoke('text')
-        .should('satisfy', (text: string) => text.trim() === '');
+        .should('satisfy', (text: string) => text.replace(/▾/g, '').trim() === '');
     });
   });
 
@@ -568,15 +593,29 @@ describe('Cascading Dropdowns', () => {
     });
 
     it('Breast Cancer Screening test ordered shows "Select test type" prompt', () => {
-      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening test ordered');
-      cy.wait(300);
+      // Find or create a row with Breast Cancer Screening (avoids 409 duplicate)
+      cy.get('.ag-center-cols-container [col-id="qualityMeasure"]').then(($cells) => {
+        let targetRow = testRowIndex;
+        $cells.each((_, cell) => {
+          const text = Cypress.$(cell).text().replace(/[✓▾]/g, '').trim();
+          if (text === 'Breast Cancer Screening') {
+            targetRow = parseInt(Cypress.$(cell).closest('[row-index]').attr('row-index') || '-1', 10);
+            return false;
+          }
+        });
 
-      cy.getAgGridCell(testRowIndex, 'tracking1')
-        .should('contain.text', 'Select test type');
+        if (targetRow === testRowIndex) {
+          // No existing row — set up from scratch
+          cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+          cy.wait(1000);
+          cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+          cy.wait(1000);
+        }
+
+        cy.selectAgGridDropdown(targetRow, 'measureStatus', 'Screening test ordered');
+        cy.wait(500);
+        cy.getAgGridCell(targetRow, 'tracking1').should('contain.text', 'Select test type');
+      });
     });
 
     it('Chronic diagnosis resolved shows "Select status" prompt', () => {
@@ -590,15 +629,28 @@ describe('Cascading Dropdowns', () => {
     });
 
     it('Screening discussed shows "Select time period" prompt', () => {
-      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening discussed');
-      cy.wait(300);
+      // Find or create a row with Breast Cancer Screening (avoids 409 duplicate)
+      cy.get('.ag-center-cols-container [col-id="qualityMeasure"]').then(($cells) => {
+        let targetRow = testRowIndex;
+        $cells.each((_, cell) => {
+          const text = Cypress.$(cell).text().replace(/[✓▾]/g, '').trim();
+          if (text === 'Breast Cancer Screening') {
+            targetRow = parseInt(Cypress.$(cell).closest('[row-index]').attr('row-index') || '-1', 10);
+            return false;
+          }
+        });
 
-      cy.getAgGridCell(testRowIndex, 'tracking1')
-        .should('contain.text', 'Select time period');
+        if (targetRow === testRowIndex) {
+          cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+          cy.wait(1000);
+          cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+          cy.wait(1000);
+        }
+
+        cy.selectAgGridDropdown(targetRow, 'measureStatus', 'Screening discussed');
+        cy.wait(500);
+        cy.getAgGridCell(targetRow, 'tracking1').should('contain.text', 'Select time period');
+      });
     });
 
     it('HgbA1c ordered shows "HgbA1c value" prompt in tracking1', () => {

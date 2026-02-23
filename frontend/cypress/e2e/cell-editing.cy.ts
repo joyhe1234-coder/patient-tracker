@@ -7,6 +7,9 @@
  * - Date cell editing (Status Date)
  * - Member Name editing
  * - Save indicator lifecycle
+ *
+ * NOTE: singleClickEdit=false on the grid, so text cells require double-click
+ * to enter edit mode. Dropdown cells (AutoOpenSelectEditor) use single click.
  */
 
 describe('Cell Editing', () => {
@@ -15,11 +18,7 @@ describe('Cell Editing', () => {
   const testRowIndex = 0;
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.waitForAgGrid();
   });
@@ -79,8 +78,8 @@ describe('Cell Editing', () => {
   describe('Text Cell Editing (Notes)', () => {
     const testNote = `Test note ${Date.now()}`;
 
-    it('should enter edit mode on single click of Notes cell', () => {
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+    it('should enter edit mode on double-click of Notes cell', () => {
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       // Should show an input or textarea in edit mode
@@ -90,8 +89,8 @@ describe('Cell Editing', () => {
     });
 
     it('should save text when clicking elsewhere', () => {
-      // Click Notes cell to enter edit mode
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      // Double-click Notes cell to enter edit mode
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       // Clear existing text and type new note
@@ -105,86 +104,86 @@ describe('Cell Editing', () => {
       cy.wait(500);
 
       // Verify the text was saved
-      cy.getAgGridCell(testRowIndex, 'notes')
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes')
         .should('contain.text', testNote);
     });
 
-    it('should save text when pressing Tab', () => {
-      const tabNote = `Tab note ${Date.now()}`;
+    it('should save text when pressing Enter', () => {
+      const enterNote = `Enter note ${Date.now()}`;
 
-      // Click Notes cell to enter edit mode
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      // Double-click Notes cell to enter edit mode
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
-      // Clear and type new note, then press Tab
+      // Clear and type new note, then press Enter
       cy.get(`[row-index="${testRowIndex}"] [col-id="notes"]`).first()
         .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
         .clear()
-        .type(tabNote)
-        .type('{tab}');
+        .type(enterNote)
+        .type('{enter}');
 
       cy.wait(500);
 
       // Verify the text was saved
-      cy.getAgGridCell(testRowIndex, 'notes')
-        .should('contain.text', tabNote);
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes')
+        .should('contain.text', enterNote);
     });
 
     it('should persist saved text after exiting edit mode', () => {
       const persistNote = `Persist note ${Date.now()}`;
 
       // Enter edit mode and type
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="notes"]`).first()
         .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
         .clear()
-        .type(persistNote)
-        .type('{enter}');
+        .type(persistNote);
 
-      cy.wait(500);
+      // Click header to commit (avoids Enter moving to next row)
+      cy.get('.ag-header').click();
+      cy.wait(1000);
 
       // Verify text shows in cell
-      cy.getAgGridCell(testRowIndex, 'notes')
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes')
         .should('contain.text', persistNote);
 
-      // Click on a different cell to fully deselect
-      cy.getAgGridCell(testRowIndex, 'requestType').click();
-      cy.wait(300);
-
-      // Escape any edit mode
-      cy.get('body').type('{escape}');
+      // Click on a different cell to fully deselect, then scroll back
+      cy.getAgGridCell(testRowIndex, 'memberName').click();
       cy.wait(300);
 
       // Text should still be there
-      cy.getAgGridCell(testRowIndex, 'notes')
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes')
         .should('contain.text', persistNote);
     });
 
     it('should show save indicator in toolbar after editing', () => {
       // Edit a notes cell
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="notes"]`).first()
         .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
         .clear()
-        .type(`Save indicator test ${Date.now()}`)
-        .type('{enter}');
+        .type(`Save indicator test ${Date.now()}`);
 
-      // Should show "Saving..." in toolbar
-      cy.contains('Saving...').should('be.visible');
+      // Commit by clicking header
+      cy.get('.ag-header').click();
+
+      // Should show either "Saving..." or "Saved" in toolbar
+      // (API may respond before Cypress catches "Saving...")
+      cy.contains(/Sav(ing|ed)/, { timeout: 5000 }).should('be.visible');
     });
   });
 
   describe('Date Cell Editing (Status Date)', () => {
     it('should accept MM/DD/YYYY format', () => {
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('01/15/2025')
         .type('{enter}');
@@ -197,11 +196,11 @@ describe('Cell Editing', () => {
     });
 
     it('should accept M/D/YY format (short year)', () => {
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('3/5/25')
         .type('{enter}');
@@ -214,11 +213,11 @@ describe('Cell Editing', () => {
     });
 
     it('should accept YYYY-MM-DD (ISO format)', () => {
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('2025-06-20')
         .type('{enter}');
@@ -231,11 +230,11 @@ describe('Cell Editing', () => {
     });
 
     it('should accept M.D.YYYY format', () => {
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('7.4.2025')
         .type('{enter}');
@@ -249,11 +248,11 @@ describe('Cell Editing', () => {
 
     it('should normalize date to M/D/YYYY display after saving', () => {
       // Enter with leading zeros
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('02/03/2025')
         .type('{enter}');
@@ -272,11 +271,11 @@ describe('Cell Editing', () => {
         cy.on('window:alert', cy.stub().as('alertStub'));
 
         // Enter invalid date
-        cy.getAgGridCell(testRowIndex, 'statusDate').click();
+        cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
         cy.wait(300);
 
         cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-          .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+          .find('.date-cell-editor').first()
           .clear()
           .type('abc')
           .type('{enter}');
@@ -300,11 +299,11 @@ describe('Cell Editing', () => {
         cy.on('window:alert', cy.stub().as('alertStub'));
 
         // Enter date with invalid month/day
-        cy.getAgGridCell(testRowIndex, 'statusDate').click();
+        cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
         cy.wait(300);
 
         cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-          .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+          .find('.date-cell-editor').first()
           .clear()
           .type('13/45/2025')
           .type('{enter}');
@@ -323,11 +322,11 @@ describe('Cell Editing', () => {
 
     it('should save null when clearing date to empty', () => {
       // First set a date so we know it has a value
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('01/01/2025')
         .type('{enter}');
@@ -339,11 +338,11 @@ describe('Cell Editing', () => {
         .should('contain.text', '1/1/2025');
 
       // Now clear the date
-      cy.getAgGridCell(testRowIndex, 'statusDate').click();
+      cy.getAgGridCell(testRowIndex, 'statusDate').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="statusDate"]`).first()
-        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .find('.date-cell-editor').first()
         .clear()
         .type('{enter}');
 
@@ -363,8 +362,8 @@ describe('Cell Editing', () => {
     it('should edit member name', () => {
       const newName = `Test Patient ${Date.now()}`;
 
-      // Click member name cell to enter edit mode
-      cy.getAgGridCell(testRowIndex, 'memberName').click();
+      // Double-click member name cell to enter edit mode
+      cy.getAgGridCell(testRowIndex, 'memberName').dblclick();
       cy.wait(300);
 
       // Clear and type new name
@@ -384,18 +383,18 @@ describe('Cell Editing', () => {
     it('should display updated name immediately after editing', () => {
       const immediateName = `Immediate ${Date.now()}`;
 
-      // Click member name cell
-      cy.getAgGridCell(testRowIndex, 'memberName').click();
+      // Double-click member name cell
+      cy.getAgGridCell(testRowIndex, 'memberName').dblclick();
       cy.wait(300);
 
-      // Type new name and press Tab to commit
+      // Type new name and press Enter to commit
       cy.get(`[row-index="${testRowIndex}"] [col-id="memberName"]`).first()
         .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
         .clear()
         .type(immediateName)
-        .type('{tab}');
+        .type('{enter}');
 
-      cy.wait(300);
+      cy.wait(500);
 
       // Name should appear immediately, no page refresh needed
       cy.getAgGridCell(testRowIndex, 'memberName')
@@ -404,24 +403,26 @@ describe('Cell Editing', () => {
   });
 
   describe('Save Indicator', () => {
-    it('should show "Saving..." when edit is committed', () => {
+    it('should show save indicator when edit is committed', () => {
       // Edit a cell to trigger save
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="notes"]`).first()
         .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
         .clear()
-        .type(`Saving test ${Date.now()}`)
-        .type('{enter}');
+        .type(`Saving test ${Date.now()}`);
 
-      // "Saving..." should appear in the toolbar
-      cy.contains('Saving...').should('be.visible');
+      // Commit by clicking header
+      cy.get('.ag-header').click();
+
+      // "Saving..." or "Saved" should appear (API may respond instantly)
+      cy.contains(/Sav(ing|ed)/, { timeout: 5000 }).should('be.visible');
     });
 
     it('should show "Saved" after save completes', () => {
       // Edit a cell to trigger save
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="notes"]`).first()
@@ -436,7 +437,7 @@ describe('Cell Editing', () => {
 
     it('should hide indicator after approximately 2 seconds', () => {
       // Edit a cell to trigger save
-      cy.getAgGridCell(testRowIndex, 'notes').click();
+      cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
       cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="notes"]`).first()

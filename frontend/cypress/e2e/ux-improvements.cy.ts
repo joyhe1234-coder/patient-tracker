@@ -10,11 +10,7 @@ describe('Status Bar Consistency', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
     cy.wait(1000);
@@ -45,11 +41,7 @@ describe('Filter Chip Accessibility', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
     cy.wait(1000);
@@ -71,11 +63,7 @@ describe('Import Page UX Improvements', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/patient-management');
     cy.wait(500);
   });
@@ -97,18 +85,14 @@ describe('Password Visibility Toggles', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.wait(1000);
   });
 
   it('should show visibility toggles in Change Password modal', () => {
     // Open user menu by clicking the button with (ADMIN) text
-    cy.contains('(ADMIN)').click();
+    cy.contains('button', /ADMIN/).click();
     cy.wait(300);
 
     // Click Change Password
@@ -121,7 +105,7 @@ describe('Password Visibility Toggles', () => {
 
   it('should show "Must be at least 8 characters" helper text', () => {
     // Open user menu
-    cy.contains('(ADMIN)').click();
+    cy.contains('button', /ADMIN/).click();
     cy.wait(300);
 
     // Click Change Password
@@ -133,7 +117,7 @@ describe('Password Visibility Toggles', () => {
 
   it('should toggle password visibility when clicking eye icon', () => {
     // Open user menu and Change Password modal
-    cy.contains('(ADMIN)').click();
+    cy.contains('button', /ADMIN/).click();
     cy.wait(300);
     cy.contains('Change Password').click();
     cy.wait(300);

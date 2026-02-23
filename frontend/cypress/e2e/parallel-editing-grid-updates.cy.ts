@@ -10,11 +10,7 @@ describe('Parallel Editing - Remote Grid Updates', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.waitForAgGrid();
   });

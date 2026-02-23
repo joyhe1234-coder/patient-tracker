@@ -28,8 +28,8 @@ describe('Time Interval Editability', () => {
   function setStatusDateToToday(rowIndex: number): void {
     const formattedDate = getTodayFormatted();
     cy.getAgGridCell(rowIndex, 'statusDate').dblclick();
-    cy.get('.ag-cell-edit-wrapper input').clear().type(formattedDate);
-    cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+    cy.get('.date-cell-editor').clear().type(formattedDate);
+    cy.get('.date-cell-editor').type('{enter}');
     cy.wait(1000);
   }
 
@@ -46,48 +46,58 @@ describe('Time Interval Editability', () => {
   }
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.waitForAgGrid();
   });
 
   describe('Time Interval Not Editable for Dropdown-Controlled Statuses', () => {
     it('should not allow editing time interval for Screening discussed status', () => {
-      // Set up row: Screening > Breast Cancer Screening > Screening discussed
-      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening discussed');
-      cy.wait(300);
-
-      // Set status date so there is a time interval value (baseDueDays = 30)
-      setStatusDateToToday(testRowIndex);
-
-      // Select a time period in tracking1 to populate interval
-      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'In 3 Months');
-      cy.wait(1000);
-
-      // Scroll to time interval column and verify it has a value
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
-        .invoke('text')
-        .then((text) => {
-          const days = parseInt(text.trim(), 10);
-          expect(days).to.be.greaterThan(0);
+      // Find a row with Breast Cancer Screening (avoids 409 duplicate error)
+      cy.get('.ag-center-cols-container [col-id="qualityMeasure"]').then(($cells) => {
+        let targetRow = testRowIndex;
+        $cells.each((_, cell) => {
+          const text = Cypress.$(cell).text().replace(/[✓▾]/g, '').trim();
+          if (text === 'Breast Cancer Screening') {
+            targetRow = parseInt(Cypress.$(cell).closest('[row-index]').attr('row-index') || '-1', 10);
+            return false;
+          }
         });
 
-      // Try to double-click the time interval cell - it should not enter edit mode
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
+        if (targetRow === testRowIndex) {
+          cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+          cy.wait(1000);
+          cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+          cy.wait(1000);
+        }
 
-      // Verify no edit wrapper appears (cell is not editable)
-      cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
-        .find('.ag-cell-edit-wrapper')
-        .should('not.exist');
+        cy.selectAgGridDropdown(targetRow, 'measureStatus', 'Screening discussed');
+        cy.wait(300);
+
+        // Set status date so there is a time interval value (baseDueDays = 30)
+        setStatusDateToToday(targetRow);
+
+        // Select a time period in tracking1 to populate interval
+        cy.selectAgGridDropdown(targetRow, 'tracking1', 'In 3 Months');
+        cy.wait(1000);
+
+        // Scroll to time interval column and verify it has a value
+        cy.getAgGridCellWithScroll(targetRow, 'timeIntervalDays')
+          .invoke('text')
+          .then((text) => {
+            const days = parseInt(text.trim(), 10);
+            expect(days).to.be.greaterThan(0);
+          });
+
+        // Try to double-click the time interval cell - it should not enter edit mode
+        cy.getAgGridCellWithScroll(targetRow, 'timeIntervalDays').dblclick();
+        cy.wait(300);
+
+        // Verify no edit wrapper appears (cell is not editable)
+        cy.get(`[row-index="${targetRow}"] [col-id="timeIntervalDays"]`).first()
+          .find('.ag-cell-edit-wrapper')
+          .should('not.exist');
+      });
     });
 
     it('should not allow editing time interval for HgbA1c ordered status', () => {
@@ -310,24 +320,32 @@ describe('Time Interval Editability', () => {
       const alertStub = cy.stub();
       cy.on('window:alert', alertStub);
 
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
-      cy.get('.ag-cell-edit-wrapper input').clear().type('abc');
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
-
-      // Alert should have been called with validation message
-      cy.then(() => {
-        expect(alertStub).to.have.been.calledOnce;
-        expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
-      });
-
-      // Value should revert to original (365)
+      // Read the current value before testing (may not be 365 if prior tests set an override)
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
-        .then((text) => {
-          const days = parseInt(text.trim(), 10);
-          expect(days).to.equal(365);
+        .then((originalText) => {
+          const originalDays = parseInt(originalText.trim(), 10);
+          expect(originalDays).to.be.greaterThan(0);
+
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.wait(300);
+          cy.get('.ag-cell-edit-wrapper input').clear().type('abc');
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+          cy.wait(500);
+
+          // Alert should have been called with validation message
+          cy.then(() => {
+            expect(alertStub).to.have.been.calledOnce;
+            expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
+          });
+
+          // Value should revert to original
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(originalDays);
+            });
         });
     });
 
@@ -335,23 +353,29 @@ describe('Time Interval Editability', () => {
       const alertStub = cy.stub();
       cy.on('window:alert', alertStub);
 
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
-      cy.get('.ag-cell-edit-wrapper input').clear().type('0');
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
-
-      cy.then(() => {
-        expect(alertStub).to.have.been.calledOnce;
-        expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
-      });
-
-      // Value should revert to 365
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
-        .then((text) => {
-          const days = parseInt(text.trim(), 10);
-          expect(days).to.equal(365);
+        .then((originalText) => {
+          const originalDays = parseInt(originalText.trim(), 10);
+
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.wait(300);
+          cy.get('.ag-cell-edit-wrapper input').clear().type('0');
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+          cy.wait(500);
+
+          cy.then(() => {
+            expect(alertStub).to.have.been.calledOnce;
+            expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
+          });
+
+          // Value should revert to original
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(originalDays);
+            });
         });
     });
 
@@ -359,39 +383,51 @@ describe('Time Interval Editability', () => {
       const alertStub = cy.stub();
       cy.on('window:alert', alertStub);
 
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
-      cy.get('.ag-cell-edit-wrapper input').clear().type('1001');
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
-
-      cy.then(() => {
-        expect(alertStub).to.have.been.calledOnce;
-        expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
-      });
-
-      // Value should revert to 365
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
-        .then((text) => {
-          const days = parseInt(text.trim(), 10);
-          expect(days).to.equal(365);
+        .then((originalText) => {
+          const originalDays = parseInt(originalText.trim(), 10);
+
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.wait(300);
+          cy.get('.ag-cell-edit-wrapper input').clear().type('1001');
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+          cy.wait(500);
+
+          cy.then(() => {
+            expect(alertStub).to.have.been.calledOnce;
+            expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
+          });
+
+          // Value should revert to original
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(originalDays);
+            });
         });
     });
 
     it('should not allow clearing to empty value', () => {
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
-      cy.get('.ag-cell-edit-wrapper input').clear();
-      cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
-
-      // Value should remain at 365 (clearing returns false from valueSetter)
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
-        .then((text) => {
-          const days = parseInt(text.trim(), 10);
-          expect(days).to.equal(365);
+        .then((originalText) => {
+          const originalDays = parseInt(originalText.trim(), 10);
+
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.wait(300);
+          cy.get('.ag-cell-edit-wrapper input').clear();
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+          cy.wait(500);
+
+          // Value should remain at original (clearing returns false from valueSetter)
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(originalDays);
+            });
         });
     });
   });
@@ -428,33 +464,47 @@ describe('Time Interval Editability', () => {
     });
 
     it('should set interval via tracking1 for Screening discussed (In 3 Months)', () => {
-      // Set up: Screening > Breast Cancer Screening > Screening discussed
-      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-      cy.wait(300);
-      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening discussed');
-      cy.wait(300);
-
-      // Set status date
-      setStatusDateToToday(testRowIndex);
-
-      // Select "In 3 Months" in tracking1
-      cy.selectAgGridDropdown(testRowIndex, 'tracking1', 'In 3 Months');
-      cy.wait(1500);
-
-      // Verify interval shows approximately 90 days
-      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
-        .invoke('text')
-        .then((text) => {
-          const days = parseInt(text.trim(), 10);
-          expect(days).to.be.within(84, 93);
+      // Find a row with Breast Cancer Screening (avoids 409 duplicate error)
+      cy.get('.ag-center-cols-container [col-id="qualityMeasure"]').then(($cells) => {
+        let targetRow = testRowIndex;
+        $cells.each((_, cell) => {
+          const text = Cypress.$(cell).text().replace(/[✓▾]/g, '').trim();
+          if (text === 'Breast Cancer Screening') {
+            targetRow = parseInt(Cypress.$(cell).closest('[row-index]').attr('row-index') || '-1', 10);
+            return false;
+          }
         });
 
-      // Verify due date is set
-      cy.getAgGridCellWithScroll(testRowIndex, 'dueDate')
-        .invoke('text')
-        .should('not.satisfy', (text: string) => text.trim() === '');
+        if (targetRow === testRowIndex) {
+          cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+          cy.wait(1000);
+          cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
+          cy.wait(1000);
+        }
+
+        cy.selectAgGridDropdown(targetRow, 'measureStatus', 'Screening discussed');
+        cy.wait(300);
+
+        // Set status date
+        setStatusDateToToday(targetRow);
+
+        // Select "In 3 Months" in tracking1
+        cy.selectAgGridDropdown(targetRow, 'tracking1', 'In 3 Months');
+        cy.wait(1500);
+
+        // Verify interval shows approximately 90 days
+        cy.getAgGridCellWithScroll(targetRow, 'timeIntervalDays')
+          .invoke('text')
+          .then((text) => {
+            const days = parseInt(text.trim(), 10);
+            expect(days).to.be.within(84, 93);
+          });
+
+        // Verify due date is set
+        cy.getAgGridCellWithScroll(targetRow, 'dueDate')
+          .invoke('text')
+          .should('not.satisfy', (text: string) => text.trim() === '');
+      });
     });
 
     it('should update interval when tracking2 changes for HgbA1c ordered', () => {

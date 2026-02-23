@@ -17,7 +17,7 @@ export class LoginPage {
     this.signInButton = page.getByRole('button', { name: /sign in/i });
     this.errorMessage = page.locator('.bg-red-50');
     this.loadingSpinner = page.locator('text=Signing in...');
-    this.showPasswordButton = page.locator('button[tabindex="-1"]');
+    this.showPasswordButton = page.getByRole('button', { name: /show password|hide password/i });
     this.pageTitle = page.locator('text=Patient Quality Measure Tracker');
   }
 
