@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.12.0] - 2026-02-23
+
+### Added
+- **Depression Screening quality measure** — Full stack support for a new Screening-type quality measure with 7 statuses:
+  - Not Addressed (white), Called to schedule (blue, 7-day timer), Visit scheduled (yellow, 1-day timer), Screening complete (green), Screening unnecessary (gray), Patient declined (purple), No longer applicable (gray)
+  - `dropdownConfig.ts`: Added Depression Screening to Screening request type (now 4 measures) with 7 status options
+  - `statusColors.ts`: Added "Called to schedule" (blue), "Visit scheduled" (yellow), "Screening complete" (green) to color arrays; "Patient declined" already covered by purple; "Screening unnecessary" and "No longer applicable" already covered by gray
+  - `statusDatePromptResolver.ts`: Date prompts for Called to schedule (Date Called), Visit scheduled (Date Scheduled), Screening complete (Date Completed)
+  - `validator.ts`: Added "Depression Screening" to VALID_QUALITY_MEASURES for Screening type
+  - `hill.json`: Added "Depression Screening" and "Depression Screening E" column mappings + compliant/nonCompliant status mapping; removed "Depression Screening" from skipColumns
+  - `sutter.json`: Added regex pattern `^Depression [Ss]creening|^PHQ-?9|^Screen.*depression` to action mapping
+  - `seed.ts`: Added Depression Screening quality measure, 7 statuses with datePrompts/baseDueDays, 6 sample patients, 7 sample patient measures (including one overdue scenario)
+- **Test data updated** for Depression Screening:
+  - `test-hill-valid.csv`: Added Depression Screening Q1/Q2 columns (now 16 columns per patient)
+  - `test-hill-valid.csv.json`: Expected output updated (42 -> 50 output rows, 6 measure types)
+  - `test-sutter-valid.xlsx`: Added 3 Depression Screening rows in Physician One (Hill, James patients) + 1 in Physician Two (Nelson)
+  - `create-sutter-fixtures.ts`: Updated fixture creation with Depression Screening test rows
+
+### Tests
+- Backend (Jest): 1,387 tests passing (47 suites)
+- Frontend (Vitest): 1,152 tests passing (43 suites) — +14 new Depression Screening tests
+  - `dropdownConfig.test.ts`: +5 tests (4 screening measures, 7 Depression statuses, first status, all statuses, no tracking1)
+  - `statusColors.test.ts`: +10 tests (color list assertions + 7 Depression-specific color tests including overdue/terminal behavior)
+  - `StatusFilterBar.test.tsx`: +1 test (15 measure dropdown options)
+  - `sutter-integration.test.ts`: Updated row counts (18->21 Physician One, 16->18 output, 8->9 Physician Two)
+  - `actionMapper.test.ts`: Updated pattern count (10->11)
+
+---
+
 ## [4.11.1] - 2026-02-23
 
 ### Fixed

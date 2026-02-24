@@ -32,6 +32,7 @@ export const GREEN_STATUSES = [
   'HgbA1c at goal',
   'Chronic diagnosis confirmed',
   'Patient on ACE/ARB',
+  'Screening complete',
 ] as const;
 
 export const BLUE_STATUSES = [
@@ -53,6 +54,7 @@ export const BLUE_STATUSES = [
   'Scheduled call back - BP not at goal',
   'Scheduled call back - BP at goal',
   'Will call later to schedule',
+  'Called to schedule',
 ] as const;
 
 export const YELLOW_STATUSES = [
@@ -61,6 +63,7 @@ export const YELLOW_STATUSES = [
   'Screening discussed',
   'Patient contacted for screening',
   'Vaccination discussed',
+  'Visit scheduled',
 ] as const;
 
 export const ORANGE_STATUSES = [

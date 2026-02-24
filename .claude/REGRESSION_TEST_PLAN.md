@@ -4136,8 +4136,50 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 43. Depression Screening Quality Measure
+
+**Requirement Spec:** [`.claude/specs/depression-screening/`](specs/depression-screening/)
+
+### TC-43.1: Depression Screening in Quality Measure Dropdown
+**Automation:** Automated - `dropdownConfig.test.ts` (5 tests)
+**Steps:** Check Screening request type quality measure options
+**Expected:** Depression Screening is the 4th Screening measure (4 total); 7 statuses; "Not Addressed" first; no Tracking #1 options
+
+### TC-43.2: Depression Screening Status Colors
+**Automation:** Automated - `statusColors.test.ts` (10 tests)
+**Steps:** Verify row color for each Depression Screening status
+**Expected:** Not Addressed = white, Called to schedule = blue, Visit scheduled = yellow, Screening complete = green, Screening unnecessary = gray, Patient declined = purple, No longer applicable = gray
+
+### TC-43.3: Depression Screening Overdue Behavior
+**Automation:** Automated - `statusColors.test.ts` (4 tests)
+**Steps:** Set statusDate past due for each status
+**Expected:** Called to schedule (7-day timer) and Visit scheduled (1-day timer) turn red when overdue; Screening unnecessary and Patient declined do NOT turn red (terminal statuses)
+
+### TC-43.4: Depression Screening Filter Bar Integration
+**Automation:** Automated - `StatusFilterBar.test.tsx` (1 test)
+**Steps:** Check quality measure dropdown options count
+**Expected:** 15 options total (14 measures + "All Measures"); Depression Screening present
+
+### TC-43.5: Hill Import — Depression Screening Columns
+**Automation:** Automated - `test-hill-valid.csv.json` expected output validation
+**Steps:** Import Hill CSV with Depression Screening Q1/Q2 columns
+**Expected:** 16 mapped columns (was 14), 6 measure types (was 5), 50 output rows (was 42); each patient gets Depression Screening row based on compliant/non-compliant Q2
+
+### TC-43.6: Sutter Import — Depression Screening Action Pattern
+**Automation:** Automated - `sutter-integration.test.ts` (3 tests), `actionMapper.test.ts` (1 test)
+**Steps:** Import Sutter file with "Depression Screening", "PHQ-9", "Screen for depression" action text
+**Expected:** 11 action patterns compiled (was 10); All 3 variants match Depression Screening measure; duplicate rows for same patient merged
+
+### TC-43.7: Depression Screening Seed Data
+**Automation:** Manual - requires database seed verification
+**Steps:** Run `npx tsx prisma/seed.ts` on fresh database
+**Expected:** Depression Screening quality measure created with 7 statuses (correct datePrompts, baseDueDays, sortOrder); 6 patients (Harper through Ward); 7 patient measures including overdue scenario (Reed with 14-day-old "Called to schedule")
+
+---
+
 ## Last Updated
 
+February 23, 2026 - Added Section 43: Depression Screening Quality Measure (TC-43.1 to TC-43.7). 7 test cases, 86% automated (6 automated, 1 manual). +14 Vitest tests (dropdownConfig, statusColors, StatusFilterBar). Updated backend integration tests. Total: 1,387 Jest + 1,152 Vitest + 130 Playwright + 369 Cypress.
 February 23, 2026 - Added Sections 40-42: Smart Column Mapping (TC-40.1 to TC-42.12). 40 test cases, 100% automated. Backend: 56 Jest (fuzzyMatcher) + 64 Jest (conflictDetector). Frontend: 27 Vitest (ConflictResolutionStep) + 17 Vitest (ConflictBanner) + 18 Vitest (MappingManagementPage). E2E: 6 Playwright (import-conflict-resolution) + 8 Playwright (smart-column-mapping) + 13 Playwright (import-all-roles) + 8 Cypress (import-conflict-admin) + 6 Cypress (import-conflict-nonadmin) + 9 Cypress (mapping-management). Total: 1,387 Jest + 1,138 Vitest + 130 Playwright + 369 Cypress.
 February 18, 2026 - Sutter duplicate merging, measureDetails parsing improvements, "Not Addressed" status override, dev seed users, Jest config fix. Total: 1,165 Jest + 1,025 Vitest.
 February 18, 2026 - Added Section 38: Sutter File-Based Integration Tests (TC-38.1 to TC-38.8, 67 Jest tests using 8 fixture files). Added Section 39: Sutter Import Visual Tests (TC-39.1 to TC-39.6, 22 Playwright tests).

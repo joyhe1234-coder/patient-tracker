@@ -153,6 +153,14 @@
     "Childhood Immunization Status: Combo-10 E": {
       "requestType": "Quality",
       "qualityMeasure": "Vaccination"
+    },
+    "Depression Screening": {
+      "requestType": "Screening",
+      "qualityMeasure": "Depression Screening"
+    },
+    "Depression Screening E": {
+      "requestType": "Screening",
+      "qualityMeasure": "Depression Screening"
     }
   },
 
@@ -196,6 +204,10 @@
     "Vaccination": {
       "compliant": "Vaccination completed",
       "nonCompliant": "Not Addressed"
+    },
+    "Depression Screening": {
+      "compliant": "Screening complete",
+      "nonCompliant": "Not Addressed"
     }
   },
 
@@ -225,7 +237,6 @@
     "Asthma Medication Ratio : Ages 51-64",
     "PPC - Timeliness of Prenatal Care",
     "PPC - Postpartum Care",
-    "Depression Screening",
     "Follow-Up on Positive Screen",
     "Appropriate Testing for Pharyngitis (Overall)",
     "Appropriate Testing for Pharyngitis: Ages 3-17y",

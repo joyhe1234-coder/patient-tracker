@@ -29,13 +29,31 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.11.1):**
+**Test Coverage (as of Release 4.12.0):**
 - Layer 1 (Backend Jest): 1,387 tests passing (47 suites)
-- Layer 2 (Frontend Vitest): 1,138 tests passing (43 suites)
+- Layer 2 (Frontend Vitest): 1,152 tests passing (43 suites)
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests
 - Layer 4 (Cypress E2E): ~283 tests
 - Visual test plan v2.1: 427 test cases documented
-- Regression test plan: 42 sections, 56 new test cases in sections 38-42 (100% automated)
+- Regression test plan: 43 sections, 63 new test cases in sections 38-43 (100% automated)
+
+### Depression Screening Quality Measure
+
+**Status: Complete** (Feb 23, 2026)
+**Spec:** `.claude/specs/depression-screening/`
+
+- [x] **Seed data:** Quality measure, 7 statuses (Not Addressed, Called to schedule, Visit scheduled, Screening complete, Screening unnecessary, Patient declined, No longer applicable) with date prompts and baseDueDays
+- [x] **Seed patients:** 6 sample patients with 7 patient measures (including overdue scenario)
+- [x] **Frontend dropdowns:** Added to Screening request type (4 measures), 7 status options in QUALITY_MEASURE_TO_STATUS
+- [x] **Status colors:** Called to schedule (blue), Visit scheduled (yellow), Screening complete (green), Patient declined (purple), Screening unnecessary/No longer applicable (gray)
+- [x] **Date prompts:** statusDatePromptResolver updated for 3 new status-to-prompt mappings
+- [x] **Import validation:** Added to VALID_QUALITY_MEASURES in validator.ts
+- [x] **Hill import:** Column mapping + compliant/nonCompliant status mapping; removed from skipColumns
+- [x] **Sutter import:** Regex action pattern for Depression Screening, PHQ-9, Screen for depression
+- [x] **Test data:** Updated Hill CSV/JSON expected output + Sutter XLSX fixtures with Depression Screening rows
+- [x] **Visual review:** 35/35 scenarios passed (ui-ux-reviewer agent)
+
+**Tests:** +14 Vitest (dropdownConfig, statusColors, StatusFilterBar, sutter-integration, actionMapper)
 
 ### Smart Column Mapping + Import E2E Tests
 

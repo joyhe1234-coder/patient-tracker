@@ -43,6 +43,7 @@ describe('statusColors', () => {
       expect(GREEN_STATUSES).toContain('Blood pressure at goal');
       expect(GREEN_STATUSES).toContain('Lab completed');
       expect(GREEN_STATUSES).toContain('Patient on ACE/ARB');
+      expect(GREEN_STATUSES).toContain('Screening complete');
     });
 
     it('BLUE_STATUSES contains scheduled/ordered/in-progress statuses', () => {
@@ -50,12 +51,14 @@ describe('statusColors', () => {
       expect(BLUE_STATUSES).toContain('HgbA1c ordered');
       expect(BLUE_STATUSES).toContain('HgbA1c NOT at goal');
       expect(BLUE_STATUSES).toContain('Obtaining outside records');
+      expect(BLUE_STATUSES).toContain('Called to schedule');
     });
 
     it('YELLOW_STATUSES contains discussed/contacted statuses', () => {
       expect(YELLOW_STATUSES).toContain('Patient called to schedule AWV');
       expect(YELLOW_STATUSES).toContain('Screening discussed');
       expect(YELLOW_STATUSES).toContain('Patient contacted for screening');
+      expect(YELLOW_STATUSES).toContain('Visit scheduled');
     });
 
     it('ORANGE_STATUSES contains chronic diagnosis resolved/invalid', () => {
@@ -364,6 +367,64 @@ describe('statusColors', () => {
           dueDate: '2025-01-01',
         })
       ).toBe('green');
+    });
+
+    describe('Depression Screening colors', () => {
+      it('returns blue for "Called to schedule"', () => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: 'Called to schedule' })).toBe('blue');
+      });
+
+      it('returns yellow for "Visit scheduled"', () => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: 'Visit scheduled' })).toBe('yellow');
+      });
+
+      it('returns green for "Screening complete"', () => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: 'Screening complete' })).toBe('green');
+      });
+
+      it('returns green for "Screening completed" (Cervical Cancer, unaffected)', () => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: 'Screening completed' })).toBe('green');
+      });
+
+      it('returns gray for "Screening unnecessary"', () => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: 'Screening unnecessary' })).toBe('gray');
+      });
+
+      it('returns purple for "Patient declined"', () => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: 'Patient declined' })).toBe('purple');
+      });
+
+      it('returns red for overdue "Called to schedule"', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: 'Called to schedule', dueDate: '2025-06-01' })
+        ).toBe('red');
+      });
+
+      it('returns red for overdue "Visit scheduled"', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: 'Visit scheduled', dueDate: '2025-06-01' })
+        ).toBe('red');
+      });
+
+      it('does NOT return red for overdue "Patient declined" (purple is terminal)', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: 'Patient declined', dueDate: '2025-06-01' })
+        ).toBe('purple');
+      });
+
+      it('does NOT return red for overdue "Screening unnecessary" (gray is terminal)', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: 'Screening unnecessary', dueDate: '2025-06-01' })
+        ).toBe('gray');
+      });
     });
   });
 });

@@ -19,6 +19,7 @@ export const REQUEST_TYPE_TO_QUALITY_MEASURE: Record<string, string[]> = {
     'Breast Cancer Screening',
     'Colon Cancer Screening',
     'Cervical Cancer Screening',
+    'Depression Screening',
   ],
 };
 
@@ -134,6 +135,15 @@ export const QUALITY_MEASURE_TO_STATUS: Record<string, string[]> = {
     'Chronic diagnosis confirmed',
     'Chronic diagnosis resolved',
     'Chronic diagnosis invalid',
+    'No longer applicable',
+  ],
+  'Depression Screening': [
+    'Not Addressed',
+    'Called to schedule',
+    'Visit scheduled',
+    'Screening complete',
+    'Screening unnecessary',
+    'Patient declined',
     'No longer applicable',
   ],
 };

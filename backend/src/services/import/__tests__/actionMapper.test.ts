@@ -26,10 +26,10 @@ const realActionMapping: ActionMappingEntry[] = sutterConfig.actionMapping;
 
 describe('actionMapper', () => {
   describe('buildActionMapperCache', () => {
-    it('should compile all 10 action mapping patterns', () => {
+    it('should compile all 11 action mapping patterns', () => {
       const cache = buildActionMapperCache(realActionMapping);
 
-      expect(cache.compiledPatterns).toHaveLength(10);
+      expect(cache.compiledPatterns).toHaveLength(11);
     });
 
     it('should set case-insensitive flag on compiled patterns', () => {

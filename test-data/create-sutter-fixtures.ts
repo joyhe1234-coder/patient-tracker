@@ -81,7 +81,7 @@ function writeWorkbook(filename: string, sheets: Record<string, unknown[][]>): v
 }
 
 // ─────────────────────────────────────────────────────────────────
-// 1. test-sutter-valid.xlsx — Happy path, all 10 action patterns
+// 1. test-sutter-valid.xlsx — Happy path, all 11 action patterns
 // ─────────────────────────────────────────────────────────────────
 function createValid(): void {
   const phyOneRows = [
@@ -112,7 +112,13 @@ function createValid(): void {
     row('Green, Robert', '12/25/1950', '(555) 100-0007', '700 Spruce Ct', 'Vaccine: Flu shot due for 2024-2025 season', 'Quality', ''),
     // Row 14: Vaccine Pneumococcal -> Vaccination (same patient as 13, tests merge)
     row('Green, Robert', '12/25/1950', '(555) 100-0007', '700 Spruce Ct', 'Vaccine: Pneumococcal due', 'Quality', ''),
-    // Rows 15-18: Additional patients with mixed measures
+    // Row 15: Depression Screening -> Depression Screening (exact match)
+    row('Hill, Nancy', '05/20/1985', '(555) 100-0010', '1000 Poplar Dr', 'Depression Screening due in 2025', 'Quality', ''),
+    // Row 16: PHQ-9 variant -> Depression Screening (alternate pattern)
+    row('Hill, Nancy', '05/20/1985', '(555) 100-0010', '1000 Poplar Dr', 'PHQ-9 screening needed', 'Quality', ''),
+    // Row 17: Screen for depression variant -> Depression Screening
+    row('James, Oliver', '09/14/1972', '(555) 100-0011', '1100 Magnolia Ave', 'Screen for depression in 2025', 'Quality', ''),
+    // Rows 18-21: Additional patients with mixed measures
     row('Harris, Pat', '04/10/1979', '(555) 100-0008', '800 Walnut Blvd', '', 'AWV', ''),
     row('Harris, Pat', '04/10/1979', '(555) 100-0008', '800 Walnut Blvd', 'FOBT in 2025 or colonoscopy', 'Quality', '01/15/2025, 03/20/2025'),
     row('Irving, Kim', '08/18/1990', '(555) 100-0009', '900 Ash St', 'Mammogram in 2025', 'Quality', ''),
@@ -128,6 +134,8 @@ function createValid(): void {
     row('Lewis, Dan', '10/08/1955', '(555) 200-0003', '1200 Willow Ave', 'Vaccine: COVID booster due', 'Quality', ''),
     row('Moore, Sue', '03/22/1987', '(555) 200-0004', '1300 Cherry Rd', 'Pap in 2022 - 2025 -OR- Pap & HPV test in 2020 - 2025', 'Quality', ''),
     row('Moore, Sue', '03/22/1987', '(555) 200-0004', '1300 Cherry Rd', 'Chlamydia test in 2025', 'Quality', ''),
+    // Depression Screening in second physician tab
+    row('Nelson, Grace', '07/15/1978', '(555) 200-0005', '1400 Aspen Way', 'Depression screening in 2025', 'Quality', ''),
   ];
 
   writeWorkbook('test-sutter-valid.xlsx', {

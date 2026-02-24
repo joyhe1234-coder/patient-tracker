@@ -87,6 +87,12 @@
       "requestType": "Quality",
       "qualityMeasure": "Vaccination",
       "measureStatus": "Not Addressed"
+    },
+    {
+      "pattern": "^Depression [Ss]creening|^PHQ-?9|^Screen.*depression",
+      "requestType": "Screening",
+      "qualityMeasure": "Depression Screening",
+      "measureStatus": "Not Addressed"
     }
   ],
 

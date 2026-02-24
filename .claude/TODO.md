@@ -216,16 +216,20 @@ This document tracks planned features and enhancements for future development.
 
 ---
 
-### Add New Quality Measure: Depression Screening
+### Add New Quality Measure: Depression Screening ✅ COMPLETE
 **Reference:** `.claude/ADDING_QUALITY_MEASURES.md` (implementation checklist)
 
-- [ ] Add to `backend/prisma/seed.ts` (statuses, tracking options, due days)
-- [ ] Add to `frontend/src/config/dropdownConfig.ts` (dropdown mappings)
-- [ ] Add to `backend/src/services/import/validator.ts` (VALID_QUALITY_MEASURES)
-- [ ] Add to `backend/src/config/import/hill.json` (column + status mapping)
-- [ ] Update row colors in `PatientGrid.tsx` if new status categories
-- [ ] Add Cypress E2E tests for new measure
-- [ ] Run full test suite to verify no regressions
+- [x] Add to `backend/prisma/seed.ts` (statuses, tracking options, due days)
+- [x] Add to `frontend/src/config/dropdownConfig.ts` (dropdown mappings)
+- [x] Add to `backend/src/services/import/validator.ts` (VALID_QUALITY_MEASURES)
+- [x] Add to `backend/src/config/import/hill.json` (column + status mapping)
+- [x] Add to `backend/src/config/import/sutter.json` (regex action pattern)
+- [x] Update row colors in `statusColors.ts` (Called to schedule, Visit scheduled, Screening complete)
+- [x] Update `statusDatePromptResolver.ts` (date prompts for 3 new statuses)
+- [x] Update test data (Hill CSV, Sutter XLSX, expected JSON, fixtures)
+- [x] Add 14 new Vitest tests (dropdownConfig, statusColors, StatusFilterBar)
+- [x] Update backend integration tests (sutter-integration, actionMapper)
+- [x] Run full test suite — all passing (1,387 Jest + 1,152 Vitest)
 
 ### External Data Import
 See **Phase 5: CSV Import** in "In Progress" section above.

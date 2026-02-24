@@ -711,8 +711,8 @@ describe('StatusFilterBar', () => {
       );
 
       const dropdown = screen.getByLabelText('Filter by quality measure') as HTMLSelectElement;
-      // 13 measures + "All Measures" = 14 options
-      expect(dropdown.options.length).toBe(14);
+      // 14 measures + "All Measures" = 15 options
+      expect(dropdown.options.length).toBe(15);
       expect(dropdown.options[0].value).toBe('All Measures');
       expect(dropdown.options[1].value).toBe('Annual Wellness Visit');
     });

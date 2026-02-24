@@ -16,20 +16,22 @@
       "Eye Exam Q1",
       "Eye Exam Q2",
       "BP Control Q1",
-      "BP Control Q2"
+      "BP Control Q2",
+      "Depression Screening Q1",
+      "Depression Screening Q2"
     ],
     "dataStartRow": 2
   },
   "mapping": {
-    "mapped": 14,
+    "mapped": 16,
     "skipped": 0,
     "unmapped": 0,
-    "measureTypes": 5,
+    "measureTypes": 6,
     "missingRequired": []
   },
   "transform": {
     "inputRows": 10,
-    "outputRows": 42,
+    "outputRows": 50,
     "patientsWithNoMeasures": 0,
     "errors": 0
   },
@@ -66,6 +68,12 @@
         "sourceRowIndex": 0
       },
       {
+        "memberName": "Smith, John",
+        "qualityMeasure": "Depression Screening",
+        "measureStatus": "Screening complete",
+        "sourceRowIndex": 0
+      },
+      {
         "memberName": "Johnson, Mary",
         "qualityMeasure": "Annual Wellness Visit",
         "measureStatus": "AWV completed",
@@ -87,6 +95,12 @@
         "memberName": "Johnson, Mary",
         "qualityMeasure": "Hypertension Management",
         "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 1
+      },
+      {
+        "memberName": "Johnson, Mary",
+        "qualityMeasure": "Depression Screening",
+        "measureStatus": "Not Addressed",
         "sourceRowIndex": 1
       },
       {
@@ -138,6 +152,12 @@
         "sourceRowIndex": 3
       },
       {
+        "memberName": "Brown, Patricia",
+        "qualityMeasure": "Depression Screening",
+        "measureStatus": "Screening complete",
+        "sourceRowIndex": 3
+      },
+      {
         "memberName": "Davis, Michael",
         "qualityMeasure": "Annual Wellness Visit",
         "measureStatus": "AWV completed",
@@ -158,6 +178,12 @@
       {
         "memberName": "Davis, Michael",
         "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 4
+      },
+      {
+        "memberName": "Davis, Michael",
+        "qualityMeasure": "Depression Screening",
         "measureStatus": "Not Addressed",
         "sourceRowIndex": 4
       },
@@ -183,6 +209,12 @@
         "memberName": "Miller, Linda",
         "qualityMeasure": "Diabetic Eye Exam",
         "measureStatus": "Diabetic eye exam completed",
+        "sourceRowIndex": 5
+      },
+      {
+        "memberName": "Miller, Linda",
+        "qualityMeasure": "Depression Screening",
+        "measureStatus": "Screening complete",
         "sourceRowIndex": 5
       },
       {
@@ -234,6 +266,12 @@
         "sourceRowIndex": 7
       },
       {
+        "memberName": "Moore, Elizabeth",
+        "qualityMeasure": "Depression Screening",
+        "measureStatus": "Screening complete",
+        "sourceRowIndex": 7
+      },
+      {
         "memberName": "Taylor, David",
         "qualityMeasure": "Annual Wellness Visit",
         "measureStatus": "AWV completed",
@@ -260,6 +298,12 @@
       {
         "memberName": "Taylor, David",
         "qualityMeasure": "Hypertension Management",
+        "measureStatus": "Not Addressed",
+        "sourceRowIndex": 8
+      },
+      {
+        "memberName": "Taylor, David",
+        "qualityMeasure": "Depression Screening",
         "measureStatus": "Not Addressed",
         "sourceRowIndex": 8
       },
@@ -291,6 +335,12 @@
         "memberName": "Anderson, Susan",
         "qualityMeasure": "Hypertension Management",
         "measureStatus": "Blood pressure at goal",
+        "sourceRowIndex": 9
+      },
+      {
+        "memberName": "Anderson, Susan",
+        "qualityMeasure": "Depression Screening",
+        "measureStatus": "Screening complete",
         "sourceRowIndex": 9
       }
     ],
