@@ -366,3 +366,12 @@ export function clearEditsForSocket(socketId: string): Array<{ room: string; row
 export function getActiveEditsForRoom(room: string): ActiveEdit[] {
   return roomEdits.get(room) || [];
 }
+
+/**
+ * Clear all shared state (presence + edits).
+ * Used by tests to ensure isolation between test cases.
+ */
+export function clearAllState(): void {
+  roomPresence.clear();
+  roomEdits.clear();
+}

@@ -107,6 +107,10 @@ describe('AutoOpenSelectEditor', () => {
   });
 
   describe('Keyboard Navigation', () => {
+    // NOTE: keyboard tests use fireEvent.keyDown (synchronous) rather than
+    // userEvent.keyboard because the combination of fake timers and
+    // userEvent's internal async scheduling causes 5-second timeouts.
+
     it('ArrowDown moves highlight to next option', () => {
       const props = createEditorProps({ stopEditing, value: 'AWV' });
       render(<AutoOpenSelectEditor {...props} />);
@@ -161,7 +165,6 @@ describe('AutoOpenSelectEditor', () => {
       render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       const container = document.querySelector('.auto-open-select-editor')!;
-
       // Move to Chronic DX
       fireEvent.keyDown(container, { key: 'ArrowDown' });
       // Press Enter
@@ -217,6 +220,8 @@ describe('AutoOpenSelectEditor', () => {
       render(<AutoOpenSelectEditor ref={ref} {...props} />);
 
       const screeningOption = screen.getByText('Screening');
+      // Kept as fireEvent.mouseDown: the component uses onMouseDown (not onClick)
+      // to select options, preventing blur-related issues in AG Grid editors.
       fireEvent.mouseDown(screeningOption);
 
       act(() => { vi.advanceTimersByTime(10); });

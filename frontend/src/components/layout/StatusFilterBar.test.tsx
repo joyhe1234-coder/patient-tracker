@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import StatusFilterBar from './StatusFilterBar';
 import { getRowStatusColor, StatusColor } from '../../config/statusColors';
@@ -36,6 +37,8 @@ describe('StatusFilterBar', () => {
     onInsuranceGroupChange: vi.fn(),
     insuranceGroupOptions: [{ id: 'hill', name: 'Hill' }],
   };
+
+  const user = userEvent.setup();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,7 +91,7 @@ describe('StatusFilterBar', () => {
     expect(screen.getByText('(15)')).toBeInTheDocument();
   });
 
-  it('calls onFilterChange when chip clicked', () => {
+  it('calls onFilterChange when chip clicked', async () => {
     const handleChange = vi.fn();
     render(
       <StatusFilterBar
@@ -101,11 +104,11 @@ describe('StatusFilterBar', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Duplicates'));
+    await user.click(screen.getByText('Duplicates'));
     expect(handleChange).toHaveBeenCalledWith(['duplicate']);
   });
 
-  it('toggling off the last selected chip returns to all', () => {
+  it('toggling off the last selected chip returns to all', async () => {
     const handleChange = vi.fn();
     render(
       <StatusFilterBar
@@ -118,11 +121,11 @@ describe('StatusFilterBar', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Completed'));
+    await user.click(screen.getByText('Completed'));
     expect(handleChange).toHaveBeenCalledWith(['all']);
   });
 
-  it('clicking All chip calls onFilterChange with all', () => {
+  it('clicking All chip calls onFilterChange with all', async () => {
     const handleChange = vi.fn();
     render(
       <StatusFilterBar
@@ -136,7 +139,7 @@ describe('StatusFilterBar', () => {
     );
 
     // Use button role to target the "All" chip (not the dropdown option)
-    fireEvent.click(screen.getByRole('button', { name: /All/ }));
+    await user.click(screen.getByRole('button', { name: /All/ }));
     expect(handleChange).toHaveBeenCalledWith(['all']);
   });
 
@@ -158,7 +161,7 @@ describe('StatusFilterBar', () => {
   });
 
   describe('Multi-Select Toggle Behavior', () => {
-    it('clicking unselected chip adds it to active filters', () => {
+    it('clicking unselected chip adds it to active filters', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -171,11 +174,11 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('In Progress'));
+      await user.click(screen.getByText('In Progress'));
       expect(handleChange).toHaveBeenCalledWith(['green', 'blue']);
     });
 
-    it('clicking selected chip removes it without affecting others', () => {
+    it('clicking selected chip removes it without affecting others', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -188,11 +191,11 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Completed'));
+      await user.click(screen.getByText('Completed'));
       expect(handleChange).toHaveBeenCalledWith(['blue']);
     });
 
-    it('clicking chip while All is active selects only that chip', () => {
+    it('clicking chip while All is active selects only that chip', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -205,11 +208,11 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Completed'));
+      await user.click(screen.getByText('Completed'));
       expect(handleChange).toHaveBeenCalledWith(['green']);
     });
 
-    it('clicking Duplicates deselects all color chips', () => {
+    it('clicking Duplicates deselects all color chips', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -222,11 +225,11 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Duplicates'));
+      await user.click(screen.getByText('Duplicates'));
       expect(handleChange).toHaveBeenCalledWith(['duplicate']);
     });
 
-    it('clicking color chip while Duplicates active exits duplicates mode', () => {
+    it('clicking color chip while Duplicates active exits duplicates mode', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -239,11 +242,11 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('In Progress'));
+      await user.click(screen.getByText('In Progress'));
       expect(handleChange).toHaveBeenCalledWith(['blue']);
     });
 
-    it('toggling off Duplicates returns to all', () => {
+    it('toggling off Duplicates returns to all', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -256,11 +259,11 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Duplicates'));
+      await user.click(screen.getByText('Duplicates'));
       expect(handleChange).toHaveBeenCalledWith(['all']);
     });
 
-    it('can select three chips simultaneously', () => {
+    it('can select three chips simultaneously', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -273,7 +276,7 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Contacted'));
+      await user.click(screen.getByText('Contacted'));
       expect(handleChange).toHaveBeenCalledWith(['green', 'blue', 'yellow']);
     });
   });
@@ -327,7 +330,7 @@ describe('StatusFilterBar', () => {
       expect(greenButton.className).not.toContain('opacity-50');
     });
 
-    it('inactive chip has opacity-50 class', () => {
+    it('inactive chip has hover:bg-gray-50 class (no opacity reduction for a11y contrast)', () => {
       render(
         <StatusFilterBar
           activeFilters={['green']}
@@ -340,7 +343,8 @@ describe('StatusFilterBar', () => {
       );
 
       const blueButton = screen.getByRole('button', { name: /In Progress/ });
-      expect(blueButton.className).toContain('opacity-50');
+      expect(blueButton.className).toContain('hover:bg-gray-50');
+      expect(blueButton.className).not.toContain('opacity-50');
     });
 
     it('multiple active chips all have aria-pressed true', () => {
@@ -456,7 +460,7 @@ describe('StatusFilterBar', () => {
       expect(screen.getByLabelText('Clear search')).toBeInTheDocument();
     });
 
-    it('calls onSearchChange when user types in input', () => {
+    it('calls onSearchChange when user types in input', async () => {
       const handleSearch = vi.fn();
       render(
         <StatusFilterBar
@@ -471,11 +475,17 @@ describe('StatusFilterBar', () => {
       );
 
       const input = screen.getByPlaceholderText('Search by name...');
-      fireEvent.change(input, { target: { value: 'john' } });
-      expect(handleSearch).toHaveBeenCalledWith('john');
+      await user.clear(input);
+      await user.type(input, 'john');
+      // Controlled input: onSearchChange fires per-keystroke with each character
+      expect(handleSearch).toHaveBeenCalledTimes(4);
+      expect(handleSearch).toHaveBeenNthCalledWith(1, 'j');
+      expect(handleSearch).toHaveBeenNthCalledWith(2, 'o');
+      expect(handleSearch).toHaveBeenNthCalledWith(3, 'h');
+      expect(handleSearch).toHaveBeenNthCalledWith(4, 'n');
     });
 
-    it('calls onSearchChange with empty string when clear button clicked', () => {
+    it('calls onSearchChange with empty string when clear button clicked', async () => {
       const handleSearch = vi.fn();
       render(
         <StatusFilterBar
@@ -489,7 +499,7 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByLabelText('Clear search'));
+      await user.click(screen.getByLabelText('Clear search'));
       expect(handleSearch).toHaveBeenCalledWith('');
     });
 
@@ -510,7 +520,7 @@ describe('StatusFilterBar', () => {
       expect(clearButton).toBeInTheDocument();
     });
 
-    it('clears search and blurs input on Escape key', () => {
+    it('clears search and blurs input on Escape key', async () => {
       const handleSearch = vi.fn();
       render(
         <StatusFilterBar
@@ -525,12 +535,12 @@ describe('StatusFilterBar', () => {
       );
 
       const input = screen.getByPlaceholderText('Search by name...');
-      input.focus();
-      fireEvent.keyDown(input, { key: 'Escape' });
+      await user.click(input);
+      await user.keyboard('{Escape}');
       expect(handleSearch).toHaveBeenCalledWith('');
     });
 
-    it('does not clear search on non-Escape keys', () => {
+    it('does not clear search on non-Escape keys', async () => {
       const handleSearch = vi.fn();
       render(
         <StatusFilterBar
@@ -545,7 +555,8 @@ describe('StatusFilterBar', () => {
       );
 
       const input = screen.getByPlaceholderText('Search by name...');
-      fireEvent.keyDown(input, { key: 'Enter' });
+      await user.click(input);
+      await user.keyboard('{Enter}');
       expect(handleSearch).not.toHaveBeenCalled();
     });
 
@@ -711,13 +722,13 @@ describe('StatusFilterBar', () => {
       );
 
       const dropdown = screen.getByLabelText('Filter by quality measure') as HTMLSelectElement;
-      // 13 measures + "All Measures" = 14 options
-      expect(dropdown.options.length).toBe(14);
+      // 14 measures + "All Measures" = 15 options
+      expect(dropdown.options.length).toBe(15);
       expect(dropdown.options[0].value).toBe('All Measures');
       expect(dropdown.options[1].value).toBe('Annual Wellness Visit');
     });
 
-    it('calls onMeasureChange when measure selected', () => {
+    it('calls onMeasureChange when measure selected', async () => {
       const handleMeasure = vi.fn();
       render(
         <StatusFilterBar
@@ -733,7 +744,7 @@ describe('StatusFilterBar', () => {
       );
 
       const dropdown = screen.getByLabelText('Filter by quality measure');
-      fireEvent.change(dropdown, { target: { value: 'Diabetic Eye Exam' } });
+      await user.selectOptions(dropdown, 'Diabetic Eye Exam');
       expect(handleMeasure).toHaveBeenCalledWith('Diabetic Eye Exam');
     });
 
@@ -806,7 +817,7 @@ describe('StatusFilterBar', () => {
   });
 
   describe('Zero-Count Chip Opacity', () => {
-    it('zero-count inactive chip has opacity-30', () => {
+    it('zero-count inactive chip has border-dashed (no opacity reduction for a11y contrast)', () => {
       const zeroCounts: Record<StatusColor, number> = {
         ...defaultCounts,
         orange: 0,
@@ -825,10 +836,11 @@ describe('StatusFilterBar', () => {
       );
 
       const resolvedButton = screen.getByRole('button', { name: /Resolved/ });
-      expect(resolvedButton.className).toContain('opacity-50');
+      expect(resolvedButton.className).toContain('border-dashed');
+      expect(resolvedButton.className).not.toContain('opacity-50');
     });
 
-    it('zero-count chip is still clickable', () => {
+    it('zero-count chip is still clickable', async () => {
       const handleChange = vi.fn();
       const zeroCounts: Record<StatusColor, number> = {
         ...defaultCounts,
@@ -846,7 +858,7 @@ describe('StatusFilterBar', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Resolved'));
+      await user.click(screen.getByText('Resolved'));
       expect(handleChange).toHaveBeenCalledWith(['orange']);
     });
   });
@@ -966,7 +978,7 @@ describe('StatusFilterBar', () => {
       expect(dropdown.className).not.toContain('ring-2 ring-blue-400');
     });
 
-    it('calls onInsuranceGroupChange when changed', () => {
+    it('calls onInsuranceGroupChange when changed', async () => {
       const handleChange = vi.fn();
       render(
         <StatusFilterBar
@@ -982,7 +994,7 @@ describe('StatusFilterBar', () => {
       );
 
       const dropdown = screen.getByLabelText('Filter by insurance group');
-      fireEvent.change(dropdown, { target: { value: 'none' } });
+      await user.selectOptions(dropdown, 'none');
       expect(handleChange).toHaveBeenCalledWith('none');
     });
 
@@ -1024,6 +1036,8 @@ describe('Pinned Row Badge', () => {
     insuranceGroupOptions: [{ id: 'hill', name: 'Hill' }],
   };
 
+  const user = userEvent.setup();
+
   it('renders pinned badge when pinnedRowId is set', () => {
     render(<StatusFilterBar {...baseProps} pinnedRowId={42} onUnpin={vi.fn()} />);
     expect(screen.getByTestId('pinned-row-badge')).toBeInTheDocument();
@@ -1040,10 +1054,10 @@ describe('Pinned Row Badge', () => {
     expect(screen.queryByTestId('pinned-row-badge')).not.toBeInTheDocument();
   });
 
-  it('calls onUnpin when badge is clicked', () => {
+  it('calls onUnpin when badge is clicked', async () => {
     const handleUnpin = vi.fn();
     render(<StatusFilterBar {...baseProps} pinnedRowId={42} onUnpin={handleUnpin} />);
-    fireEvent.click(screen.getByTestId('pinned-row-badge'));
+    await user.click(screen.getByTestId('pinned-row-badge'));
     expect(handleUnpin).toHaveBeenCalledTimes(1);
   });
 

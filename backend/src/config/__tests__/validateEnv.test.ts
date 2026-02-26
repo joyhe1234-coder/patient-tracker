@@ -44,6 +44,11 @@ const originalEnv = { ...process.env };
 // Dynamic import AFTER mocks are set up (required for ESM)
 const { validateEnv } = await import('../validateEnv.js');
 
+// Restore process.exit spy after all tests to prevent leaking into other test files
+afterAll(() => {
+  mockExit.mockRestore();
+});
+
 describe('validateEnv', () => {
   beforeEach(() => {
     // Reset all mocks

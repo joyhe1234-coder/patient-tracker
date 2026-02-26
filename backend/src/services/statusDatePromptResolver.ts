@@ -70,6 +70,11 @@ export function getDefaultDatePrompt(measureStatus: string | null): string | nul
     'Screening appt made': 'Date Scheduled',
     'Screening completed': 'Date Completed',
 
+    // Depression Screening
+    'Called to schedule': 'Date Called',
+    'Visit scheduled': 'Date Scheduled',
+    'Screening complete': 'Date Completed',
+
     // GC/Chlamydia
     'Patient contacted for screening': 'Date Contacted',
     'Test ordered': 'Date Ordered',

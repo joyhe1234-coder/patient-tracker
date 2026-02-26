@@ -31,6 +31,9 @@ export interface FuzzySuggestion {
     requestType: string;
     qualityMeasure: string;
   };
+  patientFieldInfo?: {
+    targetField: string;
+  };
 }
 
 // ---------------------------------------------------------------------------

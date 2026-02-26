@@ -73,15 +73,8 @@ test.describe('Sutter Import - Error Scenarios', () => {
     const warningVisible = await importPage.isPhysicianWarningVisible();
     expect(warningVisible).toBe(true);
 
-    // Try clicking Preview Import
-    await importPage.clickPreview();
-
-    // Should show an error about missing physician
-    // Wait a moment for error to display
-    await page.waitForTimeout(500);
-
-    const errorText = await importPage.getErrorText();
-    expect(errorText).toContain('physician');
+    // Preview Import button should be disabled (no physician selected)
+    expect(await importPage.isPreviewDisabled()).toBe(true);
   });
 
   test('missing tab selection prevents preview submission', async ({ page }) => {
@@ -94,14 +87,8 @@ test.describe('Sutter Import - Error Scenarios', () => {
     // Do NOT select a tab (leave on placeholder)
     // The physician dropdown won't appear until tab is selected
 
-    // Try clicking Preview Import
-    await importPage.clickPreview();
-
-    // Should show an error about missing tab
-    await page.waitForTimeout(500);
-
-    const errorText = await importPage.getErrorText();
-    expect(errorText).toContain('tab');
+    // Preview Import button should be disabled (no tab selected)
+    expect(await importPage.isPreviewDisabled()).toBe(true);
   });
 
   test('empty physician tab shows error on preview', async ({ page }) => {
@@ -135,8 +122,12 @@ test.describe('Sutter Import - Error Scenarios', () => {
     await importPage.clickPreview();
 
     // Should show an error about empty tab or no data
-    // Wait for the API call to return and error to display
-    await page.waitForTimeout(3000);
+    // Wait for the API call to return — either an error appears on the import page
+    // or we navigate to the preview page where an error state is shown
+    await Promise.race([
+      page.locator('.bg-red-50').first().waitFor({ state: 'visible', timeout: 15000 }),
+      page.waitForURL(/\/preview\//, { timeout: 15000 }),
+    ]).catch(() => {});
 
     // The error could appear as a page-level error or the preview could
     // navigate and show an error there

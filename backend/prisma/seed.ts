@@ -114,6 +114,17 @@ async function main() {
         sortOrder: 3,
       },
     }),
+    prisma.qualityMeasure.upsert({
+      where: { requestTypeId_code: { requestTypeId: screeningType.id, code: 'Depression Screening' } },
+      update: {},
+      create: {
+        requestTypeId: screeningType.id,
+        code: 'Depression Screening',
+        label: 'Depression Screening',
+        allowDuplicates: false,
+        sortOrder: 4,
+      },
+    }),
 
     // Quality
     prisma.qualityMeasure.upsert({
@@ -239,6 +250,7 @@ async function main() {
   const diabetesControlMeasure = qualityMeasures.find(qm => qm.code === 'Diabetes Control')!;
   const annualSerumMeasure = qualityMeasures.find(qm => qm.code === 'Annual Serum K&Cr')!;
   const chronicDxMeasure = qualityMeasures.find(qm => qm.code === 'Chronic Diagnosis Code')!;
+  const depressionMeasure = qualityMeasures.find(qm => qm.code === 'Depression Screening')!;
 
   // Helper function to create statuses for a quality measure
   async function createStatuses(qualityMeasureId: number, statuses: Array<{ code: string; label: string; datePrompt: string | null; baseDueDays: number | null; sortOrder: number }>) {
@@ -296,6 +308,17 @@ async function main() {
     { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
     { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
     { code: 'Screening unnecessary', label: 'Screening unnecessary', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 8 },
+  ]);
+
+  // Depression Screening statuses
+  await createStatuses(depressionMeasure.id, [
+    { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
+    { code: 'Called to schedule', label: 'Called to schedule', datePrompt: 'Date Called', baseDueDays: 7, sortOrder: 2 },
+    { code: 'Visit scheduled', label: 'Visit scheduled', datePrompt: 'Date Scheduled', baseDueDays: 1, sortOrder: 3 },
+    { code: 'Screening complete', label: 'Screening complete', datePrompt: 'Date Completed', baseDueDays: null, sortOrder: 4 },
+    { code: 'Screening unnecessary', label: 'Screening unnecessary', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 5 },
+    { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
+    { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },
   ]);
 
   // Diabetic Eye Exam statuses
@@ -743,6 +766,14 @@ async function main() {
     { name: 'Lopez, Melissa', dob: new Date('1983-09-15'), phone: '5552003004', address: '215 Forest Dr' },
     { name: 'Lee, Stephanie', dob: new Date('1984-10-16'), phone: '5552003005', address: '216 Mountain Ave' },
 
+    // Screening - Depression
+    { name: 'Harper, Angela', dob: new Date('1975-03-14'), phone: '5552004001', address: '217 Meadow St' },
+    { name: 'Reed, Christine', dob: new Date('1968-07-22'), phone: '5552004002', address: '218 Brook Ave' },
+    { name: 'Price, Gloria', dob: new Date('1972-11-08'), phone: '5552004003', address: '219 Willow Blvd' },
+    { name: 'Butler, Diane', dob: new Date('1980-05-30'), phone: '5552004004', address: '220 Aspen Lane' },
+    { name: 'Howard, Margaret', dob: new Date('1963-09-12'), phone: '5552004005', address: '221 Spruce Road' },
+    { name: 'Ward, Catherine', dob: new Date('1970-01-25'), phone: '5552004006', address: '222 Poplar Court' },
+
     // Quality - Diabetic Eye Exam
     { name: 'Gonzalez, Joseph', dob: new Date('1954-11-17'), phone: '5553001001', address: '301 Spring St' },
     { name: 'Harris, Thomas', dob: new Date('1955-12-18'), phone: '5553001002', address: '302 Summer Lane' },
@@ -848,6 +879,15 @@ async function main() {
     { patientName: 'White, Amanda', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening discussed', statusDate: daysAgo(30), tracking1: 'In 6 Months', tracking2: null, notes: 'Yellow - In 6 Months (180 days)' },
     { patientName: 'Lopez, Melissa', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening appt made', statusDate: daysFromNow(14), tracking1: null, tracking2: null, notes: 'Blue - appointment made' },
     { patientName: 'Lee, Stephanie', requestType: 'Screening', qualityMeasure: 'Cervical Cancer Screening', measureStatus: 'Screening completed', statusDate: daysAgo(120), tracking1: null, tracking2: null, notes: 'Green - completed' },
+
+    // Depression Screening
+    { patientName: 'Harper, Angela', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Not Addressed', statusDate: null, tracking1: null, tracking2: null, notes: 'White - not addressed' },
+    { patientName: 'Reed, Christine', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Called to schedule', statusDate: daysAgo(3), tracking1: null, tracking2: null, notes: 'Blue - called 3 days ago (7 day timer)' },
+    { patientName: 'Price, Gloria', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Visit scheduled', statusDate: daysFromNow(5), tracking1: null, tracking2: null, notes: 'Yellow - visit in 5 days' },
+    { patientName: 'Butler, Diane', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Screening complete', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Green - completed 14 days ago' },
+    { patientName: 'Howard, Margaret', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Screening unnecessary', statusDate: daysAgo(30), tracking1: null, tracking2: null, notes: 'Gray - unnecessary' },
+    { patientName: 'Ward, Catherine', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Patient declined', statusDate: daysAgo(10), tracking1: null, tracking2: null, notes: 'Purple - declined' },
+    { patientName: 'Reed, Christine', requestType: 'Screening', qualityMeasure: 'Depression Screening', measureStatus: 'Called to schedule', statusDate: daysAgo(14), tracking1: null, tracking2: null, notes: 'Red - overdue (called 14 days ago, 7 day timer expired)' },
 
     // Diabetic Eye Exam
     { patientName: 'Gonzalez, Joseph', requestType: 'Quality', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'Diabetic eye exam discussed', statusDate: daysAgo(7), tracking1: null, tracking2: null, notes: 'Yellow - discussed (42 days)' },

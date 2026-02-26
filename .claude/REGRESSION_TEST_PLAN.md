@@ -43,7 +43,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-2, AC-3
 **Automation:** Automated - `smoke.spec.ts: "should display the patient grid"`, `Toolbar.test.tsx`
 **Steps:**
-1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Notes (13 columns; Tracking #3 removed in v4.10.0)
+1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Notes (12 columns; Tracking #3 removed in v4.10.0)
 
 **Expected:**
 - All columns render correctly
@@ -671,7 +671,7 @@ This document contains test cases for verifying system functionality. Each test 
    (e.g., via API or by editing requestType/qualityMeasure in grid)
 
 **Expected:**
-- Both rows have light yellow duplicate indicator background (#FEF3C7)
+- Both rows have orange left stripe duplicate indicator (#F97316)
 
 ### TC-8.5: Update Row Blocked When Creating Duplicate
 **Requirement:** AC-4, AC-5, AC-8
@@ -734,7 +734,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Steps:**
 1. Select a row in the middle of the grid (e.g., row 5)
 2. Note the patient's name, DOB, phone, address
-3. Click "Duplicate" button
+3. Click "Copy Member" button
 
 **Expected:**
 - New row appears directly below selected row (at position 6)
@@ -1058,7 +1058,7 @@ This document contains test cases for verifying system functionality. Each test 
 1. Click "Import Test" link in header navigation
 
 **Expected:**
-- Page loads at `/import-test`
+- Page loads at `/patient-management`
 - Shows file upload section with "Choose File" button
 
 ### TC-14.2: Upload CSV File
@@ -3797,6 +3797,11 @@ npm run cypress:headed  # Run with browser visible
 | 35. Insurance Group Filter | 10 | 10 | 0 | 0 | 100% |
 | 36. Sutter/SIP Import + Universal Sheet Validation | 19 | 19 | 0 | 0 | 100% |
 | 37. Cross-Page Role Workflows | 17 | 10 | 4 | 3 | 82% |
+| 38. Sutter File-Based Integration | 8 | 8 | 0 | 0 | 100% |
+| 39. Sutter Import Visual Tests | 6 | 6 | 0 | 0 | 100% |
+| 40. Smart Column Mapping — Backend | 19 | 19 | 0 | 0 | 100% |
+| 41. Smart Column Mapping — UI | 11 | 11 | 0 | 0 | 100% |
+| 42. Smart Column Mapping — Admin Mgmt | 12 | 12 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3903,8 +3908,565 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 40. Smart Column Mapping — Fuzzy Matching & Conflict Detection (Backend)
+
+**Requirement Spec:** [`.claude/specs/smart-column-mapping/requirements.md`](specs/smart-column-mapping/requirements.md)
+
+### TC-40.1: Header Normalization
+**Automation:** Automated - `fuzzyMatcher.test.ts` (17 tests)
+**Steps:** normalizeHeader() trims, lowercases, strips suffixes (E, Q1, Q2), collapses spaces, expands abbreviations (BP, DOB, IMM, RX, TX, AWV, MGMT, etc.)
+**Expected:** All transformations applied correctly, idempotent
+
+### TC-40.2: Jaro-Winkler Similarity
+**Automation:** Automated - `fuzzyMatcher.test.ts` (6 tests)
+**Steps:** Score identical, empty, different, typo, and partial-match strings
+**Expected:** Identical=1.0, empty=0.0, prefix bonus applied, correct range [0,1]
+
+### TC-40.3: Jaccard Token Similarity
+**Automation:** Automated - `fuzzyMatcher.test.ts` (7 tests)
+**Steps:** Score token overlap between header pairs
+**Expected:** Identical=1.0, no overlap=0.0, rearranged tokens=1.0, duplicates handled
+
+### TC-40.4: Composite Score (60/40 Weighting)
+**Automation:** Automated - `fuzzyMatcher.test.ts` (7 tests)
+**Steps:** compositeScore() combines 60% Jaro-Winkler + 40% Jaccard token similarity
+**Expected:** Correct weighting, normalization applied before scoring
+
+### TC-40.5: Fuzzy Match Function
+**Automation:** Automated - `fuzzyMatcher.test.ts` (13 tests)
+**Steps:** fuzzyMatch() returns top candidates above threshold, deduplicates, normalizes
+**Expected:** Threshold enforcement, top-3 results, abbreviation/suffix matching
+
+### TC-40.6: Abbreviation Expansion Coverage
+**Automation:** Automated - `fuzzyMatcher.test.ts` (8 tests)
+**Steps:** Test all abbreviation expansions (DOB→date of birth, PT→patient, BP→blood pressure, etc.)
+**Expected:** All abbreviations expanded correctly, trailing punctuation stripped
+
+### TC-40.7: Exact Match Detection (UC1)
+**Automation:** Automated - `conflictDetector.test.ts` (4 tests)
+**Steps:** File headers that exactly match config columns (case-insensitive, whitespace-tolerant)
+**Expected:** No conflict generated, reordered columns accepted
+
+### TC-40.8: Renamed Column Detection (UC2)
+**Automation:** Automated - `conflictDetector.test.ts` (3 tests)
+**Steps:** File header fuzzy-matches config column at >= 80% similarity
+**Expected:** CHANGED conflict with WARNING severity, score in message, real fuzzy scoring
+
+### TC-40.9: Low Similarity / Unrecognized Column (UC3-4)
+**Automation:** Automated - `conflictDetector.test.ts` (3 tests)
+**Steps:** File header does not match any config column above threshold
+**Expected:** NEW conflict with INFO severity, broader suggestions included
+
+### TC-40.10: Missing Measure Column (UC5)
+**Automation:** Automated - `conflictDetector.test.ts` (2 tests)
+**Steps:** Config measure column not found in file headers
+**Expected:** MISSING conflict with WARNING severity, measure info in message
+
+### TC-40.11: Missing Required Patient Column (UC6)
+**Automation:** Automated - `conflictDetector.test.ts` (5 tests)
+**Steps:** Required patient columns (memberName, memberDob) not in file headers
+**Expected:** MISSING conflict with BLOCKING severity; optional columns not BLOCKING
+
+### TC-40.12: Required Patient Column Renamed (UC7)
+**Automation:** Automated - `conflictDetector.test.ts` (2 tests)
+**Steps:** Required patient column fuzzy-matches but is renamed
+**Expected:** CHANGED conflict with BLOCKING severity for memberName and memberDob
+
+### TC-40.13: Duplicate Headers (UC8, UC14)
+**Automation:** Automated - `conflictDetector.test.ts` (6 tests)
+**Steps:** Two file headers match same config column, or exact duplicate headers in file
+**Expected:** DUPLICATE conflict with BLOCKING severity, both headers reported
+
+### TC-40.14: Ambiguous Match (UC9)
+**Automation:** Automated - `conflictDetector.test.ts` (2 tests)
+**Steps:** File header fuzzy-matches multiple config columns equally
+**Expected:** AMBIGUOUS conflict with BLOCKING severity, suggestions included
+
+### TC-40.15: Suffix Normalization (UC12)
+**Automation:** Automated - `conflictDetector.test.ts` (5 tests)
+**Steps:** Headers with E, Q1, Q2 suffixes match base column names
+**Expected:** Suffix stripped before matching, Q1+Q2 detected as duplicates
+
+### TC-40.16: Wrong File Detection (UC13)
+**Automation:** Automated - `conflictDetector.test.ts` (4 tests)
+**Steps:** File with zero or <10% header matches
+**Expected:** isWrongFile=true, count displayed, threshold enforcement
+
+### TC-40.17: Conflict Report Metadata
+**Automation:** Automated - `conflictDetector.test.ts` (11 tests)
+**Steps:** Report includes summary counts, hasBlockingConflicts, unique IDs, systemId
+**Expected:** Correct counts by type, blocking flag, sequential IDs, null resolutions
+
+### TC-40.18: Edge Cases & Fail-Open
+**Automation:** Automated - `conflictDetector.test.ts` (8 tests)
+**Steps:** Empty headers, empty config, inactive columns, per-header error recovery
+**Expected:** Graceful handling, inactive columns ignored, errors classified as NEW (fail-open)
+
+### TC-40.19: Suggestions in Conflicts
+**Automation:** Automated - `conflictDetector.test.ts` (4 tests)
+**Steps:** Fuzzy suggestions include measure info, limited to top 3, NEW columns get broader suggestions
+**Expected:** Correct suggestion structure, measure info populated, MISSING has empty suggestions
+
+---
+
+## 41. Smart Column Mapping — Conflict Resolution UI (Frontend)
+
+**Requirement Spec:** [`.claude/specs/smart-column-mapping/requirements.md`](specs/smart-column-mapping/requirements.md)
+
+### TC-41.1: Admin Conflict Resolution Form
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (4 tests), `import-conflict-admin.cy.ts` (8 tests)
+**Steps:** Admin uploads file with renamed columns → conflict step renders
+**Expected:** Dropdown per conflict, color-coded count chips, summary banner, suggestion badges with scores
+
+### TC-41.2: Save Button State Management
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (3 tests), `import-conflict-admin.cy.ts` (1 test)
+**Steps:** Resolve 0, some, then all conflicts
+**Expected:** Save disabled at 0/N and partial, enabled at N/N
+
+### TC-41.3: Save & Continue API Call
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (2 tests), `import-conflict-resolution.spec.ts` (1 test)
+**Steps:** Resolve all conflicts, click Save & Continue
+**Expected:** POST with resolution IDs/actions, onResolved called, navigates to preview
+
+### TC-41.4: Cancel Without Saving
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (1 test), `import-conflict-admin.cy.ts` (1 test), `import-conflict-resolution.spec.ts` (1 test)
+**Steps:** Click Cancel on conflict resolution step
+**Expected:** Returns to file upload, no API call made
+
+### TC-41.5: Non-Admin Conflict Banner
+**Automation:** Automated - `ConflictBanner.test.tsx` (18 tests), `import-conflict-nonadmin.cy.ts` (6 tests)
+**Steps:** Non-admin (PHYSICIAN/STAFF) uploads file triggering conflicts
+**Expected:** Read-only ConflictBanner with role="alert", no dropdowns, no Save button, color-coded badges, Cancel and Copy Details buttons
+
+### TC-41.6: Progress Tracking
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (2 tests), `import-conflict-admin.cy.ts` (2 tests), `import-conflict-resolution.spec.ts` (1 test)
+**Steps:** Resolve conflicts one by one
+**Expected:** Progress bar and aria-live region update (0→1→N of N)
+
+### TC-41.7: ACCEPT_SUGGESTION Auto-Population
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (1 test)
+**Steps:** Select ACCEPT_SUGGESTION from dropdown
+**Expected:** targetMeasure or targetPatientField auto-populated from suggestion info
+
+### TC-41.8: Loading and Error States
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (4 tests)
+**Steps:** Trigger save, simulate API failure, simulate 409 conflict
+**Expected:** "Saving..." shown during call, error message on failure, 409 shows retry message, error cleared on new resolution
+
+### TC-41.9: DUPLICATE and AMBIGUOUS Resolution
+**Automation:** Automated - `ConflictResolutionStep.test.tsx` (3 tests)
+**Steps:** Resolve DUPLICATE and AMBIGUOUS conflicts via dropdowns
+**Expected:** Correct resolution options shown, saves correctly
+
+### TC-41.10: Role-Based Import Flow (All Roles)
+**Automation:** Automated - `import-all-roles.spec.ts` (13 tests)
+**Steps:** ADMIN, PHYSICIAN, STAFF, and ADMIN+PHYSICIAN upload valid and conflict files for Hill and Sutter systems
+**Expected:** Admin sees resolution form, non-admin sees banner, all roles can reach preview with valid files, dual-role users get admin form
+
+### TC-41.11: Full Conflict Resolution E2E Flow
+**Automation:** Automated - `import-conflict-resolution.spec.ts` (6 tests)
+**Steps:** Admin uploads Hill file with renamed columns, views conflicts with fuzzy suggestions, resolves all, saves, navigates to preview
+**Expected:** Conflict step appears, suggestions shown with scores, Save enables after all resolved, navigation to preview on save, Cancel returns to upload
+
+---
+
+## 42. Smart Column Mapping — Admin Mapping Management
+
+**Requirement Spec:** [`.claude/specs/smart-column-mapping/requirements.md`](specs/smart-column-mapping/requirements.md)
+
+### TC-42.1: System Selector and Config Loading
+**Automation:** Automated - `MappingManagementPage.test.tsx` (3 tests), `smart-column-mapping.spec.ts` (2 tests), `mapping-management.cy.ts` (2 tests)
+**Steps:** Navigate to /admin/import-mapping, select Hill or Sutter system
+**Expected:** System selector populated, switching triggers new GET, correct config loaded
+
+### TC-42.2: Hill System — Column Tables
+**Automation:** Automated - `MappingManagementPage.test.tsx` (3 tests), `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** Select Hill system, view mapping tables
+**Expected:** Patient and Measure Column Mappings sections visible, Action Pattern section hidden (wide-format)
+
+### TC-42.3: Sutter System — Action Pattern Table
+**Automation:** Automated - `MappingManagementPage.test.tsx` (1 test), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Select Sutter system
+**Expected:** Action Pattern Configuration section visible (long-format)
+
+### TC-42.4: Edit Mode
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** Click "Edit Mappings", make changes, click "Done Editing"
+**Expected:** Edit mode toggles, table becomes editable, returns to view mode
+
+### TC-42.5: Add Mapping
+**Automation:** Automated - `mapping-management.cy.ts` (2 tests), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Click "Add Mapping", fill source column, save
+**Expected:** Inline form opens, new mapping saved and displayed in table
+
+### TC-42.6: Reset to Defaults
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Click "Reset to Defaults", cancel, then confirm
+**Expected:** Confirmation modal shown, cancel dismisses, confirm deletes overrides, "Using Default Configuration" banner appears
+
+### TC-42.7: Default Configuration Banner
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `mapping-management.cy.ts` (1 test)
+**Steps:** View system with no DB overrides
+**Expected:** "Using Default Configuration" banner visible, Reset button hidden
+
+### TC-42.8: Last Modified Metadata
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests), `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** View system config with overrides
+**Expected:** "Last modified: <date> by <admin>" displayed; "Never modified" when null
+
+### TC-42.9: Non-Admin Access Control
+**Automation:** Automated - `MappingManagementPage.test.tsx` (1 test), `smart-column-mapping.spec.ts` (1 test)
+**Steps:** Non-admin navigates to /admin/import-mapping
+**Expected:** Admin content not visible, ProtectedRoute blocks access
+
+### TC-42.10: System Switching Loads Different Configs
+**Automation:** Automated - `smart-column-mapping.spec.ts` (1 test), `mapping-management.cy.ts` (1 test)
+**Steps:** Switch Hill → Sutter → Hill
+**Expected:** Action pattern appears/disappears, correct config for each system
+
+### TC-42.11: Ignored Columns Section
+**Automation:** Automated - `mapping-management.cy.ts` (1 test)
+**Steps:** View system with skip columns configured
+**Expected:** "Ignored Columns" section visible
+
+### TC-42.12: Loading and Error States
+**Automation:** Automated - `MappingManagementPage.test.tsx` (2 tests)
+**Steps:** Trigger loading and API failure states
+**Expected:** Spinner during load, error message on failure
+
+---
+
+## 43. Depression Screening Quality Measure
+
+**Requirement Spec:** [`.claude/specs/depression-screening/`](specs/depression-screening/)
+
+### TC-43.1: Depression Screening in Quality Measure Dropdown
+**Automation:** Automated - `dropdownConfig.test.ts` (5 tests)
+**Steps:** Check Screening request type quality measure options
+**Expected:** Depression Screening is the 4th Screening measure (4 total); 7 statuses; "Not Addressed" first; no Tracking #1 options
+
+### TC-43.2: Depression Screening Status Colors
+**Automation:** Automated - `statusColors.test.ts` (10 tests)
+**Steps:** Verify row color for each Depression Screening status
+**Expected:** Not Addressed = white, Called to schedule = blue, Visit scheduled = yellow, Screening complete = green, Screening unnecessary = gray, Patient declined = purple, No longer applicable = gray
+
+### TC-43.3: Depression Screening Overdue Behavior
+**Automation:** Automated - `statusColors.test.ts` (4 tests)
+**Steps:** Set statusDate past due for each status
+**Expected:** Called to schedule (7-day timer) and Visit scheduled (1-day timer) turn red when overdue; Screening unnecessary and Patient declined do NOT turn red (terminal statuses)
+
+### TC-43.4: Depression Screening Filter Bar Integration
+**Automation:** Automated - `StatusFilterBar.test.tsx` (1 test)
+**Steps:** Check quality measure dropdown options count
+**Expected:** 15 options total (14 measures + "All Measures"); Depression Screening present
+
+### TC-43.5: Hill Import — Depression Screening Columns
+**Automation:** Automated - `test-hill-valid.csv.json` expected output validation
+**Steps:** Import Hill CSV with Depression Screening Q1/Q2 columns
+**Expected:** 16 mapped columns (was 14), 6 measure types (was 5), 50 output rows (was 42); each patient gets Depression Screening row based on compliant/non-compliant Q2
+
+### TC-43.6: Sutter Import — Depression Screening Action Pattern
+**Automation:** Automated - `sutter-integration.test.ts` (3 tests), `actionMapper.test.ts` (1 test)
+**Steps:** Import Sutter file with "Depression Screening", "PHQ-9", "Screen for depression" action text
+**Expected:** 11 action patterns compiled (was 10); All 3 variants match Depression Screening measure; duplicate rows for same patient merged
+
+### TC-43.7: Depression Screening Seed Data
+**Automation:** Manual - requires database seed verification
+**Steps:** Run `npx tsx prisma/seed.ts` on fresh database
+**Expected:** Depression Screening quality measure created with 7 statuses (correct datePrompts, baseDueDays, sortOrder); 6 patients (Harper through Ward); 7 patient measures including overdue scenario (Reed with 14-day-old "Called to schedule")
+
+---
+
+## 44. Authentication & Authorization
+
+### TC-44.1: Login Form Renders Correctly
+- **Precondition:** Navigate to /login
+- **Steps:** Verify login page elements visible (title, email input, password input, sign-in button, admin contact message)
+- **Expected:** All form elements render with correct placeholders and labels
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.2: Login with Valid Credentials
+- **Precondition:** Seeded user exists (phy1@gmail.com / welcome100)
+- **Steps:** Enter valid email and password, click Sign In
+- **Expected:** JWT token stored in localStorage, user redirected to main page, grid visible
+- **Status:** Automated (Vitest - `authStore.test.ts`, Playwright - `auth.spec.ts`)
+
+### TC-44.3: Login with Invalid Credentials
+- **Precondition:** Navigate to /login
+- **Steps:** Enter invalid email/password combinations (unknown user, wrong password, deactivated account)
+- **Expected:** 401 returned with INVALID_CREDENTIALS code, error message displayed, no token stored
+- **Status:** Automated (Jest - `auth.routes.test.ts`, Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.4: Input Validation (Empty/Invalid Fields)
+- **Precondition:** Navigate to /login
+- **Steps:** Submit form with empty email, empty password, both empty, or invalid email format
+- **Expected:** HTML5 validation prevents submission; backend returns 400 for malformed requests
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Jest - `auth.routes.test.ts`)
+
+### TC-44.5: Account Lockout After Failed Attempts
+- **Precondition:** Active user account
+- **Steps:** Submit 5 incorrect passwords for the same account
+- **Expected:** Account locked (ACCOUNT_LOCKED code returned), warning shown after 3 failed attempts, ACCOUNT_LOCKED audit log created, lock expires after timeout
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.6: Forced Password Change on First Login
+- **Precondition:** User has mustChangePassword=true
+- **Steps:** Login with valid credentials; POST /api/auth/force-change-password with new password
+- **Expected:** Login response includes mustChangePassword=true; password change succeeds; returns 400 if mustChangePassword is false
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.7: Password Change (Authenticated User)
+- **Precondition:** Authenticated user session
+- **Steps:** PUT /api/auth/password with current and new password
+- **Expected:** Password changed on valid input; 401 for wrong current password; 400 if new password same as current or too short
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.8: Password Reset Flow (Forgot Password)
+- **Precondition:** SMTP configured
+- **Steps:** POST /api/auth/forgot-password with email; POST /api/auth/reset-password with token and new password
+- **Expected:** Forgot-password always returns 200 (security); reset succeeds with valid unexpired token; 400 for invalid/expired/used tokens
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.9: JWT Token Handling & Session Persistence
+- **Precondition:** Successful login
+- **Steps:** Store token in localStorage; call GET /api/auth/me; refresh page; clear token and call /me again
+- **Expected:** Token persists across refreshes; checkAuth restores session with valid token; clears state with invalid token; returns user info and assignments for STAFF
+- **Status:** Automated (Vitest - `authStore.test.ts`, Playwright - `auth.spec.ts`)
+
+### TC-44.10: Role-Based Access (PHYSICIAN vs STAFF)
+- **Precondition:** PHYSICIAN and STAFF users seeded
+- **Steps:** Login as PHYSICIAN; login as STAFF
+- **Expected:** PHYSICIAN selectedPhysicianId set to own ID; STAFF receives assignments array, defaults to first assignment, restores previous valid selection from localStorage
+- **Status:** Automated (Vitest - `authStore.test.ts`, Jest - `auth.routes.test.ts`)
+
+### TC-44.11: Protected Route Redirection
+- **Precondition:** No authentication token
+- **Steps:** Navigate to / and /admin without logging in
+- **Expected:** Redirected to /login page
+- **Status:** Automated (Playwright - `auth.spec.ts`)
+
+### TC-44.12: Logout Clears Session
+- **Precondition:** Logged-in user
+- **Steps:** Click user menu, click Logout
+- **Expected:** Auth state cleared (user, token, assignments null), token removed from localStorage, edit locks released, redirected to /login
+- **Status:** Automated (Vitest - `authStore.test.ts`, Jest - `auth.routes.test.ts`, Playwright - `auth.spec.ts`)
+
+### TC-44.13: Password Visibility Toggle
+- **Precondition:** Navigate to /login
+- **Steps:** Click password visibility toggle button
+- **Expected:** Password input toggles between type="password" and type="text"; toggles back on second click
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.14: Loading State During Login
+- **Precondition:** Navigate to /login
+- **Steps:** Submit valid credentials, observe UI during API call
+- **Expected:** Button text changes to "Signing in...", email/password inputs disabled during loading
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.15: Failed Login Audit Logging
+- **Precondition:** Backend running with audit logging
+- **Steps:** Attempt login with invalid credentials (user not found, wrong password, deactivated account)
+- **Expected:** LOGIN_FAILED audit log created with userEmail, userId (if found), reason, and IP address; password never logged; audit log failure does not block 401 response
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+---
+
+## 45. Real-Time Collaborative Editing
+
+### TC-45.1: Socket Room & Presence Management
+- **Precondition:** Socket.IO server initialized
+- **Steps:** Add user to room, add multiple users, add same user with two sockets
+- **Expected:** Room name formatted as "physician:{id}"; multiple users tracked; same user deduplicated across sockets; empty array for non-existent room
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.2: User Disconnect Cleanup
+- **Precondition:** User connected to one or more rooms
+- **Steps:** Call removeUserFromRoom and removeUserFromAllRooms
+- **Expected:** User removed from specific room; removeUserFromAllRooms clears all rooms and returns affected room list; room map cleaned up when last user leaves
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.3: Active Edit Tracking
+- **Precondition:** Users connected to rooms
+- **Steps:** Add active edit (rowId, field, userName, socketId); add second edit on same row+field; add edits on different row+field
+- **Expected:** Edit stored with all metadata; same row+field replaced (latest wins); multiple edits tracked per room; empty array for room with no edits
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.4: Edit Cleanup on Disconnect
+- **Precondition:** Multiple active edits across rooms for a socket
+- **Steps:** Call clearEditsForSocket for disconnecting socket
+- **Expected:** All edits for that socket cleared across all rooms; returns list of cleared edits (room, rowId, field); other users' edits remain untouched
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.5: Remote Cell Update in Grid
+- **Precondition:** Grid loaded with data, user scrolled down
+- **Steps:** Simulate remote row:updated event
+- **Expected:** Grid accepts external data changes; scroll position preserved after remote update; row selection maintained
+- **Status:** Automated (Cypress - `parallel-editing-grid-updates.cy.ts`)
+
+### TC-45.6: Remote Row Operations (Add/Delete)
+- **Precondition:** Grid loaded with data
+- **Steps:** Add Row via button and modal; Delete Row via selection and button
+- **Expected:** Row count increases after add; row count decreases after delete; row selection state transitions correctly between rows
+- **Status:** Automated (Cypress - `parallel-editing-row-operations.cy.ts`)
+
+### TC-45.7: Edit Indicator CSS Styling
+- **Precondition:** Grid loaded, CSS stylesheets rendered
+- **Steps:** Verify cell-remote-editing CSS class exists; apply class to a cell; remove class
+- **Expected:** CSS class defined in stylesheets; dashed orange border applied when class present; cellFlash animation defined; indicator removed when class removed
+- **Status:** Automated (Cypress - `parallel-editing-edit-indicators.cy.ts`)
+
+---
+
+## 46. Insurance Group Filter
+
+### TC-46.1: Insurance Group Dropdown Renders
+- **Precondition:** Logged in as admin
+- **Steps:** Check StatusFilterBar for insurance group dropdown
+- **Expected:** Dropdown visible with aria-label "Filter by insurance group"; renders in both Vitest component tests and Cypress E2E
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`, Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.2: Default Selection is "Hill"
+- **Precondition:** Logged in as admin, grid loaded
+- **Steps:** Check dropdown value on page load
+- **Expected:** Dropdown defaults to "hill" value; patients displayed in grid
+- **Status:** Automated (Cypress - `insurance-group-filter.cy.ts`, Vitest - `StatusFilterBar.test.tsx`)
+
+### TC-46.3: Option Order (All First, No Insurance Last)
+- **Precondition:** Insurance group dropdown visible
+- **Steps:** Inspect option list order
+- **Expected:** "All" is first option (value="all"); "No Insurance" is last option (value="none"); system groups (Hill, etc.) appear between
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`, Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.4: Filtering Updates Grid
+- **Precondition:** Grid loaded with default "Hill" filter
+- **Steps:** Select "All" to show all patients; select "No Insurance" to filter
+- **Expected:** "All" shows all patients (row count >= Hill count); "No Insurance" may show zero rows if all patients assigned; grid updates on each selection
+- **Status:** Automated (Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.5: Active Filter Visual Indicator (Ring)
+- **Precondition:** Insurance group dropdown visible
+- **Steps:** Check CSS classes when filter is "hill" vs "all"
+- **Expected:** Non-"All" selection shows ring-2 ring-blue-400 classes; "All" selection shows border-gray-300 without ring
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`, Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.6: Combines with Quality Measure Filter
+- **Precondition:** Both insurance group and quality measure dropdowns visible
+- **Steps:** Set insurance group to "Hill", then change quality measure filter
+- **Expected:** Insurance group persists when quality measure changes; both filters show active ring indicators simultaneously
+- **Status:** Automated (Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.7: Insurance Group Change Callback
+- **Precondition:** StatusFilterBar rendered with onInsuranceGroupChange handler
+- **Steps:** Change dropdown selection
+- **Expected:** onInsuranceGroupChange called with new value (e.g., "none")
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`)
+
+---
+
+## 47. Depression Screening E2E
+
+### TC-47.1: Screening Request Type Shows 4 Quality Measures Including Depression Screening
+- **Precondition:** Logged in as admin, grid loaded
+- **Steps:** Select "Screening" request type; open Quality Measure dropdown
+- **Expected:** 4 options: Breast Cancer Screening, Colon Cancer Screening, Cervical Cancer Screening, Depression Screening
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `dropdownConfig.test.ts`)
+
+### TC-47.2: Depression Screening Has 7 Status Options
+- **Precondition:** Row set to Screening / Depression Screening
+- **Steps:** Open Measure Status dropdown
+- **Expected:** 7 options: Not Addressed, Called to schedule, Visit scheduled, Screening complete, Screening unnecessary, Patient declined, No longer applicable
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `dropdownConfig.test.ts`)
+
+### TC-47.3: Depression Screening Status Row Colors
+- **Precondition:** Row set to Depression Screening
+- **Steps:** Select each status and verify row color class
+- **Expected:** Screening complete = green, Called to schedule = blue, Visit scheduled = yellow, Patient declined = purple, Screening unnecessary = gray, No longer applicable = gray
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `statusColors.test.ts`)
+
+### TC-47.4: No Tracking #1 Options for Depression Screening
+- **Precondition:** Row set to Depression Screening with a status selected
+- **Steps:** Check Tracking #1 cell content
+- **Expected:** Cell shows empty or "N/A"; no dropdown prompt; getTracking1OptionsForStatus returns null for all 7 Depression Screening statuses
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `dropdownConfig.test.ts`)
+
+### TC-47.5: Depression Screening Overdue Timers
+- **Precondition:** Depression Screening row with statusDate set in the past
+- **Steps:** Set "Called to schedule" with statusDate 8+ days ago; set "Visit scheduled" with statusDate 2+ days ago
+- **Expected:** Called to schedule turns red after 7 days; Visit scheduled turns red after 1 day; Screening unnecessary and Patient declined do NOT turn red (terminal statuses)
+- **Status:** Automated (Vitest - `statusColors.test.ts`)
+
+---
+
+## 48. Sutter Import Pipeline
+
+### TC-48.1: Sheet Discovery (Physician Tabs vs Skip Tabs)
+- **Precondition:** test-sutter-valid.xlsx fixture loaded
+- **Steps:** Call getSheetNames to list all tabs
+- **Expected:** 4 sheets discovered: Physician One, Physician Two (physician tabs), CAR Report, Summary_NY (skip tabs)
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.2: Action Pattern Matching (11 Patterns)
+- **Precondition:** Sutter config loaded with actionMapping
+- **Steps:** Build action mapper cache; test each pattern (FOBT, HTN BP, DM urine albumin, DM HbA1c, DM eye exam, Pap/HPV, Mammogram, Chlamydia, RAS Antagonists, Vaccine, Depression Screening)
+- **Expected:** 11 compiled patterns; each action text maps to correct requestType, qualityMeasure, and measureStatus; case-insensitive; whitespace/line-break normalized
+- **Status:** Automated (Jest - `actionMapper.test.ts`)
+
+### TC-48.3: AWV+APV Merge into Single AWV Row
+- **Precondition:** Sutter file with AWV and APV rows for same patient (Anderson, Jane)
+- **Steps:** Run full pipeline (parse, map, transform)
+- **Expected:** 2 input rows (AWV + APV) merged into 1 output row with requestType=AWV, qualityMeasure=Annual Wellness Visit
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.4: Duplicate Patient+Measure Merge (Latest Date Wins)
+- **Precondition:** test-sutter-duplicates.xlsx with duplicate FOBT rows for Patel
+- **Steps:** Run pipeline and check merged output
+- **Expected:** Duplicate rows merged to 1; latest statusDate kept (2025-06-15 over 2025-01-10); sourceActionText concatenated; different measures for same patient NOT merged
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.5: MeasureDetails Date Extraction
+- **Precondition:** Sutter file with HbA1c measure details for Clark, Maria
+- **Steps:** Run pipeline and check date/tracking1 fields
+- **Expected:** statusDate parsed as 2025-01-10; tracking1 set to 7.5; comma-separated dates resolved (latest date wins)
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.6: Depression Screening Action Variants (3 Regex Patterns)
+- **Precondition:** Sutter file with "Depression Screening", "PHQ-9", "Screen for depression" action texts
+- **Steps:** Run pipeline; verify Depression Screening rows created and duplicates merged
+- **Expected:** All 3 variants match Depression Screening measure; duplicate rows for same patient merged into 1; 11 total action patterns (was 10)
+- **Status:** Automated (Jest - `sutter-integration.test.ts`, `actionMapper.test.ts`)
+
+### TC-48.7: Skip Actions Filtered Out
+- **Precondition:** Sutter config skipActions list; test-sutter-skip-actions.xlsx fixture
+- **Steps:** Match each skipAction text against action mapper
+- **Expected:** All skip actions return null (no regex match); only valid actions produce output rows
+- **Status:** Automated (Jest - `actionMapper.test.ts`, `sutter-integration.test.ts`)
+
+### TC-48.8: Multi-Tab Import (Select Physician Tab)
+- **Precondition:** test-sutter-valid.xlsx with 2 physician tabs
+- **Steps:** Process Physician One and Physician Two tabs separately
+- **Expected:** Physician One: 21 input rows, 18 output rows, 0 errors; Physician Two: 9 input rows, 0 errors, HCC row for Lewis with correct notes
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.9: Unmapped Action Detection
+- **Precondition:** Sutter file with action texts that match no pattern
+- **Steps:** Run pipeline and check unmappedActions array
+- **Expected:** Valid file (test-sutter-valid.xlsx) has 0 unmapped actions; unmapped file aggregates unrecognized texts for admin review
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.10: Diff Calculation Against Empty Database
+- **Precondition:** Pipeline output for Physician One
+- **Steps:** Call calculateMergeDiff with empty existing records map
+- **Expected:** All rows produce INSERT actions; insert count equals total output rows
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+---
+
 ## Last Updated
 
+February 25, 2026 - Release 4.12.1: Updated test counts (1,415 Jest + 1,202 Vitest). E2E test quality improvements: waitForTimeout elimination across 5 Playwright files, fireEvent→userEvent migration across 25 Vitest files, accessibility labels for form elements.
+February 23, 2026 - Added Sections 44-48: Authentication & Authorization (15 TCs), Real-Time Collaborative Editing (7 TCs), Insurance Group Filter (7 TCs), Depression Screening E2E (5 TCs), Sutter Import Pipeline (10 TCs). 44 test cases, 100% automated. Covers: Jest (auth.routes, socketManager, sutter-integration, actionMapper), Vitest (LoginPage, authStore, dropdownConfig, statusColors, StatusFilterBar), Playwright (auth.spec), Cypress (parallel-editing, insurance-group-filter, cascading-dropdowns).
+February 23, 2026 - Added Section 43: Depression Screening Quality Measure (TC-43.1 to TC-43.7). 7 test cases, 86% automated (6 automated, 1 manual). +14 Vitest tests (dropdownConfig, statusColors, StatusFilterBar). Updated backend integration tests. Total: 1,387 Jest + 1,152 Vitest + 130 Playwright + 369 Cypress.
+February 23, 2026 - Added Sections 40-42: Smart Column Mapping (TC-40.1 to TC-42.12). 40 test cases, 100% automated. Backend: 56 Jest (fuzzyMatcher) + 64 Jest (conflictDetector). Frontend: 27 Vitest (ConflictResolutionStep) + 17 Vitest (ConflictBanner) + 18 Vitest (MappingManagementPage). E2E: 6 Playwright (import-conflict-resolution) + 8 Playwright (smart-column-mapping) + 13 Playwright (import-all-roles) + 8 Cypress (import-conflict-admin) + 6 Cypress (import-conflict-nonadmin) + 9 Cypress (mapping-management). Total: 1,387 Jest + 1,138 Vitest + 130 Playwright + 369 Cypress.
 February 18, 2026 - Sutter duplicate merging, measureDetails parsing improvements, "Not Addressed" status override, dev seed users, Jest config fix. Total: 1,165 Jest + 1,025 Vitest.
 February 18, 2026 - Added Section 38: Sutter File-Based Integration Tests (TC-38.1 to TC-38.8, 67 Jest tests using 8 fixture files). Added Section 39: Sutter Import Visual Tests (TC-39.1 to TC-39.6, 22 Playwright tests).
 February 18, 2026 - Added automated tests for Section 37: +12 backend Jest tests (getPatientOwnerFilter role filtering), +13 frontend Vitest tests (ADMIN+PHYSICIAN dropdown/nav/tabs). Total: 1,077 Jest + 1,025 Vitest.

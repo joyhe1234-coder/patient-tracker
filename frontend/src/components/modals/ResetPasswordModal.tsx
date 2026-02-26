@@ -77,10 +77,11 @@ export default function ResetPasswordModal({
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="reset-new-password" className="block text-sm font-medium text-gray-700 mb-1">
                 New Password
               </label>
               <input
+                id="reset-new-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -91,10 +92,11 @@ export default function ResetPasswordModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="reset-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm Password
               </label>
               <input
+                id="reset-confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

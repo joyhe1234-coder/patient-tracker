@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -41,6 +42,8 @@ function renderPage(initialEntries: string[] = ['/patient-management']) {
 }
 
 describe('PatientManagementPage', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuthStore.mockReturnValue({ user: makeUser(['ADMIN']) });
@@ -112,10 +115,10 @@ describe('PatientManagementPage', () => {
   });
 
   describe('Tab switching', () => {
-    it('clicking "Reassign Patients" tab shows reassign content', () => {
+    it('clicking "Reassign Patients" tab shows reassign content', async () => {
       renderPage();
 
-      fireEvent.click(screen.getByText('Reassign Patients'));
+      await user.click(screen.getByText('Reassign Patients'));
 
       const reassignContent = screen.getByTestId('reassign-tab-content');
       expect(reassignContent.closest('.tab-visible')).toBeTruthy();
@@ -124,22 +127,22 @@ describe('PatientManagementPage', () => {
       expect(importContent.closest('.tab-hidden')).toBeTruthy();
     });
 
-    it('clicking "Import Patients" tab after switching shows import content', () => {
+    it('clicking "Import Patients" tab after switching shows import content', async () => {
       renderPage();
 
       // Switch to Reassign
-      fireEvent.click(screen.getByText('Reassign Patients'));
+      await user.click(screen.getByText('Reassign Patients'));
       // Switch back to Import
-      fireEvent.click(screen.getByText('Import Patients'));
+      await user.click(screen.getByText('Import Patients'));
 
       const importContent = screen.getByTestId('import-tab-content');
       expect(importContent.closest('.tab-visible')).toBeTruthy();
     });
 
-    it('passes isActive=true to ReassignTabContent when Reassign tab is active', () => {
+    it('passes isActive=true to ReassignTabContent when Reassign tab is active', async () => {
       renderPage();
 
-      fireEvent.click(screen.getByText('Reassign Patients'));
+      await user.click(screen.getByText('Reassign Patients'));
 
       const reassignContent = screen.getByTestId('reassign-tab-content');
       expect(reassignContent).toHaveAttribute('data-active', 'true');

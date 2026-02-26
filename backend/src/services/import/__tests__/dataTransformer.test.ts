@@ -389,15 +389,11 @@ describe('dataTransformer', () => {
     });
   });
 
-  describe('with test data files', () => {
+  // Conditional: only run when test data files exist (skips visibly in test report)
+  const hasTestDataFiles = fs.existsSync(path.join(testDataDir, 'test-hill-valid.csv'));
+  (hasTestDataFiles ? describe : describe.skip)('with test data files', () => {
     it('should transform test-hill-valid.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
-      if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-hill-valid.csv not found');
-        return;
-      }
-
-      const buffer = fs.readFileSync(csvPath);
+      const buffer = fs.readFileSync(path.join(testDataDir, 'test-hill-valid.csv'));
       const parseResult = parseCSV(buffer, 'test-hill-valid.csv');
       const result = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
 
@@ -408,13 +404,7 @@ describe('dataTransformer', () => {
     });
 
     it('should transform test-hill-no-measures.csv and identify patients with no measures', () => {
-      const csvPath = path.join(testDataDir, 'test-hill-no-measures.csv');
-      if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-hill-no-measures.csv not found');
-        return;
-      }
-
-      const buffer = fs.readFileSync(csvPath);
+      const buffer = fs.readFileSync(path.join(testDataDir, 'test-hill-no-measures.csv'));
       const parseResult = parseCSV(buffer, 'test-hill-no-measures.csv');
       const result = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
 
@@ -423,13 +413,7 @@ describe('dataTransformer', () => {
     });
 
     it('should handle test-hill-dates.csv with various date formats', () => {
-      const csvPath = path.join(testDataDir, 'test-hill-dates.csv');
-      if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-hill-dates.csv not found');
-        return;
-      }
-
-      const buffer = fs.readFileSync(csvPath);
+      const buffer = fs.readFileSync(path.join(testDataDir, 'test-hill-dates.csv'));
       const parseResult = parseCSV(buffer, 'test-hill-dates.csv');
       const result = transformData(parseResult.headers, parseResult.rows, systemId, parseResult.dataStartRow);
 

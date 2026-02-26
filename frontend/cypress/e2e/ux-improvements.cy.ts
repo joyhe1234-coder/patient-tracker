@@ -10,14 +10,11 @@ describe('Status Bar Consistency', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
+    // Wait for grid rows to render
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
   });
 
   it('should always show "Showing X of Y rows" format', () => {
@@ -29,9 +26,8 @@ describe('Status Bar Consistency', () => {
   it('should show filtered count when filter is active', () => {
     // Click Completed filter
     cy.contains('button', 'Completed').click();
-    cy.wait(500);
 
-    // Should still show "Showing X of Y rows" format
+    // Should still show "Showing X of Y rows" format (auto-retries)
     cy.contains(/Showing \d+ of \d+ rows/).should('exist');
   });
 
@@ -45,14 +41,11 @@ describe('Filter Chip Accessibility', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
+    // Wait for grid rows to render
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
   });
 
   it('should have aria-pressed attribute on filter chips', () => {
@@ -71,13 +64,10 @@ describe('Import Page UX Improvements', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/patient-management');
-    cy.wait(500);
+    // Wait for page to load
+    cy.contains('Select Healthcare System', { timeout: 10000 }).should('be.visible');
   });
 
   it('should show warning icon for Replace All mode', () => {
@@ -97,23 +87,19 @@ describe('Password Visibility Toggles', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
-    cy.wait(1000);
+    cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
+    // Wait for grid rows to render
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
   });
 
   it('should show visibility toggles in Change Password modal', () => {
     // Open user menu by clicking the button with (ADMIN) text
-    cy.contains('(ADMIN)').click();
-    cy.wait(300);
+    cy.contains('button', /ADMIN/).click();
 
-    // Click Change Password
-    cy.contains('Change Password').click();
-    cy.wait(300);
+    // Click Change Password (auto-retries visibility)
+    cy.contains('Change Password').should('be.visible').click();
 
     // Should have 3 password visibility toggle buttons with aria-labels
     cy.get('[aria-label*="password"]').should('have.length.at.least', 3);
@@ -121,22 +107,18 @@ describe('Password Visibility Toggles', () => {
 
   it('should show "Must be at least 8 characters" helper text', () => {
     // Open user menu
-    cy.contains('(ADMIN)').click();
-    cy.wait(300);
+    cy.contains('button', /ADMIN/).click();
 
     // Click Change Password
-    cy.contains('Change Password').click();
-    cy.wait(300);
+    cy.contains('Change Password').should('be.visible').click();
 
     cy.contains('Must be at least 8 characters').should('exist');
   });
 
   it('should toggle password visibility when clicking eye icon', () => {
     // Open user menu and Change Password modal
-    cy.contains('(ADMIN)').click();
-    cy.wait(300);
-    cy.contains('Change Password').click();
-    cy.wait(300);
+    cy.contains('button', /ADMIN/).click();
+    cy.contains('Change Password').should('be.visible').click();
 
     // All inputs should start as password type
     cy.get('[aria-label="Show current password"]').should('exist');

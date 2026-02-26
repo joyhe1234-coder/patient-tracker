@@ -64,6 +64,23 @@
 | 2026-02-14 | Sutter Import Flow | `reviews/sutter-import-flow-2026-02-14.md` | 12 screenshots. BUG: duplicate error banners, nested card-in-card. Missing aria-label on system select, no role=alert on errors. UnmappedActionsBanner good a11y. Step numbering correct. |
 | 2026-02-15 | Universal SheetSelector | `reviews/universal-sheet-selector-2026-02-15.md` | 11 screenshots, 13 scenarios ALL PASS. Nested card + duplicate error bugs FIXED. Amber-600 hint fails AA contrast. Orphaned label for single-tab. PHYSICIAN auto-assign works correctly. |
 | 2026-02-20 | Smart Column Mapping UI | (inline report) | Backend 404 blocks data display. Navigation gap (no link to /admin/import-mapping). Duplicate H1. Error banner missing role=alert. Code review of 6 components. |
+| 2026-02-24 | Depression Screening | `reviews/depression-screening-2026-02-24.md` | 35/35 PASS. All 7 statuses, colors, date prompts, filter integration correct. Seed data NOT created (guard condition skips when patients exist). |
+
+## Depression Screening Status-Color Map
+| Status | Color | baseDueDays | datePrompt |
+|--------|-------|-------------|------------|
+| Not Addressed | White | null | null |
+| Called to schedule | Blue | 7 | Date Called |
+| Visit scheduled | Yellow | 1 | Date Scheduled |
+| Screening complete | Green | null | Date Completed |
+| Screening unnecessary | Gray | null | Date Determined |
+| Patient declined | Purple | null | Date Declined |
+| No longer applicable | Gray | null | Date Determined |
+
+## Seed Data Guard Issue
+- `backend/prisma/seed.ts` line ~715: patient creation is guarded by `if (existingPatients > 0) skip`
+- Re-running `npx tsx prisma/seed.ts` WILL upsert config (request types, quality measures, statuses) but WILL NOT create patients if any exist
+- To add new sample patients after initial seed, must either reset DB or add a separate insertion script
 
 ## Recurring Issues
 1. **Opacity-based dimming fails WCAG contrast**: Filter chips use opacity:0.5/0.3 for inactive/zero states. Perceived contrast drops to 1.6-2.7:1 (needs 4.5:1). Use explicit color tokens instead.

@@ -6,6 +6,100 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.12.1] - 2026-02-25
+
+### Added
+- **Playwright visual regression testing** — Automated screenshot comparison for 5 key pages (login, main grid, admin dashboard, import page, filter bar). Configured with `maxDiffPixelRatio: 0.01` and `animations: 'disabled'` in `playwright.config.ts`. New test file: `frontend/e2e/visual-regression.spec.ts`
+- **New test files** — 13 new test files covering gaps: socketIdMiddleware, dateParser (backend); accessibility, admin-management, import-reassignment, password-flows, visual-regression (Playwright E2E); axios, ImportResultsDisplay, PreviewSummaryCards, DuplicateWarningModal, ResetPasswordModal, UserModal (Vitest)
+- **@axe-core/playwright** dependency added for accessibility testing
+- **socketManager.clearAllState()** utility for test isolation between test cases
+
+### Changed
+- **Migrated fireEvent → userEvent** across 25 Vitest test files (~195 occurrences). `userEvent` is now the standard interaction API for all component tests. `fireEvent` retained only for AG Grid keyboard/mouse handlers in `AutoOpenSelectEditor.test.tsx` (fake timers + userEvent incompatibility).
+  - Batch 1 (Modals): AddRowModal, ResetPasswordModal, UserModal, ConfirmModal, ConflictModal, DuplicateWarningModal
+  - Batch 2 (Layout): StatusFilterBar, Header, Toolbar, StatusBar
+  - Batch 3 (Pages): PatientAssignmentPage, MappingManagementPage, LoginPage, AdminPage, PatientManagementPage
+  - Batch 4 (Import & Grid): AutoOpenSelectEditor, StatusDateRenderer, ActionPatternTable, PreviewSummaryCards, ImportResultsDisplay, ForcePasswordChange
+  - Batch 5 (Low-count): ImportPreviewPage, ForgotPasswordPage, ResetPasswordPage, ImportPage (unused `fireEvent` imports removed)
+- **Accessibility improvements** — Added `htmlFor`/`id` associations to form labels in UserModal and ResetPasswordModal; added `aria-label` attributes to role radio buttons in UserModal; added `aria-label` to physician select dropdown in Header
+- **UI contrast improvements** — StatusBar connection status text bumped to 700-weight colors (green-700, yellow-700, red-700, gray-600); filter summary text to gray-600; StatusFilterBar inactive buttons use `hover:bg-gray-50` and `border-dashed` instead of opacity-50
+- **Playwright config** — Added local retry (1), parallel workers (3), screenshot comparison settings
+- **Removed empty agGridMocks.test.ts** — File had all tests removed in prior audit but still existed, causing Vitest "no test suite found" error
+
+### Fixed
+- **AutoOpenSelectEditor keyboard tests** — Switched from `userEvent.keyboard` to `fireEvent.keyDown` to resolve 5-second timeouts caused by fake timers + userEvent async scheduling incompatibility
+- **StatusFilterBar search test** — Fixed controlled input test assertion to verify per-keystroke `onSearchChange` calls instead of expecting single aggregate call
+- **ActionPatternTable pattern test** — Fixed controlled input test to verify `onActionChange` callback fires with typed character rather than expecting full string replacement
+- **UserModal empty password test** — Updated to verify HTML5 `required` attribute prevents form submission rather than expecting custom error message
+- **Playwright E2E waitForTimeout elimination** — Replaced 6 `page.waitForTimeout()` calls with proper Playwright assertions across 5 E2E test files (import-all-roles, sutter-import-edge-cases, sutter-import-errors, sutter-import-visual, visual-regression). Now uses `expect().not.toHaveValue()`, `waitForSheetDiscovery()`, `Promise.race()` with element/URL waiters, and `expect().toHaveAttribute()` instead of arbitrary delays
+
+### Documentation
+- **TESTING.md**: Added "Visual Regression" section, "userEvent Convention" section with migration reference table, Cypress retention rationale
+- **REGRESSION_TEST_PLAN.md**: Added sections 44-48 (Authentication, Authorization, Password Flows, Admin Management, Import Reassignment) with 80+ new test cases
+- **TEST_GAP_ANALYSIS.md**: New document cataloguing test coverage gaps and prioritization
+
+---
+
+## [4.12.0] - 2026-02-23
+
+### Added
+- **Depression Screening quality measure** — Full stack support for a new Screening-type quality measure with 7 statuses:
+  - Not Addressed (white), Called to schedule (blue, 7-day timer), Visit scheduled (yellow, 1-day timer), Screening complete (green), Screening unnecessary (gray), Patient declined (purple), No longer applicable (gray)
+  - `dropdownConfig.ts`: Added Depression Screening to Screening request type (now 4 measures) with 7 status options
+  - `statusColors.ts`: Added "Called to schedule" (blue), "Visit scheduled" (yellow), "Screening complete" (green) to color arrays; "Patient declined" already covered by purple; "Screening unnecessary" and "No longer applicable" already covered by gray
+  - `statusDatePromptResolver.ts`: Date prompts for Called to schedule (Date Called), Visit scheduled (Date Scheduled), Screening complete (Date Completed)
+  - `validator.ts`: Added "Depression Screening" to VALID_QUALITY_MEASURES for Screening type
+  - `hill.json`: Added "Depression Screening" and "Depression Screening E" column mappings + compliant/nonCompliant status mapping; removed "Depression Screening" from skipColumns
+  - `sutter.json`: Added regex pattern `^Depression [Ss]creening|^PHQ-?9|^Screen.*depression` to action mapping
+  - `seed.ts`: Added Depression Screening quality measure, 7 statuses with datePrompts/baseDueDays, 6 sample patients, 7 sample patient measures (including one overdue scenario)
+- **Test data updated** for Depression Screening:
+  - `test-hill-valid.csv`: Added Depression Screening Q1/Q2 columns (now 16 columns per patient)
+  - `test-hill-valid.csv.json`: Expected output updated (42 -> 50 output rows, 6 measure types)
+  - `test-sutter-valid.xlsx`: Added 3 Depression Screening rows in Physician One (Hill, James patients) + 1 in Physician Two (Nelson)
+  - `create-sutter-fixtures.ts`: Updated fixture creation with Depression Screening test rows
+
+### Tests
+- Backend (Jest): 1,387 tests passing (47 suites)
+- Frontend (Vitest): 1,152 tests passing (43 suites) — +14 new Depression Screening tests
+  - `dropdownConfig.test.ts`: +5 tests (4 screening measures, 7 Depression statuses, first status, all statuses, no tracking1)
+  - `statusColors.test.ts`: +10 tests (color list assertions + 7 Depression-specific color tests including overdue/terminal behavior)
+  - `StatusFilterBar.test.tsx`: +1 test (15 measure dropdown options)
+  - `sutter-integration.test.ts`: Updated row counts (18->21 Physician One, 16->18 output, 8->9 Physician Two)
+  - `actionMapper.test.ts`: Updated pattern count (10->11)
+
+---
+
+## [4.11.1] - 2026-02-23
+
+### Fixed
+- **Wrong-file false positives** in `conflictDetector.ts`: Added dual-ratio check — files where >= 50% of file columns match config are no longer flagged as wrong file, even if they cover < 10% of config columns (fixes partial/small files being rejected)
+- **MISSING conflict false positives** in `conflictDetector.ts`: Skip MISSING conflicts for config columns whose `targetField` is already covered by another matched or fuzzy-matched column (e.g., "Patient Full Name" CHANGED to "Patient" no longer also generates a MISSING for the original)
+- **Patient field auto-population** in `ConflictResolutionStep.tsx`: ACCEPT_SUGGESTION for patient columns now auto-populates `targetPatientField` from `patientFieldInfo` (was only auto-populating measure columns)
+- **Sutter header row alignment** in `fileParser.ts`: Changed `blankrows: false` to `blankrows: true` in `sheet_to_json` so physical row positions are preserved — `headerRow` config index (e.g., row 3) now correctly points to the header even when blank rows exist before it
+- **Blank row filtering** in `fileParser.ts`: After switching to `blankrows: true`, added post-parse filter to strip completely blank data rows
+- **Sheet validation fuzzy fallback** in `import.routes.ts`: `validateSheetHeaders()` now uses fuzzy matching (0.70 threshold) as fallback for patient column presence — renamed columns no longer cause false "missing patient columns" rejection
+- **Sheet validation Q1/Q2 suffix matching** in `import.routes.ts`: Data column matching now also checks with ` q1`/` q2` suffixes, fixing Hill files where headers like "Breast Cancer Screening E Q1" didn't match config key "Breast Cancer Screening E"
+- **`patientFieldInfo` in FuzzySuggestion type**: Added to both backend `conflictDetector.ts` and frontend `import-mapping.ts` types for patient column suggestion metadata
+
+### Changed
+- **Cypress test hardening** across 20+ spec files:
+  - Extracted `cy.login()` custom command replacing repeated login boilerplate in `beforeEach` blocks
+  - Fixed dropdown option counting to exclude `(clear)` placeholder option
+  - Replaced `.ag-cell-edit-wrapper input` selector with `.date-cell-editor` for date input cells
+  - Breast Cancer Screening tests now search for existing row before setting up (avoids 409 duplicate errors)
+  - Various stability improvements (longer waits, better selectors, retry patterns)
+- **Playwright test hardening** across 10+ spec and page-object files:
+  - Updated page objects for improved selectors and wait strategies
+  - Aligned with current UI state after conflict detection improvements
+
+### Tests
+- Backend (Jest): 1,387 tests passing (47 suites)
+- Frontend (Vitest): 1,138 tests passing (43 suites)
+- Regression test plan: Added sections 38-42 (56 test cases, 100% automated)
+- Total automated: ~2,525+ (1,387 Jest + 1,138 Vitest + Playwright + Cypress)
+
+---
+
 ## [4.11.0] - 2026-02-22
 
 ### Added

@@ -106,72 +106,9 @@ describe('previewCache', () => {
     });
   });
 
-  describe('storePreview with Sutter fields', () => {
-    it('should store sheetName on preview entry', () => {
-      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
-
-      const entry = getPreview(id);
-      // Modify the entry to have sheetName (since storePreview doesn't accept sheetName directly,
-      // we test by directly setting the field on the retrieved entry)
-      expect(entry).not.toBeNull();
-      // Note: storePreview doesn't currently accept sheetName as a parameter;
-      // it's set externally after storePreview. Test that the field is accessible on PreviewEntry.
-      if (entry) {
-        entry.sheetName = 'Dr Smith';
-        expect(entry.sheetName).toBe('Dr Smith');
-      }
-    });
-
-    it('should store unmappedActions array on preview entry', () => {
-      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
-
-      const entry = getPreview(id);
-      expect(entry).not.toBeNull();
-      if (entry) {
-        entry.unmappedActions = [
-          { actionText: 'Unknown action 1', count: 5 },
-          { actionText: 'Unknown action 2', count: 3 },
-        ];
-        expect(entry.unmappedActions).toHaveLength(2);
-        expect(entry.unmappedActions[0].actionText).toBe('Unknown action 1');
-        expect(entry.unmappedActions[0].count).toBe(5);
-      }
-    });
-
-    it('should retrieve sheetName and unmappedActions from getPreview', () => {
-      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
-
-      const entry = getPreview(id);
-      expect(entry).not.toBeNull();
-      if (entry) {
-        entry.sheetName = 'Dr Jones';
-        entry.unmappedActions = [{ actionText: 'Test action', count: 1 }];
-
-        const retrieved = getPreview(id);
-        expect(retrieved?.sheetName).toBe('Dr Jones');
-        expect(retrieved?.unmappedActions).toHaveLength(1);
-      }
-    });
-
-    it('should work correctly when sheetName and unmappedActions are undefined (Hill imports)', () => {
-      const id = storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation());
-
-      const entry = getPreview(id);
-      expect(entry).not.toBeNull();
-      expect(entry?.sheetName).toBeUndefined();
-      expect(entry?.unmappedActions).toBeUndefined();
-    });
-
-    it('should handle empty unmappedActions array', () => {
-      const id = storePreview('sutter', 'merge', createMockDiff(), createMockRows(), createMockValidation());
-
-      const entry = getPreview(id);
-      if (entry) {
-        entry.unmappedActions = [];
-        expect(entry.unmappedActions).toEqual([]);
-      }
-    });
-  });
+  // REMOVED (ln-630 audit B12.2): 'storePreview with Sutter fields' (5 tests) —
+  // self-referential: manually set properties on JS objects (entry.sheetName = 'x'),
+  // then asserted the same properties. Tested JS property assignment, not cache behavior.
 
   describe('getPreview', () => {
     it('should retrieve stored preview', () => {
@@ -192,6 +129,7 @@ describe('previewCache', () => {
     });
 
     it('should return null for expired preview', () => {
+      jest.useFakeTimers();
       // Store with 1ms TTL
       const id = storePreview(
         'hill',
@@ -205,14 +143,11 @@ describe('previewCache', () => {
         1 // 1ms TTL
       );
 
-      // Wait for expiration
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          const entry = getPreview(id);
-          expect(entry).toBeNull();
-          resolve();
-        }, 10);
-      });
+      // Advance time past expiration
+      jest.advanceTimersByTime(10);
+      const entry = getPreview(id);
+      expect(entry).toBeNull();
+      jest.useRealTimers();
     });
   });
 
@@ -256,17 +191,15 @@ describe('previewCache', () => {
     });
 
     it('should exclude expired previews', () => {
+      jest.useFakeTimers();
       storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation(), [], [], null, 1);
       storePreview('kaiser', 'replace', createMockDiff(), createMockRows(), createMockValidation(), [], [], null, 60000);
 
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          const active = getActivePreviews();
-          expect(active).toHaveLength(1);
-          expect(active[0].systemId).toBe('kaiser');
-          resolve();
-        }, 10);
-      });
+      jest.advanceTimersByTime(10);
+      const active = getActivePreviews();
+      expect(active).toHaveLength(1);
+      expect(active[0].systemId).toBe('kaiser');
+      jest.useRealTimers();
     });
   });
 
@@ -287,19 +220,17 @@ describe('previewCache', () => {
 
   describe('cleanupExpired', () => {
     it('should remove expired entries', () => {
+      jest.useFakeTimers();
       storePreview('expired', 'merge', createMockDiff(), createMockRows(), createMockValidation(), [], [], null, 1);
       storePreview('active', 'replace', createMockDiff(), createMockRows(), createMockValidation(), [], [], null, 60000);
 
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          const removed = cleanupExpired();
-          expect(removed).toBe(1);
+      jest.advanceTimersByTime(10);
+      const removed = cleanupExpired();
+      expect(removed).toBe(1);
 
-          const stats = getCacheStats();
-          expect(stats.totalEntries).toBe(1);
-          resolve();
-        }, 10);
-      });
+      const stats = getCacheStats();
+      expect(stats.totalEntries).toBe(1);
+      jest.useRealTimers();
     });
   });
 

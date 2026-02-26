@@ -10,15 +10,11 @@ describe('Compact Filter Bar — Grid Integration', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
-
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
+    // Wait for grid rows to render
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
   });
 
   it('grid shows correct rows when measure is selected', () => {
@@ -27,9 +23,8 @@ describe('Compact Filter Bar — Grid Integration', () => {
       // Select a quality measure from the dropdown
       cy.get('select[aria-label="Filter by quality measure"]')
         .select('Annual Wellness Visit');
-      cy.wait(500);
 
-      // Grid should show only AWV rows (fewer or equal to initial count)
+      // Grid should show only AWV rows (fewer or equal to initial count) — auto-retries
       cy.get('.ag-center-cols-container .ag-row').should('have.length.lte', initialCount);
 
       // Verify qualityMeasure column shows only the selected measure
@@ -38,7 +33,7 @@ describe('Compact Filter Bar — Grid Integration', () => {
         if (qualityMeasureCell.length > 0) {
           const text = qualityMeasureCell.text().trim();
           if (text) {
-            expect(text).to.equal('Annual Wellness Visit');
+            expect(text.replace(/▾/g, '').trim()).to.equal('Annual Wellness Visit');
           }
         }
       });
@@ -46,9 +41,8 @@ describe('Compact Filter Bar — Grid Integration', () => {
       // Reset to All Measures
       cy.get('select[aria-label="Filter by quality measure"]')
         .select('All Measures');
-      cy.wait(500);
 
-      // Row count should restore
+      // Row count should restore (auto-retries)
       cy.get('.ag-center-cols-container .ag-row').should('have.length', initialCount);
     });
   });
@@ -63,14 +57,9 @@ describe('Compact Filter Bar — Grid Integration', () => {
       // Select a specific measure
       cy.get('select[aria-label="Filter by quality measure"]')
         .select('Annual Wellness Visit');
-      cy.wait(500);
 
-      // "All" chip count should decrease (scoped to AWV)
-      cy.contains('button', 'All').invoke('text').then((filteredText) => {
-        const filteredMatch = filteredText.match(/\((\d+)\)/);
-        const filteredCount = filteredMatch ? parseInt(filteredMatch[1], 10) : 0;
-        expect(filteredCount).to.be.lte(totalCount);
-      });
+      // "All" chip count should decrease (scoped to AWV) — auto-retries
+      cy.contains('button', 'All').invoke('text').should('not.equal', allText);
     });
   });
 
@@ -78,15 +67,16 @@ describe('Compact Filter Bar — Grid Integration', () => {
     // Select a measure
     cy.get('select[aria-label="Filter by quality measure"]')
       .select('Annual Wellness Visit');
-    cy.wait(500);
+
+    // Wait for measure filter to apply
+    cy.get('select[aria-label="Filter by quality measure"]').should('have.value', 'Annual Wellness Visit');
 
     // Get measure-filtered count
     cy.get('.ag-center-cols-container .ag-row').its('length').then((measureCount) => {
       // Click Completed chip (green)
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
 
-      // Grid should show fewer rows (AND logic: AWV + Completed)
+      // Grid should show fewer rows (AND logic: AWV + Completed) — auto-retries
       cy.get('.ag-center-cols-container .ag-row').should('have.length.lte', measureCount);
 
       // All visible rows should have green status
@@ -97,9 +87,8 @@ describe('Compact Filter Bar — Grid Integration', () => {
 
       // Click All to clear color filter
       cy.contains('button', 'All').click();
-      cy.wait(300);
 
-      // Row count should restore to measure-filtered count
+      // Row count should restore to measure-filtered count (auto-retries)
       cy.get('.ag-center-cols-container .ag-row').should('have.length', measureCount);
     });
   });

@@ -32,11 +32,12 @@ test.describe('Duplicate Member', () => {
 
     // Select and duplicate
     await mainPage.selectRow(0);
-    await page.waitForTimeout(200);
+    const selectedRow = page.locator('[row-index="0"]').first();
+    await expect(selectedRow).toHaveClass(/ag-row-selected/);
     await mainPage.duplicateButton.click();
 
-    // Wait for new row
-    await page.waitForTimeout(500);
+    // Wait for new row to appear at index 1
+    await expect(page.locator('[row-index="1"] [col-id="memberName"]').first()).toBeVisible();
 
     // New row should be at index 1 (below selected row) with same name
     const newRowName = await mainPage.getCellValue(1, 'memberName');
@@ -47,7 +48,8 @@ test.describe('Duplicate Member', () => {
     await mainPage.selectRow(0);
     await mainPage.duplicateButton.click();
 
-    await page.waitForTimeout(500);
+    // Wait for duplicated row to appear at index 1
+    await expect(page.locator('[row-index="1"] [col-id="memberName"]').first()).toBeVisible();
 
     // New row (index 1) should have empty measure fields
     const requestType = await mainPage.getCellValue(1, 'requestType');
@@ -62,17 +64,19 @@ test.describe('Duplicate Member', () => {
   test('duplicated row copies phone and address', async ({ page }) => {
     // Toggle Member Info to show phone/address columns
     await mainPage.toggleMemberInfo();
-    await page.waitForTimeout(300);
+    await expect(page.locator('.ag-header-cell[col-id="memberTelephone"]')).toBeVisible();
 
     // Get original values
     const originalPhone = await mainPage.getCellValue(0, 'memberTelephone');
     const originalAddress = await mainPage.getCellValue(0, 'memberAddress');
 
     await mainPage.selectRow(0);
-    await page.waitForTimeout(200);
+    const selectedRow = page.locator('[row-index="0"]').first();
+    await expect(selectedRow).toHaveClass(/ag-row-selected/);
     await mainPage.duplicateButton.click();
 
-    await page.waitForTimeout(500);
+    // Wait for duplicated row to appear at index 1
+    await expect(page.locator('[row-index="1"] [col-id="memberTelephone"]').first()).toBeVisible();
 
     const newPhone = await mainPage.getCellValue(1, 'memberTelephone');
     const newAddress = await mainPage.getCellValue(1, 'memberAddress');
@@ -86,10 +90,9 @@ test.describe('Duplicate Member', () => {
 
   test('duplicated row is selected after creation', async ({ page }) => {
     await mainPage.selectRow(0);
-    await page.waitForTimeout(200);
+    const selectedRow = page.locator('[row-index="0"]').first();
+    await expect(selectedRow).toHaveClass(/ag-row-selected/);
     await mainPage.duplicateButton.click();
-
-    await page.waitForTimeout(500);
 
     // New row should be selected (has ag-row-selected class)
     const newRow = page.locator('[row-index="1"]').first();
@@ -112,11 +115,16 @@ test.describe('Duplicate Member', () => {
     // First duplicate
     await mainPage.selectRow(0);
     await mainPage.duplicateButton.click();
-    await page.waitForTimeout(500);
+
+    // Wait for duplicated row at index 1 to appear and be selected
+    const firstDupe = page.locator('[row-index="1"]').first();
+    await expect(firstDupe).toHaveClass(/ag-row-selected/);
 
     // The new row should be selected, duplicate again
     await mainPage.duplicateButton.click();
-    await page.waitForTimeout(500);
+
+    // Wait for second duplicated row at index 2 to appear
+    await expect(page.locator('[row-index="2"] [col-id="memberName"]').first()).toBeVisible();
 
     // Verify we have at least 2 rows with same name
     const name0 = await mainPage.getCellValue(0, 'memberName');

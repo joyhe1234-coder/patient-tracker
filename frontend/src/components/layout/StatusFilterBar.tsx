@@ -109,14 +109,14 @@ export default function StatusFilterBar({ activeFilters, onFilterChange, rowCoun
               ${isActive
                 ? `${category.bgColor} ${category.textColor} ${category.borderColor}`
                 : isZeroCount
-                  ? `bg-white ${category.textColor} ${category.borderColor} opacity-50`
-                  : `bg-white ${category.textColor} ${category.borderColor} opacity-50 hover:opacity-75`
+                  ? `bg-white ${category.textColor} ${category.borderColor} border-dashed`
+                  : `bg-white ${category.textColor} ${category.borderColor} hover:bg-gray-50`
               }
             `}
           >
             {isActive && <Check size={12} strokeWidth={3} />}
             <span>{category.label}</span>
-            <span className="text-[10px] opacity-75">({count})</span>
+            <span className="text-[10px]">({count})</span>
           </button>
         );
       })}

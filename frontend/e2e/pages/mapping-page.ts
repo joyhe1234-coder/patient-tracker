@@ -41,7 +41,7 @@ export class MappingPage {
     this.page = page;
 
     // Page heading
-    this.heading = page.locator('h1:has-text("Import Column Mapping")');
+    this.heading = page.locator('h2:has-text("Import Column Mapping")');
 
     // System selector dropdown
     this.systemSelector = page.locator('#system-selector');
@@ -71,7 +71,7 @@ export class MappingPage {
    * Navigate to the mapping management page.
    * Handles login if redirected.
    */
-  async goto(email = 'admin@gmail.com', password = 'welcome100') {
+  async goto(email = 'ko037291@gmail.com', password = 'welcome100') {
     await this.page.goto('/admin/import-mapping');
 
     // Handle login redirect if needed
@@ -81,7 +81,13 @@ export class MappingPage {
       await emailInput.fill(email);
       await this.page.locator('input[name="password"]').fill(password);
       await this.page.locator('button[type="submit"]').click();
-      await this.page.waitForURL(/\/admin\/import-mapping/, { timeout: 10000 });
+
+      // After login, app redirects to '/' — navigate to the admin page explicitly
+      await this.page.waitForURL(
+        (url) => !url.pathname.includes('/login'),
+        { timeout: 15000 },
+      );
+      await this.page.goto('/admin/import-mapping');
     }
 
     // Wait for the page to load
@@ -103,8 +109,8 @@ export class MappingPage {
    */
   async selectSystem(systemId: string) {
     await this.systemSelector.selectOption(systemId);
-    // Wait for the new config to load
-    await this.page.waitForTimeout(300);
+    // Wait for loading spinner to appear and disappear (config loading)
+    await this.loadingSpinner.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
     await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
@@ -127,9 +133,15 @@ export class MappingPage {
    * Click the "Edit Mappings" or "Done Editing" button.
    */
   async toggleEditMode() {
+    const isEditing = await this.page.locator('button:has-text("Done Editing")').isVisible().catch(() => false);
     const editBtn = this.page.locator('button:has-text("Edit Mappings"), button:has-text("Done Editing")');
     await editBtn.click();
-    await this.page.waitForTimeout(200);
+    // Wait for the button text to toggle (confirming the mode change)
+    if (isEditing) {
+      await this.page.locator('button:has-text("Edit Mappings")').waitFor({ state: 'visible', timeout: 5000 });
+    } else {
+      await this.page.locator('button:has-text("Done Editing")').waitFor({ state: 'visible', timeout: 5000 });
+    }
   }
 
   /**
@@ -153,7 +165,8 @@ export class MappingPage {
     // Find the modal's confirm button (the red-styled one)
     const confirmBtn = this.page.locator('.bg-red-600:has-text("Reset to Defaults"), button.bg-red-600');
     await confirmBtn.click();
-    await this.page.waitForTimeout(500);
+    // Wait for the modal to close after reset completes
+    await this.page.locator('text=Reset to Default Mappings').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
   /**
@@ -162,7 +175,8 @@ export class MappingPage {
   async cancelReset() {
     const cancelBtn = this.page.locator('button:has-text("Cancel")').last();
     await cancelBtn.click();
-    await this.page.waitForTimeout(200);
+    // Wait for the modal to close
+    await this.page.locator('text=Reset to Default Mappings').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
   /**

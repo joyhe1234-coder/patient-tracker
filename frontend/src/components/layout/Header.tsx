@@ -101,6 +101,7 @@ export default function Header() {
                     {user.roles.includes('ADMIN') ? 'Viewing provider:' : 'Viewing as:'}
                   </span>
                   <select
+                    aria-label={user.roles.includes('ADMIN') ? 'Select provider' : 'Select physician'}
                     value={selectedPhysicianId === null ? 'unassigned' : selectedPhysicianId}
                     onChange={(e) => {
                       const value = e.target.value;

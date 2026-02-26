@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Header from './Header';
@@ -23,6 +24,8 @@ import { useAuthStore } from '../../stores/authStore';
 const mockUseAuthStore = vi.mocked(useAuthStore);
 
 describe('Header', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -252,7 +255,7 @@ describe('Header', () => {
       expect(dropdown.value).toBe('unassigned');
     });
 
-    it('should call setSelectedPhysicianId with null when selecting "Unassigned patients"', () => {
+    it('should call setSelectedPhysicianId with null when selecting "Unassigned patients"', async () => {
       mockUseAuthStore.mockReturnValue({
         user: adminUser,
         isAuthenticated: true,
@@ -269,12 +272,12 @@ describe('Header', () => {
       );
 
       const dropdown = screen.getByRole('combobox');
-      fireEvent.change(dropdown, { target: { value: 'unassigned' } });
+      await user.selectOptions(dropdown, 'unassigned');
 
       expect(mockSetSelectedPhysicianId).toHaveBeenCalledWith(null);
     });
 
-    it('should call setSelectedPhysicianId with number when selecting a physician', () => {
+    it('should call setSelectedPhysicianId with number when selecting a physician', async () => {
       mockUseAuthStore.mockReturnValue({
         user: adminUser,
         isAuthenticated: true,
@@ -291,7 +294,7 @@ describe('Header', () => {
       );
 
       const dropdown = screen.getByRole('combobox');
-      fireEvent.change(dropdown, { target: { value: '10' } });
+      await user.selectOptions(dropdown, '10');
 
       expect(mockSetSelectedPhysicianId).toHaveBeenCalledWith(10);
     });
@@ -307,7 +310,7 @@ describe('Header', () => {
       lastLoginAt: null,
     };
 
-    function openPasswordModal() {
+    async function openPasswordModal() {
       mockUseAuthStore.mockReturnValue({
         user: adminUser,
         isAuthenticated: true,
@@ -324,35 +327,35 @@ describe('Header', () => {
       );
 
       // Open user menu
-      fireEvent.click(screen.getByText('Test Admin'));
+      await user.click(screen.getByText('Test Admin'));
       // Click Change Password
-      fireEvent.click(screen.getByText('Change Password'));
+      await user.click(screen.getByText('Change Password'));
     }
 
-    it('opens password modal and shows all 3 fields', () => {
-      openPasswordModal();
+    it('opens password modal and shows all 3 fields', async () => {
+      await openPasswordModal();
 
       expect(screen.getByText('Current Password')).toBeInTheDocument();
       expect(screen.getByText('New Password')).toBeInTheDocument();
       expect(screen.getByText('Confirm New Password')).toBeInTheDocument();
     });
 
-    it('shows "Must be at least 8 characters" helper text', () => {
-      openPasswordModal();
+    it('shows "Must be at least 8 characters" helper text', async () => {
+      await openPasswordModal();
 
       expect(screen.getByText('Must be at least 8 characters')).toBeInTheDocument();
     });
 
-    it('has password visibility toggle buttons with aria-labels', () => {
-      openPasswordModal();
+    it('has password visibility toggle buttons with aria-labels', async () => {
+      await openPasswordModal();
 
       expect(screen.getByLabelText('Show current password')).toBeInTheDocument();
       expect(screen.getByLabelText('Show new password')).toBeInTheDocument();
       expect(screen.getByLabelText('Show confirm password')).toBeInTheDocument();
     });
 
-    it('toggles password visibility when eye icon is clicked', () => {
-      openPasswordModal();
+    it('toggles password visibility when eye icon is clicked', async () => {
+      await openPasswordModal();
 
       // All fields start as password type
       const inputs = screen.getAllByDisplayValue('');
@@ -362,7 +365,7 @@ describe('Header', () => {
       expect(passwordInputs.length).toBe(3);
 
       // Click the "Show current password" toggle
-      fireEvent.click(screen.getByLabelText('Show current password'));
+      await user.click(screen.getByLabelText('Show current password'));
 
       // After click, aria-label should change to "Hide"
       expect(screen.getByLabelText('Hide current password')).toBeInTheDocument();

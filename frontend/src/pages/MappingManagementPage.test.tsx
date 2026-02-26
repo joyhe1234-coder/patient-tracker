@@ -6,7 +6,8 @@
  * states, and metadata display.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -195,6 +196,8 @@ function setupDefaultMocks(
 // ---------------------------------------------------------------------------
 
 describe('MappingManagementPage', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockUser = {
@@ -235,7 +238,7 @@ describe('MappingManagementPage', () => {
 
     // Switch to Sutter
     const selector = screen.getByLabelText('Import System:') as HTMLSelectElement;
-    fireEvent.change(selector, { target: { value: 'sutter-1' } });
+    await user.selectOptions(selector, 'sutter-1');
 
     await waitFor(() => {
       expect(mockGet).toHaveBeenCalledWith('/import/mappings/sutter-1');
@@ -280,7 +283,7 @@ describe('MappingManagementPage', () => {
     });
 
     const selector = screen.getByLabelText('Import System:') as HTMLSelectElement;
-    fireEvent.change(selector, { target: { value: 'sutter-1' } });
+    await user.selectOptions(selector, 'sutter-1');
 
     await waitFor(() => {
       expect(screen.getByText('Action Pattern Configuration')).toBeInTheDocument();
@@ -331,7 +334,7 @@ describe('MappingManagementPage', () => {
     });
 
     const selector = screen.getByLabelText('Import System:') as HTMLSelectElement;
-    fireEvent.change(selector, { target: { value: 'sutter-1' } });
+    await user.selectOptions(selector, 'sutter-1');
 
     await waitFor(() => {
       expect(screen.getByText('Never modified')).toBeInTheDocument();
@@ -364,7 +367,7 @@ describe('MappingManagementPage', () => {
     });
 
     // Click the Reset to Defaults button
-    fireEvent.click(screen.getByText('Reset to Defaults'));
+    await user.click(screen.getByText('Reset to Defaults'));
 
     // Confirmation modal should appear
     await waitFor(() => {
@@ -376,7 +379,7 @@ describe('MappingManagementPage', () => {
       (el) => el.tagName === 'BUTTON' && el.closest('.fixed'),
     );
     expect(confirmButton).toBeDefined();
-    fireEvent.click(confirmButton!);
+    await user.click(confirmButton!);
 
     // Should call the DELETE endpoint
     await waitFor(() => {
@@ -395,7 +398,7 @@ describe('MappingManagementPage', () => {
     });
 
     const selector = screen.getByLabelText('Import System:') as HTMLSelectElement;
-    fireEvent.change(selector, { target: { value: 'sutter-1' } });
+    await user.selectOptions(selector, 'sutter-1');
 
     await waitFor(() => {
       expect(screen.getByText('No Measure Columns Configured')).toBeInTheDocument();
@@ -503,7 +506,7 @@ describe('MappingManagementPage', () => {
       expect(editButton).toBeInTheDocument();
 
       // Click to enter edit mode
-      fireEvent.click(editButton);
+      await user.click(editButton);
 
       // After click, should show "Done Editing" instead
       expect(screen.getByRole('button', { name: 'Done Editing' })).toBeInTheDocument();
@@ -517,13 +520,13 @@ describe('MappingManagementPage', () => {
       });
 
       // Enter edit mode
-      fireEvent.click(screen.getByRole('button', { name: 'Edit Mappings' }));
+      await user.click(screen.getByRole('button', { name: 'Edit Mappings' }));
 
       // Verify we're in edit mode
       expect(screen.getByRole('button', { name: 'Done Editing' })).toBeInTheDocument();
 
       // Exit edit mode
-      fireEvent.click(screen.getByRole('button', { name: 'Done Editing' }));
+      await user.click(screen.getByRole('button', { name: 'Done Editing' }));
 
       // Should be back to view mode with "Edit Mappings"
       expect(screen.getByRole('button', { name: 'Edit Mappings' })).toBeInTheDocument();

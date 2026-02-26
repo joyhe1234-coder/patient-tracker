@@ -14,11 +14,7 @@ describe('Role-Based Access Control', () => {
 
   // Helper to login
   const login = (email: string, password: string) => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(email);
-    cy.get('input[type="password"]').type(password);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(email, password);
   };
 
   // Helper to logout
@@ -41,11 +37,13 @@ describe('Role-Based Access Control', () => {
   describe('STAFF Role Restrictions', () => {
     beforeEach(() => {
       login(adminCredentials.email, adminCredentials.password);
+      cy.visit('/');
+      cy.waitForAgGrid();
     });
 
     it('should NOT show Admin link in navigation for STAFF', () => {
       // First verify admin can see Admin link
-      cy.contains('Admin').should('be.visible');
+      cy.get('a[href="/admin"]').should('be.visible');
 
       // Check that STAFF role does not have Admin link
       // This test assumes we're logged in as admin and checking the UI
@@ -68,11 +66,10 @@ describe('Role-Based Access Control', () => {
     it('should only show assigned physicians in STAFF dropdown', () => {
       // STAFF should only see physicians they are assigned to
       // Not all physicians
-      cy.visit('/');
-      cy.wait(500);
+      // (beforeEach already visits / and waits for grid)
 
       // As admin, we see all. STAFF would see fewer.
-      cy.get('select option').then(($options) => {
+      cy.get('select').first().find('option').then(($options) => {
         cy.log(`Admin sees ${$options.length} options in dropdown`);
       });
     });
@@ -120,10 +117,12 @@ describe('Role-Based Access Control', () => {
   describe('ADMIN Role Capabilities', () => {
     beforeEach(() => {
       login(adminCredentials.email, adminCredentials.password);
+      cy.visit('/');
+      cy.waitForAgGrid();
     });
 
     it('should show Admin link in navigation for ADMIN', () => {
-      cy.contains('Admin').should('be.visible');
+      cy.get('a[href="/admin"]').should('be.visible');
     });
 
     it('should allow ADMIN to access /admin page', () => {
@@ -133,18 +132,12 @@ describe('Role-Based Access Control', () => {
     });
 
     it('should show "Unassigned patients" option for ADMIN', () => {
-      cy.visit('/');
-      cy.wait(500);
-
-      cy.get('select').should('exist');
-      cy.get('select option[value="unassigned"]').should('exist');
+      cy.get('select').first().should('exist');
+      cy.get('select').first().find('option[value="unassigned"]').should('exist');
     });
 
     it('should allow ADMIN to view any physician\'s patients', () => {
-      cy.visit('/');
-      cy.wait(500);
-
-      cy.get('select option').then(($options) => {
+      cy.get('select').first().find('option').then(($options) => {
         // Admin should see multiple physician options
         const physicianCount = $options.length - 1; // Subtract unassigned option
         cy.log(`Admin can view ${physicianCount} physicians' patients`);
@@ -165,12 +158,13 @@ describe('Role-Based Access Control', () => {
     });
 
     it('should return 403 when STAFF tries to access unassigned patients', () => {
-      // Intercept API call to verify response
-      cy.intercept('GET', '/api/data?physicianId=unassigned').as('getUnassigned');
+      // Intercept API call to verify response (use wildcard to match any query params)
+      cy.intercept('GET', '/api/data*physicianId=unassigned*').as('getUnassigned');
 
       // Try to access unassigned (as admin this works)
       cy.visit('/');
-      cy.get('select').select('unassigned');
+      cy.waitForAgGrid();
+      cy.get('select').first().select('unassigned');
 
       cy.wait('@getUnassigned').then((interception) => {
         // As admin, should be 200
@@ -240,23 +234,22 @@ describe('Role-Based Access Control', () => {
   describe('Data Isolation Verification', () => {
     beforeEach(() => {
       login(adminCredentials.email, adminCredentials.password);
+      cy.visit('/');
+      cy.waitForAgGrid();
     });
 
     it('should show different patient counts for different physicians', () => {
-      cy.visit('/');
-      cy.wait(500);
-
-      cy.get('select').then(($select) => {
+      cy.get('select').first().then(($select) => {
         if ($select.find('option').length > 2) {
           // Get count for physician 1
-          cy.get('select').select(1);
-          cy.wait(500);
+          cy.get('select').first().select(1);
+          cy.waitForAgGrid();
           cy.get('.ag-center-cols-container .ag-row').then(($rows1) => {
             const count1 = $rows1.length;
 
             // Get count for physician 2
-            cy.get('select').select(2);
-            cy.wait(500);
+            cy.get('select').first().select(2);
+            cy.waitForAgGrid();
             cy.get('.ag-center-cols-container .ag-row').then(($rows2) => {
               const count2 = $rows2.length;
 
@@ -273,12 +266,9 @@ describe('Role-Based Access Control', () => {
     });
 
     it('should show separate count for unassigned patients', () => {
-      cy.visit('/');
-      cy.wait(500);
-
       // Select unassigned
-      cy.get('select').select('unassigned');
-      cy.wait(500);
+      cy.get('select').first().select('unassigned');
+      cy.waitForAgGrid();
 
       cy.get('.ag-center-cols-container .ag-row').then(($rows) => {
         const unassignedCount = $rows.length;
@@ -288,20 +278,17 @@ describe('Role-Based Access Control', () => {
     });
 
     it('should not show other physician\'s patients in list', () => {
-      cy.visit('/');
-      cy.wait(500);
-
       // Select physician A
-      cy.get('select').select(1);
-      cy.wait(500);
+      cy.get('select').first().select(1);
+      cy.waitForAgGrid();
 
       // Get a patient name from physician A
       cy.get('.ag-center-cols-container .ag-row').first().then(($row) => {
         const patientText = $row.text();
 
         // Switch to physician B
-        cy.get('select').select(2);
-        cy.wait(500);
+        cy.get('select').first().select(2);
+        cy.waitForAgGrid();
 
         // The same exact row should not appear (different data set)
         // Note: Name could theoretically match, but full row content shouldn't

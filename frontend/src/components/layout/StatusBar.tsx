@@ -46,7 +46,7 @@ export default function StatusBar({ rowCount, totalRowCount, filterSummary, pinn
           {pinnedRowId != null && <span className="text-amber-600 italic" data-testid="status-bar-pinned"> (new row pinned)</span>}
         </span>
         {filterSummary && (
-          <span className="text-gray-500 border-l border-gray-300 pl-4">{filterSummary}</span>
+          <span className="text-gray-600 border-l border-gray-300 pl-4">{filterSummary}</span>
         )}
       </div>
       <div className="flex items-center gap-3">
@@ -82,12 +82,12 @@ export default function StatusBar({ rowCount, totalRowCount, filterSummary, pinn
             <span
               className={
                 connectionStatus === 'connected'
-                  ? 'text-green-600'
+                  ? 'text-green-700'
                   : connectionStatus === 'reconnecting'
-                    ? 'text-yellow-600'
+                    ? 'text-yellow-700'
                     : connectionStatus === 'disconnected'
-                      ? 'text-red-600'
-                      : 'text-gray-500'
+                      ? 'text-red-700'
+                      : 'text-gray-600'
               }
             >
               {statusConfig.label}

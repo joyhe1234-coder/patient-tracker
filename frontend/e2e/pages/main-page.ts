@@ -74,28 +74,29 @@ export class MainPage {
   async openDropdown(rowIndex: number, colId: string): Promise<void> {
     // Open a dropdown cell for editing and wait for the popup
     const cell = this.page.locator(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first();
+    const popupItemsLocator = this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]');
+    const dropdownListLocator = this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item');
 
     // First click to select/focus
     await cell.click();
-    await this.page.waitForTimeout(100);
+    await cell.waitFor({ state: 'attached' });
 
     // Double-click to open editor
     await cell.dblclick();
-    await this.page.waitForTimeout(400);
 
     // Check if popup appeared (AG Grid uses various selectors)
-    let popupVisible = await this.page.locator('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]').count() > 0;
+    let popupVisible = await popupItemsLocator.first().waitFor({ state: 'attached', timeout: 1000 }).then(() => true).catch(() => false);
 
     if (!popupVisible) {
       // Try clicking on the dropdown arrow/button within the cell
       const wrapper = cell.locator('.ag-cell-edit-wrapper, .ag-select, .ag-wrapper').first();
       if (await wrapper.count() > 0) {
         await wrapper.click();
-        await this.page.waitForTimeout(300);
+        await dropdownListLocator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {});
       } else {
         // Try pressing Enter/Space to open dropdown
         await this.page.keyboard.press('Space');
-        await this.page.waitForTimeout(300);
+        await dropdownListLocator.first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {});
       }
     }
 
@@ -136,11 +137,10 @@ export class MainPage {
 
     // Single click to select/focus the row
     await cell.click();
-    await this.page.waitForTimeout(150);
+    await cell.waitFor({ state: 'attached' });
 
     // Double-click to open the dropdown editor
     await cell.dblclick();
-    await this.page.waitForTimeout(300);
 
     // Wait for popup to appear
     await this.page.waitForSelector('.ag-popup', { state: 'visible', timeout: 3000 }).catch(() => {});
@@ -156,7 +156,8 @@ export class MainPage {
         if (itemText.trim() === value) {
           // Click this item directly
           await listItems.nth(i).click();
-          await this.page.waitForTimeout(300);
+          // Wait for popup to close and cell to reflect the selected value
+          await this.page.locator('.ag-popup').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
           return;
         }
       }
@@ -164,9 +165,9 @@ export class MainPage {
 
     // Fallback: type first character to filter/jump and use keyboard
     await this.page.keyboard.type(value.charAt(0));
-    await this.page.waitForTimeout(100);
     await this.page.keyboard.press('Enter');
-    await this.page.waitForTimeout(300);
+    // Wait for popup to close and cell to reflect the selected value
+    await this.page.locator('.ag-popup').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
   }
 
   async selectRow(rowIndex: number) {
@@ -243,7 +244,8 @@ export class MainPage {
 
     // Wait for modal to close and grid to update
     await this.page.locator('text=Add New Patient').waitFor({ state: 'hidden', timeout: 5000 });
-    await this.page.waitForTimeout(500);
+    // Wait for the grid to reflect the newly added row
+    await this.page.waitForLoadState('networkidle');
   }
 
   async findRowByMemberName(name: string): Promise<number> {
@@ -293,11 +295,10 @@ export class MainPage {
 
     // Click to focus
     await cell.click();
-    await this.page.waitForTimeout(100);
+    await cell.waitFor({ state: 'attached' });
 
     // Double-click to open editor
     await cell.dblclick();
-    await this.page.waitForTimeout(400);
 
     // Wait for popup list items (AG Grid uses various selectors)
     await this.page.waitForSelector('.ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"], [role="listbox"] [role="option"]', { state: 'attached', timeout: 5000 }).catch(() => {});
@@ -312,16 +313,17 @@ export class MainPage {
       if (itemText.trim() === value) {
         // Try clicking with force
         await listItems.nth(i).click({ force: true });
-        await this.page.waitForTimeout(500);
+        // Wait for popup to close and cell to reflect the selected value
+        await this.page.locator('.ag-popup').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
         return;
       }
     }
 
     // Fallback: type first character to jump to the option
     await this.page.keyboard.type(value.charAt(0));
-    await this.page.waitForTimeout(200);
     await this.page.keyboard.press('Enter');
-    await this.page.waitForTimeout(400);
+    // Wait for popup to close and cell to reflect the selected value
+    await this.page.locator('.ag-popup').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
   }
 
   async getCellValueByMemberName(memberName: string, colId: string): Promise<string> {
@@ -333,14 +335,23 @@ export class MainPage {
   async toggleMemberInfo() {
     // Click the "Member Info" toggle button in the toolbar
     const memberInfoButton = this.page.locator('button:has-text("Member Info")');
+    // Check the current visibility before toggling, so we can wait for the opposite state
+    const telephoneHeader = this.page.locator('.ag-header-cell[col-id="memberTelephone"]');
+    const wasVisible = await telephoneHeader.isVisible().catch(() => false);
     await memberInfoButton.click();
-    await this.page.waitForTimeout(300);
+    // Wait for the column visibility to change
+    if (wasVisible) {
+      await telephoneHeader.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    } else {
+      await telephoneHeader.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+    }
   }
 
   async deselectAllRows() {
     // Click on the status bar to deselect all rows (outside grid)
     await this.statusBar.click();
-    await this.page.waitForTimeout(200);
+    // Wait for any selected row styling to be removed
+    await this.page.locator('.ag-row-selected').first().waitFor({ state: 'detached', timeout: 2000 }).catch(() => {});
   }
 
   async isMemberInfoVisible(): Promise<boolean> {

@@ -29,12 +29,31 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.11.0):**
-- Layer 1 (Backend Jest): 1,387 tests passing (47 suites)
-- Layer 2 (Frontend Vitest): 1,138 tests passing (43 suites)
-- Layer 3 (Playwright E2E): 13+ import-all-roles tests
-- Layer 4 (Cypress E2E): ~283 tests
+**Test Coverage (as of Release 4.12.1):**
+- Layer 1 (Backend Jest): 1,415 tests passing (48 suites)
+- Layer 2 (Frontend Vitest): 1,202 tests passing (48 suites)
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment
+- Layer 4 (Cypress E2E): ~283 tests (expanded cascading-dropdowns, sorting-filtering, time-interval)
 - Visual test plan v2.1: 427 test cases documented
+- Regression test plan: 48 sections, 80+ new test cases in sections 44-48 (Authentication, Authorization, Password, Admin, Import)
+
+### Depression Screening Quality Measure
+
+**Status: Complete** (Feb 23, 2026)
+**Spec:** `.claude/specs/depression-screening/`
+
+- [x] **Seed data:** Quality measure, 7 statuses (Not Addressed, Called to schedule, Visit scheduled, Screening complete, Screening unnecessary, Patient declined, No longer applicable) with date prompts and baseDueDays
+- [x] **Seed patients:** 6 sample patients with 7 patient measures (including overdue scenario)
+- [x] **Frontend dropdowns:** Added to Screening request type (4 measures), 7 status options in QUALITY_MEASURE_TO_STATUS
+- [x] **Status colors:** Called to schedule (blue), Visit scheduled (yellow), Screening complete (green), Patient declined (purple), Screening unnecessary/No longer applicable (gray)
+- [x] **Date prompts:** statusDatePromptResolver updated for 3 new status-to-prompt mappings
+- [x] **Import validation:** Added to VALID_QUALITY_MEASURES in validator.ts
+- [x] **Hill import:** Column mapping + compliant/nonCompliant status mapping; removed from skipColumns
+- [x] **Sutter import:** Regex action pattern for Depression Screening, PHQ-9, Screen for depression
+- [x] **Test data:** Updated Hill CSV/JSON expected output + Sutter XLSX fixtures with Depression Screening rows
+- [x] **Visual review:** 35/35 scenarios passed (ui-ux-reviewer agent)
+
+**Tests:** +14 Vitest (dropdownConfig, statusColors, StatusFilterBar, sutter-integration, actionMapper)
 
 ### Smart Column Mapping + Import E2E Tests
 
@@ -52,6 +71,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Import E2E Tests:** 13 Playwright tests (Hill/Sutter x Admin/Physician/Staff/Admin+Physician) covering valid imports + conflict role-based UI
 - [x] **Test Data Renamed:** All CSV/XLSX/expected-JSON files renamed with `hill-`/`sutter-` prefixes
 - [x] **Defect Fixes:** ESM compatibility, flaky perf thresholds, Promise.race fragility, fragile selectors, timeout constants, null safety
+- [x] **Post-release fixes (4.11.1):** Wrong-file false positives (dual-ratio check), MISSING conflict false positives (covered targetField), patient field auto-population, Sutter blank row header alignment, sheet validation fuzzy fallback + Q1/Q2 suffix matching, Cypress test hardening (cy.login, clear option, date editor, BCS row lookup), Playwright test hardening
 
 **Tests:** +222 Jest, +101 Vitest, +13 Playwright E2E
 
@@ -979,6 +999,8 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 25, 2026 - Release 4.12.1: Test hardening (fireEvent→userEvent migration across 25 Vitest files, accessibility labels, Playwright waitForTimeout elimination), Depression Screening quality measure (7 statuses, color coding, import support), conflict detection false positives fix. All tests passing: 1,415 Jest + 1,202 Vitest + Playwright + Cypress = ~2,617+ automated tests.
+February 23, 2026 - Release 4.11.1: Conflict detection fixes (wrong-file dual-ratio, MISSING covered targetField, patient field auto-population), Sutter file parser blank row alignment, sheet validation fuzzy fallback + Q1/Q2 suffix matching, Cypress + Playwright test hardening. All tests passing: 1,387 Jest + 1,138 Vitest + Playwright + Cypress = ~2,525+ automated tests.
 February 19, 2026 - Release 4.10.0: Remove tracking3 field (migration + full stack), rename "Duplicate Mbr" to "Copy Member", pinned row on add/duplicate (filter bypass with amber badge), import Q4-Q8 decisions resolved, smart column mapping spec. All tests passing: 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.
 February 18, 2026 - Release 4.9.0: Sutter duplicate merging, measureDetails parsing, role-based tests, seed users, universal sheet validation, configurable preview columns, ADMIN+PHYSICIAN dual role fix, CSV headerRow fix, SheetSelector a11y fix, Sutter/SIP multi-system import. All tests passing: 1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress = ~2,575 automated tests.
 February 14, 2026 - Sutter/SIP multi-system import: full pipeline (config, parser, routes, transformer, mapper, UI components). 253 new Jest + 61 new Vitest tests. All tests passing: 1,030 Jest + 956 Vitest + 43 Playwright + ~342 Cypress = ~2,371 automated tests.

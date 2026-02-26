@@ -36,8 +36,11 @@ test.describe('Conflict Resolution', () => {
       const mainPageA = await loginAndNavigate(pageA, USER_A.email, USER_A.password);
       const mainPageB = await loginAndNavigate(pageB, USER_B.email, USER_B.password);
 
-      // Wait for socket connections
-      await pageA.waitForTimeout(2000);
+      // Wait for both users' socket connections to be established
+      const statusBarA = pageA.locator('.bg-gray-100.border-t');
+      const statusBarB = pageB.locator('.bg-gray-100.border-t');
+      await expect(statusBarA).toContainText('Connected', { timeout: 10000 });
+      await expect(statusBarB).toContainText('Connected', { timeout: 10000 });
 
       // User A edits notes cell on first row
       await mainPageA.editCell(0, 'notes', 'User A notes');
@@ -46,9 +49,6 @@ test.describe('Conflict Resolution', () => {
       // User B edits the same cell (should trigger version conflict)
       // User B's grid may not have the updated version yet
       await mainPageB.editCell(0, 'notes', 'User B notes');
-
-      // Wait for potential conflict modal
-      await pageB.waitForTimeout(2000);
 
       // Check if conflict modal appeared on User B's screen
       const conflictModal = pageB.locator('[data-testid="conflict-modal"], text="Edit Conflict"');
@@ -77,7 +77,10 @@ test.describe('Conflict Resolution', () => {
     try {
       const mainPageA = await loginAndNavigate(pageA, USER_A.email, USER_A.password);
       const mainPageB = await loginAndNavigate(pageB, USER_B.email, USER_B.password);
-      await pageA.waitForTimeout(2000);
+
+      // Wait for both socket connections
+      await expect(pageA.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
+      await expect(pageB.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
 
       // User A edits first
       await mainPageA.editCell(0, 'notes', 'A value');
@@ -85,13 +88,11 @@ test.describe('Conflict Resolution', () => {
 
       // User B edits same cell
       await mainPageB.editCell(0, 'notes', 'B value');
-      await pageB.waitForTimeout(2000);
 
       const conflictModal = pageB.locator('text="Edit Conflict"');
       if (await conflictModal.isVisible({ timeout: 5000 }).catch(() => false)) {
         // Click Keep Mine
         await pageB.locator('button:has-text("Keep Mine")').click();
-        await pageB.waitForTimeout(1000);
 
         // Modal should close
         await expect(conflictModal).toBeHidden({ timeout: 5000 });
@@ -112,7 +113,10 @@ test.describe('Conflict Resolution', () => {
     try {
       const mainPageA = await loginAndNavigate(pageA, USER_A.email, USER_A.password);
       const mainPageB = await loginAndNavigate(pageB, USER_B.email, USER_B.password);
-      await pageA.waitForTimeout(2000);
+
+      // Wait for both socket connections
+      await expect(pageA.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
+      await expect(pageB.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
 
       // User A edits first
       await mainPageA.editCell(0, 'notes', 'Theirs value');
@@ -120,13 +124,11 @@ test.describe('Conflict Resolution', () => {
 
       // User B edits same cell
       await mainPageB.editCell(0, 'notes', 'My value');
-      await pageB.waitForTimeout(2000);
 
       const conflictModal = pageB.locator('text="Edit Conflict"');
       if (await conflictModal.isVisible({ timeout: 5000 }).catch(() => false)) {
         // Click Keep Theirs
         await pageB.locator('button:has-text("Keep Theirs")').click();
-        await pageB.waitForTimeout(1000);
 
         // Modal should close
         await expect(conflictModal).toBeHidden({ timeout: 5000 });

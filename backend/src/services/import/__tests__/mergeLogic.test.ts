@@ -101,11 +101,11 @@ async function runPreviewPipeline(buffer: Buffer, fileName: string, mode: 'merge
   };
 }
 
-describe('Merge Logic Integration Tests', () => {
-  const csvPath = path.join(testDataDir, 'test-hill-merge-cases.csv');
+// Conditional: skip visibly when prerequisites are missing
+const canRunMergeTests = hasDatabaseUrl && fs.existsSync(path.join(testDataDir, 'test-hill-merge-cases.csv'));
 
-  // Skip all tests if file doesn't exist
-  const fileExists = fs.existsSync(csvPath);
+(canRunMergeTests ? describe : describe.skip)('Merge Logic Integration Tests', () => {
+  const csvPath = path.join(testDataDir, 'test-hill-merge-cases.csv');
 
   // Track if database has test data (set in beforeAll)
   let dbHasTestData = false;
@@ -122,14 +122,6 @@ describe('Merge Logic Integration Tests', () => {
 
   describe('merge mode with test-hill-merge-cases.csv', () => {
     it('should process merge test file successfully', async () => {
-      if (!hasDatabaseUrl) {
-        console.log('Skipping: DATABASE_URL not set (integration test requires database)');
-        return;
-      }
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
 
       const buffer = fs.readFileSync(csvPath);
       const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
@@ -145,10 +137,7 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should correctly identify INSERT actions for new patients', async () => {
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
       if (!dbHasTestData) {
         console.log(`Skipping: Database needs fresh state for INSERT tests (found ${testPatientCount} test patients). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
@@ -185,10 +174,7 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should correctly identify UPDATE actions (non-compliant → compliant)', async () => {
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
       if (!dbHasTestData) {
         console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
@@ -215,10 +201,7 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should correctly identify SKIP actions for same compliance status', async () => {
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
       if (!dbHasTestData) {
         console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
@@ -242,10 +225,7 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should correctly identify BOTH actions for downgrades (compliant → non-compliant)', async () => {
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
       if (!dbHasTestData) {
         console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
@@ -267,14 +247,8 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should have correct summary counts', async () => {
-      if (!hasDatabaseUrl) {
-        console.log('Skipping: DATABASE_URL not set (integration test requires database)');
-        return;
-      }
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
+      // Prerequisites checked at top-level describe (canRunMergeTests)
 
       const buffer = fs.readFileSync(csvPath);
       const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
@@ -294,10 +268,7 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should correctly count new vs existing patients', async () => {
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
       if (!dbHasTestData) {
         console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
@@ -315,14 +286,8 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should return modifying changes (excluding SKIPs)', async () => {
-      if (!hasDatabaseUrl) {
-        console.log('Skipping: DATABASE_URL not set (integration test requires database)');
-        return;
-      }
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
+      // Prerequisites checked at top-level describe (canRunMergeTests)
 
       const buffer = fs.readFileSync(csvPath);
       const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');
@@ -340,10 +305,7 @@ describe('Merge Logic Integration Tests', () => {
 
   describe('replace mode with test-hill-merge-cases.csv', () => {
     it('should delete all existing and insert all new in replace mode', async () => {
-      if (!fileExists) {
-        console.log('Skipping: test-hill-merge-cases.csv not found');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
       if (!dbHasTestData) {
         console.log(`Skipping: Database needs seeded test data (found ${testPatientCount} test patients, need 10+). Run: npx prisma migrate reset --force && npx tsx prisma/seed.ts`);
         return;
@@ -385,10 +347,7 @@ describe('Merge Logic Integration Tests', () => {
 
   describe('merge logic edge cases', () => {
     it('should handle blank import values as SKIP', async () => {
-      if (!hasDatabaseUrl) {
-        console.log('Skipping: DATABASE_URL not set (integration test requires database)');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
 
       // Create a simple CSV with blank value for existing patient
       const csv = `Patient,DOB,Phone,Address,Annual Wellness Visit
@@ -409,10 +368,7 @@ describe('Merge Logic Integration Tests', () => {
     });
 
     it('should handle case-insensitive status matching', async () => {
-      if (!hasDatabaseUrl) {
-        console.log('Skipping: DATABASE_URL not set (integration test requires database)');
-        return;
-      }
+      // Prerequisites checked at top-level describe (canRunMergeTests)
 
       // Both "Compliant" and "compliant" should work
       const csv = `Patient,DOB,Phone,Address,Annual Wellness Visit
@@ -431,23 +387,14 @@ describe('Merge Logic Integration Tests', () => {
   });
 });
 
-describe('Diff Change Structure', () => {
+(canRunMergeTests ? describe : describe.skip)('Diff Change Structure', () => {
   const csvPath = path.join(testDataDir, 'test-hill-merge-cases.csv');
-  const fileExists = fs.existsSync(csvPath);
 
   afterAll(async () => {
     if (prisma) await prisma.$disconnect();
   });
 
   it('should include all required fields in DiffChange', async () => {
-    if (!hasDatabaseUrl) {
-      console.log('Skipping: DATABASE_URL not set (integration test requires database)');
-      return;
-    }
-    if (!fileExists) {
-      console.log('Skipping: test-hill-merge-cases.csv not found');
-      return;
-    }
 
     const buffer = fs.readFileSync(csvPath);
     const result = await runPreviewPipeline(buffer, 'test-hill-merge-cases.csv', 'merge');

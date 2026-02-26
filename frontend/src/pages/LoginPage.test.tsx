@@ -4,7 +4,7 @@
  * Tests for the login page component: rendering, validation, and user interactions.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
@@ -46,6 +46,8 @@ function renderLoginPage() {
 }
 
 describe('LoginPage', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mock to default state
@@ -112,8 +114,8 @@ describe('LoginPage', () => {
       const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-      await userEvent.type(passwordInput, 'password123');
-      fireEvent.click(submitButton);
+      await user.type(passwordInput, 'password123');
+      await user.click(submitButton);
 
       // HTML5 validation prevents submission
       expect(mockLogin).not.toHaveBeenCalled();
@@ -125,8 +127,8 @@ describe('LoginPage', () => {
       const emailInput = screen.getByLabelText(/email address/i);
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-      await userEvent.type(emailInput, 'test@example.com');
-      fireEvent.click(submitButton);
+      await user.type(emailInput, 'test@example.com');
+      await user.click(submitButton);
 
       // HTML5 validation prevents submission
       expect(mockLogin).not.toHaveBeenCalled();
@@ -136,7 +138,7 @@ describe('LoginPage', () => {
       renderLoginPage();
 
       const submitButton = screen.getByRole('button', { name: /sign in/i });
-      fireEvent.click(submitButton);
+      await user.click(submitButton);
 
       // HTML5 validation prevents submission
       expect(mockLogin).not.toHaveBeenCalled();
@@ -152,9 +154,9 @@ describe('LoginPage', () => {
       const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-      await userEvent.type(emailInput, 'doctor@clinic.com');
-      await userEvent.type(passwordInput, 'password123');
-      fireEvent.click(submitButton);
+      await user.type(emailInput, 'doctor@clinic.com');
+      await user.type(passwordInput, 'password123');
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith('doctor@clinic.com', 'password123');
@@ -169,9 +171,9 @@ describe('LoginPage', () => {
       const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-      await userEvent.type(emailInput, '  doctor@clinic.com  ');
-      await userEvent.type(passwordInput, 'password123');
-      fireEvent.click(submitButton);
+      await user.type(emailInput, '  doctor@clinic.com  ');
+      await user.type(passwordInput, 'password123');
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith('doctor@clinic.com', 'password123');
@@ -186,9 +188,9 @@ describe('LoginPage', () => {
       const passwordInput = screen.getByLabelText('Password');
       const submitButton = screen.getByRole('button', { name: /sign in/i });
 
-      await userEvent.type(emailInput, 'doctor@clinic.com');
-      await userEvent.type(passwordInput, 'password123');
-      fireEvent.click(submitButton);
+      await user.type(emailInput, 'doctor@clinic.com');
+      await user.type(passwordInput, 'password123');
+      await user.click(submitButton);
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -293,7 +295,7 @@ describe('LoginPage', () => {
 
       expect(toggleButton).toBeInTheDocument();
       if (toggleButton) {
-        fireEvent.click(toggleButton);
+        await user.click(toggleButton);
       }
 
       expect(passwordInput).toHaveAttribute('type', 'text');
@@ -306,8 +308,8 @@ describe('LoginPage', () => {
       const toggleButton = passwordInput.parentElement?.querySelector('button');
 
       if (toggleButton) {
-        fireEvent.click(toggleButton);
-        fireEvent.click(toggleButton);
+        await user.click(toggleButton);
+        await user.click(toggleButton);
       }
 
       expect(passwordInput).toHaveAttribute('type', 'password');

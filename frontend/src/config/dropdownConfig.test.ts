@@ -49,11 +49,12 @@ describe('dropdownConfig', () => {
       expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Quality']).toContain('Hypertension Management');
     });
 
-    it('maps Screening to 3 screening measures', () => {
-      expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Screening']).toHaveLength(3);
+    it('maps Screening to 4 screening measures', () => {
+      expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Screening']).toHaveLength(4);
       expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Screening']).toContain('Breast Cancer Screening');
       expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Screening']).toContain('Colon Cancer Screening');
       expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Screening']).toContain('Cervical Cancer Screening');
+      expect(REQUEST_TYPE_TO_QUALITY_MEASURE['Screening']).toContain('Depression Screening');
     });
   });
 
@@ -91,6 +92,35 @@ describe('dropdownConfig', () => {
       expect(statuses).toContain('Chronic diagnosis confirmed');
       expect(statuses).toContain('Chronic diagnosis resolved');
       expect(statuses).toContain('Chronic diagnosis invalid');
+    });
+
+    describe('Depression Screening', () => {
+      it('has exactly 7 statuses', () => {
+        const statuses = QUALITY_MEASURE_TO_STATUS['Depression Screening'];
+        expect(statuses).toHaveLength(7);
+      });
+
+      it('has "Not Addressed" as the first status', () => {
+        const statuses = QUALITY_MEASURE_TO_STATUS['Depression Screening'];
+        expect(statuses[0]).toBe('Not Addressed');
+      });
+
+      it('contains all 7 required statuses', () => {
+        const statuses = QUALITY_MEASURE_TO_STATUS['Depression Screening'];
+        expect(statuses).toContain('Called to schedule');
+        expect(statuses).toContain('Visit scheduled');
+        expect(statuses).toContain('Screening complete');
+        expect(statuses).toContain('Screening unnecessary');
+        expect(statuses).toContain('Patient declined');
+        expect(statuses).toContain('No longer applicable');
+      });
+
+      it('has no Tracking #1 options for any Depression Screening status', () => {
+        const statuses = QUALITY_MEASURE_TO_STATUS['Depression Screening'];
+        for (const status of statuses) {
+          expect(getTracking1OptionsForStatus(status)).toBeNull();
+        }
+      });
     });
   });
 
@@ -162,6 +192,7 @@ describe('dropdownConfig', () => {
         'Breast Cancer Screening',
         'Cervical Cancer Screening',
         'Colon Cancer Screening',
+        'Depression Screening',
       ]);
     });
 

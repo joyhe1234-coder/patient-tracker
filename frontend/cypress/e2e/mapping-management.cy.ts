@@ -17,11 +17,7 @@ const adminCredentials = {
 
 /** Login as admin user. */
 function loginAsAdmin() {
-  cy.visit('/login');
-  cy.get('input[type="email"]').type(adminCredentials.email);
-  cy.get('input[type="password"]').type(adminCredentials.password);
-  cy.get('button[type="submit"]').click();
-  cy.url().should('not.include', '/login', { timeout: 10000 });
+  cy.login(adminCredentials.email, adminCredentials.password);
 }
 
 /**

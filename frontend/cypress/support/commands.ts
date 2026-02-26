@@ -2,6 +2,20 @@
 // Custom commands for interacting with AG Grid dropdowns
 
 /**
+ * Login and navigate to the main page.
+ * Handles both fresh and already-authenticated states.
+ */
+Cypress.Commands.add('login', (email: string, password: string) => {
+  cy.session([email, password], () => {
+    cy.visit('/login');
+    cy.get('input[type="email"]', { timeout: 10000 }).should('be.visible').type(email);
+    cy.get('input[type="password"]').type(password);
+    cy.get('button[type="submit"]').click();
+    cy.url().should('not.include', '/login', { timeout: 15000 });
+  });
+});
+
+/**
  * Wait for AG Grid to be fully loaded
  */
 Cypress.Commands.add('waitForAgGrid', () => {
@@ -83,7 +97,8 @@ Cypress.Commands.add('getAgGridDropdownOptions', () => {
     .then(($items) => {
       const options: string[] = [];
       $items.each((_, el) => {
-        options.push(Cypress.$(el).text().trim());
+        // Strip checkmark prefix (✓) that AutoOpenSelectEditor adds for the selected value
+        options.push(Cypress.$(el).text().replace(/✓\s*/g, '').trim());
       });
       return cy.wrap(options);
     });
@@ -115,6 +130,34 @@ Cypress.Commands.add('selectAgGridDropdown', (rowIndex: number, colId: string, v
 });
 
 /**
+ * Select an AG Grid dropdown value with retry on 409/conflict failures.
+ * After selecting, verifies the cell contains the value. If it doesn't
+ * (e.g., due to a version conflict 409), waits and retries up to maxRetries times.
+ */
+Cypress.Commands.add('selectAgGridDropdownAndVerify', (rowIndex: number, colId: string, value: string, maxRetries = 2) => {
+  const attempt = (retriesLeft: number) => {
+    cy.selectAgGridDropdown(rowIndex, colId, value);
+    cy.wait(500);
+    cy.getAgGridCell(rowIndex, colId).invoke('text').then((rawText) => {
+      const text = rawText.replace(/[✓▾]/g, '').trim();
+      if (text.includes(value)) {
+        // Selection succeeded
+        return;
+      }
+      if (retriesLeft > 0) {
+        cy.log(`selectAgGridDropdownAndVerify: "${colId}" shows "${text}", expected "${value}". Retrying... (${retriesLeft} left)`);
+        cy.wait(2000); // Wait for any pending saves/version updates
+        attempt(retriesLeft - 1);
+      } else {
+        // Final assertion — will fail with a clear message
+        cy.getAgGridCell(rowIndex, colId).should('contain.text', value);
+      }
+    });
+  };
+  attempt(maxRetries);
+});
+
+/**
  * Select a value from an AG Grid dropdown by member name
  */
 Cypress.Commands.add('selectAgGridDropdownByMemberName', (memberName: string, colId: string, value: string) => {
@@ -136,23 +179,28 @@ Cypress.Commands.add('selectAgGridDropdownByMemberName', (memberName: string, co
  * Scroll to a column in AG Grid to ensure it's visible
  */
 Cypress.Commands.add('scrollToAgGridColumn', (colId: string) => {
-  // Scroll the grid body to the right to reveal more columns
-  cy.get('.ag-body-horizontal-scroll-viewport').then(($viewport) => {
-    // Scroll to the right to ensure column is visible
-    $viewport[0].scrollLeft = $viewport[0].scrollWidth;
+  // Scroll the center cols viewport to reveal more columns
+  cy.get('.ag-center-cols-viewport').then(($viewport) => {
+    const el = $viewport[0];
+    el.scrollLeft = el.scrollWidth;
+    el.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
-  cy.wait(300);
+  cy.wait(400);
 });
 
 /**
- * Get an AG Grid cell by row index and column ID, ensuring the column is visible
+ * Get an AG Grid cell by row index and column ID, ensuring the column is visible.
+ * Scrolls the AG Grid center column viewport to reveal virtually-rendered columns.
  */
 Cypress.Commands.add('getAgGridCellWithScroll', (rowIndex: number, colId: string) => {
-  // First scroll the grid to the right to reveal dueDate and timeIntervalDays columns
-  cy.get('.ag-body-horizontal-scroll-viewport').then(($viewport) => {
-    $viewport[0].scrollLeft = $viewport[0].scrollWidth;
+  // Scroll the center cols viewport (the actual scrollable container for non-pinned columns)
+  cy.get('.ag-center-cols-viewport').then(($viewport) => {
+    const el = $viewport[0];
+    el.scrollLeft = el.scrollWidth;
+    // Dispatch scroll event so AG Grid processes the scroll and re-renders virtual columns
+    el.dispatchEvent(new Event('scroll', { bubbles: true }));
   });
-  cy.wait(400);
+  cy.wait(600);
   // Then get the cell
   return cy.get(`[row-index="${rowIndex}"] [col-id="${colId}"]`, { timeout: 10000 }).first();
 });

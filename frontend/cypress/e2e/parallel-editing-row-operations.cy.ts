@@ -10,11 +10,7 @@ describe('Parallel Editing - Row Operations', () => {
   const adminPassword = 'welcome100';
 
   beforeEach(() => {
-    cy.visit('/login');
-    cy.get('input[type="email"]').type(adminEmail);
-    cy.get('input[type="password"]').type(adminPassword);
-    cy.get('button[type="submit"]').click();
-    cy.url().should('not.include', '/login', { timeout: 10000 });
+    cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.waitForAgGrid();
   });
@@ -27,12 +23,10 @@ describe('Parallel Editing - Row Operations', () => {
   it('should handle row selection state correctly', () => {
     // Select first row
     cy.get('[row-index="0"]').first().click();
-    cy.wait(300);
     cy.get('[row-index="0"]').first().should('have.class', 'ag-row-selected');
 
     // Click second row to change selection
     cy.get('[row-index="1"]').first().click();
-    cy.wait(300);
     cy.get('[row-index="0"]').first().should('not.have.class', 'ag-row-selected');
     cy.get('[row-index="1"]').first().should('have.class', 'ag-row-selected');
   });
@@ -44,7 +38,9 @@ describe('Parallel Editing - Row Operations', () => {
 
       // Click Add Row button
       cy.get('button').contains('Add Row').click();
-      cy.wait(500);
+
+      // Wait for modal to appear
+      cy.get('input[placeholder="Enter patient name"]').should('be.visible');
 
       // Fill in the modal
       cy.get('input[placeholder="Enter patient name"]').type(`CypressTest ${Date.now()}`);
@@ -55,9 +51,8 @@ describe('Parallel Editing - Row Operations', () => {
 
       // Wait for modal to close and grid to update
       cy.get('text=Add New Patient').should('not.exist', { timeout: 5000 });
-      cy.wait(1000);
 
-      // Row count should increase
+      // Row count should increase (auto-retries)
       cy.get('.ag-row[row-index]').should('have.length.greaterThan', initialCount);
     });
   });
@@ -65,13 +60,17 @@ describe('Parallel Editing - Row Operations', () => {
   it('should update row count after Delete Row', () => {
     // First add a row to delete
     cy.get('button').contains('Add Row').click();
-    cy.wait(500);
+    // Wait for modal to appear
+    cy.get('input[placeholder="Enter patient name"]').should('be.visible');
+
     const testName = `DeleteTest ${Date.now()}`;
     cy.get('input[placeholder="Enter patient name"]').type(testName);
     cy.get('input[type="date"]').type('1990-01-01');
     cy.get('.bg-white.rounded-lg').find('button').contains('Add Row').click();
     cy.get('text=Add New Patient').should('not.exist', { timeout: 5000 });
-    cy.wait(1000);
+
+    // Wait for grid to update with new row
+    cy.get('.ag-row[row-index]').should('have.length.greaterThan', 0);
 
     // Count rows after adding
     cy.get('.ag-row[row-index]').then(($rows) => {
@@ -79,11 +78,10 @@ describe('Parallel Editing - Row Operations', () => {
 
       // Select the last row (our newly added row)
       cy.get(`[row-index="${countAfterAdd - 1}"]`).first().click();
-      cy.wait(300);
+      cy.get(`[row-index="${countAfterAdd - 1}"]`).first().should('have.class', 'ag-row-selected');
 
       // Click Delete Row
       cy.get('button').contains('Delete Row').click();
-      cy.wait(500);
 
       // Confirm deletion if modal appears
       cy.get('body').then(($body) => {
@@ -92,9 +90,7 @@ describe('Parallel Editing - Row Operations', () => {
         }
       });
 
-      cy.wait(1000);
-
-      // Row count should decrease
+      // Row count should decrease (auto-retries)
       cy.get('.ag-row[row-index]').should('have.length.lessThan', countAfterAdd);
     });
   });

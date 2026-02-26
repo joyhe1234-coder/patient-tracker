@@ -21,13 +21,12 @@ test.describe('Reconnection Behavior', () => {
     // Block Socket.IO requests to simulate network disruption
     await page.route('**/socket.io/**', route => route.abort());
 
-    // Wait for Socket.IO to detect disconnection
-    await page.waitForTimeout(5000);
-
-    // Status should change to Reconnecting or Disconnected
-    const statusText = await statusBar.innerText();
-    const isReconnecting = statusText.includes('Reconnecting') || statusText.includes('Disconnected');
-    expect(isReconnecting).toBe(true);
+    // Wait for status bar to reflect disconnection (Reconnecting or Disconnected)
+    await expect(async () => {
+      const statusText = await statusBar.innerText();
+      const isReconnecting = statusText.includes('Reconnecting') || statusText.includes('Disconnected');
+      expect(isReconnecting).toBe(true);
+    }).toPass({ timeout: 15000 });
   });
 
   test('status returns to Connected after network restored', async ({ page }) => {
@@ -40,15 +39,18 @@ test.describe('Reconnection Behavior', () => {
 
     // Block Socket.IO
     await page.route('**/socket.io/**', route => route.abort());
-    await page.waitForTimeout(5000);
+
+    // Wait for status to show disconnection before unblocking
+    await expect(async () => {
+      const statusText = await statusBar.innerText();
+      const isDisconnected = statusText.includes('Reconnecting') || statusText.includes('Disconnected');
+      expect(isDisconnected).toBe(true);
+    }).toPass({ timeout: 15000 });
 
     // Unblock Socket.IO
     await page.unroute('**/socket.io/**');
 
-    // Wait for reconnection
-    await page.waitForTimeout(10000);
-
-    // Status should return to Connected
-    await expect(statusBar).toContainText('Connected', { timeout: 15000 });
+    // Status should return to Connected after reconnection
+    await expect(statusBar).toContainText('Connected', { timeout: 30000 });
   });
 });

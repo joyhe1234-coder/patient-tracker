@@ -23,11 +23,7 @@ const adminCredentials = {
 
 /** Login as a STAFF user. */
 function loginAsStaff() {
-  cy.visit('/login');
-  cy.get('input[type="email"]').type(staffCredentials.email);
-  cy.get('input[type="password"]').type(staffCredentials.password);
-  cy.get('button[type="submit"]').click();
-  cy.url().should('not.include', '/login', { timeout: 10000 });
+  cy.login(staffCredentials.email, staffCredentials.password);
 }
 
 /**
@@ -35,11 +31,7 @@ function loginAsStaff() {
  * Falls back to admin if STAFF login fails (seed data may vary).
  */
 function loginWithCredentials(email: string, password: string) {
-  cy.visit('/login');
-  cy.get('input[type="email"]').type(email);
-  cy.get('input[type="password"]').type(password);
-  cy.get('button[type="submit"]').click();
-  cy.url().should('not.include', '/login', { timeout: 10000 });
+  cy.login(email, password);
 }
 
 /**
@@ -116,11 +108,33 @@ function stubConflictPreviewResponse() {
 }
 
 /**
+ * Stub the /api/import/sheets endpoint so sheet discovery succeeds.
+ * These tests focus on the ConflictBanner UI, not backend validation.
+ */
+function stubSheetsDiscovery() {
+  cy.intercept('POST', '/api/import/sheets*', {
+    statusCode: 200,
+    body: {
+      success: true,
+      data: {
+        sheets: ['Sheet1'],
+        totalSheets: 1,
+        filteredSheets: 1,
+        skippedSheets: [],
+        invalidSheets: [],
+      },
+    },
+  }).as('sheetsDiscovery');
+}
+
+/**
  * Upload a CSV file and select a physician so the Preview button becomes
  * clickable. Uses a file with renamed/extra/missing columns to trigger
  * conflict detection.
  */
 function uploadFileAndSelectPhysician() {
+  stubSheetsDiscovery();
+
   cy.get('input[type="file"]').selectFile({
     contents: Cypress.Buffer.from(
       'Patient,DOB,Annual Wellness Vist,Unknown Extra Column\n"Smith, John",1/15/1965,Compliant,SomeValue',

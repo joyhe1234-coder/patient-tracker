@@ -32,31 +32,9 @@ const originalBcryptHash = bcrypt.hash;
 const originalBcryptCompare = bcrypt.compare;
 
 describe('authService', () => {
-  describe('hashPassword', () => {
-    it('should return a valid bcrypt hash', async () => {
-      const password = 'testPassword123';
-      const hash = await hashPassword(password);
-
-      expect(hash).toBeDefined();
-      expect(hash).not.toBe(password);
-      expect(hash.startsWith('$2a$') || hash.startsWith('$2b$')).toBe(true);
-    });
-
-    it('should generate different hashes for the same password', async () => {
-      const password = 'testPassword123';
-      const hash1 = await hashPassword(password);
-      const hash2 = await hashPassword(password);
-
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should generate different hashes for different passwords', async () => {
-      const hash1 = await hashPassword('password1');
-      const hash2 = await hashPassword('password2');
-
-      expect(hash1).not.toBe(hash2);
-    });
-  });
+  // hashPassword: bcrypt library tests removed (ln-630 audit B12.2)
+  // Removed: 'valid bcrypt hash' ($2a$/$2b$ format), 'different hashes same password' (salt randomness),
+  // 'different hashes different passwords' (library uniqueness). These test bcrypt, not our code.
 
   describe('verifyPassword', () => {
     it('should return true for correct password', async () => {
@@ -83,19 +61,7 @@ describe('authService', () => {
   });
 
   describe('generateToken', () => {
-    it('should generate a valid JWT token', () => {
-      const user = {
-        id: 1,
-        email: 'test@example.com',
-        roles: ['PHYSICIAN'] as UserRole[],
-      };
-
-      const token = generateToken(user);
-
-      expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
-      expect(token.split('.').length).toBe(3); // JWT has 3 parts
-    });
+    // Removed: 'valid JWT token' (3-part format check) — tests jsonwebtoken library, not our code
 
     it('should include correct payload in token', () => {
       const user = {
@@ -125,15 +91,7 @@ describe('authService', () => {
       expect(decoded.roles).toEqual(['ADMIN', 'PHYSICIAN']);
     });
 
-    it('should generate different tokens for different users', () => {
-      const user1 = { id: 1, email: 'user1@test.com', roles: ['PHYSICIAN'] as UserRole[] };
-      const user2 = { id: 2, email: 'user2@test.com', roles: ['STAFF'] as UserRole[] };
-
-      const token1 = generateToken(user1);
-      const token2 = generateToken(user2);
-
-      expect(token1).not.toBe(token2);
-    });
+    // Removed: 'different tokens for different users' — tests JWT library uniqueness, not our code
   });
 
   describe('verifyToken', () => {
@@ -341,4 +299,11 @@ describe('authService', () => {
       }
     });
   });
+
+  // Note: authenticateUser, sendTempPassword, findUserByEmail, updateLastLogin,
+  // updatePassword, getStaffAssignments, isStaffAssignedToPhysician, getAllPhysicians,
+  // incrementFailedAttempts, lockAccount, resetFailedAttempts are all thin Prisma
+  // orchestration functions. Unit-testing them requires full prisma mocking which
+  // tests the mock, not the code. These paths are covered by E2E login tests
+  // and admin management E2E tests (see frontend/e2e/).
 });

@@ -60,6 +60,7 @@ const VALID_QUALITY_MEASURES: Record<string, string[]> = {
     'Breast Cancer Screening',
     'Colon Cancer Screening',
     'Cervical Cancer Screening',
+    'Depression Screening',
   ],
 };
 

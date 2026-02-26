@@ -15,6 +15,7 @@ import { isStaffAssignedToPhysician } from '../services/authService.js';
 import { socketIdMiddleware } from '../middleware/socketIdMiddleware.js';
 import { broadcastToRoom, getRoomName } from '../services/socketManager.js';
 import { detectConflicts } from '../services/import/conflictDetector.js';
+import { fuzzyMatch } from '../services/import/fuzzyMatcher.js';
 import type { SutterSystemConfig, SkipTabPattern, RequiredColumns, PreviewColumnDef } from '../services/import/configLoader.js';
 import type { TransformedRow } from '../services/import/dataTransformer.js';
 import type { SutterTransformResult } from '../services/import/sutterDataTransformer.js';
@@ -124,18 +125,27 @@ function validateSheetHeaders(
     return { name: sheetName, reason: 'Too few columns (minimum 3 required)' };
   }
 
-  // Check all patient columns present (case-insensitive)
-  const missingPatient = required.patientColumns.filter(
-    col => !headerSet.has(col.toLowerCase().trim())
-  );
+  // Check all patient columns present (case-insensitive, with fuzzy fallback)
+  const missingPatient = required.patientColumns.filter(col => {
+    // First: exact case-insensitive match
+    if (headerSet.has(col.toLowerCase().trim())) return false;
+    // Fallback: fuzzy match against all file headers (lower threshold than conflict detection)
+    const fuzzyResults = fuzzyMatch(col, nonEmptyHeaders, 0.70);
+    return fuzzyResults.length === 0; // Still missing if no fuzzy match
+  });
   if (missingPatient.length > 0) {
     return { name: sheetName, reason: `Missing patient columns: ${missingPatient.join(', ')}` };
   }
 
-  // Check at least minDataColumns data columns present
-  const matchedDataColumns = required.dataColumns.filter(
-    col => headerSet.has(col.toLowerCase().trim())
-  );
+  // Check at least minDataColumns data columns present.
+  // For Hill configs, file headers may have Q1/Q2 suffixes (e.g., "Breast Cancer Screening E Q1")
+  // that the config key lacks ("Breast Cancer Screening E"), so also check with suffixes.
+  const matchedDataColumns = required.dataColumns.filter(col => {
+    const lc = col.toLowerCase().trim();
+    return headerSet.has(lc)
+      || headerSet.has(lc + ' q1')
+      || headerSet.has(lc + ' q2');
+  });
   if (matchedDataColumns.length < required.minDataColumns) {
     return { name: sheetName, reason: `Missing data columns (need at least ${required.minDataColumns})` };
   }

@@ -1,0 +1,11 @@
+Patient,DOB,Phone,Address,Annual Wellness Visit Q1,Annual Wellness Visit Q2,Depression Screening Q1,Depression Screening Q2,Breast Cancer Screening E Q1,Breast Cancer Screening E Q2,BP Control Q1,BP Control Q2
+"Ramirez, Ana",04/12/1978,9165551001,"100 Oak St, Sacramento, CA 95814",01/10/2026,Compliant,01/15/2026,Compliant,01/08/2026,Compliant,01/12/2026,Compliant
+"Chen, David",08/23/1965,9165552002,"200 Pine Ave, Davis, CA 95616",01/05/2026,Compliant,01/20/2026,Non Compliant,,,01/10/2026,Non Compliant
+"Thompson, Lisa",11/30/1982,9165553003,"300 Elm Dr, Elk Grove, CA 95624",,Non Compliant,01/18/2026,Compliant,01/06/2026,Compliant,,
+"Nguyen, Kevin",02/14/1970,9165554004,"400 Maple Ln, Roseville, CA 95661",01/14/2026,Compliant,,Non Compliant,01/09/2026,Non Compliant,01/11/2026,Compliant
+"Williams, Sarah",06/08/1990,9165555005,"500 Cedar Rd, Folsom, CA 95630",01/08/2026,Compliant,01/22/2026,Compliant,,,01/15/2026,Compliant
+"Patel, Amit",09/17/1958,9165556006,"600 Birch Way, Rancho Cordova, CA 95670",,Non Compliant,,,,Non Compliant,,Non Compliant
+"Garcia, Maria",03/05/1975,9165557007,"700 Spruce Ct, Citrus Heights, CA 95610",01/12/2026,Compliant,01/25/2026,Non Compliant,01/07/2026,Compliant,01/09/2026,Compliant
+"Kim, James",12/20/1988,9165558008,"800 Walnut Blvd, Carmichael, CA 95608",01/06/2026,Compliant,01/16/2026,Compliant,01/04/2026,Compliant,,
+"Johnson, Daron",07/22/1962,9165559009,"900 Ash Pl, Fair Oaks, CA 95628",01/11/2026,Compliant,,,01/10/2026,Non Compliant,01/13/2026,Non Compliant
+"Rivera, Elena",05/01/1985,9165550010,"1000 Fir Ln, Sacramento, CA 95819",,Compliant,01/28/2026,Compliant,01/03/2026,Compliant,01/07/2026,Compliant

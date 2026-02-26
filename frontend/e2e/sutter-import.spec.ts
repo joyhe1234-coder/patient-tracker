@@ -77,7 +77,7 @@ test.describe('Sutter Import - Full Flow', () => {
     await importPage.waitForSheetDiscovery();
 
     const tabCountText = await importPage.getTabCountText();
-    expect(tabCountText).toContain('2 physician tabs');
+    expect(tabCountText).toContain('2 valid tabs');
   });
 
   test('physician auto-matching pre-selects correct physician on tab selection', async ({ page }) => {
@@ -177,7 +177,7 @@ test.describe('Sutter Import - Full Flow', () => {
     await expect(previewPage.heading).toBeVisible();
   });
 
-  test('preview page shows sheetName in header for Sutter imports', async ({ page }) => {
+  test('preview page shows data from selected Sutter tab', async ({ page }) => {
     const fixturePath = await getMultiTabFixturePath();
 
     await importPage.selectSystem('sutter');
@@ -203,12 +203,17 @@ test.describe('Sutter Import - Full Flow', () => {
     const previewPage = new PreviewPage(page);
     await previewPage.waitForLoad();
 
-    // The preview header should display the sheet/tab name
-    const sheetName = await previewPage.getSheetName();
-    expect(sheetName).toBe('Smith, John');
+    // Preview should contain patient data from the "Smith, John" tab
+    // The preview table should show 5 INSERT records for 2 patients
+    await expect(page.getByText('New Patients:2')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Doe, Jane').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Brown, Bob').first()).toBeVisible({ timeout: 5000 });
+
+    // File name should be displayed in header metadata
+    await expect(page.getByText('sutter-multi-tab.xlsx')).toBeVisible();
   });
 
-  test('preview page shows physician name in header for Sutter imports', async ({ page }) => {
+  test('preview page shows file metadata and record counts', async ({ page }) => {
     const fixturePath = await getMultiTabFixturePath();
 
     await importPage.selectSystem('sutter');
@@ -234,19 +239,22 @@ test.describe('Sutter Import - Full Flow', () => {
     const previewPage = new PreviewPage(page);
     await previewPage.waitForLoad();
 
-    // Physician name should be displayed
-    const physicianName = await previewPage.getPhysicianName();
-    expect(physicianName.length).toBeGreaterThan(0);
+    // Mode metadata should be visible
+    await expect(page.locator('text=Mode: merge')).toBeVisible();
+
+    // Should show record count ("5 records will be modified" for 5 data rows)
+    const modifyingText = await previewPage.getModifyingCountText();
+    expect(modifyingText).toContain('records will be modified');
   });
 
-  test('preview page shows unmapped actions banner when applicable', async ({ page }) => {
+  test('Jones tab with mixed actions only imports mapped rows', async ({ page }) => {
     const fixturePath = await getMultiTabFixturePath();
 
     await importPage.selectSystem('sutter');
     await importPage.uploadFile(fixturePath);
     await importPage.waitForSheetDiscovery();
 
-    // Select "Jones, Mary" tab which has unmapped actions
+    // Select "Jones, Mary" tab which has 2 mapped and 2 unmapped actions
     await importPage.selectSheet('Jones, Mary');
     await importPage.physicianDropdown.waitFor({ state: 'visible', timeout: 5000 });
 
@@ -266,14 +274,10 @@ test.describe('Sutter Import - Full Flow', () => {
     const previewPage = new PreviewPage(page);
     await previewPage.waitForLoad();
 
-    // The unmapped actions banner should be visible (Jones tab has unmapped actions)
-    const bannerVisible = await previewPage.isUnmappedBannerVisible();
-    expect(bannerVisible).toBe(true);
-
-    // Banner text should mention skipped rows
-    const bannerText = await previewPage.getUnmappedBannerText();
-    expect(bannerText).toContain('skipped');
-    expect(bannerText).toContain('action type not yet configured');
+    // Should only show 2 records (the mapped ones: Mammogram + Vaccine: Flu)
+    await expect(page.getByText('2 records will be modified')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Wilson, Sam').first()).toBeVisible();
+    await expect(page.getByText('Garcia, Ana').first()).toBeVisible();
   });
 
   test('step numbering adjusts for Sutter (extra sheet selector step)', async ({ page }) => {

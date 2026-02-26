@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ConfirmModal from './ConfirmModal';
 
@@ -10,6 +11,8 @@ describe('ConfirmModal', () => {
     onConfirm: vi.fn(),
     onCancel: vi.fn(),
   };
+
+  const user = userEvent.setup();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,31 +60,31 @@ describe('ConfirmModal', () => {
   });
 
   describe('Button actions', () => {
-    it('calls onConfirm when confirm button is clicked', () => {
+    it('calls onConfirm when confirm button is clicked', async () => {
       const onConfirm = vi.fn();
       render(<ConfirmModal {...defaultProps} onConfirm={onConfirm} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+      await user.click(screen.getByRole('button', { name: 'Confirm' }));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onCancel when cancel button is clicked', () => {
+    it('calls onCancel when cancel button is clicked', async () => {
       const onCancel = vi.fn();
       render(<ConfirmModal {...defaultProps} onCancel={onCancel} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(onCancel).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onCancel when backdrop is clicked', () => {
+    it('calls onCancel when backdrop is clicked', async () => {
       const onCancel = vi.fn();
       render(<ConfirmModal {...defaultProps} onCancel={onCancel} />);
 
       const backdrop = document.querySelector('.bg-black.bg-opacity-50');
       if (backdrop) {
-        fireEvent.click(backdrop);
+        await user.click(backdrop as HTMLElement);
       }
 
       expect(onCancel).toHaveBeenCalledTimes(1);

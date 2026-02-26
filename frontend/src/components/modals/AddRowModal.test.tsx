@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AddRowModal from './AddRowModal';
@@ -9,6 +9,8 @@ describe('AddRowModal', () => {
     onClose: vi.fn(),
     onAdd: vi.fn().mockResolvedValue(true),
   };
+
+  const user = userEvent.setup();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,7 +57,7 @@ describe('AddRowModal', () => {
     it('shows error when submitting without member name', async () => {
       render(<AddRowModal {...defaultProps} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(screen.getByText('Member name is required')).toBeInTheDocument();
@@ -66,9 +68,10 @@ describe('AddRowModal', () => {
       render(<AddRowModal {...defaultProps} />);
 
       const nameInput = screen.getByPlaceholderText('Enter patient name');
-      fireEvent.change(nameInput, { target: { value: 'John Doe' } });
+      await user.clear(nameInput);
+      await user.type(nameInput, 'John Doe');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(screen.getByText('Date of birth is required')).toBeInTheDocument();
@@ -79,7 +82,7 @@ describe('AddRowModal', () => {
       render(<AddRowModal {...defaultProps} />);
 
       // Submit to trigger error
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(screen.getByText('Member name is required')).toBeInTheDocument();
@@ -87,7 +90,7 @@ describe('AddRowModal', () => {
 
       // Edit the field
       const nameInput = screen.getByPlaceholderText('Enter patient name');
-      fireEvent.change(nameInput, { target: { value: 'John Doe' } });
+      await user.type(nameInput, 'John Doe');
 
       // Error should be cleared
       expect(screen.queryByText('Member name is required')).not.toBeInTheDocument();
@@ -97,7 +100,7 @@ describe('AddRowModal', () => {
       const onAdd = vi.fn();
       render(<AddRowModal {...defaultProps} onAdd={onAdd} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(screen.getByText('Member name is required')).toBeInTheDocument();
@@ -118,12 +121,13 @@ describe('AddRowModal', () => {
       const phoneInput = screen.getByPlaceholderText('(555) 123-4567');
       const addressInput = screen.getByPlaceholderText('123 Main St, City, State ZIP');
 
-      fireEvent.change(nameInput, { target: { value: 'John Doe' } });
-      fireEvent.change(dobInput, { target: { value: '1980-01-15' } });
-      fireEvent.change(phoneInput, { target: { value: '5551234567' } });
-      fireEvent.change(addressInput, { target: { value: '123 Test St' } });
+      await user.type(nameInput, 'John Doe');
+      await user.clear(dobInput);
+      await user.type(dobInput, '1980-01-15');
+      await user.type(phoneInput, '5551234567');
+      await user.type(addressInput, '123 Test St');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(onAdd).toHaveBeenCalledWith({
@@ -142,10 +146,11 @@ describe('AddRowModal', () => {
       const nameInput = screen.getByPlaceholderText('Enter patient name') as HTMLInputElement;
       const dobInput = document.querySelector('input[type="date"]') as HTMLInputElement;
 
-      fireEvent.change(nameInput, { target: { value: 'John Doe' } });
-      fireEvent.change(dobInput, { target: { value: '1980-01-15' } });
+      await user.type(nameInput, 'John Doe');
+      await user.clear(dobInput);
+      await user.type(dobInput, '1980-01-15');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(nameInput.value).toBe('');
@@ -160,10 +165,11 @@ describe('AddRowModal', () => {
       const nameInput = screen.getByPlaceholderText('Enter patient name') as HTMLInputElement;
       const dobInput = document.querySelector('input[type="date"]') as HTMLInputElement;
 
-      fireEvent.change(nameInput, { target: { value: 'John Doe' } });
-      fireEvent.change(dobInput, { target: { value: '1980-01-15' } });
+      await user.type(nameInput, 'John Doe');
+      await user.clear(dobInput);
+      await user.type(dobInput, '1980-01-15');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add Row' }));
+      await user.click(screen.getByRole('button', { name: 'Add Row' }));
 
       await waitFor(() => {
         expect(onAdd).toHaveBeenCalled();
@@ -175,34 +181,34 @@ describe('AddRowModal', () => {
   });
 
   describe('Close behavior', () => {
-    it('calls onClose when Cancel button is clicked', () => {
+    it('calls onClose when Cancel button is clicked', async () => {
       const onClose = vi.fn();
       render(<AddRowModal {...defaultProps} onClose={onClose} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onClose when X button is clicked', () => {
+    it('calls onClose when X button is clicked', async () => {
       const onClose = vi.fn();
       render(<AddRowModal {...defaultProps} onClose={onClose} />);
 
       // Find the X button (it's the button with no text in the header)
       const closeButton = screen.getByRole('button', { name: '' });
-      fireEvent.click(closeButton);
+      await user.click(closeButton);
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onClose when backdrop is clicked', () => {
+    it('calls onClose when backdrop is clicked', async () => {
       const onClose = vi.fn();
       render(<AddRowModal {...defaultProps} onClose={onClose} />);
 
       // Click on the backdrop (the dark overlay)
       const backdrop = document.querySelector('.bg-black.bg-opacity-50');
       if (backdrop) {
-        fireEvent.click(backdrop);
+        await user.click(backdrop as HTMLElement);
       }
 
       expect(onClose).toHaveBeenCalledTimes(1);

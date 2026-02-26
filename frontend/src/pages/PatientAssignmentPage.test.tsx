@@ -5,7 +5,8 @@
  * select-all/deselect, physician dropdown, bulk assignment, and states.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -68,6 +69,8 @@ function renderFullPage() {
 }
 
 describe('PatientAssignmentPage', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockGet.mockImplementation((url: string) => {
@@ -158,7 +161,7 @@ describe('PatientAssignmentPage', () => {
 
       const checkboxes = screen.getAllByRole('checkbox');
       // First checkbox is the header select-all, then one per patient
-      fireEvent.click(checkboxes[1]); // First patient checkbox
+      await user.click(checkboxes[1]); // First patient checkbox
 
       expect(screen.getByText('1 of 3 selected')).toBeInTheDocument();
     });
@@ -170,11 +173,11 @@ describe('PatientAssignmentPage', () => {
       });
 
       // Click Select All button
-      fireEvent.click(screen.getByText('Select All'));
+      await user.click(screen.getByText('Select All'));
       expect(screen.getByText('3 of 3 selected')).toBeInTheDocument();
 
       // Click Deselect All
-      fireEvent.click(screen.getByText('Deselect All'));
+      await user.click(screen.getByText('Deselect All'));
       expect(screen.getByText('0 of 3 selected')).toBeInTheDocument();
     });
 
@@ -203,7 +206,7 @@ describe('PatientAssignmentPage', () => {
 
       // Select a patient
       const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[1]);
+      await user.click(checkboxes[1]);
 
       // Still disabled because no physician selected
       const assignButton = screen.getByText('Assign Selected');
@@ -221,15 +224,15 @@ describe('PatientAssignmentPage', () => {
       });
 
       // Select patients
-      fireEvent.click(screen.getByText('Select All'));
+      await user.click(screen.getByText('Select All'));
 
       // Select physician
       const select = screen.getByDisplayValue('-- Select Physician --');
-      fireEvent.change(select, { target: { value: '10' } });
+      await user.selectOptions(select, '10');
 
       // Click assign
       const assignButton = screen.getByText('Assign Selected');
-      fireEvent.click(assignButton);
+      await user.click(assignButton);
 
       await waitFor(() => {
         expect(mockPatch).toHaveBeenCalledWith('/admin/patients/bulk-assign', {
@@ -249,10 +252,10 @@ describe('PatientAssignmentPage', () => {
         expect(screen.getByText('John Doe')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Select All'));
+      await user.click(screen.getByText('Select All'));
       const select = screen.getByDisplayValue('-- Select Physician --');
-      fireEvent.change(select, { target: { value: '10' } });
-      fireEvent.click(screen.getByText('Assign Selected'));
+      await user.selectOptions(select, '10');
+      await user.click(screen.getByText('Assign Selected'));
 
       await waitFor(() => {
         expect(screen.getByText('Assigned 3 patients to Dr. Adams')).toBeInTheDocument();
@@ -269,10 +272,10 @@ describe('PatientAssignmentPage', () => {
         expect(screen.getByText('John Doe')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Select All'));
+      await user.click(screen.getByText('Select All'));
       const select = screen.getByDisplayValue('-- Select Physician --');
-      fireEvent.change(select, { target: { value: '10' } });
-      fireEvent.click(screen.getByText('Assign Selected'));
+      await user.selectOptions(select, '10');
+      await user.click(screen.getByText('Assign Selected'));
 
       await waitFor(() => {
         expect(screen.getByText('Assignment failed')).toBeInTheDocument();
@@ -315,11 +318,11 @@ describe('PatientAssignmentPage', () => {
       });
 
       // Click the row itself (not the checkbox)
-      fireEvent.click(screen.getByText('John Doe'));
+      await user.click(screen.getByText('John Doe'));
       expect(screen.getByText('1 of 3 selected')).toBeInTheDocument();
 
       // Click again to deselect
-      fireEvent.click(screen.getByText('John Doe'));
+      await user.click(screen.getByText('John Doe'));
       expect(screen.getByText('0 of 3 selected')).toBeInTheDocument();
     });
   });

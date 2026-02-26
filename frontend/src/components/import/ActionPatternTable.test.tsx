@@ -1,4 +1,4 @@
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { ActionPatternTable, type ActionPatternTableProps } from './ActionPatternTable';
@@ -64,6 +64,8 @@ function renderTable(overrides: Partial<ActionPatternTableProps> = {}) {
 // ---------------------------------------------------------------------------
 
 describe('ActionPatternTable', () => {
+  const user = userEvent.setup();
+
   // ------- View Mode -------
   describe('view mode', () => {
     it('renders action patterns with pattern, requestType, and qualityMeasure columns', () => {
@@ -161,7 +163,7 @@ describe('ActionPatternTable', () => {
       });
 
       const rtSelect = screen.getByLabelText('Request type for row 1');
-      await userEvent.selectOptions(rtSelect, 'AWV');
+      await user.selectOptions(rtSelect, 'AWV');
 
       expect(onActionChange).toHaveBeenCalledTimes(1);
       expect(onActionChange).toHaveBeenCalledWith(0, expect.objectContaining({
@@ -181,7 +183,7 @@ describe('ActionPatternTable', () => {
       });
 
       const qmSelect = screen.getByLabelText('Quality measure for row 1');
-      await userEvent.selectOptions(qmSelect, 'Hypertension Management');
+      await user.selectOptions(qmSelect, 'Hypertension Management');
 
       expect(onActionChange).toHaveBeenCalledTimes(1);
       expect(onActionChange).toHaveBeenCalledWith(0, expect.objectContaining({
@@ -194,7 +196,7 @@ describe('ActionPatternTable', () => {
 
   // ------- Regex Validation -------
   describe('regex validation', () => {
-    it('shows inline error for invalid regex pattern', () => {
+    it('shows inline error for invalid regex pattern', async () => {
       const onActionChange = vi.fn();
       renderTable({
         mode: 'edit',
@@ -204,9 +206,10 @@ describe('ActionPatternTable', () => {
 
       const patternInput = screen.getByLabelText('Pattern for row 1');
 
-      // Use fireEvent.change because userEvent.type interprets brackets as
+      // Use user.paste because userEvent.type interprets brackets as
       // keyboard modifier syntax, which is not what we want for regex input.
-      fireEvent.change(patternInput, { target: { value: '[invalid(' } });
+      await user.clear(patternInput);
+      await user.paste('[invalid(');
 
       // Should show error message
       expect(screen.getByText('Invalid regex')).toBeInTheDocument();
@@ -215,7 +218,7 @@ describe('ActionPatternTable', () => {
       expect(patternInput).toHaveAttribute('aria-invalid', 'true');
     });
 
-    it('clears error when regex becomes valid', () => {
+    it('clears error when regex becomes valid', async () => {
       const onActionChange = vi.fn();
       renderTable({
         mode: 'edit',
@@ -226,12 +229,14 @@ describe('ActionPatternTable', () => {
       const patternInput = screen.getByLabelText('Pattern for row 1');
 
       // First, set an invalid regex to trigger the error
-      fireEvent.change(patternInput, { target: { value: '[invalid(' } });
+      await user.clear(patternInput);
+      await user.paste('[invalid(');
       expect(screen.getByText('Invalid regex')).toBeInTheDocument();
       expect(patternInput).toHaveAttribute('aria-invalid', 'true');
 
       // Now set a valid regex to clear the error
-      fireEvent.change(patternInput, { target: { value: '^valid.*pattern$' } });
+      await user.clear(patternInput);
+      await user.type(patternInput, '^valid.*pattern$');
 
       // Error should be cleared
       expect(screen.queryByText('Invalid regex')).not.toBeInTheDocument();
@@ -250,10 +255,10 @@ describe('ActionPatternTable', () => {
       });
 
       const input = screen.getByLabelText('New skip action text');
-      await userEvent.type(input, 'New skip text');
+      await user.type(input, 'New skip text');
 
       const addBtn = screen.getByLabelText('Add skip action');
-      await userEvent.click(addBtn);
+      await user.click(addBtn);
 
       expect(onSkipActionAdd).toHaveBeenCalledTimes(1);
       expect(onSkipActionAdd).toHaveBeenCalledWith('New skip text');
@@ -267,7 +272,7 @@ describe('ActionPatternTable', () => {
       });
 
       const input = screen.getByLabelText('New skip action text');
-      await userEvent.type(input, 'Enter skip text{Enter}');
+      await user.type(input, 'Enter skip text{Enter}');
 
       expect(onSkipActionAdd).toHaveBeenCalledTimes(1);
       expect(onSkipActionAdd).toHaveBeenCalledWith('Enter skip text');
@@ -286,7 +291,7 @@ describe('ActionPatternTable', () => {
 
       // Type spaces only, then click — button should still be disabled
       const input = screen.getByLabelText('New skip action text');
-      await userEvent.type(input, '   ');
+      await user.type(input, '   ');
       // The trimmed value is empty, so button stays disabled
       expect(addBtn).toBeDisabled();
     });
@@ -299,7 +304,7 @@ describe('ActionPatternTable', () => {
       });
 
       const removeBtn = screen.getByLabelText('Remove skip action: Patient declined');
-      await userEvent.click(removeBtn);
+      await user.click(removeBtn);
 
       expect(onSkipActionRemove).toHaveBeenCalledTimes(1);
       expect(onSkipActionRemove).toHaveBeenCalledWith('Patient declined');
@@ -313,10 +318,10 @@ describe('ActionPatternTable', () => {
       });
 
       const input = screen.getByLabelText('New skip action text');
-      await userEvent.type(input, 'Temp text');
+      await user.type(input, 'Temp text');
 
       const addBtn = screen.getByLabelText('Add skip action');
-      await userEvent.click(addBtn);
+      await user.click(addBtn);
 
       // Input should be cleared
       expect(input).toHaveValue('');
@@ -325,7 +330,7 @@ describe('ActionPatternTable', () => {
 
   // ------- onChange callback -------
   describe('onChange callback', () => {
-    it('fires onActionChange with updated pattern when pattern input changes', () => {
+    it('fires onActionChange with updated pattern when pattern input changes', async () => {
       const onActionChange = vi.fn();
       renderTable({
         mode: 'edit',
@@ -335,18 +340,22 @@ describe('ActionPatternTable', () => {
 
       const patternInput = screen.getByLabelText('Pattern for row 1');
 
-      // Use fireEvent.change because the component is controlled and
-      // the mock callback doesn't propagate state back.
-      fireEvent.change(patternInput, { target: { value: '^new-pattern$' } });
+      // Type a single character; since this is a controlled input, the parent
+      // doesn't re-render with the new value, but onActionChange is still called
+      // with the value the DOM sees (original + typed char).
+      await user.type(patternInput, 'X');
 
-      expect(onActionChange).toHaveBeenCalledTimes(1);
-      expect(onActionChange).toHaveBeenCalledWith(0, expect.objectContaining({
-        pattern: '^new-pattern$',
+      expect(onActionChange).toHaveBeenCalled();
+      const lastCall = onActionChange.mock.calls[onActionChange.mock.calls.length - 1];
+      expect(lastCall[0]).toBe(0);
+      expect(lastCall[1]).toMatchObject({
         requestType: 'Quality',
         qualityMeasure: 'Diabetic Eye Exam',
         measureStatus: 'Not Addressed',
         isActive: true,
-      }));
+      });
+      // Pattern should contain the typed character appended to the controlled value
+      expect(lastCall[1].pattern).toContain('X');
     });
   });
 });

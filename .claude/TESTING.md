@@ -61,7 +61,7 @@ cd frontend && npm run cypress:run
 | Backend service logic | Jest | Fast, isolated unit tests |
 | Backend API endpoints | Jest | Integration tests with supertest |
 | React component logic | Vitest + RTL | Tests component behavior |
-| Form validation, modals | Vitest + RTL | Unit-level UI testing |
+| Form validation, modals | Vitest + RTL + userEvent | Unit-level UI testing |
 | Page navigation, basic UI | Playwright | Cross-browser, reliable |
 | **AG Grid dropdown selection** | **Cypress** | Better native event handling |
 | AG Grid cell editing | Cypress | Reliable AG Grid interaction |
@@ -70,6 +70,45 @@ cd frontend && npm run cypress:run
 | Role-specific UI behavior | MCP Playwright | Tests each role sees correct UI |
 
 **Note:** Playwright has issues committing AG Grid dropdown selections. Use Cypress for any AG Grid dropdown tests.
+
+**Cypress Retention for AG Grid:** Cypress is intentionally retained (not consolidated into Playwright) because AG Grid dropdown selection has known issues in Playwright, and 10+ custom Cypress commands exist specifically for AG Grid interactions. Do NOT attempt to migrate Cypress AG Grid tests to Playwright.
+
+### userEvent Convention (Vitest + RTL)
+
+**`userEvent` is the preferred interaction API** for all Vitest component tests. Do NOT use `fireEvent` for new tests.
+
+```typescript
+// CORRECT — use userEvent
+import userEvent from '@testing-library/user-event';
+
+const user = userEvent.setup();
+
+it('handles form submission', async () => {
+  render(<MyForm />);
+  await user.type(screen.getByLabelText('Name'), 'John');
+  await user.click(screen.getByRole('button', { name: 'Submit' }));
+  expect(screen.getByText('Success')).toBeInTheDocument();
+});
+
+// WRONG — do NOT use fireEvent for new tests
+fireEvent.click(button);  // ← use user.click(button) instead
+fireEvent.change(input, { target: { value: 'x' } });  // ← use user.type(input, 'x')
+```
+
+**Migration reference:**
+| fireEvent | userEvent |
+|-----------|-----------|
+| `fireEvent.click(el)` | `await user.click(el)` |
+| `fireEvent.change(input, { target: { value: 'x' } })` | `await user.clear(input); await user.type(input, 'x')` |
+| `fireEvent.change(select, { target: { value: 'x' } })` | `await user.selectOptions(select, 'x')` |
+| `fireEvent.keyDown(el, { key: 'Escape' })` | `await user.keyboard('{Escape}')` |
+| `fireEvent.mouseEnter(el)` | `await user.hover(el)` |
+| `fireEvent.mouseLeave(el)` | `await user.unhover(el)` |
+
+**Fake timers:** When using `vi.useFakeTimers()`, configure userEvent:
+```typescript
+const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+```
 
 ### MANDATORY: Visual Browser Review (Layer 5)
 
@@ -106,7 +145,7 @@ The ui-ux-reviewer agent opens a real browser via MCP Playwright, navigates the 
 
 ## All Implemented Tests
 
-### Backend Tests (527 tests)
+### Backend Tests (1,415 tests)
 
 **Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
@@ -151,7 +190,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (335 tests)
+### Frontend Component Tests (1,202 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 
@@ -217,6 +256,48 @@ npm run e2e:headed        # With browser visible
 npm run e2e:ui            # Interactive UI mode
 npm run e2e:report        # View HTML report
 ```
+
+### Playwright Visual Regression Tests
+
+**Location:** `frontend/e2e/visual-regression.spec.ts`
+
+Automated screenshot comparison tests that detect unintended visual changes. Uses Playwright's `toHaveScreenshot()` with baseline images stored in `frontend/e2e/visual-regression.spec.ts-snapshots/`.
+
+**Configuration** (in `playwright.config.ts`):
+- `maxDiffPixelRatio: 0.01` — allows 1% pixel difference (anti-aliasing tolerance)
+- `animations: 'disabled'` — prevents flaky diffs from CSS transitions
+
+**Covered Pages:**
+| Test | What It Captures |
+|------|-----------------|
+| Login page (empty state) | Full-page screenshot of unauthenticated login form |
+| Main grid (loaded) | Grid with data, toolbar, filter bar (status bar masked) |
+| Admin dashboard | User management table (timestamps masked) |
+| Import page (empty) | Import workflow with system selector, upload zone |
+| Filter bar (active filter) | Grid with a status filter active (status bar masked) |
+
+**Running Visual Regression:**
+
+```bash
+cd frontend
+
+# Run visual regression tests (compares against baselines)
+npx playwright test visual-regression
+
+# Update baselines after intentional UI changes
+npx playwright test visual-regression --update-snapshots
+```
+
+**Workflow:**
+1. Baselines are generated once and committed to the repo
+2. On each test run, new screenshots are compared against baselines
+3. If a diff exceeds `maxDiffPixelRatio`, the test fails
+4. After intentional UI changes, run `--update-snapshots` to regenerate baselines
+5. Review the new baselines visually before committing
+
+**Note:** Baselines may differ between Windows/Linux due to font rendering. Generate baselines on the same OS used for CI.
+
+---
 
 ### Cypress E2E Tests (293 tests)
 

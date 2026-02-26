@@ -93,9 +93,9 @@ describe('test-sutter-valid.xlsx', () => {
     expect(sheets).toEqual(['Physician One', 'Physician Two', 'CAR Report', 'Summary_NY']);
   });
 
-  it('should parse Physician One tab with 18 data rows', () => {
+  it('should parse Physician One tab with 21 data rows', () => {
     const parsed = parseExcel(buffer, 'test.xlsx', { sheetName: 'Physician One', headerRow: 3 });
-    expect(parsed.rows).toHaveLength(18);
+    expect(parsed.rows).toHaveLength(21);
   });
 
   it('should merge AWV + APV for Anderson, Jane into single AWV row', () => {
@@ -193,8 +193,9 @@ describe('test-sutter-valid.xlsx', () => {
 
   it('should produce correct stats for Physician One', () => {
     const result = pipeline(buffer, 'Physician One');
-    expect(result.stats.inputRows).toBe(18);
-    // 18 rows - 2 merged (AWV+APV for Anderson) - 1 merged (2 Vaccines for Green) - 1 merged (2 measures for Irving)
+    expect(result.stats.inputRows).toBe(21);
+    // 21 rows - 2 merged (AWV+APV for Anderson) - 1 merged (2 Vaccines for Green)
+    //         - 1 merged (2 Depression Screening for Hill)
     // Anderson: AWV+APV+HCC = 3 input -> 2 output (AWV merged, HCC separate)
     // Baker: 2 Quality = 2 output
     // Clark: 3 Quality = 3 output
@@ -202,16 +203,18 @@ describe('test-sutter-valid.xlsx', () => {
     // Evans: 1 Quality = 1 output
     // Foster: 1 Quality = 1 output
     // Green: 2 Quality (both Vaccination) = 1 output (merged)
+    // Hill: 2 Quality (both Depression Screening) = 1 output (merged)
+    // James: 1 Quality (Depression Screening) = 1 output
     // Harris: AWV + Quality = 2 output
     // Irving: 2 Quality (Mammogram + Vaccine = different measures) = 2 output
-    // Total: 2+2+3+2+1+1+1+2+2 = 16
-    expect(result.stats.outputRows).toBe(16);
+    // Total: 2+2+3+2+1+1+1+1+1+2+2 = 18
+    expect(result.stats.outputRows).toBe(18);
     expect(result.stats.errorCount).toBe(0);
   });
 
   it('should process Physician Two tab correctly', () => {
     const result = pipeline(buffer, 'Physician Two');
-    expect(result.stats.inputRows).toBe(8);
+    expect(result.stats.inputRows).toBe(9);
     expect(result.stats.errorCount).toBe(0);
     expect(result.rows.length).toBeGreaterThan(0);
 
