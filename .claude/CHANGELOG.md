@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **StatusFilterBar search test** — Fixed controlled input test assertion to verify per-keystroke `onSearchChange` calls instead of expecting single aggregate call
 - **ActionPatternTable pattern test** — Fixed controlled input test to verify `onActionChange` callback fires with typed character rather than expecting full string replacement
 - **UserModal empty password test** — Updated to verify HTML5 `required` attribute prevents form submission rather than expecting custom error message
+- **Playwright E2E waitForTimeout elimination** — Replaced 6 `page.waitForTimeout()` calls with proper Playwright assertions across 5 E2E test files (import-all-roles, sutter-import-edge-cases, sutter-import-errors, sutter-import-visual, visual-regression). Now uses `expect().not.toHaveValue()`, `waitForSheetDiscovery()`, `Promise.race()` with element/URL waiters, and `expect().toHaveAttribute()` instead of arbitrary delays
 
 ### Documentation
 - **TESTING.md**: Added "Visual Regression" section, "userEvent Convention" section with migration reference table, Cypress retention rationale

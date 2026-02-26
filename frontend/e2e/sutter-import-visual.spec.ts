@@ -325,8 +325,8 @@ test.describe('Sutter Import Visual — Role-Based Access', () => {
     await importPage.selectSheet('Smith, John');
 
     // For PHYSICIAN role, the physician is auto-assigned
-    // The dropdown may be hidden or auto-selected
-    await page.waitForTimeout(1000);
+    // The dropdown may be hidden or auto-selected — wait for the preview button to reflect state
+    await expect(importPage.previewButton).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'test-results/sutter-visual-09-physician-role.png' });
 
     // For PHYSICIAN role, preview should be enabled (auto-assigned physician)
@@ -460,8 +460,11 @@ test.describe('Sutter Import Visual — Error States', () => {
     await selectFirstPhysician(importPage);
     await importPage.clickPreview();
 
-    // Wait for error response
-    await page.waitForTimeout(3000);
+    // Wait for error response — either an error appears on import page or we navigate to preview with an error
+    await Promise.race([
+      page.locator('.bg-red-50').first().waitFor({ state: 'visible', timeout: 15000 }),
+      page.waitForURL(/\/preview\//, { timeout: 15000 }),
+    ]).catch(() => {});
     await page.screenshot({ path: 'test-results/sutter-visual-16-empty-tab-error.png' });
   });
 

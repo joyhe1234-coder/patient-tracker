@@ -145,7 +145,7 @@ The ui-ux-reviewer agent opens a real browser via MCP Playwright, navigates the 
 
 ## All Implemented Tests
 
-### Backend Tests (1,387 tests)
+### Backend Tests (1,415 tests)
 
 **Location:** `backend/src/services/`, `backend/src/middleware/`, `backend/src/routes/`
 
@@ -190,7 +190,7 @@ npm test -- fileParser      # Specific file
 npm test -- -t "should parse CSV"  # Specific test
 ```
 
-### Frontend Component Tests (1,152 tests)
+### Frontend Component Tests (1,202 tests)
 
 **Location:** `frontend/src/components/**/*.test.tsx`, `frontend/src/pages/*.test.tsx`, `frontend/src/stores/*.test.ts`
 

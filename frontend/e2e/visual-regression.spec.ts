@@ -76,7 +76,8 @@ test.describe('Visual Regression', () => {
     const notAddressedChip = mainPage.filterBar.locator('button:has-text("Not Addressed")');
     if (await notAddressedChip.isVisible({ timeout: 3000 }).catch(() => false)) {
       await notAddressedChip.click();
-      await page.waitForTimeout(500);
+      // Wait for the filter to apply - chip should show as active (aria-pressed="true")
+      await expect(notAddressedChip).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
     }
 
     // Mask row count and status bar (dynamic)

@@ -117,8 +117,8 @@ test.describe('Sutter Import - Edge Cases', () => {
 
     // The Step 4 section remains visible (file is still uploaded),
     // but the SheetSelector re-triggers discovery for the Hill system.
-    // After a moment the sheet selector should re-render for the new system.
-    await page.waitForTimeout(1000);
+    // Wait for sheet discovery to complete for the new system
+    await importPage.waitForSheetDiscovery();
 
     // The Preview Import button should be disabled (sheet/physician state was reset)
     expect(await importPage.isPreviewDisabled()).toBe(true);

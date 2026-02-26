@@ -585,6 +585,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 25, 2026 - Release 4.12.1: Test hardening (fireEvent→userEvent migration, accessibility labels, Playwright waitForTimeout elimination), Depression Screening quality measure, conflict detection false positives fix. 1,415 Jest + 1,202 Vitest + Playwright + Cypress = ~2,617+ automated tests.
 February 23, 2026 - Release 4.11.1: Conflict detection fixes (wrong-file, MISSING false positives, patient field auto-population), Sutter parser blank row alignment, sheet validation fuzzy fallback, Cypress + Playwright hardening. 1,387 Jest + 1,138 Vitest + Playwright + Cypress = ~2,525+ automated tests.
 February 19, 2026 - Release 4.10.0: Remove tracking3, rename Copy Member, pinned row on add/duplicate, import Q4-Q8 decisions, smart column mapping spec. 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.
 February 18, 2026 - Release 4.9.0: Sutter duplicate merging, measureDetails parsing, role-based tests, universal sheet validation, configurable preview columns, bug fixes (ADMIN+PHYSICIAN dual role, CSV headerRow, SheetSelector a11y), Sutter/SIP multi-system import. 1,165 Jest + 1,025 Vitest + 43 Playwright + ~342 Cypress = ~2,575 automated tests.

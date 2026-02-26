@@ -122,8 +122,12 @@ test.describe('Sutter Import - Error Scenarios', () => {
     await importPage.clickPreview();
 
     // Should show an error about empty tab or no data
-    // Wait for the API call to return and error to display
-    await page.waitForTimeout(3000);
+    // Wait for the API call to return — either an error appears on the import page
+    // or we navigate to the preview page where an error state is shown
+    await Promise.race([
+      page.locator('.bg-red-50').first().waitFor({ state: 'visible', timeout: 15000 }),
+      page.waitForURL(/\/preview\//, { timeout: 15000 }),
+    ]).catch(() => {});
 
     // The error could appear as a page-level error or the preview could
     // navigate and show an error there

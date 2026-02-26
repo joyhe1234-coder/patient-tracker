@@ -371,7 +371,8 @@ test.describe('Import Flow — Hill Healthcare', () => {
             break;
           }
         }
-        await page.waitForTimeout(TIMEOUT.DROPDOWN_SETTLE);
+        // Wait for the dropdown selection to register in React state
+        await expect(dropdown).not.toHaveValue('', { timeout: TIMEOUT.DROPDOWN_SETTLE * 10 });
       }
 
       // Save should now be enabled
