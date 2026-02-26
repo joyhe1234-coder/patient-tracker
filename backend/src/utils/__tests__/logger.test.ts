@@ -105,68 +105,9 @@ describe('logger', () => {
     });
   });
 
-  describe('production mode (NODE_ENV=production)', () => {
-    // Since the logger captures NODE_ENV at module load time,
-    // and Jest caches modules, we test the production branch
-    // by directly invoking the formatting logic pattern.
-    // In practice the module is loaded once at startup.
-
-    // Helper: parse the structured JSON logged by the production logger
-    function parseJsonLog(spy: jest.SpiedFunction<typeof console.log>): Record<string, unknown> {
-      const raw = spy.mock.calls[0][0] as string;
-      return JSON.parse(raw);
-    }
-
-    it('info outputs valid JSON with correct structure', async () => {
-      // Directly test the JSON formatting by simulating what production mode does
-      const consoleFn = jest.fn() as jest.Mock;
-      // Replicate production writeJson
-      const entry = { timestamp: new Date().toISOString(), level: 'INFO', message: 'Server started' };
-      consoleFn(JSON.stringify(entry));
-
-      const parsed = JSON.parse(consoleFn.mock.calls[0][0] as string);
-      expect(parsed).toHaveProperty('timestamp');
-      expect(parsed).toHaveProperty('level', 'INFO');
-      expect(parsed).toHaveProperty('message', 'Server started');
-    });
-
-    it('JSON output includes context when provided', () => {
-      const consoleFn = jest.fn() as jest.Mock;
-      const ctx = { port: 3000 };
-      const entry = { timestamp: new Date().toISOString(), level: 'INFO', message: 'Listening', context: ctx };
-      consoleFn(JSON.stringify(entry));
-
-      const parsed = JSON.parse(consoleFn.mock.calls[0][0] as string);
-      expect(parsed.context).toEqual({ port: 3000 });
-    });
-
-    it('JSON output omits context key when not provided', () => {
-      const consoleFn = jest.fn() as jest.Mock;
-      const entry = { timestamp: new Date().toISOString(), level: 'WARN', message: 'No context' };
-      consoleFn(JSON.stringify(entry));
-
-      const parsed = JSON.parse(consoleFn.mock.calls[0][0] as string);
-      expect(parsed).not.toHaveProperty('context');
-    });
-
-    it('error level is correctly set in JSON output', () => {
-      const consoleFn = jest.fn() as jest.Mock;
-      const entry = { timestamp: new Date().toISOString(), level: 'ERROR', message: 'Crash' };
-      consoleFn(JSON.stringify(entry));
-
-      const parsed = JSON.parse(consoleFn.mock.calls[0][0] as string);
-      expect(parsed.level).toBe('ERROR');
-    });
-
-    it('debug level is correctly set in JSON output', () => {
-      const consoleFn = jest.fn() as jest.Mock;
-      const entry = { timestamp: new Date().toISOString(), level: 'DEBUG', message: 'Verbose' };
-      consoleFn(JSON.stringify(entry));
-
-      const parsed = JSON.parse(consoleFn.mock.calls[0][0] as string);
-      expect(parsed.level).toBe('DEBUG');
-    });
-  });
+  // REMOVED (ln-630 audit B12.2): 'production mode (NODE_ENV=production)' (5 tests) —
+  // created local jest.fn() mocks, manually built JSON objects, called JSON.stringify/JSON.parse.
+  // Never imported or invoked the actual logger. Tests JSON serialization, not our logger.
 
   describe('all log levels route to correct console method', () => {
     it('info uses console.log', async () => {

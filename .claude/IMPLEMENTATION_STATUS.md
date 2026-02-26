@@ -29,13 +29,13 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.12.0):**
-- Layer 1 (Backend Jest): 1,387 tests passing (47 suites)
-- Layer 2 (Frontend Vitest): 1,152 tests passing (43 suites)
-- Layer 3 (Playwright E2E): 13+ import-all-roles tests
-- Layer 4 (Cypress E2E): ~283 tests
+**Test Coverage (as of Release 4.12.1):**
+- Layer 1 (Backend Jest): 1,415 tests passing (48 suites)
+- Layer 2 (Frontend Vitest): 1,202 tests passing (48 suites)
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment
+- Layer 4 (Cypress E2E): ~283 tests (expanded cascading-dropdowns, sorting-filtering, time-interval)
 - Visual test plan v2.1: 427 test cases documented
-- Regression test plan: 43 sections, 63 new test cases in sections 38-43 (100% automated)
+- Regression test plan: 48 sections, 80+ new test cases in sections 44-48 (Authentication, Authorization, Password, Admin, Import)
 
 ### Depression Screening Quality Measure
 

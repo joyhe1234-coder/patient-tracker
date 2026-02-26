@@ -43,7 +43,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Requirement:** AC-2, AC-3
 **Automation:** Automated - `smoke.spec.ts: "should display the patient grid"`, `Toolbar.test.tsx`
 **Steps:**
-1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Notes (13 columns; Tracking #3 removed in v4.10.0)
+1. Verify columns are visible: Member Name, Request Type, Quality Measure, Measure Status, Status Date, Due Date, Time Interval (Days), Tracking #1, Tracking #2, Notes (12 columns; Tracking #3 removed in v4.10.0)
 
 **Expected:**
 - All columns render correctly
@@ -671,7 +671,7 @@ This document contains test cases for verifying system functionality. Each test 
    (e.g., via API or by editing requestType/qualityMeasure in grid)
 
 **Expected:**
-- Both rows have light yellow duplicate indicator background (#FEF3C7)
+- Both rows have orange left stripe duplicate indicator (#F97316)
 
 ### TC-8.5: Update Row Blocked When Creating Duplicate
 **Requirement:** AC-4, AC-5, AC-8
@@ -734,7 +734,7 @@ This document contains test cases for verifying system functionality. Each test 
 **Steps:**
 1. Select a row in the middle of the grid (e.g., row 5)
 2. Note the patient's name, DOB, phone, address
-3. Click "Duplicate" button
+3. Click "Copy Member" button
 
 **Expected:**
 - New row appears directly below selected row (at position 6)
@@ -1058,7 +1058,7 @@ This document contains test cases for verifying system functionality. Each test 
 1. Click "Import Test" link in header navigation
 
 **Expected:**
-- Page loads at `/import-test`
+- Page loads at `/patient-management`
 - Shows file upload section with "Choose File" button
 
 ### TC-14.2: Upload CSV File
@@ -4177,8 +4177,293 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 44. Authentication & Authorization
+
+### TC-44.1: Login Form Renders Correctly
+- **Precondition:** Navigate to /login
+- **Steps:** Verify login page elements visible (title, email input, password input, sign-in button, admin contact message)
+- **Expected:** All form elements render with correct placeholders and labels
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.2: Login with Valid Credentials
+- **Precondition:** Seeded user exists (phy1@gmail.com / welcome100)
+- **Steps:** Enter valid email and password, click Sign In
+- **Expected:** JWT token stored in localStorage, user redirected to main page, grid visible
+- **Status:** Automated (Vitest - `authStore.test.ts`, Playwright - `auth.spec.ts`)
+
+### TC-44.3: Login with Invalid Credentials
+- **Precondition:** Navigate to /login
+- **Steps:** Enter invalid email/password combinations (unknown user, wrong password, deactivated account)
+- **Expected:** 401 returned with INVALID_CREDENTIALS code, error message displayed, no token stored
+- **Status:** Automated (Jest - `auth.routes.test.ts`, Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.4: Input Validation (Empty/Invalid Fields)
+- **Precondition:** Navigate to /login
+- **Steps:** Submit form with empty email, empty password, both empty, or invalid email format
+- **Expected:** HTML5 validation prevents submission; backend returns 400 for malformed requests
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Jest - `auth.routes.test.ts`)
+
+### TC-44.5: Account Lockout After Failed Attempts
+- **Precondition:** Active user account
+- **Steps:** Submit 5 incorrect passwords for the same account
+- **Expected:** Account locked (ACCOUNT_LOCKED code returned), warning shown after 3 failed attempts, ACCOUNT_LOCKED audit log created, lock expires after timeout
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.6: Forced Password Change on First Login
+- **Precondition:** User has mustChangePassword=true
+- **Steps:** Login with valid credentials; POST /api/auth/force-change-password with new password
+- **Expected:** Login response includes mustChangePassword=true; password change succeeds; returns 400 if mustChangePassword is false
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.7: Password Change (Authenticated User)
+- **Precondition:** Authenticated user session
+- **Steps:** PUT /api/auth/password with current and new password
+- **Expected:** Password changed on valid input; 401 for wrong current password; 400 if new password same as current or too short
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.8: Password Reset Flow (Forgot Password)
+- **Precondition:** SMTP configured
+- **Steps:** POST /api/auth/forgot-password with email; POST /api/auth/reset-password with token and new password
+- **Expected:** Forgot-password always returns 200 (security); reset succeeds with valid unexpired token; 400 for invalid/expired/used tokens
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+### TC-44.9: JWT Token Handling & Session Persistence
+- **Precondition:** Successful login
+- **Steps:** Store token in localStorage; call GET /api/auth/me; refresh page; clear token and call /me again
+- **Expected:** Token persists across refreshes; checkAuth restores session with valid token; clears state with invalid token; returns user info and assignments for STAFF
+- **Status:** Automated (Vitest - `authStore.test.ts`, Playwright - `auth.spec.ts`)
+
+### TC-44.10: Role-Based Access (PHYSICIAN vs STAFF)
+- **Precondition:** PHYSICIAN and STAFF users seeded
+- **Steps:** Login as PHYSICIAN; login as STAFF
+- **Expected:** PHYSICIAN selectedPhysicianId set to own ID; STAFF receives assignments array, defaults to first assignment, restores previous valid selection from localStorage
+- **Status:** Automated (Vitest - `authStore.test.ts`, Jest - `auth.routes.test.ts`)
+
+### TC-44.11: Protected Route Redirection
+- **Precondition:** No authentication token
+- **Steps:** Navigate to / and /admin without logging in
+- **Expected:** Redirected to /login page
+- **Status:** Automated (Playwright - `auth.spec.ts`)
+
+### TC-44.12: Logout Clears Session
+- **Precondition:** Logged-in user
+- **Steps:** Click user menu, click Logout
+- **Expected:** Auth state cleared (user, token, assignments null), token removed from localStorage, edit locks released, redirected to /login
+- **Status:** Automated (Vitest - `authStore.test.ts`, Jest - `auth.routes.test.ts`, Playwright - `auth.spec.ts`)
+
+### TC-44.13: Password Visibility Toggle
+- **Precondition:** Navigate to /login
+- **Steps:** Click password visibility toggle button
+- **Expected:** Password input toggles between type="password" and type="text"; toggles back on second click
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.14: Loading State During Login
+- **Precondition:** Navigate to /login
+- **Steps:** Submit valid credentials, observe UI during API call
+- **Expected:** Button text changes to "Signing in...", email/password inputs disabled during loading
+- **Status:** Automated (Vitest - `LoginPage.test.tsx`, Playwright - `auth.spec.ts`)
+
+### TC-44.15: Failed Login Audit Logging
+- **Precondition:** Backend running with audit logging
+- **Steps:** Attempt login with invalid credentials (user not found, wrong password, deactivated account)
+- **Expected:** LOGIN_FAILED audit log created with userEmail, userId (if found), reason, and IP address; password never logged; audit log failure does not block 401 response
+- **Status:** Automated (Jest - `auth.routes.test.ts`)
+
+---
+
+## 45. Real-Time Collaborative Editing
+
+### TC-45.1: Socket Room & Presence Management
+- **Precondition:** Socket.IO server initialized
+- **Steps:** Add user to room, add multiple users, add same user with two sockets
+- **Expected:** Room name formatted as "physician:{id}"; multiple users tracked; same user deduplicated across sockets; empty array for non-existent room
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.2: User Disconnect Cleanup
+- **Precondition:** User connected to one or more rooms
+- **Steps:** Call removeUserFromRoom and removeUserFromAllRooms
+- **Expected:** User removed from specific room; removeUserFromAllRooms clears all rooms and returns affected room list; room map cleaned up when last user leaves
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.3: Active Edit Tracking
+- **Precondition:** Users connected to rooms
+- **Steps:** Add active edit (rowId, field, userName, socketId); add second edit on same row+field; add edits on different row+field
+- **Expected:** Edit stored with all metadata; same row+field replaced (latest wins); multiple edits tracked per room; empty array for room with no edits
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.4: Edit Cleanup on Disconnect
+- **Precondition:** Multiple active edits across rooms for a socket
+- **Steps:** Call clearEditsForSocket for disconnecting socket
+- **Expected:** All edits for that socket cleared across all rooms; returns list of cleared edits (room, rowId, field); other users' edits remain untouched
+- **Status:** Automated (Jest - `socketManager.test.ts`)
+
+### TC-45.5: Remote Cell Update in Grid
+- **Precondition:** Grid loaded with data, user scrolled down
+- **Steps:** Simulate remote row:updated event
+- **Expected:** Grid accepts external data changes; scroll position preserved after remote update; row selection maintained
+- **Status:** Automated (Cypress - `parallel-editing-grid-updates.cy.ts`)
+
+### TC-45.6: Remote Row Operations (Add/Delete)
+- **Precondition:** Grid loaded with data
+- **Steps:** Add Row via button and modal; Delete Row via selection and button
+- **Expected:** Row count increases after add; row count decreases after delete; row selection state transitions correctly between rows
+- **Status:** Automated (Cypress - `parallel-editing-row-operations.cy.ts`)
+
+### TC-45.7: Edit Indicator CSS Styling
+- **Precondition:** Grid loaded, CSS stylesheets rendered
+- **Steps:** Verify cell-remote-editing CSS class exists; apply class to a cell; remove class
+- **Expected:** CSS class defined in stylesheets; dashed orange border applied when class present; cellFlash animation defined; indicator removed when class removed
+- **Status:** Automated (Cypress - `parallel-editing-edit-indicators.cy.ts`)
+
+---
+
+## 46. Insurance Group Filter
+
+### TC-46.1: Insurance Group Dropdown Renders
+- **Precondition:** Logged in as admin
+- **Steps:** Check StatusFilterBar for insurance group dropdown
+- **Expected:** Dropdown visible with aria-label "Filter by insurance group"; renders in both Vitest component tests and Cypress E2E
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`, Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.2: Default Selection is "Hill"
+- **Precondition:** Logged in as admin, grid loaded
+- **Steps:** Check dropdown value on page load
+- **Expected:** Dropdown defaults to "hill" value; patients displayed in grid
+- **Status:** Automated (Cypress - `insurance-group-filter.cy.ts`, Vitest - `StatusFilterBar.test.tsx`)
+
+### TC-46.3: Option Order (All First, No Insurance Last)
+- **Precondition:** Insurance group dropdown visible
+- **Steps:** Inspect option list order
+- **Expected:** "All" is first option (value="all"); "No Insurance" is last option (value="none"); system groups (Hill, etc.) appear between
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`, Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.4: Filtering Updates Grid
+- **Precondition:** Grid loaded with default "Hill" filter
+- **Steps:** Select "All" to show all patients; select "No Insurance" to filter
+- **Expected:** "All" shows all patients (row count >= Hill count); "No Insurance" may show zero rows if all patients assigned; grid updates on each selection
+- **Status:** Automated (Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.5: Active Filter Visual Indicator (Ring)
+- **Precondition:** Insurance group dropdown visible
+- **Steps:** Check CSS classes when filter is "hill" vs "all"
+- **Expected:** Non-"All" selection shows ring-2 ring-blue-400 classes; "All" selection shows border-gray-300 without ring
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`, Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.6: Combines with Quality Measure Filter
+- **Precondition:** Both insurance group and quality measure dropdowns visible
+- **Steps:** Set insurance group to "Hill", then change quality measure filter
+- **Expected:** Insurance group persists when quality measure changes; both filters show active ring indicators simultaneously
+- **Status:** Automated (Cypress - `insurance-group-filter.cy.ts`)
+
+### TC-46.7: Insurance Group Change Callback
+- **Precondition:** StatusFilterBar rendered with onInsuranceGroupChange handler
+- **Steps:** Change dropdown selection
+- **Expected:** onInsuranceGroupChange called with new value (e.g., "none")
+- **Status:** Automated (Vitest - `StatusFilterBar.test.tsx`)
+
+---
+
+## 47. Depression Screening E2E
+
+### TC-47.1: Screening Request Type Shows 4 Quality Measures Including Depression Screening
+- **Precondition:** Logged in as admin, grid loaded
+- **Steps:** Select "Screening" request type; open Quality Measure dropdown
+- **Expected:** 4 options: Breast Cancer Screening, Colon Cancer Screening, Cervical Cancer Screening, Depression Screening
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `dropdownConfig.test.ts`)
+
+### TC-47.2: Depression Screening Has 7 Status Options
+- **Precondition:** Row set to Screening / Depression Screening
+- **Steps:** Open Measure Status dropdown
+- **Expected:** 7 options: Not Addressed, Called to schedule, Visit scheduled, Screening complete, Screening unnecessary, Patient declined, No longer applicable
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `dropdownConfig.test.ts`)
+
+### TC-47.3: Depression Screening Status Row Colors
+- **Precondition:** Row set to Depression Screening
+- **Steps:** Select each status and verify row color class
+- **Expected:** Screening complete = green, Called to schedule = blue, Visit scheduled = yellow, Patient declined = purple, Screening unnecessary = gray, No longer applicable = gray
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `statusColors.test.ts`)
+
+### TC-47.4: No Tracking #1 Options for Depression Screening
+- **Precondition:** Row set to Depression Screening with a status selected
+- **Steps:** Check Tracking #1 cell content
+- **Expected:** Cell shows empty or "N/A"; no dropdown prompt; getTracking1OptionsForStatus returns null for all 7 Depression Screening statuses
+- **Status:** Automated (Cypress - `cascading-dropdowns.cy.ts`, Vitest - `dropdownConfig.test.ts`)
+
+### TC-47.5: Depression Screening Overdue Timers
+- **Precondition:** Depression Screening row with statusDate set in the past
+- **Steps:** Set "Called to schedule" with statusDate 8+ days ago; set "Visit scheduled" with statusDate 2+ days ago
+- **Expected:** Called to schedule turns red after 7 days; Visit scheduled turns red after 1 day; Screening unnecessary and Patient declined do NOT turn red (terminal statuses)
+- **Status:** Automated (Vitest - `statusColors.test.ts`)
+
+---
+
+## 48. Sutter Import Pipeline
+
+### TC-48.1: Sheet Discovery (Physician Tabs vs Skip Tabs)
+- **Precondition:** test-sutter-valid.xlsx fixture loaded
+- **Steps:** Call getSheetNames to list all tabs
+- **Expected:** 4 sheets discovered: Physician One, Physician Two (physician tabs), CAR Report, Summary_NY (skip tabs)
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.2: Action Pattern Matching (11 Patterns)
+- **Precondition:** Sutter config loaded with actionMapping
+- **Steps:** Build action mapper cache; test each pattern (FOBT, HTN BP, DM urine albumin, DM HbA1c, DM eye exam, Pap/HPV, Mammogram, Chlamydia, RAS Antagonists, Vaccine, Depression Screening)
+- **Expected:** 11 compiled patterns; each action text maps to correct requestType, qualityMeasure, and measureStatus; case-insensitive; whitespace/line-break normalized
+- **Status:** Automated (Jest - `actionMapper.test.ts`)
+
+### TC-48.3: AWV+APV Merge into Single AWV Row
+- **Precondition:** Sutter file with AWV and APV rows for same patient (Anderson, Jane)
+- **Steps:** Run full pipeline (parse, map, transform)
+- **Expected:** 2 input rows (AWV + APV) merged into 1 output row with requestType=AWV, qualityMeasure=Annual Wellness Visit
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.4: Duplicate Patient+Measure Merge (Latest Date Wins)
+- **Precondition:** test-sutter-duplicates.xlsx with duplicate FOBT rows for Patel
+- **Steps:** Run pipeline and check merged output
+- **Expected:** Duplicate rows merged to 1; latest statusDate kept (2025-06-15 over 2025-01-10); sourceActionText concatenated; different measures for same patient NOT merged
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.5: MeasureDetails Date Extraction
+- **Precondition:** Sutter file with HbA1c measure details for Clark, Maria
+- **Steps:** Run pipeline and check date/tracking1 fields
+- **Expected:** statusDate parsed as 2025-01-10; tracking1 set to 7.5; comma-separated dates resolved (latest date wins)
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.6: Depression Screening Action Variants (3 Regex Patterns)
+- **Precondition:** Sutter file with "Depression Screening", "PHQ-9", "Screen for depression" action texts
+- **Steps:** Run pipeline; verify Depression Screening rows created and duplicates merged
+- **Expected:** All 3 variants match Depression Screening measure; duplicate rows for same patient merged into 1; 11 total action patterns (was 10)
+- **Status:** Automated (Jest - `sutter-integration.test.ts`, `actionMapper.test.ts`)
+
+### TC-48.7: Skip Actions Filtered Out
+- **Precondition:** Sutter config skipActions list; test-sutter-skip-actions.xlsx fixture
+- **Steps:** Match each skipAction text against action mapper
+- **Expected:** All skip actions return null (no regex match); only valid actions produce output rows
+- **Status:** Automated (Jest - `actionMapper.test.ts`, `sutter-integration.test.ts`)
+
+### TC-48.8: Multi-Tab Import (Select Physician Tab)
+- **Precondition:** test-sutter-valid.xlsx with 2 physician tabs
+- **Steps:** Process Physician One and Physician Two tabs separately
+- **Expected:** Physician One: 21 input rows, 18 output rows, 0 errors; Physician Two: 9 input rows, 0 errors, HCC row for Lewis with correct notes
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.9: Unmapped Action Detection
+- **Precondition:** Sutter file with action texts that match no pattern
+- **Steps:** Run pipeline and check unmappedActions array
+- **Expected:** Valid file (test-sutter-valid.xlsx) has 0 unmapped actions; unmapped file aggregates unrecognized texts for admin review
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+### TC-48.10: Diff Calculation Against Empty Database
+- **Precondition:** Pipeline output for Physician One
+- **Steps:** Call calculateMergeDiff with empty existing records map
+- **Expected:** All rows produce INSERT actions; insert count equals total output rows
+- **Status:** Automated (Jest - `sutter-integration.test.ts`)
+
+---
+
 ## Last Updated
 
+February 23, 2026 - Added Sections 44-48: Authentication & Authorization (15 TCs), Real-Time Collaborative Editing (7 TCs), Insurance Group Filter (7 TCs), Depression Screening E2E (5 TCs), Sutter Import Pipeline (10 TCs). 44 test cases, 100% automated. Covers: Jest (auth.routes, socketManager, sutter-integration, actionMapper), Vitest (LoginPage, authStore, dropdownConfig, statusColors, StatusFilterBar), Playwright (auth.spec), Cypress (parallel-editing, insurance-group-filter, cascading-dropdowns).
 February 23, 2026 - Added Section 43: Depression Screening Quality Measure (TC-43.1 to TC-43.7). 7 test cases, 86% automated (6 automated, 1 manual). +14 Vitest tests (dropdownConfig, statusColors, StatusFilterBar). Updated backend integration tests. Total: 1,387 Jest + 1,152 Vitest + 130 Playwright + 369 Cypress.
 February 23, 2026 - Added Sections 40-42: Smart Column Mapping (TC-40.1 to TC-42.12). 40 test cases, 100% automated. Backend: 56 Jest (fuzzyMatcher) + 64 Jest (conflictDetector). Frontend: 27 Vitest (ConflictResolutionStep) + 17 Vitest (ConflictBanner) + 18 Vitest (MappingManagementPage). E2E: 6 Playwright (import-conflict-resolution) + 8 Playwright (smart-column-mapping) + 13 Playwright (import-all-roles) + 8 Cypress (import-conflict-admin) + 6 Cypress (import-conflict-nonadmin) + 9 Cypress (mapping-management). Total: 1,387 Jest + 1,138 Vitest + 130 Playwright + 369 Cypress.
 February 18, 2026 - Sutter duplicate merging, measureDetails parsing improvements, "Not Addressed" status override, dev seed users, Jest config fix. Total: 1,165 Jest + 1,025 Vitest.

@@ -4,7 +4,7 @@
  * Tests for the reset password page: token validation, form validation, and password reset.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom';

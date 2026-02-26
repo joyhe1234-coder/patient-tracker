@@ -2,7 +2,7 @@
  * ForcePasswordChange Component Tests
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -17,6 +17,7 @@ vi.mock('../api/axios', () => ({
 import ForcePasswordChange from './ForcePasswordChange';
 
 describe('ForcePasswordChange', () => {
+  const user = userEvent.setup();
   const mockOnPasswordChanged = vi.fn();
 
   beforeEach(() => {
@@ -51,9 +52,9 @@ describe('ForcePasswordChange', () => {
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
     const submitButton = screen.getByRole('button', { name: /change password/i });
 
-    await userEvent.type(newPasswordInput, 'short');
-    await userEvent.type(confirmPasswordInput, 'short');
-    fireEvent.click(submitButton);
+    await user.type(newPasswordInput, 'short');
+    await user.type(confirmPasswordInput, 'short');
+    await user.click(submitButton);
 
     expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
@@ -66,9 +67,9 @@ describe('ForcePasswordChange', () => {
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
     const submitButton = screen.getByRole('button', { name: /change password/i });
 
-    await userEvent.type(newPasswordInput, 'password123');
-    await userEvent.type(confirmPasswordInput, 'different123');
-    fireEvent.click(submitButton);
+    await user.type(newPasswordInput, 'password123');
+    await user.type(confirmPasswordInput, 'different123');
+    await user.click(submitButton);
 
     expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
@@ -82,9 +83,9 @@ describe('ForcePasswordChange', () => {
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
     const submitButton = screen.getByRole('button', { name: /change password/i });
 
-    await userEvent.type(newPasswordInput, 'newpassword123');
-    await userEvent.type(confirmPasswordInput, 'newpassword123');
-    fireEvent.click(submitButton);
+    await user.type(newPasswordInput, 'newpassword123');
+    await user.type(confirmPasswordInput, 'newpassword123');
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith('/auth/force-change-password', { newPassword: 'newpassword123' });
@@ -102,9 +103,9 @@ describe('ForcePasswordChange', () => {
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
     const submitButton = screen.getByRole('button', { name: /change password/i });
 
-    await userEvent.type(newPasswordInput, 'newpassword123');
-    await userEvent.type(confirmPasswordInput, 'newpassword123');
-    fireEvent.click(submitButton);
+    await user.type(newPasswordInput, 'newpassword123');
+    await user.type(confirmPasswordInput, 'newpassword123');
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByText('Server error occurred')).toBeInTheDocument();
@@ -119,9 +120,9 @@ describe('ForcePasswordChange', () => {
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
     const submitButton = screen.getByRole('button', { name: /change password/i });
 
-    await userEvent.type(newPasswordInput, 'newpassword123');
-    await userEvent.type(confirmPasswordInput, 'newpassword123');
-    fireEvent.click(submitButton);
+    await user.type(newPasswordInput, 'newpassword123');
+    await user.type(confirmPasswordInput, 'newpassword123');
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByText('Changing Password...')).toBeInTheDocument();

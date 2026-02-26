@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.12.1] - 2026-02-25
+
+### Added
+- **Playwright visual regression testing** — Automated screenshot comparison for 5 key pages (login, main grid, admin dashboard, import page, filter bar). Configured with `maxDiffPixelRatio: 0.01` and `animations: 'disabled'` in `playwright.config.ts`. New test file: `frontend/e2e/visual-regression.spec.ts`
+- **New test files** — 13 new test files covering gaps: socketIdMiddleware, dateParser (backend); accessibility, admin-management, import-reassignment, password-flows, visual-regression (Playwright E2E); axios, ImportResultsDisplay, PreviewSummaryCards, DuplicateWarningModal, ResetPasswordModal, UserModal (Vitest)
+- **@axe-core/playwright** dependency added for accessibility testing
+- **socketManager.clearAllState()** utility for test isolation between test cases
+
+### Changed
+- **Migrated fireEvent → userEvent** across 25 Vitest test files (~195 occurrences). `userEvent` is now the standard interaction API for all component tests. `fireEvent` retained only for AG Grid keyboard/mouse handlers in `AutoOpenSelectEditor.test.tsx` (fake timers + userEvent incompatibility).
+  - Batch 1 (Modals): AddRowModal, ResetPasswordModal, UserModal, ConfirmModal, ConflictModal, DuplicateWarningModal
+  - Batch 2 (Layout): StatusFilterBar, Header, Toolbar, StatusBar
+  - Batch 3 (Pages): PatientAssignmentPage, MappingManagementPage, LoginPage, AdminPage, PatientManagementPage
+  - Batch 4 (Import & Grid): AutoOpenSelectEditor, StatusDateRenderer, ActionPatternTable, PreviewSummaryCards, ImportResultsDisplay, ForcePasswordChange
+  - Batch 5 (Low-count): ImportPreviewPage, ForgotPasswordPage, ResetPasswordPage, ImportPage (unused `fireEvent` imports removed)
+- **Accessibility improvements** — Added `htmlFor`/`id` associations to form labels in UserModal and ResetPasswordModal; added `aria-label` attributes to role radio buttons in UserModal; added `aria-label` to physician select dropdown in Header
+- **UI contrast improvements** — StatusBar connection status text bumped to 700-weight colors (green-700, yellow-700, red-700, gray-600); filter summary text to gray-600; StatusFilterBar inactive buttons use `hover:bg-gray-50` and `border-dashed` instead of opacity-50
+- **Playwright config** — Added local retry (1), parallel workers (3), screenshot comparison settings
+- **Removed empty agGridMocks.test.ts** — File had all tests removed in prior audit but still existed, causing Vitest "no test suite found" error
+
+### Fixed
+- **AutoOpenSelectEditor keyboard tests** — Switched from `userEvent.keyboard` to `fireEvent.keyDown` to resolve 5-second timeouts caused by fake timers + userEvent async scheduling incompatibility
+- **StatusFilterBar search test** — Fixed controlled input test assertion to verify per-keystroke `onSearchChange` calls instead of expecting single aggregate call
+- **ActionPatternTable pattern test** — Fixed controlled input test to verify `onActionChange` callback fires with typed character rather than expecting full string replacement
+- **UserModal empty password test** — Updated to verify HTML5 `required` attribute prevents form submission rather than expecting custom error message
+
+### Documentation
+- **TESTING.md**: Added "Visual Regression" section, "userEvent Convention" section with migration reference table, Cypress retention rationale
+- **REGRESSION_TEST_PLAN.md**: Added sections 44-48 (Authentication, Authorization, Password Flows, Admin Management, Import Reassignment) with 80+ new test cases
+- **TEST_GAP_ANALYSIS.md**: New document cataloguing test coverage gaps and prioritization
+
+---
+
 ## [4.12.0] - 2026-02-23
 
 ### Added

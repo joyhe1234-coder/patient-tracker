@@ -226,6 +226,79 @@ describe('statusColors', () => {
         })
       ).toBe(true);
     });
+
+    // ── Boundary tests (gap analysis items 6.4, 6.5) ──────────────────
+
+    it('due date = yesterday is overdue (1 day past)', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-14', measureStatus: 'Called to schedule' })
+      ).toBe(true);
+    });
+
+    it('due date = today is NOT overdue (boundary — strict less-than)', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-15', measureStatus: 'Called to schedule' })
+      ).toBe(false);
+    });
+
+    it('due date = tomorrow is NOT overdue', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-16', measureStatus: 'Called to schedule' })
+      ).toBe(false);
+    });
+
+    it('7-day timer boundary: day 7 exactly is NOT overdue ("Called to schedule")', () => {
+      // If status date was 2025-06-08 and baseDueDays=7, dueDate=2025-06-15
+      // On 2025-06-15, dueDate === today → NOT overdue
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-15', measureStatus: 'Called to schedule' })
+      ).toBe(false);
+    });
+
+    it('7-day timer boundary: day 8 (one day past) IS overdue ("Called to schedule")', () => {
+      // Day after the 7-day dueDate → overdue
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-16T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-15', measureStatus: 'Called to schedule' })
+      ).toBe(true);
+    });
+
+    it('1-day timer boundary: visit date = today is NOT overdue ("Visit scheduled")', () => {
+      // If status date was 2025-06-14 and baseDueDays=1, dueDate=2025-06-15
+      // On 2025-06-15, dueDate === today → NOT overdue
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-15', measureStatus: 'Visit scheduled' })
+      ).toBe(false);
+    });
+
+    it('1-day timer boundary: day after visit date IS overdue ("Visit scheduled")', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-16T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-15', measureStatus: 'Visit scheduled' })
+      ).toBe(true);
+    });
+
+    it('overdue comparison uses local date (timezone-sensitive boundary)', () => {
+      // isRowOverdue uses today.getDate() (local time), not getUTCDate().
+      // At noon UTC, all US timezones see "today" as the same calendar day.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-16T18:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-06-15', measureStatus: 'Called to schedule' })
+      ).toBe(true);
+    });
   });
 
   // ── getRowStatusColor ─────────────────────────────────────────────

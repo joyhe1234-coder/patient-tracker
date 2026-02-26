@@ -59,7 +59,7 @@ function createLargeSutterWorkbook(rowCount: number): Buffer {
 }
 
 // CI environments and busy machines run slower; apply a multiplier
-const PERF_MULTIPLIER = process.env.CI ? 5 : 3;
+const PERF_MULTIPLIER = process.env.CI ? 3 : 2;
 
 describe('Sutter Performance', () => {
   describe('transform performance', () => {

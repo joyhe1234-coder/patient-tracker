@@ -60,32 +60,29 @@ describe('Hover-Reveal Dropdown', () => {
   describe('Single-Click Opens Dropdown', () => {
     it('should open requestType dropdown on single click', () => {
       cy.getAgGridCell(testRowIndex, 'requestType').click();
-      cy.wait(300);
 
-      // Popup should appear with auto-open-select-editor
+      // Popup should appear with auto-open-select-editor (auto-retries)
       cy.get('.ag-popup .auto-open-select-editor').should('exist');
     });
 
     it('should open qualityMeasure dropdown on single click', () => {
       // First set a request type so quality measure has options
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
-      cy.wait(500);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Quality');
 
       cy.getAgGridCell(testRowIndex, 'qualityMeasure').click();
-      cy.wait(300);
 
-      // Popup should appear with auto-open-select-editor
+      // Popup should appear with auto-open-select-editor (auto-retries)
       cy.get('.ag-popup .auto-open-select-editor').should('exist');
     });
 
     it('should open measureStatus dropdown on single click', () => {
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'AWV');
-      cy.wait(500);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'AWV');
 
       cy.getAgGridCell(testRowIndex, 'measureStatus').click();
-      cy.wait(300);
 
-      // Popup should appear with auto-open-select-editor
+      // Popup should appear with auto-open-select-editor (auto-retries)
       cy.get('.ag-popup .auto-open-select-editor').should('exist');
     });
   });
@@ -99,9 +96,8 @@ describe('Hover-Reveal Dropdown', () => {
 
     it('should NOT enter edit mode on single click for notes', () => {
       cy.getAgGridCellWithScroll(testRowIndex, 'notes').click();
-      cy.wait(300);
 
-      // Notes should NOT be in edit mode after single click
+      // Notes should NOT be in edit mode after single click (auto-retries)
       cy.getAgGridCellWithScroll(testRowIndex, 'notes')
         .find('.ag-cell-edit-wrapper')
         .should('not.exist');
@@ -109,9 +105,8 @@ describe('Hover-Reveal Dropdown', () => {
 
     it('should enter edit mode on double-click for notes', () => {
       cy.getAgGridCellWithScroll(testRowIndex, 'notes').dblclick();
-      cy.wait(300);
 
-      // Notes SHOULD be in edit mode after double click
+      // Notes SHOULD be in edit mode after double click (auto-retries)
       cy.getAgGridCellWithScroll(testRowIndex, 'notes')
         .find('input, textarea, .ag-cell-edit-wrapper')
         .should('exist');
@@ -132,7 +127,6 @@ describe('Hover-Reveal Dropdown', () => {
   describe('Dropdown Arrow Styling', () => {
     it('arrow should have blue color and rounded background', () => {
       cy.getAgGridCell(testRowIndex, 'requestType').trigger('mouseover');
-      cy.wait(200);
 
       cy.getAgGridCell(testRowIndex, 'requestType').find('.cell-dropdown-arrow')
         .should('have.css', 'border-radius', '3px');

@@ -13,7 +13,8 @@ describe('Multi-Select Status Filter', () => {
     cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
+    // Wait for grid rows to fully render before each test
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.gte', 1);
   });
 
   describe('Multi-Select Toggle Behavior', () => {
@@ -32,13 +33,13 @@ describe('Multi-Select Status Filter', () => {
         inProgressCount = match ? parseInt(match[1], 10) : 0;
       });
 
-      // Click Completed first
+      // Click Completed first — verify it became active before proceeding
       cy.contains('button', 'Completed').click();
-      cy.wait(300);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
 
-      // Click In Progress to add it (multi-select)
+      // Click In Progress to add it (multi-select) — verify it became active
       cy.contains('button', 'In Progress').click();
-      cy.wait(300);
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
 
       // Grid should show combined count
       cy.get('.ag-center-cols-container .ag-row').then(($rows) => {
@@ -56,18 +57,16 @@ describe('Multi-Select Status Filter', () => {
     });
 
     it('should toggle off a chip without affecting others', () => {
-      // Select Completed then In Progress
+      // Select Completed — verify active before proceeding
       cy.contains('button', 'Completed').click();
-      cy.wait(300);
-      cy.contains('button', 'In Progress').click();
-      cy.wait(500);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
 
-      // Both should be active (re-query after render)
+      // Select In Progress — verify both are active
+      cy.contains('button', 'In Progress').click();
       cy.get('button[aria-pressed="true"]').should('have.length.gte', 2);
 
       // Toggle off Completed
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
 
       // In Progress should still be active, Completed should not (re-query fresh)
       cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
@@ -83,13 +82,12 @@ describe('Multi-Select Status Filter', () => {
       // Get total row count first
       cy.get('.ag-center-cols-container .ag-row').its('length').as('totalCount');
 
-      // Select a single chip
+      // Select a single chip — verify it became active
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
 
-      // Toggle it off
+      // Toggle it off — verify All becomes active again
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
 
       // All should be active again
       cy.contains('button', 'All').should('have.attr', 'aria-pressed', 'true');
@@ -101,17 +99,16 @@ describe('Multi-Select Status Filter', () => {
     });
 
     it('should clear all selections when All is clicked', () => {
-      // Select multiple chips
+      // Select multiple chips — verify each becomes active before clicking the next
       cy.contains('button', 'Completed').click();
-      cy.wait(200);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
       cy.contains('button', 'In Progress').click();
-      cy.wait(200);
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
       cy.contains('button', 'Contacted').click();
-      cy.wait(200);
+      cy.contains('button', 'Contacted').should('have.attr', 'aria-pressed', 'true');
 
       // Click All
       cy.contains('button', 'All').click();
-      cy.wait(300);
 
       // All should be active, others not
       cy.contains('button', 'All').should('have.attr', 'aria-pressed', 'true');
@@ -126,7 +123,6 @@ describe('Multi-Select Status Filter', () => {
 
       // Click Completed
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
 
       // Only Completed should be active
       cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
@@ -143,15 +139,14 @@ describe('Multi-Select Status Filter', () => {
 
   describe('Duplicates Exclusivity', () => {
     it('should deselect color chips when Duplicates is clicked', () => {
-      // Select color chips
+      // Select color chips — verify each becomes active
       cy.contains('button', 'Completed').click();
-      cy.wait(200);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
       cy.contains('button', 'In Progress').click();
-      cy.wait(200);
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
 
       // Click Duplicates
       cy.contains('button', 'Duplicates').click();
-      cy.wait(300);
 
       // Duplicates should be active, color chips should not
       cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'true');
@@ -160,14 +155,12 @@ describe('Multi-Select Status Filter', () => {
     });
 
     it('should exit Duplicates mode when color chip is clicked', () => {
-      // Click Duplicates first
+      // Click Duplicates first — verify it became active
       cy.contains('button', 'Duplicates').click();
-      cy.wait(300);
       cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'true');
 
       // Click a color chip
       cy.contains('button', 'In Progress').click();
-      cy.wait(300);
 
       // Duplicates should be deselected, color chip active
       cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'false');
@@ -176,12 +169,10 @@ describe('Multi-Select Status Filter', () => {
 
     it('should toggle Duplicates off to All', () => {
       cy.contains('button', 'Duplicates').click();
-      cy.wait(300);
       cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'true');
 
       // Click Duplicates again to toggle off
       cy.contains('button', 'Duplicates').click();
-      cy.wait(300);
 
       cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'false');
       cy.contains('button', 'All').should('have.attr', 'aria-pressed', 'true');
@@ -190,9 +181,9 @@ describe('Multi-Select Status Filter', () => {
 
   describe('Checkmark + Fill Visual Style', () => {
     it('should show checkmark icon on active chips', () => {
-      // Click Completed
+      // Click Completed — verify it became active
       cy.contains('button', 'Completed').click();
-      cy.wait(300);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
 
       // Active chip should contain an SVG (checkmark icon from lucide-react)
       cy.contains('button', 'Completed').find('svg').should('exist');
@@ -203,9 +194,9 @@ describe('Multi-Select Status Filter', () => {
 
     it('should show checkmarks on multiple active chips', () => {
       cy.contains('button', 'Completed').click();
-      cy.wait(200);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
       cy.contains('button', 'In Progress').click();
-      cy.wait(200);
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
 
       // Both active chips should have checkmarks
       cy.contains('button', 'Completed').find('svg').should('exist');
@@ -217,7 +208,7 @@ describe('Multi-Select Status Filter', () => {
 
     it('should show inactive chips with reduced opacity', () => {
       cy.contains('button', 'Completed').click();
-      cy.wait(300);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
 
       // Inactive chip should have opacity-50 class
       cy.contains('button', 'In Progress').should('have.class', 'opacity-50');
@@ -232,7 +223,6 @@ describe('Multi-Select Status Filter', () => {
 
       // Click a filter
       cy.contains('button', 'Completed').click();
-      cy.wait(300);
 
       // All should now be inactive
       cy.contains('button', 'All').should('have.attr', 'aria-pressed', 'false');
@@ -244,41 +234,39 @@ describe('Multi-Select Status Filter', () => {
       // Get total row count first
       cy.get('.ag-center-cols-container .ag-row').its('length').as('totalCount');
 
-      // Select Completed (green)
+      // Select Completed (green) — verify filter applied
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
 
       cy.get('.ag-center-cols-container .ag-row').its('length').then((filterCount) => {
         // Now add a search that won't match anything
         cy.get('input[aria-label="Search patients by name"]').type('zzzznonexistent');
-        cy.wait(500);
 
         // Should show zero rows (search AND filter = no matches)
         cy.get('.ag-center-cols-container .ag-row').should('have.length', 0);
 
         // Clear search — should restore to just the filter count
         cy.get('button[aria-label="Clear search"]').click();
-        cy.wait(500);
 
         cy.get('.ag-center-cols-container .ag-row').should('have.length', filterCount);
       });
     });
 
     it('should restore multi-filter rows when search is cleared', () => {
-      // Select multiple filters
+      // Select multiple filters — verify each is active
       cy.contains('button', 'Completed').click();
-      cy.wait(200);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
       cy.contains('button', 'In Progress').click();
-      cy.wait(200);
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
       cy.get('.ag-center-cols-container .ag-row').its('length').as('multiFilterCount');
 
       // Add search
       cy.get('input[aria-label="Search patients by name"]').type('Smith');
-      cy.wait(300);
+      // Wait for search to take effect by checking grid updated
+      cy.get('input[aria-label="Search patients by name"]').should('have.value', 'Smith');
 
       // Clear search
       cy.get('button[aria-label="Clear search"]').click();
-      cy.wait(300);
 
       // Should be back to multi-filter count
       cy.get('@multiFilterCount').then((count) => {
@@ -289,11 +277,11 @@ describe('Multi-Select Status Filter', () => {
 
   describe('Status Bar Updates', () => {
     it('should show correct count for multi-filter selection', () => {
-      // Select multiple filters
+      // Select multiple filters — verify each is active
       cy.contains('button', 'Completed').click();
-      cy.wait(200);
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
       cy.contains('button', 'In Progress').click();
-      cy.wait(300);
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
 
       // Status bar should show "Showing X of Y rows"
       cy.get('.bg-gray-100.border-t').should('contain.text', 'Showing');
@@ -305,9 +293,9 @@ describe('Multi-Select Status Filter', () => {
         const beforeMatch = beforeText.match(/\((\d+)\)/);
         const beforeCount = beforeMatch ? beforeMatch[1] : '0';
 
-        // Apply a different filter
+        // Apply a different filter — verify it became active
         cy.contains('button', 'In Progress').click();
-        cy.wait(300);
+        cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
 
         // Completed chip count should be unchanged
         cy.contains('button', 'Completed').invoke('text').then((afterText) => {

@@ -135,10 +135,11 @@ export default function UserModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="user-email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
+              id="user-email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -149,10 +150,11 @@ export default function UserModal({
 
           {!isEditing && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="user-password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
               <input
+                id="user-password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -164,10 +166,11 @@ export default function UserModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="user-displayName" className="block text-sm font-medium text-gray-700 mb-1">
               Display Name
             </label>
             <input
+              id="user-displayName"
               type="text"
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
@@ -185,6 +188,7 @@ export default function UserModal({
                 <input
                   type="radio"
                   name="roleSelection"
+                  aria-label="Physician"
                   checked={formData.roles.length === 1 && formData.roles[0] === 'PHYSICIAN'}
                   onChange={() => setFormData({ ...formData, roles: ['PHYSICIAN'] })}
                   className="rounded"
@@ -196,6 +200,7 @@ export default function UserModal({
                 <input
                   type="radio"
                   name="roleSelection"
+                  aria-label="Staff"
                   checked={formData.roles.length === 1 && formData.roles[0] === 'STAFF'}
                   onChange={() => setFormData({ ...formData, roles: ['STAFF'] })}
                   className="rounded"
@@ -207,6 +212,7 @@ export default function UserModal({
                 <input
                   type="radio"
                   name="roleSelection"
+                  aria-label="Admin"
                   checked={formData.roles.length === 1 && formData.roles[0] === 'ADMIN'}
                   onChange={() => setFormData({ ...formData, roles: ['ADMIN'] })}
                   className="rounded"
@@ -218,6 +224,7 @@ export default function UserModal({
                 <input
                   type="radio"
                   name="roleSelection"
+                  aria-label="Admin + Physician"
                   checked={formData.roles.includes('ADMIN') && formData.roles.includes('PHYSICIAN')}
                   onChange={() => setFormData({ ...formData, roles: ['ADMIN', 'PHYSICIAN'] })}
                   className="rounded"

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import StatusDateRenderer from './StatusDateRenderer';
@@ -13,6 +14,8 @@ const createRendererProps = (overrides: Record<string, unknown> = {}) =>
   });
 
 describe('StatusDateRenderer', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -81,7 +84,7 @@ describe('StatusDateRenderer', () => {
   });
 
   describe('Today Button Click', () => {
-    it('calls node.setDataValue with display-format date on click', () => {
+    it('calls node.setDataValue with display-format date on click', async () => {
       const setDataValue = vi.fn();
       const params = createRendererProps({
         value: null,
@@ -89,14 +92,14 @@ describe('StatusDateRenderer', () => {
       });
       render(<StatusDateRenderer {...params} />);
 
-      fireEvent.click(screen.getByText('Today'));
+      await user.click(screen.getByText('Today'));
 
       expect(setDataValue).toHaveBeenCalledTimes(1);
       // Should be M/D/YYYY format (display format), not ISO
       expect(setDataValue).toHaveBeenCalledWith('statusDate', expect.stringMatching(/^\d{1,2}\/\d{1,2}\/\d{4}$/));
     });
 
-    it('sets today\'s date (not a hardcoded date)', () => {
+    it('sets today\'s date (not a hardcoded date)', async () => {
       const setDataValue = vi.fn();
       const params = createRendererProps({
         value: null,
@@ -104,7 +107,7 @@ describe('StatusDateRenderer', () => {
       });
       render(<StatusDateRenderer {...params} />);
 
-      fireEvent.click(screen.getByText('Today'));
+      await user.click(screen.getByText('Today'));
 
       const now = new Date();
       const expected = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;

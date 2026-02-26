@@ -36,8 +36,11 @@ test.describe('Real-Time Updates', () => {
       const mainPageA = await loginAndNavigate(pageA, USER_A.email, USER_A.password);
       const mainPageB = await loginAndNavigate(pageB, USER_B.email, USER_B.password);
 
-      // Wait for socket connections
-      await pageA.waitForTimeout(3000);
+      // Wait for both socket connections to be established
+      const statusBarA = pageA.locator('.bg-gray-100.border-t');
+      const statusBarB = pageB.locator('.bg-gray-100.border-t');
+      await expect(statusBarA).toContainText('Connected', { timeout: 10000 });
+      await expect(statusBarB).toContainText('Connected', { timeout: 10000 });
 
       const testValue = `RealTime ${Date.now()}`;
 
@@ -45,12 +48,9 @@ test.describe('Real-Time Updates', () => {
       await mainPageA.editCell(0, 'notes', testValue);
       await mainPageA.waitForSave();
 
-      // Wait for broadcast to reach User B
-      await pageB.waitForTimeout(3000);
-
-      // User B should see the updated value without refreshing
-      const cellValueB = await mainPageB.getCellValue(0, 'notes');
-      expect(cellValueB).toContain(testValue);
+      // Wait for broadcast to reach User B — poll until the cell value updates
+      const cellB = pageB.locator('[row-index="0"] [col-id="notes"]').first();
+      await expect(cellB).toContainText(testValue, { timeout: 10000 });
     } finally {
       await contextA.close();
       await contextB.close();
@@ -68,7 +68,9 @@ test.describe('Real-Time Updates', () => {
       const mainPageA = await loginAndNavigate(pageA, USER_A.email, USER_A.password);
       const mainPageB = await loginAndNavigate(pageB, USER_B.email, USER_B.password);
 
-      await pageA.waitForTimeout(3000);
+      // Wait for both socket connections
+      await expect(pageA.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
+      await expect(pageB.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
 
       // Get initial row count for User B
       const initialCountB = await mainPageB.getRowCount();
@@ -77,12 +79,11 @@ test.describe('Real-Time Updates', () => {
       const testName = `NewPatient ${Date.now()}`;
       await mainPageA.addTestRow(testName);
 
-      // Wait for broadcast
-      await pageB.waitForTimeout(3000);
-
-      // User B should see the new row
-      const newCountB = await mainPageB.getRowCount();
-      expect(newCountB).toBeGreaterThan(initialCountB);
+      // Wait for the new row to appear on User B's grid via real-time broadcast
+      await expect(async () => {
+        const newCountB = await mainPageB.getRowCount();
+        expect(newCountB).toBeGreaterThan(initialCountB);
+      }).toPass({ timeout: 10000 });
     } finally {
       await contextA.close();
       await contextB.close();
@@ -100,12 +101,19 @@ test.describe('Real-Time Updates', () => {
       const mainPageA = await loginAndNavigate(pageA, USER_A.email, USER_A.password);
       const mainPageB = await loginAndNavigate(pageB, USER_B.email, USER_B.password);
 
-      await pageA.waitForTimeout(3000);
+      // Wait for both socket connections
+      await expect(pageA.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
+      await expect(pageB.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
 
       // First add a row so we have something to delete
       const testName = `DeleteMe ${Date.now()}`;
       await mainPageA.addTestRow(testName);
-      await pageA.waitForTimeout(2000);
+
+      // Wait for the new row to appear on User A's grid
+      await expect(async () => {
+        const idx = await mainPageA.findRowByMemberName(testName);
+        expect(idx).toBeGreaterThanOrEqual(0);
+      }).toPass({ timeout: 10000 });
 
       const countBeforeDelete = await mainPageB.getRowCount();
 
@@ -121,12 +129,11 @@ test.describe('Real-Time Updates', () => {
           await confirmBtn.click();
         }
 
-        // Wait for broadcast
-        await pageB.waitForTimeout(3000);
-
-        // User B should see one fewer row
-        const countAfterDelete = await mainPageB.getRowCount();
-        expect(countAfterDelete).toBeLessThan(countBeforeDelete);
+        // Wait for User B's row count to decrease via real-time broadcast
+        await expect(async () => {
+          const countAfterDelete = await mainPageB.getRowCount();
+          expect(countAfterDelete).toBeLessThan(countBeforeDelete);
+        }).toPass({ timeout: 10000 });
       }
     } finally {
       await contextA.close();

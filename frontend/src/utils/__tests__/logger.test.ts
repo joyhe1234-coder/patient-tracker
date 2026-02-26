@@ -89,32 +89,7 @@ describe('logger', () => {
       expect(errorSpy).toHaveBeenCalledWith('Always visible');
     });
 
-    it('info and debug are suppressed when PROD is true', () => {
-      // Simulate production: directly test that when isProduction returns true,
-      // console.log is not called. We do this by creating a minimal production logger.
-      const prodLogger = {
-        info(msg: string, ...args: unknown[]) {
-          // Production: suppressed
-        },
-        debug(msg: string, ...args: unknown[]) {
-          // Production: suppressed
-        },
-        warn(msg: string, ...args: unknown[]) {
-          console.warn(msg, ...args);
-        },
-        error(msg: string, ...args: unknown[]) {
-          console.error(msg, ...args);
-        },
-      };
-
-      prodLogger.info('should not appear');
-      prodLogger.debug('should not appear');
-      prodLogger.warn('should appear');
-      prodLogger.error('should appear');
-
-      expect(logSpy).not.toHaveBeenCalled();
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy).toHaveBeenCalledTimes(1);
-    });
+    // REMOVED (ln-630 audit B12.2): 'info and debug are suppressed when PROD is true' —
+    // created a local prodLogger object with hardcoded no-op methods, never tested the real logger.
   });
 });

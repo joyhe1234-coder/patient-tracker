@@ -11,7 +11,7 @@
  */
 
 /** Strip the dropdown arrow character from AG Grid cell text */
-const stripArrow = (text: string) => text.replace(/▾/g, '').trim();
+const stripArrow = (text: string) => text.replace(/\u25be/g, '').trim();
 
 describe('Duplicate Detection', () => {
   const adminEmail = 'ko037291@gmail.com';
@@ -31,7 +31,6 @@ describe('Duplicate Detection', () => {
         const count = match ? parseInt(match[1], 10) : 0;
 
         cy.contains('button', 'Duplicates').click();
-        cy.wait(500);
 
         if (count > 0) {
           // Every visible row should have the duplicate class
@@ -48,7 +47,7 @@ describe('Duplicate Detection', () => {
     it('should NOT show row-status-duplicate class on non-duplicate rows', () => {
       // Click All to show everything
       cy.contains('button', 'All').click();
-      cy.wait(500);
+      cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
       // Get duplicate count to know if any exist
       cy.contains('button', 'Duplicates').invoke('text').then((text) => {
@@ -63,7 +62,7 @@ describe('Duplicate Detection', () => {
           if (allCount > dupCount) {
             // Filter to Not Addressed (these are typically not duplicates)
             cy.contains('button', 'Not Addressed').click();
-            cy.wait(500);
+            cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
             cy.get('.ag-center-cols-container .ag-row').then(($rows) => {
               if ($rows.length > 0) {
@@ -89,7 +88,6 @@ describe('Duplicate Detection', () => {
 
         if (count > 0) {
           cy.contains('button', 'Duplicates').click();
-          cy.wait(500);
 
           // Verify the first duplicate row has a visible left border
           cy.get('.ag-center-cols-container .ag-row.row-status-duplicate').first()
@@ -112,7 +110,7 @@ describe('Duplicate Detection', () => {
 
       // Add a new test row (starts with null requestType/qualityMeasure)
       cy.addTestRow('Test Patient Dup');
-      cy.wait(500);
+      cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
       // Find the newly added row
       cy.findRowByMemberName('Test Patient Dup').then((rowIndex) => {
@@ -133,11 +131,12 @@ describe('Duplicate Detection', () => {
               if (existingRequestType && existingQualityMeasure) {
                 // Select row 0 to duplicate the member
                 cy.get(`[row-index="0"]`).first().click();
-                cy.wait(300);
+                cy.get(`[row-index="0"]`).first().should('have.class', 'ag-row-selected');
 
                 // Click Copy Member button to create another row for the same patient
                 cy.contains('button', 'Copy Member').click();
-                cy.wait(1000);
+                // Wait for the new row to appear (row count increases)
+                cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 2);
 
                 // Find the new duplicate member row (it should appear near the original)
                 // The new row will have the same member name but null fields
@@ -159,7 +158,7 @@ describe('Duplicate Detection', () => {
                   if (newRowIndex >= 0) {
                     // Set the same requestType as the original row
                     cy.selectAgGridDropdown(newRowIndex, 'requestType', existingRequestType);
-                    cy.wait(500);
+                    cy.getAgGridCell(newRowIndex, 'requestType').should('contain.text', existingRequestType);
 
                     // Now set the same qualityMeasure - this should trigger 409 duplicate error
                     // For AWV/Chronic DX, qualityMeasure is auto-filled, so the 409 may fire
@@ -169,7 +168,6 @@ describe('Duplicate Detection', () => {
                       if (autoFilledQM === existingQualityMeasure) {
                         // Duplicate was detected on requestType set (auto-filled QM matched)
                         // Check that alert was called
-                        cy.wait(500);
                         cy.then(() => {
                           if (alertStub.called) {
                             expect(alertStub).to.have.been.called;
@@ -180,11 +178,12 @@ describe('Duplicate Detection', () => {
                       } else if (existingRequestType === 'Quality' || existingRequestType === 'Screening') {
                         // Need to manually select qualityMeasure to match
                         cy.selectAgGridDropdown(newRowIndex, 'qualityMeasure', existingQualityMeasure);
-                        cy.wait(1000);
-
-                        // The 409 should trigger on qualityMeasure change
-                        cy.then(() => {
-                          expect(alertStub).to.have.been.called;
+                        cy.getAgGridCell(newRowIndex, 'qualityMeasure').invoke('text').then((qmText) => {
+                          // After 409, the qualityMeasure may have been reset to null/empty
+                          // The 409 should trigger on qualityMeasure change
+                          cy.then(() => {
+                            expect(alertStub).to.have.been.called;
+                          });
                         });
 
                         // The qualityMeasure should have been reset to null/empty
@@ -212,7 +211,7 @@ describe('Duplicate Detection', () => {
 
       // Select row 0 and duplicate the member
       cy.get(`[row-index="0"]`).first().click();
-      cy.wait(300);
+      cy.get(`[row-index="0"]`).first().should('have.class', 'ag-row-selected');
 
       cy.getAgGridCell(0, 'requestType').invoke('text').then((rawRT) => {
         const existingRT = stripArrow(rawRT);
@@ -222,7 +221,8 @@ describe('Duplicate Detection', () => {
         }
 
         cy.contains('button', 'Copy Member').click();
-        cy.wait(1000);
+        // Wait for the new row to appear
+        cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 2);
 
         // The new row should appear. Find it by looking for a row with same name but empty fields.
         cy.getAgGridCell(0, 'memberName').invoke('text').then((rawName) => {
@@ -242,7 +242,7 @@ describe('Duplicate Detection', () => {
             if (newRowIndex >= 0) {
               // Set requestType to match the original - for AWV/Chronic DX this auto-fills QM
               cy.selectAgGridDropdown(newRowIndex, 'requestType', existingRT);
-              cy.wait(1000);
+              cy.getAgGridCell(newRowIndex, 'requestType').invoke('text').should('not.be.empty');
 
               // If 409 was triggered, the requestType field should be reset to null
               // and dependent fields (qualityMeasure, measureStatus) should also be null
@@ -266,7 +266,6 @@ describe('Duplicate Detection', () => {
         if (count > 0) {
           // Filter to show only duplicates
           cy.contains('button', 'Duplicates').click();
-          cy.wait(500);
 
           // Get the first duplicate row's index
           cy.get('.ag-center-cols-container .ag-row.row-status-duplicate').first().then(($row) => {
@@ -281,11 +280,10 @@ describe('Duplicate Detection', () => {
 
                 // Switch back to All filter first so we can see the row after change
                 cy.contains('button', 'All').click();
-                cy.wait(500);
+                cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
                 // Change the requestType to something different
                 cy.selectAgGridDropdown(rowIndex, 'requestType', differentRT);
-                cy.wait(1000);
 
                 // The row should no longer have the duplicate class
                 cy.get(`[row-index="${rowIndex}"]`).first()
@@ -304,7 +302,7 @@ describe('Duplicate Detection', () => {
     it('should NOT flag a new row with no requestType as duplicate', () => {
       // Add a new test row - it starts with null requestType and qualityMeasure
       cy.addTestRow('Test NoDup Empty');
-      cy.wait(500);
+      cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
       // Find the new row
       cy.findRowByMemberName('Test NoDup Empty').then((rowIndex) => {
@@ -319,7 +317,7 @@ describe('Duplicate Detection', () => {
     it('should NOT flag a row with requestType but no qualityMeasure as duplicate', () => {
       // Add a new test row
       cy.addTestRow('Test NoDup PartialRT');
-      cy.wait(500);
+      cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
       // Find the new row
       cy.findRowByMemberName('Test NoDup PartialRT').then((rowIndex) => {
@@ -327,13 +325,12 @@ describe('Duplicate Detection', () => {
 
         // Close any open editors before selecting dropdown
         cy.get('body').type('{esc}');
-        cy.wait(300);
+        cy.get('.ag-popup').should('not.exist');
 
         // Set requestType to Quality (this does NOT auto-fill qualityMeasure)
         cy.selectAgGridDropdown(rowIndex, 'requestType', 'Quality');
-        cy.wait(500);
 
-        // qualityMeasure should still be empty (strip dropdown arrow '▾')
+        // qualityMeasure should still be empty (strip dropdown arrow)
         cy.getAgGridCell(rowIndex, 'qualityMeasure')
           .invoke('text')
           .should('satisfy', (text: string) => stripArrow(text) === '');
@@ -347,18 +344,17 @@ describe('Duplicate Detection', () => {
     it('should NOT flag a row with requestType but no qualityMeasure even if another row has same requestType', () => {
       // This verifies that partial matches are not flagged
       cy.addTestRow('Test NoDup Partial2');
-      cy.wait(500);
+      cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
       cy.findRowByMemberName('Test NoDup Partial2').then((rowIndex) => {
         expect(rowIndex).to.be.greaterThan(-1);
 
         // Close any open editors before selecting dropdown
         cy.get('body').type('{esc}');
-        cy.wait(300);
+        cy.get('.ag-popup').should('not.exist');
 
         // Set requestType to Screening (does not auto-fill qualityMeasure)
         cy.selectAgGridDropdown(rowIndex, 'requestType', 'Screening');
-        cy.wait(500);
 
         // Row should NOT be flagged as duplicate
         cy.get(`[row-index="${rowIndex}"]`).first()
@@ -382,7 +378,6 @@ describe('Duplicate Detection', () => {
         const expectedCount = match ? parseInt(match[1], 10) : 0;
 
         cy.contains('button', 'Duplicates').click();
-        cy.wait(500);
 
         if (expectedCount > 0) {
           // The number of visible rows should match the chip count
@@ -401,7 +396,6 @@ describe('Duplicate Detection', () => {
         if (initialCount > 0) {
           // Filter to duplicates
           cy.contains('button', 'Duplicates').click();
-          cy.wait(500);
 
           // Get the first duplicate row
           cy.get('.ag-center-cols-container .ag-row.row-status-duplicate').first().then(($row) => {
@@ -410,7 +404,7 @@ describe('Duplicate Detection', () => {
             if (rowIndex >= 0) {
               // Switch to All filter to see all rows
               cy.contains('button', 'All').click();
-              cy.wait(500);
+              cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
 
               // Change the requestType to break the duplicate
               cy.getAgGridCell(rowIndex, 'requestType').invoke('text').then((currentRT) => {
@@ -418,7 +412,7 @@ describe('Duplicate Detection', () => {
                 const differentRT = requestTypes.find(rt => rt !== currentRT.trim()) || 'AWV';
 
                 cy.selectAgGridDropdown(rowIndex, 'requestType', differentRT);
-                cy.wait(1000);
+                cy.getAgGridCell(rowIndex, 'requestType').should('contain.text', differentRT);
 
                 // Duplicate count should have decreased
                 cy.contains('button', 'Duplicates').invoke('text').then((newText) => {
@@ -448,7 +442,6 @@ describe('Duplicate Detection', () => {
         if (count > 0) {
           // Filter to duplicates
           cy.contains('button', 'Duplicates').click();
-          cy.wait(500);
 
           // Check if any duplicate rows also have a status color class
           const statusClasses = [
@@ -505,7 +498,6 @@ describe('Duplicate Detection', () => {
 
         if (count > 0) {
           cy.contains('button', 'Duplicates').click();
-          cy.wait(500);
 
           // Find a duplicate with a green status
           cy.get('.ag-center-cols-container .ag-row.row-status-duplicate.row-status-green').then(($greenDups) => {
@@ -543,9 +535,10 @@ describe('Duplicate Detection', () => {
 
           // Duplicate the member to get a second row with the same patientId
           cy.get(`[row-index="0"]`).first().click();
-          cy.wait(300);
+          cy.get(`[row-index="0"]`).first().should('have.class', 'ag-row-selected');
           cy.contains('button', 'Copy Member').click();
-          cy.wait(1000);
+          // Wait for the new row to appear
+          cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 2);
 
           // Find the new duplicated row
           cy.getAgGridCell(0, 'memberName').invoke('text').then((rawName) => {
@@ -565,7 +558,7 @@ describe('Duplicate Detection', () => {
               if (newRowIndex >= 0) {
                 // Try to set the exact same requestType as original
                 cy.selectAgGridDropdown(newRowIndex, 'requestType', rt);
-                cy.wait(1000);
+                cy.getAgGridCell(newRowIndex, 'requestType').invoke('text').should('not.be.empty');
 
                 // Check if qualityMeasure was auto-filled (AWV/Chronic DX)
                 cy.getAgGridCell(newRowIndex, 'qualityMeasure').invoke('text').then((rawNewQM) => {
@@ -583,11 +576,11 @@ describe('Duplicate Detection', () => {
                   } else if (rt === 'Quality' || rt === 'Screening') {
                     // Need to manually select qualityMeasure
                     cy.selectAgGridDropdown(newRowIndex, 'qualityMeasure', qm);
-                    cy.wait(1000);
-
-                    // Alert should have been triggered
-                    cy.then(() => {
-                      expect(alertStub).to.have.been.called;
+                    cy.getAgGridCell(newRowIndex, 'qualityMeasure').invoke('text').then(() => {
+                      // Alert should have been triggered
+                      cy.then(() => {
+                        expect(alertStub).to.have.been.called;
+                      });
                     });
                   }
                 });
@@ -610,9 +603,10 @@ describe('Duplicate Detection', () => {
 
         // Duplicate the member
         cy.get(`[row-index="0"]`).first().click();
-        cy.wait(300);
+        cy.get(`[row-index="0"]`).first().should('have.class', 'ag-row-selected');
         cy.contains('button', 'Copy Member').click();
-        cy.wait(1000);
+        // Wait for the new row to appear
+        cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 2);
 
         cy.getAgGridCell(0, 'memberName').invoke('text').then((rawName) => {
           const memberName = stripArrow(rawName);
@@ -632,7 +626,6 @@ describe('Duplicate Detection', () => {
               // AWV and Chronic DX auto-fill qualityMeasure, so setting the same
               // requestType should immediately trigger 409 and clear everything
               cy.selectAgGridDropdown(newRowIndex, 'requestType', rt);
-              cy.wait(1000);
 
               // After 409, the requestType should be reset to null
               cy.getAgGridCell(newRowIndex, 'requestType')

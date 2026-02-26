@@ -5,7 +5,8 @@
  * create/edit user modals, role badges, and error handling.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -113,6 +114,8 @@ function renderAdminPage() {
 }
 
 describe('AdminPage', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockUser = {
@@ -237,7 +240,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('Users')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Audit Log'));
+    await user.click(screen.getByText('Audit Log'));
     await waitFor(() => {
       expect(mockGet).toHaveBeenCalledWith('/admin/audit-log?limit=100');
     });
@@ -321,7 +324,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('Users')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Audit Log'));
+    await user.click(screen.getByText('Audit Log'));
     await waitFor(() => {
       const badges = screen.getAllByText('LOGIN_FAILED');
       expect(badges.length).toBe(3);
@@ -350,7 +353,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('Users')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Audit Log'));
+    await user.click(screen.getByText('Audit Log'));
     await waitFor(() => {
       expect(screen.getByText(/Reason: INVALID_CREDENTIALS/)).toBeInTheDocument();
       expect(screen.getByText(/Reason: ACCOUNT_LOCKED/)).toBeInTheDocument();
@@ -377,7 +380,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('Users')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Audit Log'));
+    await user.click(screen.getByText('Audit Log'));
     await waitFor(() => {
       expect(screen.getByText(/Email: hacker@example.com/)).toBeInTheDocument();
       expect(screen.getByText(/IP: 192\.168\.1\.100/)).toBeInTheDocument();
@@ -406,7 +409,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('Users')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Audit Log'));
+    await user.click(screen.getByText('Audit Log'));
     await waitFor(() => {
       const badge = screen.getByText('ACCOUNT_LOCKED');
       expect(badge).toHaveClass('bg-red-100', 'text-red-800');
@@ -453,7 +456,7 @@ describe('AdminPage', () => {
       expect(screen.getByText('Users')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Audit Log'));
+    await user.click(screen.getByText('Audit Log'));
     await waitFor(() => {
       const detailsText = 'Reason: INVALID_CREDENTIALS | Email: attacker@evil.com | IP: 203.0.113.42';
       expect(screen.getByText(detailsText)).toBeInTheDocument();
@@ -487,7 +490,7 @@ describe('AdminPage', () => {
 
     // Find and click the send temp password button for user 2
     const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
-    fireEvent.click(mailButtons[1]); // Second user (Dr. Smith)
+    await user.click(mailButtons[1]); // Second user (Dr. Smith)
 
     await waitFor(() => {
       expect(screen.getByText('Temporary Password Generated')).toBeInTheDocument();
@@ -510,7 +513,7 @@ describe('AdminPage', () => {
     });
 
     const mailButtons = document.querySelectorAll('[title="Send temporary password"]');
-    fireEvent.click(mailButtons[1]);
+    await user.click(mailButtons[1]);
 
     await waitFor(() => {
       expect(screen.getByText('Temporary Password Sent')).toBeInTheDocument();

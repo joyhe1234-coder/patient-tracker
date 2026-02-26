@@ -109,8 +109,8 @@ export class MappingPage {
    */
   async selectSystem(systemId: string) {
     await this.systemSelector.selectOption(systemId);
-    // Wait for the new config to load
-    await this.page.waitForTimeout(300);
+    // Wait for loading spinner to appear and disappear (config loading)
+    await this.loadingSpinner.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
     await this.loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
@@ -133,9 +133,15 @@ export class MappingPage {
    * Click the "Edit Mappings" or "Done Editing" button.
    */
   async toggleEditMode() {
+    const isEditing = await this.page.locator('button:has-text("Done Editing")').isVisible().catch(() => false);
     const editBtn = this.page.locator('button:has-text("Edit Mappings"), button:has-text("Done Editing")');
     await editBtn.click();
-    await this.page.waitForTimeout(200);
+    // Wait for the button text to toggle (confirming the mode change)
+    if (isEditing) {
+      await this.page.locator('button:has-text("Edit Mappings")').waitFor({ state: 'visible', timeout: 5000 });
+    } else {
+      await this.page.locator('button:has-text("Done Editing")').waitFor({ state: 'visible', timeout: 5000 });
+    }
   }
 
   /**
@@ -159,7 +165,8 @@ export class MappingPage {
     // Find the modal's confirm button (the red-styled one)
     const confirmBtn = this.page.locator('.bg-red-600:has-text("Reset to Defaults"), button.bg-red-600');
     await confirmBtn.click();
-    await this.page.waitForTimeout(500);
+    // Wait for the modal to close after reset completes
+    await this.page.locator('text=Reset to Default Mappings').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
   /**
@@ -168,7 +175,8 @@ export class MappingPage {
   async cancelReset() {
     const cancelBtn = this.page.locator('button:has-text("Cancel")').last();
     await cancelBtn.click();
-    await this.page.waitForTimeout(200);
+    // Wait for the modal to close
+    await this.page.locator('text=Reset to Default Mappings').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
   /**

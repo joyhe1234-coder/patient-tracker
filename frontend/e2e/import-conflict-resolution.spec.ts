@@ -260,8 +260,6 @@ test.describe('Import Conflict Resolution Flow', () => {
           break;
         }
       }
-      // Small delay between resolutions to allow React state updates
-      if (i < dropdownCount - 1) await page.waitForTimeout(100);
     }
 
     // After resolving all conflicts, "Save & Continue" should be ENABLED
@@ -313,7 +311,6 @@ test.describe('Import Conflict Resolution Flow', () => {
           break;
         }
       }
-      if (i < dropdownCount - 1) await page.waitForTimeout(100);
     }
 
     // Click "Save & Continue"
@@ -375,12 +372,9 @@ test.describe('Import Conflict Resolution Flow', () => {
     const cancelButton = page.locator('button:has-text("Cancel")');
     await cancelButton.click();
 
-    // Wait for the conflict step to disappear
-    await page.waitForTimeout(500);
-
     // The conflict step should no longer be visible
     const conflictBanner = page.locator('text=Column mapping conflicts detected');
-    await expect(conflictBanner).not.toBeVisible({ timeout: 5000 });
+    await expect(conflictBanner).toBeHidden({ timeout: 5000 });
 
     // The file upload area should be re-enabled (file input visible)
     const fileInput = page.locator('input[type="file"]');
@@ -451,7 +445,6 @@ test.describe('Import Conflict Resolution Flow', () => {
           break;
         }
       }
-      await page.waitForTimeout(300);
     }
 
     // Progress should show at least "1 of N conflicts resolved"

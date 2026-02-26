@@ -15,7 +15,8 @@ describe('Insurance Group Filter', () => {
     cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
+    // Wait for grid rows to render
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
   });
 
   describe('Dropdown Rendering', () => {
@@ -56,7 +57,7 @@ describe('Insurance Group Filter', () => {
 
     it('should remove active-ring when "All" is selected', () => {
       cy.get('select[aria-label="Filter by insurance group"]').select('all');
-      cy.wait(500);
+      // Auto-retries the class assertion
       cy.get('select[aria-label="Filter by insurance group"]')
         .should('have.class', 'border-gray-300')
         .and('not.have.class', 'ring-blue-400');
@@ -71,14 +72,12 @@ describe('Insurance Group Filter', () => {
 
     it('should change data when selecting "All"', () => {
       cy.get('select[aria-label="Filter by insurance group"]').select('all');
-      cy.wait(1000);
-      // Should still show rows (All includes everything)
+      // Should still show rows (All includes everything) — auto-retries
       cy.get('.ag-center-cols-container .ag-row').should('have.length.greaterThan', 0);
     });
 
     it('should filter to zero or more rows when selecting "No Insurance"', () => {
       cy.get('select[aria-label="Filter by insurance group"]').select('none');
-      cy.wait(1000);
       // May have 0 rows if all patients are assigned to Hill
       cy.get('.ag-body-viewport').should('exist');
     });
@@ -94,11 +93,10 @@ describe('Insurance Group Filter', () => {
         const options = [...$select[0].querySelectorAll('option')];
         if (options.length > 1) {
           cy.get('select[aria-label="Filter by quality measure"]').select(options[1].value);
-          cy.wait(500);
         }
       });
 
-      // Insurance group should still be "hill"
+      // Insurance group should still be "hill" (auto-retries)
       cy.get('select[aria-label="Filter by insurance group"]').should('have.value', 'hill');
     });
 
@@ -111,9 +109,8 @@ describe('Insurance Group Filter', () => {
         const options = [...$select[0].querySelectorAll('option')];
         if (options.length > 1) {
           cy.get('select[aria-label="Filter by quality measure"]').select(options[1].value);
-          cy.wait(500);
 
-          // Both filters should be active (both have ring indicators)
+          // Both filters should be active (both have ring indicators) — auto-retries
           cy.get('select[aria-label="Filter by insurance group"]').should('have.class', 'ring-2');
           cy.get('select[aria-label="Filter by quality measure"]').should('have.class', 'ring-2');
         }

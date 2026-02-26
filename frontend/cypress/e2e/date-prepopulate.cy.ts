@@ -28,16 +28,15 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     // 2. measureStatus must have a datePrompt (e.g. "AWV scheduled" → "Date Scheduled")
     // 3. statusDate must be empty
     cy.selectAgGridDropdown(0, 'requestType', 'AWV');
-    cy.wait(500);
+    cy.getAgGridCell(0, 'requestType').should('contain.text', 'AWV');
     cy.selectAgGridDropdown(0, 'measureStatus', 'AWV scheduled');
-    cy.wait(500);
+    cy.getAgGridCell(0, 'measureStatus').should('contain.text', 'AWV scheduled');
 
     // Clear the statusDate if it has a value so the cell-prompt appears
     cy.getAgGridCell(0, 'statusDate').then(($cell) => {
       if (!$cell.hasClass('cell-prompt')) {
         cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
         cy.get('.date-cell-editor').clear().type('{enter}');
-        cy.wait(1000);
       }
     });
     // Verify cell-prompt is showing before each test
@@ -53,9 +52,8 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     it('should show "Today" button on hover', () => {
       // Hover over the cell
       cy.getAgGridCell(0, 'statusDate').trigger('mouseover');
-      cy.wait(200);
 
-      // Today button should be visible
+      // Today button should be visible (auto-retries)
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .should('exist');
     });
@@ -66,9 +64,8 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
       // Click the Today button
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
-      cy.wait(500);
 
-      // Cell should now show today's date
+      // Cell should now show today's date (auto-retries)
       const today = getTodayFormatted();
       cy.getAgGridCell(0, 'statusDate').should('contain.text', today);
     });
@@ -76,9 +73,8 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     it('should remove prompt class after stamping today', () => {
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
-      cy.wait(500);
 
-      // Cell should no longer have the prompt class
+      // Cell should no longer have the prompt class (auto-retries)
       cy.getAgGridCell(0, 'statusDate').should('not.have.class', 'cell-prompt');
     });
   });
@@ -86,28 +82,23 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
   describe('Manual Date Entry (Double-Click)', () => {
     it('should open text editor on double-click', () => {
       cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
-      cy.wait(200);
 
-      // Editor input should appear
+      // Editor input should appear (auto-retries)
       cy.get('.date-cell-editor').should('exist');
     });
 
     it('should save custom date on Enter', () => {
       cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
-      cy.wait(200);
 
       cy.get('.date-cell-editor').type('1/15/2026{enter}');
-      cy.wait(500);
 
       cy.getAgGridCell(0, 'statusDate').should('contain.text', '1/15/2026');
     });
 
     it('should cancel on Escape', () => {
       cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
-      cy.wait(200);
 
       cy.get('.date-cell-editor').type('{esc}');
-      cy.wait(300);
 
       // Cell should still show the prompt (not a date)
       cy.getAgGridCell(0, 'statusDate').should('have.class', 'cell-prompt');
@@ -119,11 +110,12 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
       // Stamp a date first
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
-      cy.wait(500);
+
+      // Wait for date to be set
+      cy.getAgGridCell(0, 'statusDate').should('not.have.class', 'cell-prompt');
 
       // Hover over the now-filled cell — should NOT have Today button
       cy.getAgGridCell(0, 'statusDate').trigger('mouseover');
-      cy.wait(200);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .should('not.exist');
     });
@@ -132,14 +124,15 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
       // Stamp today first
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
-      cy.wait(500);
+
+      // Wait for date to be set
+      const today = getTodayFormatted();
+      cy.getAgGridCell(0, 'statusDate').should('contain.text', today);
 
       // Double-click to edit
       cy.getAgGridCell(0, 'statusDate').dblclick({ force: true });
-      cy.wait(200);
 
       // Input should show the existing date
-      const today = getTodayFormatted();
       cy.get('.date-cell-editor').should('have.value', today);
     });
   });
@@ -150,7 +143,9 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
       // Click Today to stamp date
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
-      cy.wait(1000);
+
+      // Wait for date to be set
+      cy.getAgGridCell(0, 'statusDate').should('not.have.class', 'cell-prompt');
 
       // Due date should now have a value (recalculated from the status date)
       cy.getAgGridCellWithScroll(0, 'dueDate').invoke('text').then((text) => {

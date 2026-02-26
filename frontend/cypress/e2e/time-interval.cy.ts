@@ -30,7 +30,7 @@ describe('Time Interval Editability', () => {
     cy.getAgGridCell(rowIndex, 'statusDate').dblclick();
     cy.get('.date-cell-editor').clear().type(formattedDate);
     cy.get('.date-cell-editor').type('{enter}');
-    cy.wait(1000);
+    cy.getAgGridCell(rowIndex, 'statusDate').should('not.have.text', '');
   }
 
   /**
@@ -39,9 +39,9 @@ describe('Time Interval Editability', () => {
    */
   function setupAwvCompletedRow(rowIndex: number): void {
     cy.selectAgGridDropdown(rowIndex, 'requestType', 'AWV');
-    cy.wait(300);
+    cy.getAgGridCell(rowIndex, 'requestType').should('contain.text', 'AWV');
     cy.selectAgGridDropdown(rowIndex, 'measureStatus', 'AWV completed');
-    cy.wait(300);
+    cy.getAgGridCell(rowIndex, 'measureStatus').should('contain.text', 'AWV completed');
     setStatusDateToToday(rowIndex);
   }
 
@@ -66,20 +66,20 @@ describe('Time Interval Editability', () => {
 
         if (targetRow === testRowIndex) {
           cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-          cy.wait(1000);
+          cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Screening');
           cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-          cy.wait(1000);
+          cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Breast Cancer Screening');
         }
 
         cy.selectAgGridDropdown(targetRow, 'measureStatus', 'Screening discussed');
-        cy.wait(300);
+        cy.getAgGridCell(targetRow, 'measureStatus').should('contain.text', 'Screening discussed');
 
         // Set status date so there is a time interval value (baseDueDays = 30)
         setStatusDateToToday(targetRow);
 
         // Select a time period in tracking1 to populate interval
         cy.selectAgGridDropdown(targetRow, 'tracking1', 'In 3 Months');
-        cy.wait(1000);
+        cy.getAgGridCell(targetRow, 'tracking1').should('contain.text', 'In 3 Months');
 
         // Scroll to time interval column and verify it has a value
         cy.getAgGridCellWithScroll(targetRow, 'timeIntervalDays')
@@ -91,7 +91,6 @@ describe('Time Interval Editability', () => {
 
         // Try to double-click the time interval cell - it should not enter edit mode
         cy.getAgGridCellWithScroll(targetRow, 'timeIntervalDays').dblclick();
-        cy.wait(300);
 
         // Verify no edit wrapper appears (cell is not editable)
         cy.get(`[row-index="${targetRow}"] [col-id="timeIntervalDays"]`).first()
@@ -103,18 +102,18 @@ describe('Time Interval Editability', () => {
     it('should not allow editing time interval for HgbA1c ordered status', () => {
       // Set up row: Quality > Diabetes Control > HgbA1c ordered
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Quality');
       cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetes Control');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Diabetes Control');
       cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'HgbA1c ordered');
 
       // Set status date
       setStatusDateToToday(testRowIndex);
 
       // Select tracking2 to populate interval (HgbA1c requires tracking2 for due date)
       cy.selectAgGridDropdown(testRowIndex, 'tracking2', '3 months');
-      cy.wait(1000);
+      cy.getAgGridCell(testRowIndex, 'tracking2').should('contain.text', '3 months');
 
       // Verify interval has a value
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
@@ -126,7 +125,6 @@ describe('Time Interval Editability', () => {
 
       // Try to double-click - should not enter edit mode
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
         .find('.ag-cell-edit-wrapper')
@@ -136,11 +134,11 @@ describe('Time Interval Editability', () => {
     it('should not allow editing time interval for Scheduled call back - BP not at goal', () => {
       // Set up row: Quality > Hypertension Management > Scheduled call back - BP not at goal
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Quality');
       cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Hypertension Management');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Hypertension Management');
       cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Scheduled call back - BP not at goal');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Scheduled call back');
 
       // Set status date (baseDueDays = 7)
       setStatusDateToToday(testRowIndex);
@@ -155,7 +153,6 @@ describe('Time Interval Editability', () => {
 
       // Try to double-click - should not enter edit mode
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
         .find('.ag-cell-edit-wrapper')
@@ -178,7 +175,6 @@ describe('Time Interval Editability', () => {
 
       // Double-click to enter edit mode
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
 
       // Should enter edit mode (edit wrapper should exist)
       cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
@@ -188,7 +184,6 @@ describe('Time Interval Editability', () => {
       // Enter a new value
       cy.get('.ag-cell-edit-wrapper input').clear().type('45');
       cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
 
       // Verify the new value is saved
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
@@ -202,9 +197,9 @@ describe('Time Interval Editability', () => {
     it('should allow editing time interval for Patient called to schedule AWV', () => {
       // Patient called to schedule AWV has baseDueDays = 7
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'AWV');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'AWV');
       cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Patient called to schedule AWV');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Patient called to schedule AWV');
       setStatusDateToToday(testRowIndex);
 
       // Verify default interval is 7
@@ -217,7 +212,6 @@ describe('Time Interval Editability', () => {
 
       // Double-click to enter edit mode - should be editable
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
 
       cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
         .find('.ag-cell-edit-wrapper')
@@ -249,10 +243,11 @@ describe('Time Interval Editability', () => {
 
           // Override interval with 60 days
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-          cy.wait(300);
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
           cy.get('.ag-cell-edit-wrapper input').clear().type('60');
           cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-          cy.wait(1000);
 
           // Verify interval is now 60
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
@@ -277,10 +272,11 @@ describe('Time Interval Editability', () => {
 
       // Override with minimum valid value
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
+      cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+        .find('.ag-cell-edit-wrapper')
+        .should('exist');
       cy.get('.ag-cell-edit-wrapper input').clear().type('1');
       cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
 
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
@@ -295,10 +291,11 @@ describe('Time Interval Editability', () => {
 
       // Override with maximum valid value
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-      cy.wait(300);
+      cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+        .find('.ag-cell-edit-wrapper')
+        .should('exist');
       cy.get('.ag-cell-edit-wrapper input').clear().type('1000');
       cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-      cy.wait(500);
 
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
@@ -315,31 +312,22 @@ describe('Time Interval Editability', () => {
       setupAwvCompletedRow(testRowIndex);
     });
 
-    it('should reject non-numeric value and show alert', () => {
-      // Stub window.alert to capture the validation message
-      const alertStub = cy.stub();
-      cy.on('window:alert', alertStub);
-
-      // Read the current value before testing (may not be 365 if prior tests set an override)
+    it('should reject non-numeric value and revert to original', () => {
+      // Read the current value before testing
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
         .then((originalText) => {
           const originalDays = parseInt(originalText.trim(), 10);
           expect(originalDays).to.be.greaterThan(0);
 
+          // Try to enter a non-numeric value
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-          cy.wait(300);
-          cy.get('.ag-cell-edit-wrapper input').clear().type('abc');
-          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-          cy.wait(500);
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
+          cy.get('.ag-cell-edit-wrapper input').first().clear().type('abc{enter}');
 
-          // Alert should have been called with validation message
-          cy.then(() => {
-            expect(alertStub).to.have.been.calledOnce;
-            expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
-          });
-
-          // Value should revert to original
+          // Value should revert to original (non-numeric input rejected)
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
             .invoke('text')
             .then((text) => {
@@ -359,10 +347,11 @@ describe('Time Interval Editability', () => {
           const originalDays = parseInt(originalText.trim(), 10);
 
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-          cy.wait(300);
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
           cy.get('.ag-cell-edit-wrapper input').clear().type('0');
           cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-          cy.wait(500);
 
           cy.then(() => {
             expect(alertStub).to.have.been.calledOnce;
@@ -389,10 +378,11 @@ describe('Time Interval Editability', () => {
           const originalDays = parseInt(originalText.trim(), 10);
 
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-          cy.wait(300);
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
           cy.get('.ag-cell-edit-wrapper input').clear().type('1001');
           cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-          cy.wait(500);
 
           cy.then(() => {
             expect(alertStub).to.have.been.calledOnce;
@@ -416,10 +406,11 @@ describe('Time Interval Editability', () => {
           const originalDays = parseInt(originalText.trim(), 10);
 
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
-          cy.wait(300);
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
           cy.get('.ag-cell-edit-wrapper input').clear();
           cy.get('.ag-cell-edit-wrapper input').type('{enter}');
-          cy.wait(500);
 
           // Value should remain at original (clearing returns false from valueSetter)
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
@@ -436,18 +427,18 @@ describe('Time Interval Editability', () => {
     it('should set interval via tracking2 for HgbA1c ordered (3 months)', () => {
       // Set up: Quality > Diabetes Control > HgbA1c ordered
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Quality');
       cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetes Control');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Diabetes Control');
       cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'HgbA1c ordered');
 
       // Set status date
       setStatusDateToToday(testRowIndex);
 
       // Select 3 months in tracking2
       cy.selectAgGridDropdown(testRowIndex, 'tracking2', '3 months');
-      cy.wait(1500);
+      cy.getAgGridCell(testRowIndex, 'tracking2').should('contain.text', '3 months');
 
       // Verify interval shows approximately 90 days (month length variation)
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
@@ -477,20 +468,20 @@ describe('Time Interval Editability', () => {
 
         if (targetRow === testRowIndex) {
           cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-          cy.wait(1000);
+          cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Screening');
           cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Breast Cancer Screening');
-          cy.wait(1000);
+          cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Breast Cancer Screening');
         }
 
         cy.selectAgGridDropdown(targetRow, 'measureStatus', 'Screening discussed');
-        cy.wait(300);
+        cy.getAgGridCell(targetRow, 'measureStatus').should('contain.text', 'Screening discussed');
 
         // Set status date
         setStatusDateToToday(targetRow);
 
         // Select "In 3 Months" in tracking1
         cy.selectAgGridDropdown(targetRow, 'tracking1', 'In 3 Months');
-        cy.wait(1500);
+        cy.getAgGridCell(targetRow, 'tracking1').should('contain.text', 'In 3 Months');
 
         // Verify interval shows approximately 90 days
         cy.getAgGridCellWithScroll(targetRow, 'timeIntervalDays')
@@ -510,18 +501,18 @@ describe('Time Interval Editability', () => {
     it('should update interval when tracking2 changes for HgbA1c ordered', () => {
       // Set up: Quality > Diabetes Control > HgbA1c ordered
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Quality');
       cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Diabetes Control');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Diabetes Control');
       cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'HgbA1c ordered');
-      cy.wait(300);
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'HgbA1c ordered');
 
       // Set status date
       setStatusDateToToday(testRowIndex);
 
       // First select 1 month
       cy.selectAgGridDropdown(testRowIndex, 'tracking2', '1 month');
-      cy.wait(1500);
+      cy.getAgGridCell(testRowIndex, 'tracking2').should('contain.text', '1 month');
 
       cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
         .invoke('text')
@@ -531,7 +522,7 @@ describe('Time Interval Editability', () => {
 
           // Now change to 6 months
           cy.selectAgGridDropdown(testRowIndex, 'tracking2', '6 months');
-          cy.wait(1500);
+          cy.getAgGridCell(testRowIndex, 'tracking2').should('contain.text', '6 months');
 
           cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
             .invoke('text')

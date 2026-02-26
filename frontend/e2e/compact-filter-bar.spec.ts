@@ -67,7 +67,9 @@ test.describe('Compact Filter Bar', () => {
 
     // Click a color chip
     await mainPage.clickFilterChip('Completed');
-    await page.waitForTimeout(300);
+
+    // Wait for status bar to reflect the new filter
+    await expect(mainPage.statusBar).toContainText('Completed');
 
     // Status bar should show both filters
     const combinedText = await mainPage.getStatusBarText();
@@ -76,11 +78,12 @@ test.describe('Compact Filter Bar', () => {
 
     // Click All to clear color filter
     await mainPage.clickFilterChip('All');
-    await page.waitForTimeout(300);
 
     // Reset measure
     await mainPage.selectMeasure('All Measures');
-    await page.waitForTimeout(300);
+
+    // Wait for status bar to update after clearing all filters
+    await expect(mainPage.statusBar).not.toContainText('Measure:');
 
     // Status bar should not show filter summary
     const resetText = await mainPage.getStatusBarText();
@@ -94,14 +97,18 @@ test.describe('Compact Filter Bar', () => {
 
     // Click a color chip
     await mainPage.clickFilterChip('In Progress');
-    await page.waitForTimeout(300);
+
+    // Wait for status bar to reflect the filter change
+    await expect(mainPage.statusBar).toContainText('In Progress');
 
     // Measure should still be selected
     expect(await mainPage.getSelectedMeasure()).toBe('Diabetic Eye Exam');
 
     // Toggle back to All
     await mainPage.clickFilterChip('All');
-    await page.waitForTimeout(300);
+
+    // Wait for status bar to update after clearing color filter
+    await expect(mainPage.statusBar).not.toContainText('In Progress');
 
     // Measure should still be selected
     expect(await mainPage.getSelectedMeasure()).toBe('Diabetic Eye Exam');
@@ -110,7 +117,9 @@ test.describe('Compact Filter Bar', () => {
   test('zero-count chip appears faded', async ({ page }) => {
     // Select a specific measure that likely has zero-count categories
     await mainPage.selectMeasure('Annual Wellness Visit');
-    await page.waitForTimeout(500);
+
+    // Wait for status bar to reflect the measure filter
+    await expect(mainPage.statusBar).toContainText('Annual Wellness Visit');
 
     // Check chips - some should have opacity-30 (zero count)
     const chips = mainPage.filterBar.locator('button[aria-pressed]');

@@ -17,7 +17,8 @@ describe('Patient Name Search', () => {
     cy.login(adminEmail, adminPassword);
     cy.visit('/');
     cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
-    cy.wait(1000);
+    // Wait for grid rows to render
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
   });
 
   describe('Search Input UI', () => {
@@ -47,9 +48,8 @@ describe('Patient Name Search', () => {
           const initialCount = Cypress.$('.ag-center-cols-container .ag-row').length;
 
           cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
-          cy.wait(300);
 
-          // Should have fewer rows (or same if all rows match)
+          // Should have fewer rows (or same if all rows match) — auto-retries
           cy.get('.ag-center-cols-container .ag-row').its('length').should('be.lte', initialCount);
 
           // All visible memberName cells should contain the search term
@@ -66,9 +66,8 @@ describe('Patient Name Search', () => {
           const searchTerm = firstName.trim().split(',')[0].trim().toLowerCase();
 
           cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
-          cy.wait(300);
 
-          // Should find matching rows
+          // Should find matching rows (auto-retries)
           cy.get('.ag-body-viewport [col-id="memberName"]').should('have.length.greaterThan', 0);
           cy.get('.ag-body-viewport [col-id="memberName"]').first()
             .invoke('text').then((text) => {
@@ -85,9 +84,8 @@ describe('Patient Name Search', () => {
           const initialCount = Cypress.$('.ag-center-cols-container .ag-row').length;
 
           cy.get('input[aria-label="Search patients by name"]').type(partial);
-          cy.wait(300);
 
-          // Should have some matching rows (search may match across columns)
+          // Should have some matching rows (search may match across columns) — auto-retries
           cy.get('.ag-center-cols-container .ag-row').should('have.length.greaterThan', 0);
           // Row count should be equal to or less than initial
           cy.get('.ag-center-cols-container .ag-row').its('length').should('be.lte', initialCount);
@@ -96,9 +94,8 @@ describe('Patient Name Search', () => {
 
     it('should show empty grid when no names match', () => {
       cy.get('input[aria-label="Search patients by name"]').type('zzzzxyznonexistent');
-      cy.wait(300);
 
-      // Grid should have no data rows
+      // Grid should have no data rows (auto-retries)
       cy.get('.ag-center-cols-container .ag-row').should('have.length', 0);
     });
   });
@@ -114,11 +111,12 @@ describe('Patient Name Search', () => {
           const searchTerm = firstName.trim().split(',')[0].trim();
 
           cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
-          cy.wait(300);
+
+          // Wait for filter to apply
+          cy.get('.ag-center-cols-container .ag-row').its('length').should('be.lte', Cypress.$('.ag-center-cols-container .ag-row').length + 1);
 
           // Click clear
           cy.get('button[aria-label="Clear search"]').click();
-          cy.wait(300);
 
           // Rows should be restored
           cy.get('@initialCount').then((initialCount) => {
@@ -141,7 +139,9 @@ describe('Patient Name Search', () => {
     it('should apply both status filter and name search', () => {
       // First click a status filter (Completed/green)
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
+
+      // Wait for filter to apply
+      cy.get('.ag-center-cols-container .ag-row').first().should('have.class', 'row-status-green');
 
       // Get count of completed rows and read a name from them
       cy.get('.ag-center-cols-container .ag-row').its('length').then((completedCount) => {
@@ -150,9 +150,8 @@ describe('Patient Name Search', () => {
             const searchTerm = firstName.trim().split(',')[0].trim();
 
             cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
-            cy.wait(300);
 
-            // Should have rows matching both filters
+            // Should have rows matching both filters (auto-retries)
             cy.get('.ag-center-cols-container .ag-row').its('length').should('be.lte', completedCount);
 
             // All visible rows should be green AND contain the search term
@@ -169,7 +168,8 @@ describe('Patient Name Search', () => {
     it('should restore status-filtered rows when search is cleared', () => {
       // Apply status filter
       cy.contains('button', 'Completed').click();
-      cy.wait(500);
+      // Wait for filter to apply
+      cy.get('.ag-center-cols-container .ag-row').first().should('have.class', 'row-status-green');
       cy.get('.ag-center-cols-container .ag-row').its('length').as('completedCount');
 
       // Read a name from filtered rows
@@ -178,11 +178,12 @@ describe('Patient Name Search', () => {
           const searchTerm = firstName.trim().split(',')[0].trim();
 
           cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
-          cy.wait(300);
+
+          // Wait for search filter to apply
+          cy.get('input[aria-label="Search patients by name"]').should('have.value', searchTerm);
 
           // Clear search
           cy.get('button[aria-label="Clear search"]').click();
-          cy.wait(300);
 
           // Should be back to just the status-filtered count
           cy.get('@completedCount').then((completedCount) => {
@@ -203,9 +204,8 @@ describe('Patient Name Search', () => {
           const searchTerm = firstName.trim().split(',')[0].trim();
 
           cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
-          cy.wait(300);
 
-          // Status bar should show "Showing X of Y rows"
+          // Status bar should show "Showing X of Y rows" (auto-retries)
           cy.get('.bg-gray-100.border-t').should('contain.text', 'Showing');
         });
     });
@@ -226,7 +226,6 @@ describe('Patient Name Search', () => {
     it('should clear search and blur on Escape', () => {
       // Type something in search
       cy.get('input[aria-label="Search patients by name"]').type('Smith');
-      cy.wait(300);
       cy.get('input[aria-label="Search patients by name"]').should('have.value', 'Smith');
 
       // Press Escape

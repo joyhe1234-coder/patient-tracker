@@ -359,6 +359,162 @@ describe('Data Routes', () => {
     });
   });
 
+  // ── PUT /api/data/:id — branch coverage ────────────────────────
+
+  describe('PUT /api/data/:id — branch coverage', () => {
+    // -- canEditInterval: manual interval edit for non-dropdown status --
+    it('allows manual timeIntervalDays edit for non-dropdown status and recalculates dueDate', async () => {
+      const { calculateDueDate } = await import('../../services/dueDateCalculator.js') as any;
+      const measure = {
+        ...sampleMeasure,
+        measureStatus: 'AWV completed', // NOT a TIME_PERIOD_DROPDOWN_STATUS
+        statusDate: new Date('2026-02-01'),
+      };
+      mockPrisma.patientMeasure.findUnique
+        .mockResolvedValueOnce(measure)
+        .mockResolvedValueOnce({ ...measure, timeIntervalDays: 30 });
+      mockPrisma.patientMeasure.update.mockResolvedValue({ ...measure, timeIntervalDays: 30 });
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ timeIntervalDays: 30 });
+
+      expect(res.status).toBe(200);
+      // calculateDueDate should NOT be called — manual override bypasses it
+      expect(calculateDueDate).not.toHaveBeenCalled();
+      // The update should include the manually-set interval + computed dueDate
+      const updateCall = mockPrisma.patientMeasure.update.mock.calls[0][0] as any;
+      expect(updateCall.data.timeIntervalDays).toBe(30);
+      expect(updateCall.data.dueDate).toBeDefined();
+      // dueDate should be statusDate + 30 days
+      const expectedDue = new Date('2026-02-01');
+      expectedDue.setUTCDate(expectedDue.getUTCDate() + 30);
+      expect(updateCall.data.dueDate.toISOString()).toBe(expectedDue.toISOString());
+    });
+
+    // -- canEditInterval: blocked for TIME_PERIOD_DROPDOWN_STATUS --
+    it('blocks manual timeIntervalDays edit for dropdown status (no recalculation)', async () => {
+      const { calculateDueDate } = await import('../../services/dueDateCalculator.js') as any;
+      const measure = {
+        ...sampleMeasure,
+        measureStatus: 'HgbA1c ordered', // IS a TIME_PERIOD_DROPDOWN_STATUS
+        statusDate: new Date('2026-02-01'),
+      };
+      mockPrisma.patientMeasure.findUnique
+        .mockResolvedValueOnce(measure)
+        .mockResolvedValueOnce(measure);
+      mockPrisma.patientMeasure.update.mockResolvedValue(measure);
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ timeIntervalDays: 30 }); // User tries manual interval
+
+      expect(res.status).toBe(200);
+      // canEditInterval = false (dropdown status), dueDateFieldsChanged = false
+      // so calculateDueDate should NOT be called either
+      expect(calculateDueDate).not.toHaveBeenCalled();
+    });
+
+    // -- dueDateFieldsChanged: recalculates via calculateDueDate --
+    it('recalculates dueDate via calculateDueDate when measureStatus changes', async () => {
+      const { calculateDueDate } = await import('../../services/dueDateCalculator.js') as any;
+      calculateDueDate.mockResolvedValue({ dueDate: new Date('2026-04-10'), timeIntervalDays: 90 });
+      const measure = {
+        ...sampleMeasure,
+        measureStatus: 'Pending',
+        statusDate: new Date('2026-01-10'),
+      };
+      mockPrisma.patientMeasure.findUnique
+        .mockResolvedValueOnce(measure)
+        .mockResolvedValueOnce(measure);
+      mockPrisma.patientMeasure.update.mockResolvedValue(measure);
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ measureStatus: 'AWV completed' });
+
+      expect(res.status).toBe(200);
+      expect(calculateDueDate).toHaveBeenCalledWith(
+        measure.statusDate,    // finalStatusDate (existing)
+        'AWV completed',       // finalMeasureStatus (updated)
+        measure.tracking1,     // finalTracking1 (existing)
+        measure.tracking2,     // finalTracking2 (existing)
+      );
+    });
+
+    // -- Duplicate measure detection: blocks update when creating duplicate --
+    it('returns 409 when updating qualityMeasure creates a duplicate', async () => {
+      const { checkForDuplicate } = await import('../../services/duplicateDetector.js') as any;
+      checkForDuplicate.mockResolvedValue({ isDuplicate: true });
+      mockPrisma.patientMeasure.findUnique.mockResolvedValueOnce(sampleMeasure);
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ qualityMeasure: 'Diabetes Control' });
+
+      expect(res.status).toBe(409);
+    });
+
+    // -- Patient duplicate detection: blocks update when name/DOB matches another patient --
+    it('returns 400 when updating name/DOB creates a duplicate patient', async () => {
+      mockPrisma.patientMeasure.findUnique.mockResolvedValueOnce(sampleMeasure);
+      // Another patient with same name+DOB exists
+      mockPrisma.patient.findFirst.mockResolvedValue({ id: 99, memberName: 'Doe, Jane', memberDob: new Date('1985-05-20'), ownerId: 1 });
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ memberName: 'Doe, Jane', memberDob: '1985-05-20' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('DUPLICATE_PATIENT');
+    });
+
+    // -- Status date prompt recalculation --
+    it('recalculates statusDatePrompt when measureStatus changes', async () => {
+      const { resolveStatusDatePrompt } = await import('../../services/statusDatePromptResolver.js') as any;
+      const { calculateDueDate } = await import('../../services/dueDateCalculator.js') as any;
+      resolveStatusDatePrompt.mockResolvedValue('Date of AWV');
+      calculateDueDate.mockResolvedValue({ dueDate: null, timeIntervalDays: null });
+      const measure = { ...sampleMeasure, statusDatePrompt: null };
+      mockPrisma.patientMeasure.findUnique
+        .mockResolvedValueOnce(measure)
+        .mockResolvedValueOnce(measure);
+      mockPrisma.patientMeasure.update.mockResolvedValue(measure);
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ measureStatus: 'AWV completed' });
+
+      expect(res.status).toBe(200);
+      expect(resolveStatusDatePrompt).toHaveBeenCalledWith('AWV completed', measure.tracking1);
+      const updateCall = mockPrisma.patientMeasure.update.mock.calls[0][0] as any;
+      expect(updateCall.data.statusDatePrompt).toBe('Date of AWV');
+    });
+
+    // -- Status date prompt: falls back to default when resolver returns null --
+    it('uses default date prompt when resolveStatusDatePrompt returns null', async () => {
+      const { resolveStatusDatePrompt, getDefaultDatePrompt } = await import('../../services/statusDatePromptResolver.js') as any;
+      const { calculateDueDate } = await import('../../services/dueDateCalculator.js') as any;
+      resolveStatusDatePrompt.mockResolvedValue(null);
+      getDefaultDatePrompt.mockReturnValue('Date completed');
+      calculateDueDate.mockResolvedValue({ dueDate: null, timeIntervalDays: null });
+      const measure = { ...sampleMeasure, statusDatePrompt: null };
+      mockPrisma.patientMeasure.findUnique
+        .mockResolvedValueOnce(measure)
+        .mockResolvedValueOnce(measure);
+      mockPrisma.patientMeasure.update.mockResolvedValue(measure);
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ measureStatus: 'Screening discussed', tracking1: 'In 3 Months' });
+
+      expect(res.status).toBe(200);
+      expect(getDefaultDatePrompt).toHaveBeenCalledWith('Screening discussed');
+      const updateCall = mockPrisma.patientMeasure.update.mock.calls[0][0] as any;
+      expect(updateCall.data.statusDatePrompt).toBe('Date completed');
+    });
+  });
+
   // ── DELETE /api/data/:id ────────────────────────────────────────
 
   describe('DELETE /api/data/:id', () => {

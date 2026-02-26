@@ -36,9 +36,8 @@ describe('Parallel Editing - Remote Grid Updates', () => {
   it('should not change scroll position after remote update', () => {
     // Scroll down in the grid first
     cy.get('.ag-body-viewport').scrollTo('bottom');
-    cy.wait(500);
 
-    // Record scroll position
+    // Verify scroll happened by checking scroll position
     cy.get('.ag-body-viewport').then(($viewport) => {
       const scrollTop = $viewport[0].scrollTop;
       expect(scrollTop).to.be.greaterThan(0);
@@ -53,7 +52,6 @@ describe('Parallel Editing - Remote Grid Updates', () => {
   it('should maintain row selection after remote update', () => {
     // Select a row
     cy.get('[row-index="1"]').first().click();
-    cy.wait(300);
     cy.get('[row-index="1"]').first().should('have.class', 'ag-row-selected');
 
     // After a remote update to a different row, selection should remain

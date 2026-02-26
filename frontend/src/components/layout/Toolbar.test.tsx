@@ -1,8 +1,11 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import Toolbar from './Toolbar';
 
 describe('Toolbar', () => {
+  const user = userEvent.setup();
+
   const defaultProps = {
     onAddRow: vi.fn(),
     onDuplicateRow: vi.fn(),
@@ -51,19 +54,19 @@ describe('Toolbar', () => {
       expect(duplicateButton).not.toBeDisabled();
     });
 
-    it('calls onDuplicateRow when clicked and enabled', () => {
+    it('calls onDuplicateRow when clicked and enabled', async () => {
       const onDuplicateRow = vi.fn();
       render(<Toolbar {...defaultProps} canDuplicate={true} onDuplicateRow={onDuplicateRow} />);
 
-      fireEvent.click(screen.getByText('Copy Member'));
+      await user.click(screen.getByText('Copy Member'));
       expect(onDuplicateRow).toHaveBeenCalledTimes(1);
     });
 
-    it('does not call onDuplicateRow when disabled', () => {
+    it('does not call onDuplicateRow when disabled', async () => {
       const onDuplicateRow = vi.fn();
       render(<Toolbar {...defaultProps} canDuplicate={false} onDuplicateRow={onDuplicateRow} />);
 
-      fireEvent.click(screen.getByText('Copy Member'));
+      await user.click(screen.getByText('Copy Member'));
       expect(onDuplicateRow).not.toHaveBeenCalled();
     });
   });
@@ -83,31 +86,31 @@ describe('Toolbar', () => {
       expect(deleteButton).not.toBeDisabled();
     });
 
-    it('calls onDeleteRow when clicked and enabled', () => {
+    it('calls onDeleteRow when clicked and enabled', async () => {
       const onDeleteRow = vi.fn();
       render(<Toolbar {...defaultProps} canDelete={true} onDeleteRow={onDeleteRow} />);
 
-      fireEvent.click(screen.getByText('Delete Row'));
+      await user.click(screen.getByText('Delete Row'));
       expect(onDeleteRow).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('Add Row button', () => {
-    it('calls onAddRow when clicked', () => {
+    it('calls onAddRow when clicked', async () => {
       const onAddRow = vi.fn();
       render(<Toolbar {...defaultProps} onAddRow={onAddRow} />);
 
-      fireEvent.click(screen.getByText('Add Row'));
+      await user.click(screen.getByText('Add Row'));
       expect(onAddRow).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('Member Info toggle', () => {
-    it('calls onToggleMemberInfo when clicked', () => {
+    it('calls onToggleMemberInfo when clicked', async () => {
       const onToggleMemberInfo = vi.fn();
       render(<Toolbar {...defaultProps} onToggleMemberInfo={onToggleMemberInfo} />);
 
-      fireEvent.click(screen.getByText('Member Info'));
+      await user.click(screen.getByText('Member Info'));
       expect(onToggleMemberInfo).toHaveBeenCalledTimes(1);
     });
   });

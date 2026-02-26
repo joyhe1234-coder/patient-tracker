@@ -5,7 +5,8 @@
  * connection status indicator, and presence indicator.
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the realtimeStore
@@ -17,6 +18,8 @@ import StatusBar from './StatusBar';
 import { useRealtimeStore } from '../../stores/realtimeStore';
 
 describe('StatusBar', () => {
+  const user = userEvent.setup();
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: connected, no other users
@@ -173,7 +176,7 @@ describe('StatusBar', () => {
       expect(screen.queryByTestId('presence-indicator')).not.toBeInTheDocument();
     });
 
-    it('shows tooltip with user names on hover', () => {
+    it('shows tooltip with user names on hover', async () => {
       vi.mocked(useRealtimeStore).mockImplementation((selector: any) =>
         selector({
           connectionStatus: 'connected',
@@ -187,14 +190,14 @@ describe('StatusBar', () => {
       render(<StatusBar rowCount={10} />);
 
       const indicator = screen.getByTestId('presence-indicator');
-      fireEvent.mouseEnter(indicator);
+      await user.hover(indicator);
 
       expect(screen.getByTestId('presence-tooltip')).toBeInTheDocument();
       expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
       expect(screen.getByText('Nurse Jones')).toBeInTheDocument();
     });
 
-    it('hides tooltip on mouse leave', () => {
+    it('hides tooltip on mouse leave', async () => {
       vi.mocked(useRealtimeStore).mockImplementation((selector: any) =>
         selector({
           connectionStatus: 'connected',
@@ -205,10 +208,10 @@ describe('StatusBar', () => {
       render(<StatusBar rowCount={10} />);
 
       const indicator = screen.getByTestId('presence-indicator');
-      fireEvent.mouseEnter(indicator);
+      await user.hover(indicator);
       expect(screen.getByTestId('presence-tooltip')).toBeInTheDocument();
 
-      fireEvent.mouseLeave(indicator);
+      await user.unhover(indicator);
       expect(screen.queryByTestId('presence-tooltip')).not.toBeInTheDocument();
     });
   });

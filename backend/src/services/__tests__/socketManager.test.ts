@@ -53,14 +53,14 @@ import {
   removeActiveEdit,
   clearEditsForSocket,
   getActiveEditsForRoom,
+  clearAllState,
 } from '../socketManager.js';
 import type { SocketData } from '../../types/socket.js';
 
 describe('socketManager', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Clean up presence/edit state between tests by removing test data
-    // The module uses Maps, we can clear them via the API
+    clearAllState();
   });
 
   describe('getRoomName', () => {

@@ -722,15 +722,11 @@ describe('fileParser', () => {
     });
   });
 
-  describe('with test data files', () => {
+  // Conditional: only run when test data files exist (skips visibly in test report)
+  const hasTestData = fs.existsSync(path.join(testDataDir, 'test-hill-valid.csv'));
+  (hasTestData ? describe : describe.skip)('with test data files', () => {
     it('should parse test-hill-valid.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-hill-valid.csv');
-      if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-hill-valid.csv not found');
-        return;
-      }
-
-      const buffer = fs.readFileSync(csvPath);
+      const buffer = fs.readFileSync(path.join(testDataDir, 'test-hill-valid.csv'));
       const result = parseCSV(buffer, 'test-hill-valid.csv');
 
       expect(result.totalRows).toBe(10);
@@ -740,13 +736,7 @@ describe('fileParser', () => {
     });
 
     it('should parse test-hill-validation-errors.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-hill-validation-errors.csv');
-      if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-hill-validation-errors.csv not found');
-        return;
-      }
-
-      const buffer = fs.readFileSync(csvPath);
+      const buffer = fs.readFileSync(path.join(testDataDir, 'test-hill-validation-errors.csv'));
       const result = parseCSV(buffer, 'test-hill-validation-errors.csv');
 
       expect(result.totalRows).toBe(10);
@@ -755,13 +745,7 @@ describe('fileParser', () => {
     });
 
     it('should parse test-hill-no-measures.csv correctly', () => {
-      const csvPath = path.join(testDataDir, 'test-hill-no-measures.csv');
-      if (!fs.existsSync(csvPath)) {
-        console.log('Skipping: test-hill-no-measures.csv not found');
-        return;
-      }
-
-      const buffer = fs.readFileSync(csvPath);
+      const buffer = fs.readFileSync(path.join(testDataDir, 'test-hill-no-measures.csv'));
       const result = parseCSV(buffer, 'test-hill-no-measures.csv');
 
       expect(result.totalRows).toBe(10);

@@ -49,8 +49,8 @@ test.describe('Add Row', () => {
     // Wait for modal to close
     await expect(page.locator('text=Add New Patient')).not.toBeVisible({ timeout: 5000 });
 
-    // Wait for grid to update
-    await page.waitForTimeout(500);
+    // Wait for grid to update with the new row
+    await expect(page.locator(`[row-index="0"] [col-id="memberName"]`).first()).toContainText(uniqueName, { timeout: 5000 });
 
     // Verify the new row exists in the grid
     const firstRowName = await mainPage.getCellValue(0, 'memberName');
@@ -72,7 +72,9 @@ test.describe('Add Row', () => {
 
     // Wait for modal to close and grid to update
     await expect(page.locator('text=Add New Patient')).not.toBeVisible({ timeout: 5000 });
-    await page.waitForTimeout(500);
+
+    // Wait for grid to update with the new row
+    await expect(page.locator(`[row-index="0"] [col-id="memberName"]`).first()).toContainText('First Row Test', { timeout: 5000 });
 
     // First row should have our new patient
     const firstRowName = await mainPage.getCellValue(0, 'memberName');
@@ -93,7 +95,9 @@ test.describe('Add Row', () => {
     await modal.locator('button:has-text("Add Row")').click();
 
     await expect(page.locator('text=Add New Patient')).not.toBeVisible({ timeout: 5000 });
-    await page.waitForTimeout(500);
+
+    // Wait for grid to update with the new row
+    await expect(page.locator(`[row-index="0"] [col-id="memberName"]`).first()).toContainText('Empty Fields Test', { timeout: 5000 });
 
     // Verify measure fields are empty
     const requestType = await mainPage.getCellValue(0, 'requestType');

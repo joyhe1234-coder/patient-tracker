@@ -49,8 +49,9 @@ test.describe('Connection Status & Presence', () => {
       await pageB.goto('/');
       await pageB.waitForSelector('.ag-row[row-index]', { timeout: 15000 });
 
-      // Wait for Socket.IO connections and presence updates
-      await pageA.waitForTimeout(3000);
+      // Wait for Socket.IO connections to be established on both pages
+      await expect(pageA.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
+      await expect(pageB.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
 
       // User A should see presence indicator showing another user
       const statusBarA = pageA.locator('.bg-gray-100.border-t');
@@ -78,16 +79,14 @@ test.describe('Connection Status & Presence', () => {
       await pageB.goto('/');
       await pageB.waitForSelector('.ag-row[row-index]', { timeout: 15000 });
 
-      // Wait for presence to show
-      await pageA.waitForTimeout(3000);
+      // Wait for socket connections and presence to show
+      await expect(pageA.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
+      await expect(pageB.locator('.bg-gray-100.border-t')).toContainText('Connected', { timeout: 10000 });
       const statusBarA = pageA.locator('.bg-gray-100.border-t');
       await expect(statusBarA).toContainText(/\d+ other/, { timeout: 10000 });
 
       // User B leaves (close context)
       await contextB.close();
-
-      // Wait for presence update
-      await pageA.waitForTimeout(3000);
 
       // Presence indicator should disappear or show 0 others
       // The "others online" text should no longer be visible

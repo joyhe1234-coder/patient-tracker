@@ -4,7 +4,8 @@
  * Tests for the conflict resolution modal: rendering, field comparison, action buttons.
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ConflictModal, { type ConflictField } from './ConflictModal';
 
@@ -29,6 +30,8 @@ const defaultProps = {
 };
 
 describe('ConflictModal', () => {
+  const user = userEvent.setup();
+
   it('renders nothing when isOpen is false', () => {
     const { container } = render(
       <ConflictModal {...defaultProps} isOpen={false} />
@@ -118,38 +121,38 @@ describe('ConflictModal', () => {
     expect(screen.getByText('Notes')).toBeInTheDocument();
   });
 
-  it('"Keep Mine" button triggers onKeepMine callback', () => {
+  it('"Keep Mine" button triggers onKeepMine callback', async () => {
     const onKeepMine = vi.fn();
     render(<ConflictModal {...defaultProps} onKeepMine={onKeepMine} />);
 
-    fireEvent.click(screen.getByText('Keep Mine'));
+    await user.click(screen.getByText('Keep Mine'));
 
     expect(onKeepMine).toHaveBeenCalledTimes(1);
   });
 
-  it('"Keep Theirs" button triggers onKeepTheirs callback', () => {
+  it('"Keep Theirs" button triggers onKeepTheirs callback', async () => {
     const onKeepTheirs = vi.fn();
     render(<ConflictModal {...defaultProps} onKeepTheirs={onKeepTheirs} />);
 
-    fireEvent.click(screen.getByText('Keep Theirs'));
+    await user.click(screen.getByText('Keep Theirs'));
 
     expect(onKeepTheirs).toHaveBeenCalledTimes(1);
   });
 
-  it('"Cancel" button triggers onCancel callback', () => {
+  it('"Cancel" button triggers onCancel callback', async () => {
     const onCancel = vi.fn();
     render(<ConflictModal {...defaultProps} onCancel={onCancel} />);
 
-    fireEvent.click(screen.getByText('Cancel'));
+    await user.click(screen.getByText('Cancel'));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('backdrop click triggers onCancel callback', () => {
+  it('backdrop click triggers onCancel callback', async () => {
     const onCancel = vi.fn();
     render(<ConflictModal {...defaultProps} onCancel={onCancel} />);
 
-    fireEvent.click(screen.getByTestId('conflict-backdrop'));
+    await user.click(screen.getByTestId('conflict-backdrop'));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });

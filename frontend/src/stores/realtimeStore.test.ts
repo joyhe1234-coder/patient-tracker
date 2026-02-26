@@ -31,31 +31,8 @@ describe('realtimeStore', () => {
     });
   });
 
-  describe('setConnectionStatus', () => {
-    it('updates connection status to connected', () => {
-      useRealtimeStore.getState().setConnectionStatus('connected');
-
-      expect(useRealtimeStore.getState().connectionStatus).toBe('connected');
-    });
-
-    it('updates connection status to reconnecting', () => {
-      useRealtimeStore.getState().setConnectionStatus('reconnecting');
-
-      expect(useRealtimeStore.getState().connectionStatus).toBe('reconnecting');
-    });
-
-    it('updates connection status to offline', () => {
-      useRealtimeStore.getState().setConnectionStatus('offline');
-
-      expect(useRealtimeStore.getState().connectionStatus).toBe('offline');
-    });
-
-    it('updates connection status to connecting', () => {
-      useRealtimeStore.getState().setConnectionStatus('connecting');
-
-      expect(useRealtimeStore.getState().connectionStatus).toBe('connecting');
-    });
-  });
+  // REMOVED (ln-630 audit B12.2): 'setConnectionStatus' (4 tests) —
+  // trivial setState('x')/getState() round-trips testing Zustand, not business logic.
 
   describe('setRoomUsers', () => {
     it('updates room users list', () => {

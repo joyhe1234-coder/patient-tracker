@@ -365,6 +365,85 @@ describe('actionMapper', () => {
       expect(result).toBeNull();
     });
 
+    // ─── Depression Screening edge cases (gap analysis items 6.6, 6.7) ───
+
+    it('should match "Depression Screening due in 2025"', () => {
+      const result = matchAction('Depression Screening due in 2025', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+      expect(result!.requestType).toBe('Screening');
+    });
+
+    it('should match "Depression screening" (lowercase s) due to [Ss] in pattern', () => {
+      const result = matchAction('Depression screening due 2026', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should match "depression screening" (all lowercase) due to case-insensitive flag', () => {
+      // Pattern is ^Depression [Ss]creening with /i flag — so lowercase "d" matches
+      const result = matchAction('depression screening due in 2025', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should match "PHQ-9 screening needed"', () => {
+      const result = matchAction('PHQ-9 screening needed', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should match "PHQ9" without hyphen due to -? in pattern', () => {
+      const result = matchAction('PHQ9 due for annual screening', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should NOT match "PHQ 9" (space instead of hyphen) — gap analysis edge case 6.6', () => {
+      // Pattern is ^PHQ-?9 — the -? makes hyphen optional but does NOT allow a space
+      const result = matchAction('PHQ 9 screening needed', cache);
+
+      // Regex won't match. Fuzzy fallback may or may not match.
+      // If it does match, it should be via fuzzy and identified as Depression Screening.
+      if (result) {
+        expect(result.matchedBy).toBe('fuzzy');
+        expect(result.qualityMeasure).toBe('Depression Screening');
+      }
+    });
+
+    it('should match "Screen for depression in 2025"', () => {
+      const result = matchAction('Screen for depression in 2025', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should match "Screen for depression - overdue"', () => {
+      const result = matchAction('Screen for depression - overdue', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should match "DEPRESSION SCREENING" (all caps)', () => {
+      const result = matchAction('DEPRESSION SCREENING DUE 2026', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
+    it('should match "phq-9" (all lowercase)', () => {
+      const result = matchAction('phq-9 test overdue', cache);
+
+      expect(result).not.toBeNull();
+      expect(result!.qualityMeasure).toBe('Depression Screening');
+    });
+
     // Test skip actions (these should NOT match any pattern)
 
     it('should not match skip action text', () => {
