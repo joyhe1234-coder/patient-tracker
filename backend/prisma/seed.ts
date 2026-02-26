@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { calculateDueDate } from '../src/services/dueDateCalculator.js';
 
 const prisma = new PrismaClient();
 
@@ -992,6 +993,14 @@ async function main() {
     });
     const isDuplicate = existingMeasures > 0;
 
+    // Calculate due date from status date and measure status
+    const { dueDate, timeIntervalDays } = await calculateDueDate(
+      config.statusDate,
+      config.measureStatus,
+      config.tracking1,
+      config.tracking2
+    );
+
     // Create measure
     await prisma.patientMeasure.create({
       data: {
@@ -1002,6 +1011,8 @@ async function main() {
         statusDate: config.statusDate,
         tracking1: config.tracking1,
         tracking2: config.tracking2,
+        dueDate,
+        timeIntervalDays,
         notes: config.notes,
         rowOrder: rowOrder++,
         isDuplicate,

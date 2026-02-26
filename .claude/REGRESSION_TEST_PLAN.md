@@ -312,39 +312,81 @@ This document contains test cases for verifying system functionality. Each test 
 
 **Requirement Spec:** [`.claude/specs/row-colors/requirements.md`](specs/row-colors/requirements.md)
 
-### TC-5.1: Status-Based Colors
+### TC-5.1: Status-Based Colors — All 14 Quality Measures
 **Requirement:** AC-1
-**Automation:** Automated - `sorting-filtering.cy.ts: "Row Color Verification"` (10 tests), `cascading-dropdowns.cy.ts: row color tests`
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Sections 1A-1N (93 tests), `sorting-filtering.cy.ts` (10 tests), `cascading-dropdowns.cy.ts`
 **Steps:**
-1. Find rows with different Measure Status values
-2. Verify colors match:
-   - "AWV completed" → Green
-   - "AWV scheduled" → Blue
-   - "Patient called to schedule AWV" → Yellow
-   - "Patient declined AWV" → Purple
-   - "No longer applicable" → Gray
-   - "Not Addressed" → White
+1. For each of the 14 quality measures, set every available measure status
+2. Verify row color matches expected category
+
+**Quality Measures Covered (Section 1A-1N):**
+- 1A: Annual Wellness Visit (7 statuses)
+- 1B: Breast Cancer Screening (8 statuses)
+- 1C: Colon Cancer Screening (8 statuses)
+- 1D: Cervical Cancer Screening (8 statuses)
+- 1E: Depression Screening (7 statuses)
+- 1F: Diabetic Eye Exam (8 statuses)
+- 1G: GC/Chlamydia Screening (6 statuses)
+- 1H: Diabetic Nephropathy (6 statuses)
+- 1I: Hypertension Management (7 statuses)
+- 1J: ACE/ARB in DM or CAD (6 statuses)
+- 1K: Vaccination (6 statuses)
+- 1L: Diabetes Control (6 statuses)
+- 1M: Annual Serum K&Cr (5 statuses)
+- 1N: Chronic Diagnosis Code (5 statuses)
 
 **Expected:**
-- Colors match the status category
+- White: Not Addressed
+- Yellow: discussed/contacted/called/visit scheduled
+- Blue: ordered/scheduled/prescribed/obtaining records/not at goal
+- Green: completed/at goal/confirmed/on ACE/ARB
+- Purple: declined/contraindicated
+- Gray: no longer applicable/screening unnecessary
+- Orange: chronic diagnosis resolved/invalid (no attestation)
 
-### TC-5.2: Overdue Row Color (Pending Status)
-**Requirement:** AC-2, AC-3
-**Automation:** Partial - `sorting-filtering.cy.ts: "Overdue" filter` (filter tested, not date-specific overdue logic)
+### TC-5.2: Tracking #1 Dropdown + Color Verification
+**Requirement:** AC-1, AC-8
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Sections 2A-2H (30+ tests)
 **Steps:**
-1. Find a row with Due Date in the past
-2. Ensure Measure Status is pending (blue/yellow/white category)
+1. For each status with tracking #1 dropdown options, select every option
+2. Verify row color stays correct after T1 selection
+
+**Tracking #1 Dropdown Sections:**
+- 2A: CCS ordered → Colonoscopy/Sigmoidoscopy/Cologuard/FOBT (blue)
+- 2B: CCS completed → Colonoscopy/Sigmoidoscopy/Cologuard/FOBT (green)
+- 2C: BCS ordered → Mammogram/Breast Ultrasound/Breast MRI (blue)
+- 2D: BCS completed → Mammogram/Breast Ultrasound/Breast MRI (green)
+- 2E: Screening discussed → In 1-11 Months (yellow)
+- 2F: BP not at goal → Call every 1-8 wks (blue)
+- 2G: BP at goal → Call every 1-8 wks (blue)
+- 2H: CDX resolved/invalid → Attestation sent (green) / not sent (orange)
+
+### TC-5.2a: Tracking #1 + Past Date → Overdue
+**Requirement:** AC-2, AC-3, AC-8
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Sections 2A-2H date tests (22+ tests)
+**Steps:**
+1. For each tracking #1 option that sets a DueDayRule, set a past date (1/1/2024)
+2. Verify row turns overdue (red)
+
+**DueDayRules Tested:**
+- CCS ordered: Colonoscopy=42d, Sigmoidoscopy=42d, Cologuard=21d, FOBT=21d
+- BCS ordered: Mammogram=14d, Breast Ultrasound=14d, Breast MRI=21d
+- Screening discussed: In 1 Month=30d, In 3 Months=90d, In 6 Months=180d, In 11 Months=330d
+- BP not at goal: Call every 1 wk=7d, 2 wks=14d, 4 wks=28d, 8 wks=56d
+- BP at goal: Call every 1 wk=7d, 4 wks=28d, 8 wks=56d
+- CDX resolved/invalid: Attestation not sent=14d
 
 **Expected:**
-- Row displays as light red (overdue)
-- Overdue color takes priority over status color
+- All past date + T1 combinations → overdue (red)
+- Today + T1 → stays base color (NOT overdue)
+- Attestation sent + past → stays green (never overdue)
 
 ### TC-5.2b: Overdue Row Color (Completed Status)
 **Requirement:** AC-3, AC-4
-**Automation:** Manual - completed overdue (annual renewal) not automated
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 5A (11 tests)
 **Steps:**
-1. Find patient "Bennett, Carol" (AWV completed 400+ days ago)
-2. Verify the Due Date is in the past (365 days after completion)
+1. Set AWV completed with past date
+2. Verify row turns overdue (baseDueDays=365, past date >365 days ago)
 
 **Expected:**
 - Row displays as light red (overdue), NOT green
@@ -352,30 +394,57 @@ This document contains test cases for verifying system functionality. Each test 
 
 ### TC-5.2c: Non-Overdue Terminal Statuses
 **Requirement:** AC-5
-**Automation:** Manual - terminal status overdue exclusion not automated
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 5C (5 tests)
 **Steps:**
-1. Find a row with "Patient declined AWV" (purple)
-2. Verify no due date or past due date
+1. Set terminal statuses (declined, no longer applicable, screening unnecessary, contraindicated) with past date
 
 **Expected:**
-- Row stays purple (NOT red)
-- Declined statuses never turn red
+- Purple/gray rows stay their color (NOT red)
+- CDX + Attestation sent stays green even with past date
 
 ### TC-5.2d: Completed Row Turns Red on Edit
 **Requirement:** AC-4, AC-7
-**Automation:** Manual - edit-triggers-overdue not automated
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 5A (AWV completed + past → overdue)
 **Steps:**
-1. Find a green (completed) row with future due date
-2. Change Status Date to over 365 days ago
-3. Press Tab
+1. Set AWV completed, enter past status date
+2. Verify row turns red immediately
 
 **Expected:**
 - Due Date recalculates to past date
 - Row immediately turns red (overdue)
 
-### TC-5.2e: Chronic DX Attestation Sent → GREEN
+### TC-5.2e: HgbA1c Tracking #1 Text + Tracking #2 Dropdown + Overdue
+**Requirement:** AC-8, AC-2
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 3 (13 tests)
+**Steps:**
+1. Set HgbA1c ordered/at goal/NOT at goal
+2. Enter T1 text value (e.g., "7.5"), select T2 dropdown month interval
+3. Verify color. Then add past date → verify overdue
+
+**T2 Month Intervals Tested:** 1, 3, 6, 12 months
+**Expected:**
+- HgbA1c ordered + T1 + T2 → blue; + past → overdue
+- HgbA1c at goal + T1 + T2 → green; + past → overdue
+- HgbA1c NOT at goal + T1 + T2 → blue; + past → overdue
+- HgbA1c ordered + NO T2 + past → stays blue (needs T2 for dueDate)
+- Today → NOT overdue
+
+### TC-5.2f: BP Tracking #1 Dropdown + Tracking #2 Text + Overdue
+**Requirement:** AC-8, AC-2
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 4 (5 tests)
+**Steps:**
+1. Set BP not at goal / at goal
+2. Select T1 call frequency dropdown, enter T2 BP reading text
+3. Verify color. Then add past date → verify overdue
+
+**Expected:**
+- BP not at goal + T1 + T2 → blue; + past → overdue
+- BP at goal + T1 + T2 → blue; + past → overdue
+- Today → NOT overdue
+
+### TC-5.2g: Chronic DX Attestation Sent → GREEN
 **Requirement:** AC-9
-**Automation:** Automated - `cascading-dropdowns.cy.ts: "Chronic diagnosis resolved + Attestation sent → GREEN"`, `PatientGrid.test.tsx`, `StatusFilterBar.test.tsx`
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 2H, `cascading-dropdowns.cy.ts`, `PatientGrid.test.tsx`
 **Steps:**
 1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
 2. Set Tracking #1 to "Attestation sent"
@@ -384,9 +453,9 @@ This document contains test cases for verifying system functionality. Each test 
 - Row displays GREEN (not orange)
 - Works for both "resolved" and "invalid" statuses
 
-### TC-5.2f: Chronic DX Attestation Not Sent → ORANGE
+### TC-5.2h: Chronic DX Attestation Not Sent → ORANGE
 **Requirement:** AC-10
-**Automation:** Automated - `cascading-dropdowns.cy.ts: "Chronic diagnosis resolved + Attestation not sent → ORANGE"`, `PatientGrid.test.tsx`
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 2H, `cascading-dropdowns.cy.ts`, `PatientGrid.test.tsx`
 **Steps:**
 1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
 2. Set Tracking #1 to "Attestation not sent"
@@ -395,30 +464,63 @@ This document contains test cases for verifying system functionality. Each test 
 - Row displays ORANGE
 - Works for both "resolved" and "invalid" statuses
 
-### TC-5.2g: Chronic DX Attestation Not Sent + Overdue → RED
-**Requirement:** AC-11
-**Automation:** Automated - `cascading-dropdowns.cy.ts: overdue attestation test`, `StatusFilterBar.test.tsx`
+### TC-5.2i: Chronic DX Attestation + Overdue
+**Requirement:** AC-11, AC-12
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 2H date tests (4 tests)
 **Steps:**
-1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
-2. Set Tracking #1 to "Attestation not sent"
-3. Set Status Date to 30+ days ago (DueDayRule gives 14 days, so dueDate will be in past)
+1. CDX resolved/invalid + Attestation not sent + past date → RED
+2. CDX resolved/invalid + Attestation sent + past date → stays GREEN
 
 **Expected:**
-- Row displays RED (overdue)
-- DueDayRule: "Attestation not sent" has 14-day interval
+- Attestation not sent + past → overdue (DueDayRule=14d)
+- Attestation sent + past → stays GREEN (never overdue)
 
-### TC-5.2h: Chronic DX Attestation Sent + Past Date → Still GREEN
-**Requirement:** AC-9, AC-12
-**Automation:** Automated - `cascading-dropdowns.cy.ts: "Attestation sent stays GREEN even with past status date"`
+### TC-5.3: Date Entry Methods
+**Requirement:** AC-7
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Sections 5B, 7 (7 tests)
 **Steps:**
-1. Set Request Type to "Chronic DX", Measure Status to "Chronic diagnosis resolved"
-2. Set Tracking #1 to "Attestation sent"
-3. Set Status Date to a date far in the past
+1. Click "Today" button on empty status date cell → verify date stamps correctly
+2. Double-click status date cell → type date → verify overdue transition
+3. Verify date value appears in cell after entry
 
 **Expected:**
-- Row stays GREEN (attestation sent has no DueDayRule, so no dueDate, never overdue)
+- Today button stamps current date
+- Double-click date editor accepts MM/DD/YYYY
+- Row color changes immediately after date save
 
-### TC-5.3: Color Preserved During Selection
+### TC-5.4: Time Interval Editing → Overdue Toggle
+**Requirement:** AC-7, AC-13
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 6 (2 tests)
+**Steps:**
+1. Create overdue row (AWV called + past date → red)
+2. Edit time interval to 9999 → verify NOT overdue anymore
+3. CCS ordered + T1=Colonoscopy + past → overdue → extend to 9999 → NOT overdue
+
+**Expected:**
+- Extending interval pushes dueDate into the future → removes overdue
+- Row reverts to base status color
+
+### TC-5.5: Color Transitions (Status Change)
+**Requirement:** AC-7
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 8 (2 tests)
+**Steps:**
+1. AWV: White → Blue → Green → Purple → Gray (change measure status)
+2. CDX: Orange → Green (toggle attestation sent)
+
+**Expected:**
+- Row color updates immediately on each status change
+
+### TC-5.6: No baseDueDays → Never Overdue
+**Requirement:** AC-5
+**Automation:** Automated - `row-color-comprehensive.cy.ts` Section 5D (2 tests)
+**Steps:**
+1. Not Addressed + past date → stays white
+2. HgbA1c ordered + no T2 + past date → stays blue
+
+**Expected:**
+- Statuses without baseDueDays never calculate dueDate, never turn overdue
+
+### TC-5.7: Color Preserved During Selection
 **Requirement:** AC-6
 **Automation:** Automated - `sorting-filtering.cy.ts: "Row selection preserves color"`
 **Steps:**
@@ -429,7 +531,7 @@ This document contains test cases for verifying system functionality. Each test 
 - Row has green background with blue outline border
 - Green color is NOT overridden by selection
 
-### TC-5.4: Real-Time Color Update
+### TC-5.8: Real-Time Color Update
 **Requirement:** AC-7
 **Automation:** Automated - `cascading-dropdowns.cy.ts: status change color tests`
 **Steps:**
@@ -2137,6 +2239,7 @@ Cypress tests for AG Grid interactions, import flow, patient assignment, role ac
 | `cypress/e2e/sorting-filtering.cy.ts` | Column sorting, status filter bar, row colors | 55 |
 | `cypress/e2e/patient-name-search.cy.ts` | Search input UI, filtering, AND logic, keyboard shortcuts | 13 |
 | `cypress/e2e/multi-select-filter.cy.ts` | Multi-select toggle, duplicates exclusivity, checkmark visual | 18 |
+| `cypress/e2e/row-color-comprehensive.cy.ts` | ALL status→color, tracking #1/#2 types, date→overdue, time interval | 179 |
 
 ### Test Categories
 
@@ -3775,7 +3878,7 @@ npm run cypress:headed  # Run with browser visible
 | 2. Cell Editing | 7 | 2 | 2 | 3 | 43% |
 | 3. Sorting | 4 | 1 | 0 | 3 | 25% |
 | 4. Status Filter | 5 | 5 | 0 | 0 | 100% |
-| 5. Row Colors | 7 | 3 | 1 | 3 | 50% |
+| 5. Row Colors | 16 | 16 | 0 | 0 | 100% |
 | 6. Cascading Dropdowns | 11 | 9 | 0 | 2 | 82% |
 | 7. Due Date | 3 | 2 | 0 | 1 | 67% |
 | 8. Duplicate Detection | 7 | 1 | 1 | 5 | 21% |
@@ -3811,12 +3914,12 @@ npm run cypress:headed  # Run with browser visible
 | HIGH | Role Workflows | STAFF no-assignments empty state not tested (TC-37.9) | Cypress |
 | HIGH | Role Workflows | Cross-role data isolation at API level (TC-37.15) | Jest + Cypress |
 | HIGH | Cell Editing | 0 automated E2E tests for cell edit workflow | Cypress |
-| HIGH | Time Interval | 0 automated tests for editability/override | Cypress |
+| ~~HIGH~~ | ~~Time Interval~~ | ~~0 automated tests~~ | ~~Cypress~~ — **RESOLVED: `row-color-comprehensive.cy.ts` Section 6** |
 | HIGH | Duplicate Detection | Edit-creates-duplicate flow not tested | Cypress |
 | MEDIUM | Role Workflows | ADMIN grid workflow with physician switching (TC-37.1) | Cypress |
 | MEDIUM | Role Workflows | STAFF multi-physician switching (TC-37.8) | Cypress |
 | MEDIUM | Sorting | Post-edit sort suppression not tested | Cypress |
-| MEDIUM | Row Colors | Overdue logic (completed expiry, terminal exclusion) | Cypress |
+| ~~MEDIUM~~ | ~~Row Colors~~ | ~~Overdue logic~~ | ~~Cypress~~ — **RESOLVED: `row-color-comprehensive.cy.ts` Sections 5A-5D** |
 | MEDIUM | Tracking Fields | N/A display, free text prompts not tested | Cypress |
 | MEDIUM | Authentication | Password change UI flow not E2E tested | Playwright |
 | MEDIUM | Admin Dashboard | Audit log viewer not tested | Cypress |
@@ -4463,6 +4566,7 @@ npm run cypress:headed  # Run with browser visible
 
 ## Last Updated
 
+February 26, 2026 - Added `row-color-comprehensive.cy.ts` (179 Cypress tests): comprehensive row color E2E covering all 14 quality measures × all statuses (93 tests), tracking #1 dropdown with all options + date→overdue (52 tests), HgbA1c T1 text + T2 dropdown + date (13 tests), BP T1 dropdown + T2 text + date (5 tests), date entry→overdue/today/terminal/no-dueDate (23 tests), time interval editing (2 tests), color transitions (2 tests). Updated Section 5 (Row Colors) from 7 TCs / 50% automated to 16 TCs / 100% automated. Resolved HIGH priority gap (Time Interval) and MEDIUM priority gap (Row Colors overdue logic). Fixed edit conflict bug: "Keep Theirs" and "Cancel" now restore serverRow including fresh updatedAt to prevent cascading 409 errors.
 February 25, 2026 - Release 4.12.1: Updated test counts (1,415 Jest + 1,202 Vitest). E2E test quality improvements: waitForTimeout elimination across 5 Playwright files, fireEvent→userEvent migration across 25 Vitest files, accessibility labels for form elements.
 February 23, 2026 - Added Sections 44-48: Authentication & Authorization (15 TCs), Real-Time Collaborative Editing (7 TCs), Insurance Group Filter (7 TCs), Depression Screening E2E (5 TCs), Sutter Import Pipeline (10 TCs). 44 test cases, 100% automated. Covers: Jest (auth.routes, socketManager, sutter-integration, actionMapper), Vitest (LoginPage, authStore, dropdownConfig, statusColors, StatusFilterBar), Playwright (auth.spec), Cypress (parallel-editing, insurance-group-filter, cascading-dropdowns).
 February 23, 2026 - Added Section 43: Depression Screening Quality Measure (TC-43.1 to TC-43.7). 7 test cases, 86% automated (6 automated, 1 manual). +14 Vitest tests (dropdownConfig, statusColors, StatusFilterBar). Updated backend integration tests. Total: 1,387 Jest + 1,152 Vitest + 130 Playwright + 369 Cypress.

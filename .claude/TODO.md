@@ -397,6 +397,89 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 
 ---
 
+## High Priority
+
+### Feature-by-Feature Coverage Audit
+**Goal:** Review every UI feature end-to-end — backend, frontend, E2E, visual browser, and role-based access — to identify and close coverage gaps.
+
+**Audit Layers per Feature:**
+1. Backend unit tests (Jest)
+2. Frontend component tests (Vitest)
+3. E2E user flow tests (Playwright + Cypress)
+4. Visual browser review (MCP Playwright ui-ux-reviewer)
+5. Role-based access (ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN)
+
+#### Feature 1: Patient Grid
+- [ ] Cell editing (all column types: dropdown, text, date, number)
+- [ ] Row colors (all 14 QMs × all statuses × tracking × date → overdue)
+- [ ] Cascading dropdowns (requestType → qualityMeasure → measureStatus → tracking)
+- [ ] Tracking #1/#2 (dropdown vs text by status, HgbA1c, BP)
+- [ ] Status date entry (Today button, double-click editor, overdue calculation)
+- [ ] Time interval (auto-calculated, manual override, overdue toggle)
+- [ ] Due date calculation (baseDueDays, DueDayRules, month patterns)
+- [ ] Sorting (column sort, sort freeze on edit, row order preservation)
+- [ ] Filtering (status color chips, quality measure dropdown, insurance group, search)
+- [ ] Row operations (add row, duplicate row, delete row)
+- [ ] Duplicate detection (visual indicator, blocking on edit/create)
+- [ ] Edit conflict resolution (409 handling, Keep Mine/Theirs/Cancel, version recovery)
+- [ ] Role-based grid access (ADMIN physician dropdown, PHYSICIAN own patients, STAFF assigned)
+- [ ] Visual browser review of grid interactions per role
+
+#### Feature 2: Import Pipeline
+- [ ] File upload (drag/drop, file type validation, system detection)
+- [ ] Sheet discovery (Hill single-sheet, Sutter multi-tab physician selection)
+- [ ] Smart column mapping (fuzzy matching, conflict detection, admin resolution)
+- [ ] Preview page (summary cards, diff table, filters, merge mode)
+- [ ] Import execution (insert/update/delete counts, error handling)
+- [ ] Sutter-specific (action pattern matching, AWV+APV merge, duplicate merge, measureDetails)
+- [ ] Role-based import access (ADMIN full, PHYSICIAN own, STAFF assigned physicians)
+- [ ] Visual browser review of import flow per role
+
+#### Feature 3: Patient Management Page
+- [ ] Import tab (file upload, system selection)
+- [ ] Patient Assignment tab (assign patients to physicians, bulk assign)
+- [ ] Patient counts (update correctly after assignment)
+- [ ] Tab navigation and state preservation
+- [ ] Role-based access (ADMIN sees all tabs, STAFF/PHYSICIAN restrictions)
+- [ ] Visual browser review per role
+
+#### Feature 4: Admin Dashboard
+- [ ] User management (list, create, edit, delete users)
+- [ ] Role assignment (ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN)
+- [ ] Staff-physician assignment management
+- [ ] Audit log viewer (login events, data changes, filtering)
+- [ ] Import mapping management page
+- [ ] Role-based access (ADMIN only, others blocked)
+- [ ] Visual browser review of admin pages
+
+#### Feature 5: Authentication
+- [ ] Login page (email/password, validation, error messages)
+- [ ] Logout (token clearing, redirect)
+- [ ] Forgot password (email flow, token generation, reset page)
+- [ ] Account lockout (5 failed attempts, temp password, forced change)
+- [ ] Password change (current password verification, new password validation)
+- [ ] JWT token handling (refresh, expiry, protected routes)
+- [ ] Visual browser review of auth flow
+
+#### Feature 6: Patient Assignment
+- [ ] Assign unassigned patients to physicians
+- [ ] Select all / bulk assign
+- [ ] Patient count updates after assignment
+- [ ] Data freshness (no stale cache)
+- [ ] Role-based access (ADMIN can assign, STAFF limited, PHYSICIAN blocked)
+- [ ] Visual browser review
+
+#### Feature 7: Real-Time Collaboration
+- [ ] Socket connection (join/leave rooms, presence updates)
+- [ ] Remote edit indicators (cell highlighting, tooltip with editor name)
+- [ ] Remote row updates (row:updated, row:created, row:deleted events)
+- [ ] Edit conflict detection (409 VERSION_CONFLICT, conflict modal)
+- [ ] Data refresh on import (data:refresh event)
+- [ ] Multi-tab / multi-user scenarios
+- [ ] Visual browser review of collaboration indicators
+
+---
+
 ## Medium Priority
 
 ### Security Hardening (In Spec Process)
@@ -585,6 +668,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+February 26, 2026 - Added HIGH PRIORITY: Feature-by-Feature Coverage Audit (7 features × 5 audit layers). Added row-color-comprehensive.cy.ts (179 Cypress tests). Fixed edit conflict bug (cascading 409 from stale updatedAt). Updated REGRESSION_TEST_PLAN.md Section 5 to 100% automated.
 February 25, 2026 - Release 4.12.1: Test hardening (fireEvent→userEvent migration, accessibility labels, Playwright waitForTimeout elimination), Depression Screening quality measure, conflict detection false positives fix. 1,415 Jest + 1,202 Vitest + Playwright + Cypress = ~2,617+ automated tests.
 February 23, 2026 - Release 4.11.1: Conflict detection fixes (wrong-file, MISSING false positives, patient field auto-population), Sutter parser blank row alignment, sheet validation fuzzy fallback, Cypress + Playwright hardening. 1,387 Jest + 1,138 Vitest + Playwright + Cypress = ~2,525+ automated tests.
 February 19, 2026 - Release 4.10.0: Remove tracking3, rename Copy Member, pinned row on add/duplicate, import Q4-Q8 decisions, smart column mapping spec. 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.

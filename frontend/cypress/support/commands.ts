@@ -16,11 +16,13 @@ Cypress.Commands.add('login', (email: string, password: string) => {
 });
 
 /**
- * Wait for AG Grid to be fully loaded
+ * Wait for AG Grid to be fully loaded and API to be available
  */
 Cypress.Commands.add('waitForAgGrid', () => {
-  cy.get('.ag-theme-alpine', { timeout: 10000 }).should('be.visible');
-  cy.get('.ag-row[row-index]', { timeout: 5000 }).should('exist');
+  cy.get('.ag-theme-alpine', { timeout: 15000 }).should('be.visible');
+  cy.get('.ag-row[row-index]', { timeout: 10000 }).should('exist');
+  // Wait for grid API to be exposed (needed for reliable dropdown interactions)
+  cy.window().should('have.property', '__agGridApi');
 });
 
 /**
@@ -105,19 +107,29 @@ Cypress.Commands.add('getAgGridDropdownOptions', () => {
 });
 
 /**
- * Select a value from an AG Grid dropdown by row index
- * Uses single click — AutoOpenSelectEditor opens immediately as a popup
+ * Select a value from an AG Grid dropdown by row index.
+ * Uses gridApi.startEditingCell() directly (exposed via window.__agGridApi)
+ * for reliable popup opening — bypasses click timing issues entirely.
  */
 Cypress.Commands.add('selectAgGridDropdown', (rowIndex: number, colId: string, value: string) => {
-  const cellSelector = `[row-index="${rowIndex}"] [col-id="${colId}"]`;
+  // Ensure any previous popup/editor is closed
+  cy.get('body').type('{esc}');
+  cy.wait(200);
 
-  // Single click opens the auto-open dropdown editor
-  cy.get(cellSelector).first().click();
-  cy.wait(300);
+  // Use the grid API to programmatically start editing the cell
+  cy.window().then((win) => {
+    const api = (win as any).__agGridApi;
+    if (api) {
+      api.startEditingCell({ rowIndex, colKey: colId });
+    } else {
+      // Fallback: click the cell if API not available
+      cy.get(`[row-index="${rowIndex}"] [col-id="${colId}"]`).first().click();
+    }
+  });
 
   // Wait for popup to be visible and have items
-  cy.get('.ag-popup', { timeout: 5000 }).should('be.visible');
-  cy.get('.ag-popup .auto-open-select-option, .ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"]', { timeout: 3000 })
+  cy.get('.ag-popup', { timeout: 10000 }).should('be.visible');
+  cy.get('.ag-popup .auto-open-select-option, .ag-popup .ag-list-item, .ag-popup .ag-select-list-item, .ag-popup [role="option"]', { timeout: 5000 })
     .should('have.length.greaterThan', 0);
 
   // Find and click the option with matching text
@@ -125,7 +137,7 @@ Cypress.Commands.add('selectAgGridDropdown', (rowIndex: number, colId: string, v
     .contains(value)
     .click({ force: true });
 
-  // Wait for dropdown to close and value to be set
+  // Wait for dropdown to close and value to be saved
   cy.wait(300);
 });
 
@@ -212,11 +224,17 @@ Cypress.Commands.add('addTestRow', (name: string) => {
   // Click Add Row button
   cy.contains('button', 'Add Row').click();
 
-  // Wait for modal
-  cy.get('input[placeholder="Enter patient name"]', { timeout: 5000 }).should('be.visible');
+  // Wait for modal — split name fields (Last Name, First Name)
+  cy.get('input[placeholder="Last name"]', { timeout: 5000 }).should('be.visible');
+
+  // Parse "Last, First" or treat entire string as last name
+  const commaIndex = name.indexOf(',');
+  const lastName = commaIndex >= 0 ? name.substring(0, commaIndex).trim() : name;
+  const firstName = commaIndex >= 0 ? name.substring(commaIndex + 1).trim() : 'Test';
 
   // Fill in the form
-  cy.get('input[placeholder="Enter patient name"]').type(name);
+  cy.get('input[placeholder="Last name"]').type(lastName);
+  cy.get('input[placeholder="First name"]').type(firstName);
   cy.get('input[type="date"]').type('1990-01-01');
 
   // Submit

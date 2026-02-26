@@ -29,13 +29,29 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of Release 4.12.1):**
+**Test Coverage (as of v4.13.0):**
 - Layer 1 (Backend Jest): 1,415 tests passing (48 suites)
-- Layer 2 (Frontend Vitest): 1,202 tests passing (48 suites)
+- Layer 2 (Frontend Vitest): 1,208 tests passing (48 suites)
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment
-- Layer 4 (Cypress E2E): ~283 tests (expanded cascading-dropdowns, sorting-filtering, time-interval)
+- Layer 4 (Cypress E2E): ~486 tests (expanded: +179 row-color-comprehensive, +24 row-color-roles, rewritten role-access-control ~36 tests)
 - Visual test plan v2.1: 427 test cases documented
-- Regression test plan: 48 sections, 80+ new test cases in sections 44-48 (Authentication, Authorization, Password, Admin, Import)
+- Regression test plan: 48 sections, Row Colors section upgraded to 16 TCs / 100% automated
+
+### Row Color Comprehensive E2E + Add Row Modal Split + Conflict Fix
+
+**Status: Complete** (Feb 26, 2026)
+**Spec:** `.claude/specs/row-color-e2e/test-plan.md`
+
+- [x] **Row Color E2E** — `row-color-comprehensive.cy.ts` (179 tests): all 14 QMs x all statuses, tracking #1/#2 types, date-to-overdue, time interval editing, color transitions
+- [x] **Multi-Role E2E** — `row-color-roles.cy.ts`: 8 core color scenarios tested as ADMIN, PHYSICIAN, STAFF
+- [x] **Add Row Modal** — Split "Member Name" into Last Name + First Name + MI with "Last, First Middle" format
+- [x] **Grid row color fix** — `refreshCells()` → `redrawRows()` for proper `rowClassRules` re-evaluation
+- [x] **AG Grid API exposure** — `window.__agGridApi` for Cypress `startEditingCell()` reliability
+- [x] **Conflict bug fix** — "Keep Theirs" and "Cancel" now use `setData()` to restore full server row (prevents cascading 409s from stale `updatedAt`)
+- [x] **Role-Access-Control rewrite** — Real multi-role login with API-level access verification (STAFF 403, PHYSICIAN scoping)
+- [x] **Seed dueDate calculation** — `seed.ts` uses `calculateDueDate()` for correct initial state
+
+**Tests:** +6 Vitest (AddRowModal name concatenation), +179 Cypress (row-color-comprehensive), +24 Cypress (row-color-roles), ~36 Cypress (role-access-control rewrite)
 
 ### Depression Screening Quality Measure
 
@@ -999,6 +1015,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+February 26, 2026 - v4.13.0: Comprehensive row color E2E (179 Cypress tests), multi-role row color tests, Add Row Modal split (Last/First/MI), edit conflict cascading 409 fix, role-access-control rewrite with real multi-role login, seed dueDate calculation, grid redrawRows fix. All tests passing: 1,415 Jest + 1,208 Vitest + Playwright + ~486 Cypress = ~3,100+ automated tests.
 February 25, 2026 - Release 4.12.1: Test hardening (fireEvent→userEvent migration across 25 Vitest files, accessibility labels, Playwright waitForTimeout elimination), Depression Screening quality measure (7 statuses, color coding, import support), conflict detection false positives fix. All tests passing: 1,415 Jest + 1,202 Vitest + Playwright + Cypress = ~2,617+ automated tests.
 February 23, 2026 - Release 4.11.1: Conflict detection fixes (wrong-file dual-ratio, MISSING covered targetField, patient field auto-population), Sutter file parser blank row alignment, sheet validation fuzzy fallback + Q1/Q2 suffix matching, Cypress + Playwright test hardening. All tests passing: 1,387 Jest + 1,138 Vitest + Playwright + Cypress = ~2,525+ automated tests.
 February 19, 2026 - Release 4.10.0: Remove tracking3 field (migration + full stack), rename "Duplicate Mbr" to "Copy Member", pinned row on add/duplicate (filter bypass with amber badge), import Q4-Q8 decisions resolved, smart column mapping spec. All tests passing: 1,165 Jest + 1,037 Vitest + 43 Playwright + ~342 Cypress = ~2,587 automated tests.

@@ -225,11 +225,11 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     // Update the row data
     rowNode.setData(row as unknown as GridRow);
 
-    // Flash changed cells to highlight the update
-    gridApi.flashCells({ rowNodes: [rowNode], fadeDelay: 500 });
+    // Redraw to re-evaluate rowClassRules (row background colors)
+    gridApi.redrawRows({ rowNodes: [rowNode] });
 
-    // Refresh to update row styling
-    gridApi.refreshCells({ rowNodes: [rowNode], force: true });
+    // Flash changed cells to highlight the update (after redraw so new DOM exists)
+    gridApi.flashCells({ rowNodes: [rowNode], fadeDelay: 500 });
 
     // Update React state
     onRowUpdated?.(row as unknown as GridRow);
@@ -314,8 +314,11 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
     }
   }, [newRowId, onNewRowFocused]);
 
-  const onGridReady = useCallback((_params: GridReadyEvent<GridRow>) => {
-    // Grid is ready, can access API via gridRef.current.api if needed
+  const onGridReady = useCallback((params: GridReadyEvent<GridRow>) => {
+    // Expose grid API for Cypress E2E testing
+    if ((window as any).Cypress) {
+      (window as any).__agGridApi = params.api;
+    }
   }, []);
 
   // Post-sort callback to maintain frozen row order when sort is cleared
@@ -383,7 +386,7 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
           const rowNode = gridApi.getRowNode(String(conflictData.rowId));
           if (rowNode) {
             rowNode.setData(response.data.data);
-            gridApi.refreshCells({ rowNodes: [rowNode], force: true });
+            gridApi.redrawRows({ rowNodes: [rowNode] });
           }
         }
         onRowUpdated?.(response.data.data);
@@ -408,31 +411,44 @@ const PatientGrid = forwardRef<PatientGridHandle, PatientGridProps>(function Pat
 
     setConflictModalOpen(false);
 
-    // Re-fetch the row from the conflict data's server row and apply it
-    // The server row was included in the 409 response
+    // Use setData (not setDataValue) to replace the entire row at once.
+    // setDataValue triggers onCellValueChanged → API PUT with stale updatedAt → cascading 409s.
+    // setData replaces all fields silently (including updatedAt) without triggering cell change events.
     const gridApi = gridRef.current?.api;
     if (gridApi) {
       const rowNode = gridApi.getRowNode(String(conflictData.rowId));
-      if (rowNode) {
-        // Revert each conflicting field to server's value
-        for (const conflict of conflictData.conflicts) {
-          const serverValue = conflict.theirValue;
-          rowNode.setDataValue(conflict.fieldKey, serverValue);
-        }
-        gridApi.refreshCells({ rowNodes: [rowNode], force: true });
+      if (rowNode && conflictData.serverRow) {
+        const restoredRow = conflictData.serverRow as unknown as GridRow;
+        rowNode.setData(restoredRow);
+        gridApi.redrawRows({ rowNodes: [rowNode] });
+        onRowUpdated?.(restoredRow);
       }
     }
 
     setConflictData(null);
     onSaveStatusChange?.('idle');
-  }, [conflictData, onSaveStatusChange]);
+  }, [conflictData, onSaveStatusChange, onRowUpdated]);
 
-  // Handle conflict cancel
+  // Handle conflict cancel — also restore server data to prevent stale updatedAt
   const handleConflictCancel = useCallback(() => {
     setConflictModalOpen(false);
+
+    // Restore server row data (including fresh updatedAt) so the next edit doesn't get another 409.
+    // Without this, the row keeps the stale updatedAt and all future edits fail with VERSION_CONFLICT.
+    const gridApi = gridRef.current?.api;
+    if (gridApi && conflictData?.serverRow) {
+      const rowNode = gridApi.getRowNode(String(conflictData.rowId));
+      if (rowNode) {
+        const restoredRow = conflictData.serverRow as unknown as GridRow;
+        rowNode.setData(restoredRow);
+        gridApi.redrawRows({ rowNodes: [rowNode] });
+        onRowUpdated?.(restoredRow);
+      }
+    }
+
     setConflictData(null);
     onSaveStatusChange?.('idle');
-  }, [onSaveStatusChange]);
+  }, [conflictData, onSaveStatusChange, onRowUpdated]);
 
   // Determine if a cell should behave as a dropdown (show arrow + single-click open)
   const isDropdownCell = useCallback((field: string, data: GridRow | undefined): boolean => {

@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.13.0] - 2026-02-26
+
+### Added
+- **Comprehensive Row Color E2E Tests** — `row-color-comprehensive.cy.ts` (179 Cypress tests) covering all 14 quality measures x all statuses (93 tests), tracking #1 dropdown with all options + date-to-overdue (52 tests), HgbA1c T1 text + T2 dropdown + date (13 tests), BP T1 dropdown + T2 text + date (5 tests), date entry overdue/today/terminal/no-dueDate (23 tests), time interval editing (2 tests), and color transitions (2 tests)
+- **Multi-Role Row Color E2E Tests** — `row-color-roles.cy.ts` with 8 core color scenarios per role (ADMIN, PHYSICIAN, STAFF)
+- **Feature-by-Feature Coverage Audit** — Added to TODO.md as HIGH priority: 7 features x 5 audit layers (backend, frontend, E2E, visual browser, role-based access)
+- **Row Color E2E Spec** — `.claude/specs/row-color-e2e/test-plan.md` documenting the comprehensive test plan
+- **Feature Test Modules** — `.claude/FEATURE_TEST_MODULES.md` mapping features to their test files across all layers
+
+### Changed
+- **Add Row Modal** — Split single "Member Name" field into separate Last Name (required), First Name (required), and MI (optional) fields with "Last, First Middle" concatenation format
+- **AG Grid row color updates** — Replaced `refreshCells()` with `redrawRows()` for row color changes. `refreshCells` only refreshes cell renderers, not row-level CSS classes from `rowClassRules`; `redrawRows` re-evaluates the full row template including background colors
+- **AG Grid API exposure for Cypress** — Exposed `window.__agGridApi` in Cypress environment for reliable `startEditingCell()` calls (bypasses click timing issues in dropdown tests)
+- **Cypress `selectAgGridDropdown`** — Rewritten to use `gridApi.startEditingCell()` directly instead of click-based approach, eliminating popup timing failures
+- **Cypress `waitForAgGrid`** — Now waits for `window.__agGridApi` property (grid API ready) in addition to DOM visibility
+- **Cypress `addTestRow`** — Updated for new split name fields (Last Name, First Name)
+- **Role-Based Access Control tests** — Complete rewrite of `role-access-control.cy.ts` using dedicated seed accounts (admin, adminphy, phy1, phy2, staff1, staff2) instead of shared admin-only tests. Now tests all 4 roles with real login + actual API-level access control (STAFF 403 for unassigned, PHYSICIAN data scoping)
+- **Seed data** — `seed.ts` now calculates `dueDate` and `timeIntervalDays` using `calculateDueDate()` for all seeded patient measures, ensuring seed data has correct overdue/color state on first load
+
+### Fixed
+- **Edit conflict "Keep Theirs" cascading 409 bug** — "Keep Theirs" was using `setDataValue()` per-field which triggered `onCellValueChanged` → API PUT with stale `updatedAt` → cascading VERSION_CONFLICT errors. Now uses `setData()` to replace the entire row silently (including fresh `updatedAt`) without triggering cell change events
+- **Edit conflict "Cancel" stale state bug** — Canceling a conflict modal left the row with stale `updatedAt`, causing all future edits to fail with 409. Now restores server row data (including fresh `updatedAt`) on cancel
+
+### Tests
+- Backend (Jest): 1,415 tests passing (48 suites)
+- Frontend (Vitest): 1,208 tests passing (48 suites) — +6 new AddRowModal tests (name concatenation, whitespace trimming)
+- Cypress: +179 row-color-comprehensive + ~24 row-color-roles + rewritten role-access-control (~36 tests)
+- REGRESSION_TEST_PLAN.md Section 5 (Row Colors): upgraded from 7 TCs / 50% automated to 16 TCs / 100% automated
+
+---
+
 ## [4.12.1] - 2026-02-25
 
 ### Added
