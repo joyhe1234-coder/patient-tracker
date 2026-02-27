@@ -307,4 +307,177 @@ describe('calculateDueDate', () => {
       expect(result.timeIntervalDays).toBe(14);
     });
   });
+
+  describe('Screening discussed - boundary month patterns', () => {
+    it('handles singular "In 1 Month" tracking1', async () => {
+      const statusDate = new Date('2026-03-15');
+      const result = await calculateDueDate(
+        statusDate,
+        'Screening discussed',
+        'In 1 Month',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.dueDate!.getUTCMonth()).toBe(3); // April
+      expect(result.timeIntervalDays).toBeGreaterThanOrEqual(28);
+      expect(result.timeIntervalDays).toBeLessThanOrEqual(31);
+    });
+
+    it('handles max "In 11 Months" tracking1', async () => {
+      const statusDate = new Date('2026-01-15');
+      const result = await calculateDueDate(
+        statusDate,
+        'Screening discussed',
+        'In 11 Months',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.dueDate!.getUTCMonth()).toBe(11); // December
+      expect(result.dueDate!.getUTCFullYear()).toBe(2026);
+    });
+
+    it('falls through to baseDueDays when tracking1 does not match month pattern', async () => {
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 10,
+        code: 'Screening discussed',
+        baseDueDays: 30,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-01-15'),
+        'Screening discussed',
+        'Some non-matching value',
+        null
+      );
+
+      // tracking1 present but no month match → Priority 1 skipped
+      // Priority 3: DueDayRule lookup with tracking1 (mock returns null)
+      // Priority 4: baseDueDays = 30
+      expect(result.dueDate).not.toBeNull();
+      expect(result.timeIntervalDays).toBe(30);
+    });
+  });
+
+  describe('Priority ordering - DueDayRule overrides baseDueDays', () => {
+    it('Priority 3 (DueDayRule) wins over Priority 4 (baseDueDays) when both exist', async () => {
+      // DueDayRule says 42 days for Colonoscopy
+      mockPrisma.dueDayRule.findFirst.mockResolvedValue({
+        id: 5,
+        dueDays: 42,
+        measureStatus: { code: 'Colon cancer screening ordered' },
+      });
+      // baseDueDays says 14 days (should NOT be used)
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 6,
+        code: 'Colon cancer screening ordered',
+        baseDueDays: 14,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-01-15'),
+        'Colon cancer screening ordered',
+        'Colonoscopy',
+        null
+      );
+
+      expect(result.timeIntervalDays).toBe(42); // DueDayRule wins
+    });
+
+    it('tracking1 present but no DueDayRule match falls to baseDueDays', async () => {
+      mockPrisma.dueDayRule.findFirst.mockResolvedValue(null);
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 7,
+        code: 'Screening test ordered',
+        baseDueDays: 14,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-01-15'),
+        'Screening test ordered',
+        'Unknown test type',
+        null
+      );
+
+      expect(result.timeIntervalDays).toBe(14); // baseDueDays fallback
+    });
+  });
+
+  describe('baseDueDays edge cases', () => {
+    it('baseDueDays = 1 calculates next-day due date (AWV scheduled)', async () => {
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 20,
+        code: 'AWV scheduled',
+        baseDueDays: 1,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-06-10'),
+        'AWV scheduled',
+        null,
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.timeIntervalDays).toBe(1);
+      expect(result.dueDate!.getUTCDate()).toBe(11); // June 10 + 1 = June 11
+    });
+
+    it('baseDueDays = 7 for Depression "Called to schedule"', async () => {
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 21,
+        code: 'Called to schedule',
+        baseDueDays: 7,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-02-01'),
+        'Called to schedule',
+        null,
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.timeIntervalDays).toBe(7);
+      expect(result.dueDate!.getUTCDate()).toBe(8); // Feb 1 + 7 = Feb 8
+    });
+
+    it('baseDueDays = 365 for completed statuses (annual follow-up)', async () => {
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 22,
+        code: 'AWV completed',
+        baseDueDays: 365,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-01-15'),
+        'AWV completed',
+        null,
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.timeIntervalDays).toBe(365);
+      expect(result.dueDate!.getUTCFullYear()).toBe(2027);
+    });
+
+    it('baseDueDays = null returns no due date', async () => {
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 23,
+        code: 'Screening complete',
+        baseDueDays: null,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-01-15'),
+        'Screening complete',
+        null,
+        null
+      );
+
+      expect(result.dueDate).toBeNull();
+      expect(result.timeIntervalDays).toBeNull();
+    });
+  });
 });

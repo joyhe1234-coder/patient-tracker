@@ -164,11 +164,15 @@ html, body, #root {
   animation: cellFlash 1.5s ease-out;
 }
 
-/* Ensure cell editor input has visible text — !important required: overrides AG Grid inline style */
+/* Ensure cell editor input fills full cell height and has visible text */
+/* !important required: overrides AG Grid inline styles */
 .ag-theme-alpine .ag-cell-edit-wrapper input,
 .ag-theme-alpine .ag-cell-editor input {
   color: #1f2937 !important;
   background-color: #ffffff !important;
+  height: 100% !important;
+  line-height: normal !important;
+  box-sizing: border-box;
 }
 
 /* Hover-reveal dropdown arrow for dropdown cells */

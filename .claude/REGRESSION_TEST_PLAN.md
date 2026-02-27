@@ -687,7 +687,7 @@ This document contains test cases for verifying system functionality. Each test 
 
 ### TC-7.1: Basic Due Date Calculation
 **Requirement:** AC-1, AC-3
-**Automation:** Automated (backend) - `dueDateCalculator.test.ts` (20 tests). Manual (E2E)
+**Automation:** Automated (backend) - `dueDateCalculator.test.ts` (29 tests). Manual (E2E)
 **Steps:**
 1. Set Measure Status to "Patient called to schedule AWV"
 2. Set Status Date to 01/10/2026
@@ -720,6 +720,36 @@ This document contains test cases for verifying system functionality. Each test 
 **Expected:**
 - Due Date updates to Status Date + 14 days
 - Edit is saved
+
+### TC-7.4: Boundary Month Patterns & Priority Ordering
+**Requirement:** AC-1, AC-2
+**Automation:** Automated (backend) - `dueDateCalculator.test.ts` (6 tests: "In 1 Month", "In 11 Months", non-matching tracking1 fallback, DueDayRule overrides baseDueDays, DueDayRule miss falls to baseDueDays)
+**Steps:**
+1. Set tracking1 to "In 1 Month" with statusDate 2026-03-15
+2. Set tracking1 to "In 11 Months" with statusDate 2026-01-15
+3. Set non-matching tracking1 value — should fall through to baseDueDays
+4. Set status+tracking1 that matches a DueDayRule — should override baseDueDays
+
+**Expected:**
+- "In 1 Month" → due date in April (28-31 days)
+- "In 11 Months" → due date in December 2026
+- Non-matching tracking1 → baseDueDays used as fallback
+- DueDayRule match → DueDayRule dueDays used (not baseDueDays)
+
+### TC-7.5: baseDueDays Edge Cases
+**Requirement:** AC-1
+**Automation:** Automated (backend) - `dueDateCalculator.test.ts` (4 tests: baseDueDays 1/7/365/null)
+**Steps:**
+1. Set status with baseDueDays = 1 (e.g., "AWV scheduled")
+2. Set status with baseDueDays = 7 (e.g., "Called to schedule")
+3. Set status with baseDueDays = 365 (e.g., "AWV completed")
+4. Set status with baseDueDays = null (e.g., "Screening complete")
+
+**Expected:**
+- baseDueDays 1 → due date = statusDate + 1 day
+- baseDueDays 7 → due date = statusDate + 7 days
+- baseDueDays 365 → due date = statusDate + 365 days (next year)
+- baseDueDays null → no due date calculated (null)
 
 ---
 
@@ -4696,6 +4726,8 @@ npm run cypress:headed  # Run with browser visible
 ## Last Updated
 
 February 26, 2026 - Added Section 52: Production Deployment — Seed on Deploy (TC-52.1 to TC-52.3). 3 manual test cases for production seed guard, Render auto-seed, and baseDueDays verification. Root cause fix for row colors not turning red on production (NULL baseDueDays from missing seed). Test counts unchanged: 1,419 Jest + 1,211 Vitest.
+February 26, 2026 - Added TC-7.4 (boundary month patterns & priority ordering, 6 tests) and TC-7.5 (baseDueDays edge cases, 4 tests). Updated TC-7.1 test count from 20 to 29. Test counts: 1,428 Jest + 1,211 Vitest.
+
 February 26, 2026 - Added sections 49 (Cell Editing Conflict, 4 TCs), 50 (Grid Editing Per Role, 3 TCs), 51 (Row Operations, 2 TCs). Added TC-8.7/8.8/8.9 for duplicate detection edge cases. Updated TC-8.6 automation status. New Cypress E2E files: cell-editing-conflict.cy.ts, grid-editing-roles.cy.ts, row-operations.cy.ts. New Jest tests: +5 duplicateDetector edge cases. New Vitest tests: +3 Toolbar edge cases. Test counts: 1,419 Jest + 1,211 Vitest.
 February 26, 2026 - Added `row-color-comprehensive.cy.ts` (179 Cypress tests): comprehensive row color E2E covering all 14 quality measures × all statuses (93 tests), tracking #1 dropdown with all options + date→overdue (52 tests), HgbA1c T1 text + T2 dropdown + date (13 tests), BP T1 dropdown + T2 text + date (5 tests), date entry→overdue/today/terminal/no-dueDate (23 tests), time interval editing (2 tests), color transitions (2 tests). Updated Section 5 (Row Colors) from 7 TCs / 50% automated to 16 TCs / 100% automated. Resolved HIGH priority gap (Time Interval) and MEDIUM priority gap (Row Colors overdue logic). Fixed edit conflict bug: "Keep Theirs" and "Cancel" now restore serverRow including fresh updatedAt to prevent cascading 409 errors.
 February 25, 2026 - Release 4.12.1: Updated test counts (1,415 Jest + 1,202 Vitest). E2E test quality improvements: waitForTimeout elimination across 5 Playwright files, fireEvent→userEvent migration across 25 Vitest files, accessibility labels for form elements.
