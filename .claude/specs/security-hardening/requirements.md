@@ -81,7 +81,7 @@ The product vision states the system must "maintain audit trail for accountabili
 
 ---
 
-### REQ-SEC-03: Rate Limiting (Critical)
+### REQ-SEC-03: Rate Limiting (Critical) — [DEFERRED]
 
 **User Story:** As a system administrator, I want rate limiting on all API endpoints, so that brute-force attacks, credential stuffing, and denial-of-service attempts are mitigated.
 
@@ -257,7 +257,7 @@ RATE_LIMIT_LOGIN_WINDOW_MIN=30
 
 ---
 
-### REQ-SEC-07: Move JWT to httpOnly Cookie (High)
+### REQ-SEC-07: Move JWT to httpOnly Cookie (High) — [DEFERRED]
 
 **User Story:** As a security-conscious developer, I want JWT tokens stored in httpOnly cookies rather than localStorage, so that tokens are not accessible to JavaScript and are protected from XSS attacks.
 

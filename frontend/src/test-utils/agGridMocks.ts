@@ -41,6 +41,7 @@ export function createMockGridApi<TData = any>(
     applyColumnState: vi.fn(),
     forEachNodeAfterFilterAndSort: vi.fn(),
     refreshCells: vi.fn(),
+    redrawRows: vi.fn(),
     applyTransaction: vi.fn(),
     getSelectedRows: vi.fn(() => []),
     getSelectedNodes: vi.fn(() => []),

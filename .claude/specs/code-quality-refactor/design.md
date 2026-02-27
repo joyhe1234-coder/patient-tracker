@@ -653,7 +653,7 @@ export function applyCascadingUpdates(
 
   const DOWNSTREAM_FROM_REQUEST_TYPE = [
     'measureStatus', 'statusDate', 'tracking1', 'tracking2',
-    'tracking3', 'dueDate', 'timeIntervalDays',
+    'dueDate', 'timeIntervalDays',
   ];
 
   if (field === 'requestType') {
@@ -675,7 +675,7 @@ export function applyCascadingUpdates(
   if (field === 'measureStatus') {
     clearDownstream([
       'statusDate', 'tracking1', 'tracking2',
-      'tracking3', 'dueDate', 'timeIntervalDays',
+      'dueDate', 'timeIntervalDays',
     ]);
   }
 
@@ -1234,7 +1234,7 @@ export interface MeasureUpdatePayload {
   statusDatePrompt?: string | null;
   tracking1?: string | null;
   tracking2?: string | null;
-  tracking3?: string | null;
+  depressionScreeningStatus?: string | null;
   dueDate?: string | null;
   timeIntervalDays?: number | null;
   notes?: string | null;

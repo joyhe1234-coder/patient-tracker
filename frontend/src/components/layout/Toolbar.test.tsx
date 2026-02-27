@@ -142,4 +142,35 @@ describe('Toolbar', () => {
       expect(screen.getByText('Save failed')).toBeInTheDocument();
     });
   });
+
+  describe('Edge cases', () => {
+    it('all 4 buttons enabled simultaneously when canDelete=true and canDuplicate=true', () => {
+      render(<Toolbar {...defaultProps} canDelete={true} canDuplicate={true} />);
+
+      expect(screen.getByText('Add Row').closest('button')).not.toBeDisabled();
+      expect(screen.getByText('Delete Row').closest('button')).not.toBeDisabled();
+      expect(screen.getByText('Copy Member').closest('button')).not.toBeDisabled();
+      expect(screen.getByText('Member Info').closest('button')).not.toBeDisabled();
+    });
+
+    it('Delete button click does NOT call onDeleteRow when canDelete=false', async () => {
+      const onDeleteRow = vi.fn();
+      render(<Toolbar {...defaultProps} canDelete={false} onDeleteRow={onDeleteRow} />);
+
+      await user.click(screen.getByText('Delete Row'));
+      expect(onDeleteRow).not.toHaveBeenCalled();
+    });
+
+    it('Member Info button reflects showMemberInfo toggle state via class', () => {
+      const { rerender } = render(<Toolbar {...defaultProps} showMemberInfo={true} />);
+
+      const button = screen.getByText('Member Info').closest('button')!;
+      expect(button.className).toContain('bg-gray-100');
+
+      rerender(<Toolbar {...defaultProps} showMemberInfo={false} />);
+
+      const buttonAfter = screen.getByText('Member Info').closest('button')!;
+      expect(buttonAfter.className).toContain('border-gray-300');
+    });
+  });
 });

@@ -96,7 +96,7 @@ function createMockEvent(overrides: Partial<{
     getColumnState: vi.fn(() => []),
     applyColumnState: vi.fn(),
     forEachNodeAfterFilterAndSort: vi.fn(),
-    refreshCells: vi.fn(),
+    redrawRows: vi.fn(),
     applyTransaction: vi.fn(),
     ...(overrides.api || {}),
   });
@@ -340,6 +340,7 @@ describe('useGridCellUpdate', () => {
           patientName: 'Jane Doe',
           changedBy: 'Alice',
           rowId: 1,
+          serverRow: { memberName: 'Jane Doe' },
         })
       );
       expect(options.onSaveStatusChange).toHaveBeenCalledWith('error');

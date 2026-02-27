@@ -14,9 +14,20 @@ export interface NewRowData {
   memberAddress?: string;
 }
 
+interface FormState {
+  lastName: string;
+  firstName: string;
+  middleName: string;
+  memberDob: string;
+  memberTelephone: string;
+  memberAddress: string;
+}
+
 export default function AddRowModal({ isOpen, onClose, onAdd }: AddRowModalProps) {
-  const [formData, setFormData] = useState<NewRowData>({
-    memberName: '',
+  const [formData, setFormData] = useState<FormState>({
+    lastName: '',
+    firstName: '',
+    middleName: '',
     memberDob: '',
     memberTelephone: '',
     memberAddress: '',
@@ -25,7 +36,7 @@ export default function AddRowModal({ isOpen, onClose, onAdd }: AddRowModalProps
 
   if (!isOpen) return null;
 
-  const handleChange = (field: keyof NewRowData, value: string) => {
+  const handleChange = (field: keyof FormState, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when field is edited
     if (errors[field]) {
@@ -40,8 +51,11 @@ export default function AddRowModal({ isOpen, onClose, onAdd }: AddRowModalProps
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.memberName.trim()) {
-      newErrors.memberName = 'Member name is required';
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
     }
     if (!formData.memberDob) {
       newErrors.memberDob = 'Date of birth is required';
@@ -58,15 +72,24 @@ export default function AddRowModal({ isOpen, onClose, onAdd }: AddRowModalProps
       const [year, month, day] = formData.memberDob.split('-');
       const isoDate = `${year}-${month}-${day}T12:00:00.000Z`;
 
+      const lastName = formData.lastName.trim();
+      const firstName = formData.firstName.trim();
+      const middleName = formData.middleName.trim();
+      const memberName = `${lastName}, ${firstName}${middleName ? ' ' + middleName : ''}`;
+
       const success = await onAdd({
-        ...formData,
+        memberName,
         memberDob: isoDate,
+        memberTelephone: formData.memberTelephone,
+        memberAddress: formData.memberAddress,
       });
 
       // Only reset form if creation was successful
       if (success) {
         setFormData({
-          memberName: '',
+          lastName: '',
+          firstName: '',
+          middleName: '',
           memberDob: '',
           memberTelephone: '',
           memberAddress: '',
@@ -101,23 +124,57 @@ export default function AddRowModal({ isOpen, onClose, onAdd }: AddRowModalProps
           {/* Form */}
           <form onSubmit={handleSubmit} className="px-6 py-4">
             <div className="space-y-4">
-              {/* Member Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Member Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.memberName}
-                  onChange={(e) => handleChange('memberName', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.memberName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter patient name"
-                />
-                {errors.memberName && (
-                  <p className="mt-1 text-sm text-red-500">{errors.memberName}</p>
-                )}
+              {/* Name Fields */}
+              <div className="grid grid-cols-5 gap-3">
+                {/* Last Name */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => handleChange('lastName', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.lastName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Last name"
+                  />
+                  {errors.lastName && (
+                    <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
+                  )}
+                </div>
+                {/* First Name */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => handleChange('firstName', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.firstName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="First name"
+                  />
+                  {errors.firstName && (
+                    <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
+                  )}
+                </div>
+                {/* Middle Name */}
+                <div className="col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    MI
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.middleName}
+                    onChange={(e) => handleChange('middleName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Middle"
+                  />
+                </div>
               </div>
 
               {/* Member DOB */}

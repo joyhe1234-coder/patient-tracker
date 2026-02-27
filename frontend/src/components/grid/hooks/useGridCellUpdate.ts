@@ -21,7 +21,7 @@ import { getApiErrorMessage } from '../../../utils/apiError';
 import { showToast } from '../../../utils/toast';
 import type { GridRow } from '../PatientGrid';
 import type { ConflictField } from '../../modals/ConflictModal';
-import type { ConflictResponse } from '../../../types/socket';
+import type { ConflictResponse, GridRowPayload } from '../../../types/socket';
 import type { MeasureUpdatePayload, SaveStatus } from '../../../types/grid';
 import { applyCascadingUpdates } from '../utils/cascadingFields';
 
@@ -49,6 +49,8 @@ export interface ConflictData {
   rowId: number;
   updatePayload: MeasureUpdatePayload;
   queryParams: string;
+  /** Full server row from 409 response — used by "Keep Theirs" and "Cancel" to restore fresh data including updatedAt */
+  serverRow: GridRowPayload | null;
 }
 
 export interface UseGridCellUpdateOptions {
@@ -153,8 +155,9 @@ export function useGridCellUpdate(options: UseGridCellUpdateOptions): UseGridCel
         const updatedData = response.data.data;
         node.setData(updatedData);
 
-        // Refresh the row to update styling (row colors)
-        gridApi.refreshCells({ rowNodes: [node], force: true });
+        // Redraw the row to re-evaluate rowClassRules (row background colors).
+        // refreshCells only refreshes cell renderers, NOT row-level classes.
+        gridApi.redrawRows({ rowNodes: [node] });
 
         // Ensure row stays selected
         node.setSelected(true);
@@ -205,6 +208,7 @@ export function useGridCellUpdate(options: UseGridCellUpdateOptions): UseGridCel
             );
 
             // Store conflict data and open modal
+            // Include serverRow so "Keep Theirs" and "Cancel" can restore fresh data (including updatedAt)
             const queryParams = getQueryParams();
             setConflictData({
               patientName: serverRow?.memberName || data.memberName || 'Unknown',
@@ -215,6 +219,7 @@ export function useGridCellUpdate(options: UseGridCellUpdateOptions): UseGridCel
                 [colDef.field]: data[colDef.field as keyof GridRow],
               } as MeasureUpdatePayload,
               queryParams,
+              serverRow: serverRow || null,
             });
             setConflictModalOpen(true);
 
