@@ -6,6 +6,11 @@ This document tracks planned features and enhancements for future development.
 
 ## Recently Completed
 
+### AG Grid Cell Edit Input Height Fix + Due Date Calculator Tests (Complete)
+- [x] CSS fix: cell edit input height fills full row (`height: 100% !important`, `line-height: normal !important`, `box-sizing: border-box`)
+- [x] 9 new dueDateCalculator tests: boundary months, priority ordering, baseDueDays edge cases
+- Backend (Jest): 1,428 tests (+9), Frontend (Vitest): 1,211 tests (no change)
+
 ### Production Row Color Fix — Seed on Deploy (Complete)
 - [x] Root cause: `prisma db seed` never ran on Render, leaving `MeasureStatus.baseDueDays` NULL
 - [x] `seed.ts` — NODE_ENV=production guard skips dev users/sample data

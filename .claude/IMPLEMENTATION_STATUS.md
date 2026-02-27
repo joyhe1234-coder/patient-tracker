@@ -29,8 +29,8 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.13.1):**
-- Layer 1 (Backend Jest): 1,419 tests passing (48 suites)
+**Test Coverage (as of v4.13.3):**
+- Layer 1 (Backend Jest): 1,428 tests passing (48 suites)
 - Layer 2 (Frontend Vitest): 1,211 tests passing (48 suites)
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment
 - Layer 4 (Cypress E2E): ~486+ tests (expanded: +179 row-color-comprehensive, +24 row-color-roles, rewritten role-access-control ~36 tests, +new cell-editing-conflict, grid-editing-roles, row-operations)
@@ -53,6 +53,15 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Seed dueDate calculation** — `seed.ts` uses `calculateDueDate()` for correct initial state
 
 **Tests:** +6 Vitest (AddRowModal name concatenation), +179 Cypress (row-color-comprehensive), +24 Cypress (row-color-roles), ~36 Cypress (role-access-control rewrite)
+
+### AG Grid Cell Edit Input Height Fix + Due Date Calculator Tests
+
+**Status: Complete** (Feb 26, 2026)
+
+- [x] **Cell edit input height fix** -- Added `height: 100% !important`, `line-height: normal !important`, `box-sizing: border-box` to AG Grid cell edit inputs so text input fills the full row height
+- [x] **9 new due date calculator tests** -- Boundary month patterns, priority ordering (DueDayRule vs baseDueDays), baseDueDays edge cases (1-day, 7-day, 365-day, null)
+
+**Tests:** +9 Jest (dueDateCalculator boundary/priority/edge tests)
 
 ### Production Row Color Fix — Seed on Deploy
 

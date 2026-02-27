@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.13.3] - 2026-02-26
+
+### Fixed
+- **AG Grid cell edit input height** -- Text input was shorter than the row height when editing cells. Added `height: 100% !important`, `line-height: normal !important`, `box-sizing: border-box` to `.ag-cell-edit-wrapper input` and `.ag-cell-editor input` in `frontend/src/index.css`
+
+### Added
+- **9 due date calculator unit tests** -- `backend/src/services/__tests__/dueDateCalculator.test.ts`: boundary month patterns ("In 1 Month", "In 11 Months", non-matching tracking1 fallback), priority ordering (DueDayRule overrides baseDueDays, fallback to baseDueDays when no DueDayRule match), baseDueDays edge cases (1-day, 7-day, 365-day, null baseDueDays)
+
+### Tests
+- Backend (Jest): 1,428 tests passing (48 suites) -- +9 from last release
+- Frontend (Vitest): 1,211 tests passing (48 suites) -- no change
+
+---
+
 ## [4.13.2] - 2026-02-26
 
 ### Fixed
