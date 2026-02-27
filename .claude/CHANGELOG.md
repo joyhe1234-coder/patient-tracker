@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.13.2] - 2026-02-26
+
+### Fixed
+- **Production row colors not turning red (past-due dates)** — Root cause: `prisma db seed` was never run on Render production, so `MeasureStatus.baseDueDays` was NULL, causing `calculateDueDate()` to return null and all due-date-based row coloring to fail
+- **Production seed now runs on every deploy** — Added `npm run seed` to `render.yaml` `startCommand` so config data (quality measures, statuses, baseDueDays) is seeded on every Render deploy
+- **Seed skips dev data in production** — Added `NODE_ENV=production` guard in `seed.ts` to skip dev users and sample patient data when running in production, preventing test accounts from appearing in prod
+
+### Changed
+- **`backend/package.json`** — Added `prisma.seed` config (`tsx prisma/seed.ts`) for `npx prisma db seed` support
+- **`render.yaml`** — `startCommand` now runs `npx prisma migrate deploy && npm run seed && npm start` (was `npx prisma migrate deploy && npm start`)
+- **`backend/prisma/seed.ts`** — Early return after config data when `NODE_ENV=production`, skipping dev users and sample patients
+
+### Tests
+- Backend (Jest): 1,419 tests passing (48 suites) — no change
+- Frontend (Vitest): 1,211 tests passing (48 suites) — no change
+
+---
+
 ## [4.13.1] - 2026-02-26
 
 ### Added

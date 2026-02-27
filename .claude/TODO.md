@@ -4,6 +4,16 @@ This document tracks planned features and enhancements for future development.
 
 ---
 
+## Recently Completed
+
+### Production Row Color Fix — Seed on Deploy (Complete)
+- [x] Root cause: `prisma db seed` never ran on Render, leaving `MeasureStatus.baseDueDays` NULL
+- [x] `seed.ts` — NODE_ENV=production guard skips dev users/sample data
+- [x] `render.yaml` — Added `npm run seed` to startCommand for automatic config seeding
+- [x] `backend/package.json` — Added `prisma.seed` config for `npx prisma db seed`
+
+---
+
 ## In Progress
 
 ### Test Gap Remediation (In Progress)

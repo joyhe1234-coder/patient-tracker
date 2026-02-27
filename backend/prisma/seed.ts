@@ -638,7 +638,14 @@ async function main() {
 
   // ============================================
   // DEV/TEST USERS — all roles for local testing
+  // Skip in production to avoid creating test accounts
   // ============================================
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Production mode: skipping dev users and sample data');
+    console.log('Database seed completed successfully! (production config-only mode)');
+    return;
+  }
+
   // Password for all dev users: welcome100
   // These cover every role combination for import/RBAC testing:
   //   ADMIN (pure)         — sees all physicians, no patients

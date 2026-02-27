@@ -54,6 +54,15 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 **Tests:** +6 Vitest (AddRowModal name concatenation), +179 Cypress (row-color-comprehensive), +24 Cypress (row-color-roles), ~36 Cypress (role-access-control rewrite)
 
+### Production Row Color Fix — Seed on Deploy
+
+**Status: Complete** (Feb 26, 2026)
+
+- [x] **Root cause identified** — `prisma db seed` never ran on Render production, leaving `MeasureStatus.baseDueDays` NULL
+- [x] **Seed production guard** — `seed.ts` skips dev users/sample data when `NODE_ENV=production`
+- [x] **Render deploy seed** — `render.yaml` startCommand now includes `npm run seed` for automatic config seeding
+- [x] **Prisma seed config** — `backend/package.json` added `prisma.seed` entry for `npx prisma db seed` support
+
 ### Test Gap Remediation — Planning & New E2E Tests
 
 **Status: In Progress** (Feb 26, 2026)

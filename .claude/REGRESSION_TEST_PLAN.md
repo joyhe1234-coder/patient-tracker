@@ -4671,8 +4671,31 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 52. Production Deployment — Seed on Deploy
+
+### TC-52.1: Production Seed Skips Dev Data
+- **Precondition:** `NODE_ENV=production`
+- **Steps:** Run `npx prisma db seed` with NODE_ENV=production
+- **Expected:** Config data (quality measures, statuses, baseDueDays) is seeded; dev users and sample patients are NOT created; console shows "Production mode: skipping dev users and sample data"
+- **Status:** Manual — requires production environment verification
+
+### TC-52.2: Render Deploy Runs Seed Automatically
+- **Precondition:** Push to main triggers Render deploy
+- **Steps:** Verify Render startCommand includes `npm run seed`
+- **Expected:** `render.yaml` startCommand is `npx prisma migrate deploy && npm run seed && npm start`; MeasureStatus.baseDueDays is populated after deploy; row colors reflect correct overdue state
+- **Status:** Manual — verified via Render deploy logs and post-deploy health check
+
+### TC-52.3: baseDueDays Populated After Seed
+- **Precondition:** Fresh database after migration
+- **Steps:** Run seed; query `SELECT name, "baseDueDays" FROM "MeasureStatus" WHERE "baseDueDays" IS NOT NULL`
+- **Expected:** All statuses that should trigger due-date calculation have non-NULL baseDueDays values; `calculateDueDate()` returns valid dates for these statuses
+- **Status:** Manual — requires database query verification
+
+---
+
 ## Last Updated
 
+February 26, 2026 - Added Section 52: Production Deployment — Seed on Deploy (TC-52.1 to TC-52.3). 3 manual test cases for production seed guard, Render auto-seed, and baseDueDays verification. Root cause fix for row colors not turning red on production (NULL baseDueDays from missing seed). Test counts unchanged: 1,419 Jest + 1,211 Vitest.
 February 26, 2026 - Added sections 49 (Cell Editing Conflict, 4 TCs), 50 (Grid Editing Per Role, 3 TCs), 51 (Row Operations, 2 TCs). Added TC-8.7/8.8/8.9 for duplicate detection edge cases. Updated TC-8.6 automation status. New Cypress E2E files: cell-editing-conflict.cy.ts, grid-editing-roles.cy.ts, row-operations.cy.ts. New Jest tests: +5 duplicateDetector edge cases. New Vitest tests: +3 Toolbar edge cases. Test counts: 1,419 Jest + 1,211 Vitest.
 February 26, 2026 - Added `row-color-comprehensive.cy.ts` (179 Cypress tests): comprehensive row color E2E covering all 14 quality measures × all statuses (93 tests), tracking #1 dropdown with all options + date→overdue (52 tests), HgbA1c T1 text + T2 dropdown + date (13 tests), BP T1 dropdown + T2 text + date (5 tests), date entry→overdue/today/terminal/no-dueDate (23 tests), time interval editing (2 tests), color transitions (2 tests). Updated Section 5 (Row Colors) from 7 TCs / 50% automated to 16 TCs / 100% automated. Resolved HIGH priority gap (Time Interval) and MEDIUM priority gap (Row Colors overdue logic). Fixed edit conflict bug: "Keep Theirs" and "Cancel" now restore serverRow including fresh updatedAt to prevent cascading 409 errors.
 February 25, 2026 - Release 4.12.1: Updated test counts (1,415 Jest + 1,202 Vitest). E2E test quality improvements: waitForTimeout elimination across 5 Playwright files, fireEvent→userEvent migration across 25 Vitest files, accessibility labels for form elements.
