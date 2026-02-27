@@ -541,4 +541,113 @@ describe('duplicateDetector', () => {
       expect(mockUpdateMany).not.toHaveBeenCalled();
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Deletion and edit edge cases
+  // ---------------------------------------------------------------------------
+  describe('Deletion and edit edge cases', () => {
+    it('deleting one of two duplicates clears flag on remaining', async () => {
+      // After deletion, only 1 row remains for this patient+RT+QM combo
+      mockFindMany.mockResolvedValue([
+        { id: 10, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+      ]);
+      mockUpdateMany.mockResolvedValue({ count: 1 });
+
+      await syncAllDuplicateFlags();
+
+      // Single remaining row should be marked NOT duplicate
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [10] } },
+        data: { isDuplicate: false },
+      });
+      // Should NOT have any isDuplicate: true calls
+      const trueCalls = mockUpdateMany.mock.calls.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (call: any) => call[0].data.isDuplicate === true
+      );
+      expect(trueCalls).toHaveLength(0);
+    });
+
+    it('three-way duplicate: deleting one leaves two still flagged', async () => {
+      // First call: 3 rows with same key → all flagged true
+      mockFindMany.mockResolvedValue([
+        { id: 1, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+        { id: 2, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+        { id: 3, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+      ]);
+      mockUpdateMany.mockResolvedValue({ count: 3 });
+
+      await syncAllDuplicateFlags();
+
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1, 2, 3] } },
+        data: { isDuplicate: true },
+      });
+
+      // Second call: after deleting row 3, 2 rows remain → still flagged true
+      jest.clearAllMocks();
+      mockFindMany.mockResolvedValue([
+        { id: 1, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+        { id: 2, patientId: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+      ]);
+      mockUpdateMany.mockResolvedValue({ count: 2 });
+
+      await syncAllDuplicateFlags();
+
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1, 2] } },
+        data: { isDuplicate: true },
+      });
+    });
+
+    it('duplicate check with whitespace-padded requestType calls findMany (non-empty after trim)', async () => {
+      mockFindMany.mockResolvedValue([]);
+
+      // ' AWV ' trims to 'AWV' which is non-empty, so isNullOrEmpty returns false
+      // and findMany WILL be called (with the original padded value)
+      const result = await checkForDuplicate(1, ' AWV ', 'Annual Wellness Visit');
+
+      expect(mockFindMany).toHaveBeenCalledTimes(1);
+      // The query passes the original value (not trimmed) to Prisma
+      expect(mockFindMany).toHaveBeenCalledWith({
+        where: {
+          patientId: 1,
+          requestType: ' AWV ',
+          qualityMeasure: 'Annual Wellness Visit',
+        },
+        select: { id: true },
+      });
+      expect(result.isDuplicate).toBe(false);
+      expect(result.duplicateIds).toEqual([]);
+    });
+
+    it('duplicate flag recalculated when qualityMeasure edited from match to non-match', async () => {
+      // After QM edit, no other rows match → checkForDuplicate returns false
+      mockFindMany.mockResolvedValue([]);
+
+      const result = await checkForDuplicate(5, 'AWV', 'Changed Measure', 99);
+
+      expect(result.isDuplicate).toBe(false);
+      expect(result.duplicateIds).toEqual([]);
+
+      // Then updateDuplicateFlags recalculates for the patient
+      mockFindMany.mockResolvedValue([
+        { id: 99, requestType: 'AWV', qualityMeasure: 'Changed Measure' },
+        { id: 100, requestType: 'AWV', qualityMeasure: 'Annual Wellness Visit' },
+      ]);
+      mockUpdateMany.mockResolvedValue({ count: 1 });
+
+      await updateDuplicateFlags(5);
+
+      // Each row is in its own group (different QM) → both not duplicate
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [99] } },
+        data: { isDuplicate: false },
+      });
+      expect(mockUpdateMany).toHaveBeenCalledWith({
+        where: { id: { in: [100] } },
+        data: { isDuplicate: false },
+      });
+    });
+  });
 });

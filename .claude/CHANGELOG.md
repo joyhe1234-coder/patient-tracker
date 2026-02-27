@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.13.1] - 2026-02-26
+
+### Added
+- **Test Gap Remediation Plan** — `.claude/TEST_PLAN.md`: comprehensive test plan with 5-layer pyramid, role-based strategy, per-module coverage targets (~154 new tests planned across Tiers 1-2)
+- **7 Test Spec Modules** — `.claude/specs/test-{auth-security,patient-grid,quality-measures-colors,import-pipeline,admin-management,realtime-collaboration,filtering-search}/` with requirements and task breakdowns
+- **7 Module Test Plans** — `.claude/test-plans/M1-M7` covering auth/security, patient grid, quality measures, import pipeline, admin management, realtime collaboration, filtering/search
+- **Cell Editing Conflict E2E** — `frontend/cypress/e2e/cell-editing-conflict.cy.ts`: Cypress tests for 409 VERSION_CONFLICT modal lifecycle (trigger, display, Keep Mine / Keep Theirs / Cancel resolution, grid state verification)
+- **Grid Editing Roles E2E** — `frontend/cypress/e2e/grid-editing-roles.cy.ts`: per-role (Admin, Physician, Staff) column editing verification (dropdown + text field per role)
+- **Row Operations E2E** — `frontend/cypress/e2e/row-operations.cy.ts`: add row modal + delete row lifecycle through Toolbar buttons
+- **Duplicate Detector edge-case tests** — 5 new Jest tests: delete-one-of-two clears flag, three-way delete leaves two flagged, whitespace-padded requestType, QM edit recalculation
+- **Toolbar edge-case tests** — 3 new Vitest tests: all 4 buttons enabled state, disabled Delete click no-op, Member Info toggle CSS class
+
+### Changed
+- **Spec docs updated for tracking3 removal** — `code-quality-refactor/design.md`, `insurance-group/design.md`, `parallel-editing/design.md`: `tracking3` replaced with `depressionScreeningStatus` in interface definitions and cascading field arrays
+- **Row colors requirements expanded** — `row-colors/requirements.md`: added AC-15 through AC-24 for Depression Screening status-to-color mapping (7 statuses, overdue rules, exclusions)
+- **Security hardening requirements updated** — `security-hardening/requirements.md`: REQ-SEC-03 (Rate Limiting) and REQ-SEC-07 (JWT httpOnly Cookie) marked as [DEFERRED]
+
+### Tests
+- Backend (Jest): 1,419 tests passing (48 suites) — +4 from last release
+- Frontend (Vitest): 1,211 tests passing (48 suites) — +3 from last release
+- New Cypress E2E test files: cell-editing-conflict, grid-editing-roles, row-operations
+
+---
+
 ## [4.13.0] - 2026-02-26
 
 ### Added

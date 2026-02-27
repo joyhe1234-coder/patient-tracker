@@ -804,7 +804,7 @@ This document contains test cases for verifying system functionality. Each test 
 
 ### TC-8.6: Delete Removes Duplicate Status
 **Requirement:** AC-7, AC-9
-**Automation:** Manual - delete-removes-duplicate not automated
+**Automation:** Automated - `duplicateDetector.test.ts: "deleting one of two duplicates clears flag on remaining"`
 **Steps:**
 1. Have two duplicate rows (same patient + requestType + qualityMeasure)
 2. Delete one of the rows
@@ -812,6 +812,38 @@ This document contains test cases for verifying system functionality. Each test 
 **Expected:**
 - Remaining row is no longer marked as duplicate
 - Yellow background removed from remaining row
+
+### TC-8.7: Three-Way Duplicate — Delete One Leaves Two Flagged
+**Requirement:** AC-7
+**Automation:** Automated - `duplicateDetector.test.ts: "three-way duplicate: deleting one leaves two still flagged"`
+**Steps:**
+1. Have three rows with same patient + requestType + qualityMeasure
+2. Delete one of the three rows
+
+**Expected:**
+- Remaining two rows are still marked as duplicates
+- Duplicate indicators persist until only one row remains
+
+### TC-8.8: QM Edit Recalculates Duplicate Flags
+**Requirement:** AC-4
+**Automation:** Automated - `duplicateDetector.test.ts: "duplicate flag recalculated when qualityMeasure edited from match to non-match"`
+**Steps:**
+1. Have two duplicate rows (same patient + RT + QM)
+2. Edit one row's Quality Measure to a different value
+
+**Expected:**
+- Both rows lose their duplicate flag
+- No duplicate indicators shown
+
+### TC-8.9: Whitespace-Padded Request Type Still Checks Duplicates
+**Requirement:** AC-1
+**Automation:** Automated - `duplicateDetector.test.ts: "duplicate check with whitespace-padded requestType"`
+**Steps:**
+1. Create a row with Request Type " AWV " (padded with spaces)
+
+**Expected:**
+- Duplicate check still executes (non-empty after trim)
+- Query uses original padded value
 
 ---
 
@@ -3881,7 +3913,7 @@ npm run cypress:headed  # Run with browser visible
 | 5. Row Colors | 16 | 16 | 0 | 0 | 100% |
 | 6. Cascading Dropdowns | 11 | 9 | 0 | 2 | 82% |
 | 7. Due Date | 3 | 2 | 0 | 1 | 67% |
-| 8. Duplicate Detection | 7 | 1 | 1 | 5 | 21% |
+| 8. Duplicate Detection | 10 | 4 | 1 | 5 | 45% |
 | 9. Row Operations | 10 | 6 | 0 | 4 | 60% |
 | 10. Status Bar | 2 | 2 | 0 | 0 | 100% |
 | 11. Tracking Fields | 7 | 2 | 1 | 4 | 36% |
@@ -3905,6 +3937,15 @@ npm run cypress:headed  # Run with browser visible
 | 40. Smart Column Mapping — Backend | 19 | 19 | 0 | 0 | 100% |
 | 41. Smart Column Mapping — UI | 11 | 11 | 0 | 0 | 100% |
 | 42. Smart Column Mapping — Admin Mgmt | 12 | 12 | 0 | 0 | 100% |
+| 43. Depression Screening QM | 7 | 6 | 0 | 1 | 86% |
+| 44. Authentication & Authorization | 15 | 15 | 0 | 0 | 100% |
+| 45. Real-Time Collaborative Editing | 7 | 7 | 0 | 0 | 100% |
+| 46. Insurance Group Filter | 7 | 7 | 0 | 0 | 100% |
+| 47. Depression Screening E2E | 5 | 5 | 0 | 0 | 100% |
+| 48. Sutter Import Pipeline | 10 | 10 | 0 | 0 | 100% |
+| 49. Cell Editing Conflict | 4 | 4 | 0 | 0 | 100% |
+| 50. Grid Editing Per Role | 3 | 3 | 0 | 0 | 100% |
+| 51. Row Operations (Toolbar) | 2 | 2 | 0 | 0 | 100% |
 
 ### Top Priority Gaps
 
@@ -3913,7 +3954,7 @@ npm run cypress:headed  # Run with browser visible
 | HIGH | Role Workflows | ADMIN+PHYSICIAN grid behavior not E2E tested (TC-37.12) | Cypress |
 | HIGH | Role Workflows | STAFF no-assignments empty state not tested (TC-37.9) | Cypress |
 | HIGH | Role Workflows | Cross-role data isolation at API level (TC-37.15) | Jest + Cypress |
-| HIGH | Cell Editing | 0 automated E2E tests for cell edit workflow | Cypress |
+| ~~HIGH~~ | ~~Cell Editing~~ | ~~0 automated E2E tests for cell edit workflow~~ | ~~Cypress~~ — **RESOLVED: `cell-editing-conflict.cy.ts`, `grid-editing-roles.cy.ts`** |
 | ~~HIGH~~ | ~~Time Interval~~ | ~~0 automated tests~~ | ~~Cypress~~ — **RESOLVED: `row-color-comprehensive.cy.ts` Section 6** |
 | HIGH | Duplicate Detection | Edit-creates-duplicate flow not tested | Cypress |
 | MEDIUM | Role Workflows | ADMIN grid workflow with physician switching (TC-37.1) | Cypress |
@@ -4564,8 +4605,75 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 49. Cell Editing Conflict (409 VERSION_CONFLICT)
+
+### TC-49.1: Conflict Modal Triggered on 409
+- **Precondition:** Grid loaded, cell editing active
+- **Steps:** Edit a cell; API returns 409 VERSION_CONFLICT with server row data
+- **Expected:** Conflict modal appears with "Edit Conflict" heading; shows "Your value" vs "Server value" comparison
+- **Status:** Automated (Cypress - `cell-editing-conflict.cy.ts`)
+
+### TC-49.2: Keep Mine Resolution
+- **Precondition:** Conflict modal displayed
+- **Steps:** Click "Keep Mine" button
+- **Expected:** Modal closes; cell retains user's edit value; grid row updated with user's data
+- **Status:** Automated (Cypress - `cell-editing-conflict.cy.ts`)
+
+### TC-49.3: Keep Theirs Resolution
+- **Precondition:** Conflict modal displayed
+- **Steps:** Click "Keep Theirs" button
+- **Expected:** Modal closes; cell reverts to server value; grid row updated with server data (including fresh updatedAt)
+- **Status:** Automated (Cypress - `cell-editing-conflict.cy.ts`)
+
+### TC-49.4: Cancel Conflict Resolution
+- **Precondition:** Conflict modal displayed
+- **Steps:** Click "Cancel" button
+- **Expected:** Modal closes; cell reverts to original value before edit; grid row restored with server data (prevents stale updatedAt)
+- **Status:** Automated (Cypress - `cell-editing-conflict.cy.ts`)
+
+---
+
+## 50. Grid Editing Per Role
+
+### TC-50.1: Admin Can Edit Dropdown and Text Columns
+- **Precondition:** Logged in as Admin (ko037291@gmail.com)
+- **Steps:** Add test row; edit requestType dropdown; edit notes text field
+- **Expected:** Both dropdown and text edits persist; no permission errors
+- **Status:** Automated (Cypress - `grid-editing-roles.cy.ts`)
+
+### TC-50.2: Physician Can Edit Dropdown and Text Columns
+- **Precondition:** Logged in as Physician (phy1@gmail.com)
+- **Steps:** Edit requestType dropdown; edit notes text field
+- **Expected:** Both edits persist; physician sees only own patients
+- **Status:** Automated (Cypress - `grid-editing-roles.cy.ts`)
+
+### TC-50.3: Staff Can Edit Dropdown and Text Columns
+- **Precondition:** Logged in as Staff (staff1@gmail.com)
+- **Steps:** Edit requestType dropdown; edit notes text field on assigned physician's patients
+- **Expected:** Both edits persist; staff sees only assigned physician's patients
+- **Status:** Automated (Cypress - `grid-editing-roles.cy.ts`)
+
+---
+
+## 51. Row Operations (Add/Delete via Toolbar)
+
+### TC-51.1: Add Row Button Opens Modal and Creates Row
+- **Precondition:** Logged in as Admin, grid loaded
+- **Steps:** Click "Add Row" button; fill Last Name and First Name; click Add
+- **Expected:** New row appears in grid with entered name; row findable by member name search
+- **Status:** Automated (Cypress - `row-operations.cy.ts`)
+
+### TC-51.2: Delete Row Removes Selected Row
+- **Precondition:** Row selected in grid
+- **Steps:** Click "Delete Row" button; confirm deletion
+- **Expected:** Row removed from grid; row count decreases; row no longer findable by name
+- **Status:** Automated (Cypress - `row-operations.cy.ts`)
+
+---
+
 ## Last Updated
 
+February 26, 2026 - Added sections 49 (Cell Editing Conflict, 4 TCs), 50 (Grid Editing Per Role, 3 TCs), 51 (Row Operations, 2 TCs). Added TC-8.7/8.8/8.9 for duplicate detection edge cases. Updated TC-8.6 automation status. New Cypress E2E files: cell-editing-conflict.cy.ts, grid-editing-roles.cy.ts, row-operations.cy.ts. New Jest tests: +5 duplicateDetector edge cases. New Vitest tests: +3 Toolbar edge cases. Test counts: 1,419 Jest + 1,211 Vitest.
 February 26, 2026 - Added `row-color-comprehensive.cy.ts` (179 Cypress tests): comprehensive row color E2E covering all 14 quality measures × all statuses (93 tests), tracking #1 dropdown with all options + date→overdue (52 tests), HgbA1c T1 text + T2 dropdown + date (13 tests), BP T1 dropdown + T2 text + date (5 tests), date entry→overdue/today/terminal/no-dueDate (23 tests), time interval editing (2 tests), color transitions (2 tests). Updated Section 5 (Row Colors) from 7 TCs / 50% automated to 16 TCs / 100% automated. Resolved HIGH priority gap (Time Interval) and MEDIUM priority gap (Row Colors overdue logic). Fixed edit conflict bug: "Keep Theirs" and "Cancel" now restore serverRow including fresh updatedAt to prevent cascading 409 errors.
 February 25, 2026 - Release 4.12.1: Updated test counts (1,415 Jest + 1,202 Vitest). E2E test quality improvements: waitForTimeout elimination across 5 Playwright files, fireEvent→userEvent migration across 25 Vitest files, accessibility labels for form elements.
 February 23, 2026 - Added Sections 44-48: Authentication & Authorization (15 TCs), Real-Time Collaborative Editing (7 TCs), Insurance Group Filter (7 TCs), Depression Screening E2E (5 TCs), Sutter Import Pipeline (10 TCs). 44 test cases, 100% automated. Covers: Jest (auth.routes, socketManager, sutter-integration, actionMapper), Vitest (LoginPage, authStore, dropdownConfig, statusColors, StatusFilterBar), Playwright (auth.spec), Cypress (parallel-editing, insurance-group-filter, cascading-dropdowns).

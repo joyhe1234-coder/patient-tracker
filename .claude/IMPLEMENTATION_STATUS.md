@@ -29,13 +29,14 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.13.0):**
-- Layer 1 (Backend Jest): 1,415 tests passing (48 suites)
-- Layer 2 (Frontend Vitest): 1,208 tests passing (48 suites)
+**Test Coverage (as of v4.13.1):**
+- Layer 1 (Backend Jest): 1,419 tests passing (48 suites)
+- Layer 2 (Frontend Vitest): 1,211 tests passing (48 suites)
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment
-- Layer 4 (Cypress E2E): ~486 tests (expanded: +179 row-color-comprehensive, +24 row-color-roles, rewritten role-access-control ~36 tests)
+- Layer 4 (Cypress E2E): ~486+ tests (expanded: +179 row-color-comprehensive, +24 row-color-roles, rewritten role-access-control ~36 tests, +new cell-editing-conflict, grid-editing-roles, row-operations)
 - Visual test plan v2.1: 427 test cases documented
 - Regression test plan: 48 sections, Row Colors section upgraded to 16 TCs / 100% automated
+- Test Gap Remediation Plan: `.claude/TEST_PLAN.md` with 7 module test plans targeting ~154 new tests
 
 ### Row Color Comprehensive E2E + Add Row Modal Split + Conflict Fix
 
@@ -52,6 +53,23 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Seed dueDate calculation** — `seed.ts` uses `calculateDueDate()` for correct initial state
 
 **Tests:** +6 Vitest (AddRowModal name concatenation), +179 Cypress (row-color-comprehensive), +24 Cypress (row-color-roles), ~36 Cypress (role-access-control rewrite)
+
+### Test Gap Remediation — Planning & New E2E Tests
+
+**Status: In Progress** (Feb 26, 2026)
+**Spec:** `.claude/TEST_PLAN.md`, `.claude/specs/test-*/`, `.claude/test-plans/M1-M7`
+
+- [x] **Test Gap Remediation Plan** — Comprehensive plan with 5-layer pyramid, role-based strategy, per-module coverage targets
+- [x] **7 Test Spec Modules** — Requirements and task breakdowns for auth-security, patient-grid, quality-measures-colors, import-pipeline, admin-management, realtime-collaboration, filtering-search
+- [x] **7 Module Test Plans** — Detailed M1-M7 test plans with test case IDs and implementation priorities
+- [x] **Cell Editing Conflict E2E** — Cypress tests for 409 VERSION_CONFLICT modal lifecycle
+- [x] **Grid Editing Roles E2E** — Per-role column editing verification (Admin, Physician, Staff)
+- [x] **Row Operations E2E** — Add row modal + delete row lifecycle tests
+- [x] **Duplicate Detector edge cases** — +5 Jest tests (deletion flag clearing, three-way duplicate, whitespace handling, QM edit recalculation)
+- [x] **Toolbar edge cases** — +3 Vitest tests (button enable state, disabled click no-op, toggle CSS class)
+- [x] **Spec docs reconciled** — tracking3 -> depressionScreeningStatus across 3 design specs; depression screening color ACs added; security requirements deferred items marked
+
+**Tests:** +4 Jest, +3 Vitest, +3 new Cypress E2E test files
 
 ### Depression Screening Quality Measure
 

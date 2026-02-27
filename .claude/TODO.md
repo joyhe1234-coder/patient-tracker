@@ -6,6 +6,20 @@ This document tracks planned features and enhancements for future development.
 
 ## In Progress
 
+### Test Gap Remediation (In Progress)
+**Spec:** `.claude/TEST_PLAN.md`, `.claude/specs/test-*/`, `.claude/test-plans/M1-M7`
+- [x] Comprehensive test gap remediation plan (5-layer pyramid, role-based strategy, coverage targets)
+- [x] 7 test spec modules with requirements and task breakdowns
+- [x] 7 module-level test plans (M1-M7) with prioritized test cases
+- [x] Cell editing conflict E2E tests (Cypress) — 409 modal lifecycle
+- [x] Grid editing roles E2E tests (Cypress) — per-role column editing
+- [x] Row operations E2E tests (Cypress) — add/delete row lifecycle
+- [x] Duplicate detector edge-case tests (+5 Jest)
+- [x] Toolbar edge-case tests (+3 Vitest)
+- [x] Spec docs reconciled (tracking3 -> depressionScreeningStatus, depression color ACs, security deferred items)
+- [ ] Execute remaining Tier 1 test plans (M1-M7)
+- [ ] Execute Tier 2 test plans
+
 ### Real-Time Collaborative Editing / Parallel Editing (Complete)
 **Spec:** `.claude/specs/parallel-editing/`
 - [x] Requirements phase — `requirements.md` created (11 requirements, 91 acceptance criteria)
