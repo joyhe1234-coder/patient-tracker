@@ -324,4 +324,31 @@ describe('Multi-Select Status Filter', () => {
       });
     });
   });
+
+  describe('Coverage gap: combined multi-select + Duplicates exclusivity', () => {
+    it('should clear Duplicates when adding a second color chip', () => {
+      // Activate Duplicates
+      cy.contains('button', 'Duplicates').click();
+      cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'true');
+
+      // Click a color chip — should deactivate Duplicates (mutual exclusivity)
+      cy.contains('button', 'Completed').click();
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+      cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'false');
+
+      // Add a second color chip (multi-select within colors)
+      cy.contains('button', 'In Progress').click();
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
+
+      // Both color chips active, Duplicates still off
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+      cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'false');
+
+      // Now click Duplicates — should clear both color chips
+      cy.contains('button', 'Duplicates').click();
+      cy.contains('button', 'Duplicates').should('have.attr', 'aria-pressed', 'true');
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'false');
+      cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'false');
+    });
+  });
 });

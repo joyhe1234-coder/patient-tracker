@@ -471,6 +471,21 @@ describe('sutterDataTransformer', () => {
     });
   });
 
+  describe('row with unrecognized Request Type "Unknown" is skipped with error', () => {
+    it('should skip row with requestType "Unknown" and record a transform error', () => {
+      const rows: ParsedRow[] = [
+        makeRow({ 'Request Type': 'Unknown' }),
+      ];
+
+      const result = transformSutterData(SUTTER_HEADERS, rows, sutterConfig, mapping, 4);
+
+      expect(result.rows).toHaveLength(0);
+      expect(result.errors.some(e => e.message.includes('Unrecognized Request Type'))).toBe(true);
+      // Verify the error captures the actual request type value
+      expect(result.errors.some(e => e.message.includes('Unknown'))).toBe(true);
+    });
+  });
+
   describe('mixed request types in same batch', () => {
     it('should process AWV, HCC, and Quality rows independently', () => {
       const rows: ParsedRow[] = [

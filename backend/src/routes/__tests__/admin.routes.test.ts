@@ -535,6 +535,31 @@ describe('Admin Routes', () => {
       expect(res.body.data.pagination.page).toBe(2);
       expect(res.body.data.pagination.limit).toBe(10);
     });
+
+    it('supports filtering by action and date range', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      mockPrisma.auditLog.count.mockResolvedValue(0);
+
+      const res = await request(app).get(
+        '/api/admin/audit-log?action=LOGIN&startDate=2024-01-01&endDate=2024-12-31'
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      // Verify findMany was called with appropriate where clause
+      expect(mockPrisma.auditLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            action: 'LOGIN',
+            createdAt: {
+              gte: new Date('2024-01-01'),
+              lte: new Date('2024-12-31'),
+            },
+          }),
+        })
+      );
+    });
   });
 
   // ── PATCH /api/admin/patients/bulk-assign ───────────────────────
@@ -700,6 +725,260 @@ describe('Admin Routes', () => {
           entityId: 2,
         }),
       });
+    });
+  });
+
+  // ── T2-1: StaffAssignment cleanup on role change ────────────────
+
+  describe('PUT /api/admin/users/:id — StaffAssignment cleanup on role change', () => {
+    it('cleans up staffAssignment records when role changes from STAFF to PHYSICIAN', async () => {
+      const staffUser = {
+        id: 5,
+        email: 'staff@clinic.com',
+        displayName: 'Staff User',
+        roles: ['STAFF'],
+        isActive: true,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(staffUser);
+      mockPrisma.user.update.mockResolvedValue({
+        ...staffUser,
+        roles: ['PHYSICIAN'],
+      });
+      mockPrisma.staffAssignment.deleteMany.mockResolvedValue({ count: 2 });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/admin/users/5')
+        .send({ roles: ['PHYSICIAN'] });
+
+      expect(res.status).toBe(200);
+      expect(mockPrisma.staffAssignment.deleteMany).toHaveBeenCalledWith({
+        where: { staffId: 5 },
+      });
+    });
+
+    it('does NOT clean up staffAssignment when role stays STAFF', async () => {
+      const staffUser = {
+        id: 5,
+        email: 'staff@clinic.com',
+        displayName: 'Staff User',
+        roles: ['STAFF'],
+        isActive: true,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(staffUser);
+      mockPrisma.user.update.mockResolvedValue(staffUser);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/admin/users/5')
+        .send({ displayName: 'Updated Staff' });
+
+      expect(res.status).toBe(200);
+      // deleteMany should NOT be called when roles are not changing
+      expect(mockPrisma.staffAssignment.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('cleans up physician assignments when role changes from PHYSICIAN to ADMIN', async () => {
+      const physicianUser = {
+        id: 6,
+        email: 'doc@clinic.com',
+        displayName: 'Dr. Old',
+        roles: ['PHYSICIAN'],
+        isActive: true,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(physicianUser);
+      mockPrisma.user.update.mockResolvedValue({
+        ...physicianUser,
+        roles: ['ADMIN'],
+      });
+      mockPrisma.staffAssignment.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrisma.patient.updateMany.mockResolvedValue({ count: 3 });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/admin/users/6')
+        .send({ roles: ['ADMIN'] });
+
+      expect(res.status).toBe(200);
+      expect(mockPrisma.staffAssignment.deleteMany).toHaveBeenCalledWith({
+        where: { physicianId: 6 },
+      });
+      expect(mockPrisma.patient.updateMany).toHaveBeenCalledWith({
+        where: { ownerId: 6 },
+        data: { ownerId: null },
+      });
+    });
+  });
+
+  // ── T1-1: Own-role protection, reactivation, audit detail ──────
+
+  describe('PUT /api/admin/users/:id — own-role protection', () => {
+    it('returns 400 CANNOT_CHANGE_OWN_ROLE when admin changes own roles', async () => {
+      // adminUser has id: 1, roles: ['ADMIN']
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...adminUser,
+        roles: ['ADMIN'],
+      });
+
+      const res = await request(app)
+        .put('/api/admin/users/1')
+        .send({ roles: ['PHYSICIAN'] });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('CANNOT_CHANGE_OWN_ROLE');
+    });
+  });
+
+  describe('PUT /api/admin/users/:id — reactivation', () => {
+    it('reactivates a deactivated user with isActive:true', async () => {
+      const deactivatedUser = {
+        id: 7,
+        email: 'inactive@clinic.com',
+        displayName: 'Inactive User',
+        roles: ['PHYSICIAN'],
+        isActive: false,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(deactivatedUser);
+      mockPrisma.user.update.mockResolvedValue({
+        ...deactivatedUser,
+        isActive: true,
+      });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/admin/users/7')
+        .send({ isActive: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 7 },
+        data: { isActive: true },
+      });
+    });
+  });
+
+  describe('PUT /api/admin/users/:id — audit log field-level changes', () => {
+    it('audit log includes field-level changes after updating displayName', async () => {
+      const existingUser = {
+        id: 8,
+        email: 'user@clinic.com',
+        displayName: 'Old Name',
+        roles: ['PHYSICIAN'],
+        isActive: true,
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(existingUser);
+      mockPrisma.user.update.mockResolvedValue({
+        ...existingUser,
+        displayName: 'New Name',
+      });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .put('/api/admin/users/8')
+        .send({ displayName: 'New Name' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'UPDATE',
+          entity: 'user',
+          entityId: 8,
+          changes: {
+            fields: [
+              {
+                field: 'displayName',
+                old: 'Old Name',
+                new: 'New Name',
+              },
+            ],
+          },
+        }),
+      });
+    });
+  });
+
+  // ── T3-1: isValidRoleCombination + audit log filtering + limit ──
+
+  describe('isValidRoleCombination', () => {
+    // Import the function — it is already available via the dynamic import at top level
+    // We need to dynamically import it since the module is ESM-mocked
+    let isValidRoleCombination: (roles: any[]) => boolean;
+
+    beforeEach(async () => {
+      const mod = await import('../admin.routes.js');
+      isValidRoleCombination = mod.isValidRoleCombination as (roles: any[]) => boolean;
+    });
+
+    it('returns true for [PHYSICIAN]', () => {
+      expect(isValidRoleCombination(['PHYSICIAN'] as any)).toBe(true);
+    });
+
+    it('returns true for [ADMIN]', () => {
+      expect(isValidRoleCombination(['ADMIN'] as any)).toBe(true);
+    });
+
+    it('returns true for [STAFF]', () => {
+      expect(isValidRoleCombination(['STAFF'] as any)).toBe(true);
+    });
+
+    it('returns true for [ADMIN, PHYSICIAN]', () => {
+      expect(isValidRoleCombination(['ADMIN', 'PHYSICIAN'] as any)).toBe(true);
+    });
+
+    it('returns false for [STAFF, PHYSICIAN]', () => {
+      expect(isValidRoleCombination(['STAFF', 'PHYSICIAN'] as any)).toBe(false);
+    });
+
+    it('returns false for [STAFF, ADMIN]', () => {
+      expect(isValidRoleCombination(['STAFF', 'ADMIN'] as any)).toBe(false);
+    });
+
+    it('returns false for [STAFF, ADMIN, PHYSICIAN]', () => {
+      expect(isValidRoleCombination(['STAFF', 'ADMIN', 'PHYSICIAN'] as any)).toBe(false);
+    });
+
+    it('returns false for empty array []', () => {
+      expect(isValidRoleCombination([] as any)).toBe(false);
+    });
+  });
+
+  describe('GET /api/admin/audit-log — filtering and limit cap', () => {
+    it('passes action and date filters to prisma query', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      mockPrisma.auditLog.count.mockResolvedValue(0);
+
+      await request(app).get(
+        '/api/admin/audit-log?action=CREATE&startDate=2025-01-01&endDate=2025-06-30'
+      );
+
+      expect(mockPrisma.auditLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            action: 'CREATE',
+            createdAt: {
+              gte: new Date('2025-01-01'),
+              lte: new Date('2025-06-30'),
+            },
+          }),
+        })
+      );
+    });
+
+    it('caps limit at 100 when client requests 200', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([]);
+      mockPrisma.auditLog.count.mockResolvedValue(0);
+
+      const res = await request(app).get('/api/admin/audit-log?limit=200');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.pagination.limit).toBe(100);
+
+      // Also verify that prisma.findMany take param was capped
+      expect(mockPrisma.auditLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 100,
+        })
+      );
     });
   });
 });

@@ -323,4 +323,67 @@ describe('data routes - version check', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
   });
+
+  // T4-1: forceOverwrite audit log includes field-level changes in changes.fields
+  it('forceOverwrite audit log includes field-level changes in changes.fields array', async () => {
+    setupAuth();
+    const measure = createMockMeasure();
+    mockPatientMeasureFindUnique.mockResolvedValue(measure);
+    mockPatientMeasureUpdate.mockResolvedValue(measure);
+    mockAuditLogFindFirst.mockResolvedValue({
+      userId: 2,
+      userEmail: 'other@clinic.com',
+      user: { displayName: 'Other User', email: 'other@clinic.com' },
+    });
+
+    await request(app)
+      .put('/api/data/1')
+      .set('Authorization', 'Bearer valid-token')
+      .send({
+        notes: 'Force override notes',
+        expectedVersion: '2026-02-10T11:00:00.000Z',
+        forceOverwrite: true,
+      });
+
+    expect(mockAuditLogCreate).toHaveBeenCalledTimes(1);
+    const auditLogData = (mockAuditLogCreate.mock.calls[0][0] as any).data;
+
+    // The audit log should have a changes.fields array containing the changed fields
+    expect(auditLogData.changes).toBeDefined();
+    expect(auditLogData.changes.fields).toBeDefined();
+    expect(Array.isArray(auditLogData.changes.fields)).toBe(true);
+
+    // The fields array should contain the 'notes' field
+    const noteField = auditLogData.changes.fields.find((f: any) => f.field === 'notes');
+    expect(noteField).toBeDefined();
+    expect(noteField.field).toBe('notes');
+  });
+
+  // T4-1: Keep Theirs produces no additional audit entry (409 response = no DB write)
+  it('409 VERSION_CONFLICT does not create an audit log entry (no DB write)', async () => {
+    setupAuth();
+    const measure = createMockMeasure();
+    mockPatientMeasureFindUnique.mockResolvedValue(measure);
+    mockCheckVersion.mockResolvedValue({
+      hasConflict: true,
+      conflictFields: ['notes'],
+      serverRow: { id: 1, notes: 'Server notes', updatedAt: '2026-02-10T12:30:00.000Z' },
+      changedBy: 'Dr. Other',
+    });
+
+    const response = await request(app)
+      .put('/api/data/1')
+      .set('Authorization', 'Bearer valid-token')
+      .send({
+        notes: 'My conflicting notes',
+        expectedVersion: '2026-02-10T11:00:00.000Z',
+      });
+
+    expect(response.status).toBe(409);
+
+    // No audit log should be created for a rejected (409) update.
+    // The "Keep Theirs" path on the client simply accepts the server row without
+    // making another PUT, so no additional audit entry is created.
+    expect(mockAuditLogCreate).not.toHaveBeenCalled();
+  });
 });

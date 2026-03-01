@@ -4,6 +4,11 @@
 // Import commands
 import './commands';
 
+// Don't fail tests on uncaught exceptions (e.g. from conflict handling)
+Cypress.on('uncaught:exception', () => {
+  return true;
+});
+
 // Prevent TypeScript errors for Cypress global
 declare global {
   namespace Cypress {

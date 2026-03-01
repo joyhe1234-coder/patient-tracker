@@ -451,6 +451,53 @@ describe('validator', () => {
     });
   });
 
+  describe('Sutter request type validation', () => {
+    it('should accept "Chronic DX" as a valid request type (Sutter-specific)', () => {
+      const rows = [createBaseRow({ requestType: 'Chronic DX', qualityMeasure: 'Chronic Diagnosis Code' })];
+
+      const result = validateRows(rows, 'sutter');
+
+      expect(result.valid).toBe(true);
+      const typeErrors = result.errors.filter(e => e.field === 'requestType');
+      expect(typeErrors).toHaveLength(0);
+    });
+
+    it('should accept "Screening" as a valid request type (Sutter-specific)', () => {
+      const rows = [createBaseRow({ requestType: 'Screening', qualityMeasure: 'Colon Cancer Screening' })];
+
+      const result = validateRows(rows, 'sutter');
+
+      expect(result.valid).toBe(true);
+      const typeErrors = result.errors.filter(e => e.field === 'requestType');
+      expect(typeErrors).toHaveLength(0);
+    });
+  });
+
+  describe('Sutter row number offset for headerRow=3', () => {
+    it('should use sourceRowIndex for error row tracking (data row 1 = spreadsheet row 5 for Sutter)', () => {
+      // Sutter headerRow=3 means: rows 0-2 are metadata, row 3 is headers, row 4+ is data.
+      // Data row 0 in the array corresponds to spreadsheet row 5 (headerRow+2 in 1-indexed).
+      // The validator uses sourceRowIndex which is set during transformation.
+      // For Sutter: sourceRowIndex=0 means the first data row (spreadsheet row 5 when headerRow=3).
+      const rows = [
+        createBaseRow({ memberDob: null, sourceRowIndex: 0 }), // First data row
+        createBaseRow({ memberDob: null, sourceRowIndex: 1, memberName: 'Second Patient' }),
+      ];
+
+      const result = validateRows(rows, 'sutter');
+
+      expect(result.valid).toBe(false);
+      // Error should reference sourceRowIndex=0 (first data row)
+      const firstRowError = result.errors.find(e => e.rowIndex === 0);
+      expect(firstRowError).toBeDefined();
+      // Error should reference sourceRowIndex=1 (second data row)
+      const secondRowError = result.errors.find(e => e.rowIndex === 1);
+      expect(secondRowError).toBeDefined();
+      // In the UI, the offset (headerRow+2) is added to display the spreadsheet row number.
+      // The validator itself just stores sourceRowIndex, which is correct.
+    });
+  });
+
   describe('date validation edge cases', () => {
     it('should accept various valid date formats after transformation', () => {
       // The transformer should normalize to YYYY-MM-DD

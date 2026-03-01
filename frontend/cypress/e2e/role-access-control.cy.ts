@@ -358,3 +358,52 @@ describe('Navigation Protection', () => {
     cy.url().should('include', '/login');
   });
 });
+
+// ─── Admin API 403 Enforcement ──────────────────────────────────
+
+describe('Admin API 403 enforcement', () => {
+  it('PHYSICIAN calling /api/admin/users with valid token receives 403', () => {
+    cy.login(ACCOUNTS.phy1.email, ACCOUNTS.phy1.password);
+    cy.visit('/');
+    cy.get('.ag-theme-alpine', { timeout: 10000 }).should('be.visible');
+
+    cy.window().then((win) => {
+      const token = win.localStorage.getItem('auth_token');
+      cy.request({
+        url: '/api/admin/users',
+        failOnStatusCode: false,
+        headers: { Authorization: `Bearer ${token}` },
+      }).its('status').should('eq', 403);
+    });
+  });
+
+  it('STAFF calling /api/admin/users with valid token receives 403', () => {
+    cy.login(ACCOUNTS.staff1.email, ACCOUNTS.staff1.password);
+    cy.visit('/');
+    cy.get('.ag-theme-alpine', { timeout: 10000 }).should('be.visible');
+
+    cy.window().then((win) => {
+      const token = win.localStorage.getItem('auth_token');
+      cy.request({
+        url: '/api/admin/users',
+        failOnStatusCode: false,
+        headers: { Authorization: `Bearer ${token}` },
+      }).its('status').should('eq', 403);
+    });
+  });
+
+  it('Non-ADMIN roles receive 403 from /api/admin/audit-log', () => {
+    cy.login(ACCOUNTS.phy1.email, ACCOUNTS.phy1.password);
+    cy.visit('/');
+    cy.get('.ag-theme-alpine', { timeout: 10000 }).should('be.visible');
+
+    cy.window().then((win) => {
+      const token = win.localStorage.getItem('auth_token');
+      cy.request({
+        url: '/api/admin/audit-log',
+        failOnStatusCode: false,
+        headers: { Authorization: `Bearer ${token}` },
+      }).its('status').should('eq', 403);
+    });
+  });
+});

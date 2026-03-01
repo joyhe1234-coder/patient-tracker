@@ -180,6 +180,10 @@ async function executeMergeMode(
 
         case 'UPDATE':
           await updateMeasure(change, tx, systemId);
+          // Also update patient ownerId for reassigned patients
+          if (ownerId !== null && change.existingPatientId) {
+            await reassignPatientIfNeeded(change.existingPatientId, ownerId, tx);
+          }
           stats.updated++;
           break;
 
@@ -190,6 +194,10 @@ async function executeMergeMode(
           break;
 
         case 'SKIP':
+          // Update patient ownerId for reassigned patients even when skipping measures
+          if (ownerId !== null && change.existingPatientId) {
+            await reassignPatientIfNeeded(change.existingPatientId, ownerId, tx);
+          }
           stats.skipped++;
           break;
 
@@ -341,6 +349,28 @@ async function updateMeasure(
     await tx.patient.update({
       where: { id: change.existingPatientId },
       data: { insuranceGroup: systemId },
+    });
+  }
+}
+
+/**
+ * Reassign a patient to a new owner if their current ownerId differs.
+ * Used during merge mode for SKIP/UPDATE actions on reassigned patients.
+ */
+async function reassignPatientIfNeeded(
+  patientId: number,
+  newOwnerId: number,
+  tx: PrismaTransaction
+): Promise<void> {
+  const patient = await tx.patient.findUnique({
+    where: { id: patientId },
+    select: { ownerId: true },
+  });
+
+  if (patient && patient.ownerId !== newOwnerId) {
+    await tx.patient.update({
+      where: { id: patientId },
+      data: { ownerId: newOwnerId },
     });
   }
 }

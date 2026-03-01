@@ -334,6 +334,7 @@ describe('Sutter Import Flow (End-to-End)', () => {
         measureStatus: row.measureStatus,
         ownerId: null,
         ownerName: null,
+        insuranceGroup: null,
       });
 
       const summary = createEmptySummary();

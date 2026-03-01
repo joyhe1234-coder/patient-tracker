@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.14.0] - 2026-03-01
+
+### Fixed
+- **Import Replace All deleting other insurance groups** — `diffCalculator.ts` now scopes Replace All mode to only delete records matching the imported insurance system (e.g., Hill import no longer deletes Sutter patients). Passes `systemId` through `import.routes.ts` → `calculateDiff()`
+- **Import reassignment creating duplicate measures** — New `loadReassignmentRecords()` in `diffCalculator.ts` loads existing measures for patients being reassigned to a different owner, so diff produces SKIP/UPDATE instead of INSERT (duplicates)
+- **Import merge mode not reassigning patients** — `importExecutor.ts` now calls `reassignPatientIfNeeded()` during SKIP/UPDATE actions to update patient ownerId for reassigned patients
+- **Socket reconnection data loss** — `useSocket.ts` now tracks connection state with `hasBeenConnectedRef`/`wasDisconnectedRef` and re-joins physician room + refreshes data on reconnection (was silently losing live updates after network interruption)
+- **Depression Screening "Screening complete" missing baseDueDays** — `seed.ts` sets `baseDueDays: 365` for "Screening complete" status (was null, preventing due date calculation)
+- **BUG-6 filter bar count mismatch** — Marked as FIXED; both filter counting and visual display now use shared `getRowStatusColor()` from `statusColors.ts`
+
+### Added
+- **Admin role change cleanup** — `userHandlers.ts` cleans up StaffAssignment records when roles change: removing STAFF deletes staff assignments, removing PHYSICIAN deletes physician assignments and unassigns owned patients
+- **Bug reports** — `.claude/bugs/import-reassignment-duplicates/` and `.claude/bugs/replace-all-deletes-other-insurance/` with report, analysis, and verification docs
+- **Test spec task breakdowns** — `tasks.md` added to 6 test spec modules (test-admin-management, test-auth-security, test-filtering-search, test-import-pipeline, test-quality-measures-colors, test-realtime-collaboration)
+- **132 new backend Jest tests** — auth.routes (+373 lines), admin.routes (+279 lines), import.routes (+89 lines), data.routes.version (+63 lines), socketManager (+194 lines), diffCalculator (+362 lines), importExecutor (+352 lines), previewCache (+82 lines), and more across 22 test files
+- **95 new frontend Vitest tests** — statusColors (+132 lines), PatientGrid (+137 lines), useSocket (+119 lines), MainPage (+93 lines), dropdownConfig (+33 lines), AdminPage (+34 lines), ProtectedRoute (+39 lines), SheetSelector (+45 lines)
+- **New Cypress E2E tests** — filter-roles-combined.cy.ts, expanded cascading-dropdowns (+229 lines), expanded row-color-comprehensive (+234 lines), expanded sorting-filtering (+162 lines), expanded time-interval (+221 lines), expanded compact-filter-bar (+116 lines)
+- **New Playwright E2E tests** — auth-edge-cases.spec.ts (force-change modal, account lockout, post-logout)
+- **New backend test files** — cors.test.ts (CORS headers), securityHeaders.test.ts, updateUser.staffCleanup.test.ts, reassignment-merge.test.ts
+- **Security audit findings** — 16 findings (0 critical, 5 high, 7 medium, 4 low) documented in TODO.md with remediation plan
+
+### Changed
+- **Test spec requirements updated** — All 8 test spec requirements.md files refined with expanded test cases and updated module boundaries
+
+### Tests
+- Backend (Jest): 1,560 tests passing (52 suites) — +132 from v4.13.3
+- Frontend (Vitest): 1,306 tests passing (48 suites) — +95 from v4.13.3
+
+---
+
 ## [4.13.3] - 2026-02-26
 
 ### Fixed

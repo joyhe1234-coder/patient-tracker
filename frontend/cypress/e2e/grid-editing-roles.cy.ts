@@ -44,20 +44,29 @@ describe('Grid editing as Admin', () => {
 
   it('Admin can edit notes text field', () => {
     const testNote = `Admin note ${Date.now()}`;
+    const testName = `AdminNote${Date.now()}`;
 
-    cy.getAgGridCellWithScroll(0, 'notes').dblclick();
+    // Add a fresh row to avoid stale-version conflicts from previous test's edits
+    cy.addTestRow(`${testName}, Test`);
 
-    cy.get(`[row-index="0"] [col-id="notes"]`).first()
-      .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
-      .clear()
-      .type(testNote);
+    cy.findRowByMemberName(testName).then((rowIndex) => {
+      const idx = rowIndex as unknown as number;
+      expect(idx).to.be.greaterThan(-1);
 
-    // Commit by clicking header
-    cy.get('.ag-header').click();
-    cy.wait(500);
+      cy.getAgGridCellWithScroll(idx, 'notes').dblclick();
 
-    cy.getAgGridCellWithScroll(0, 'notes')
-      .should('contain.text', testNote);
+      cy.get(`[row-index="${idx}"] [col-id="notes"]`).first()
+        .find('.ag-cell-edit-wrapper input, .ag-text-field-input').first()
+        .clear()
+        .type(testNote);
+
+      // Commit by clicking header
+      cy.get('.ag-header').click();
+      cy.wait(500);
+
+      cy.getAgGridCellWithScroll(idx, 'notes')
+        .should('contain.text', testNote);
+    });
   });
 });
 
@@ -65,7 +74,12 @@ describe('Grid editing as Physician', () => {
   beforeEach(() => {
     cy.login('phy1@gmail.com', 'welcome100');
     cy.visit('/');
-    cy.waitForAgGrid();
+    // Physician may have 0 rows under default insurance group
+    cy.get('.ag-theme-alpine', { timeout: 15000 }).should('be.visible');
+    // Add a test row so there's always something to edit
+    cy.addTestRow(`PhyRole${Date.now()}, Test`);
+    cy.get('.ag-row[row-index]', { timeout: 10000 }).should('exist');
+    cy.window().should('have.property', '__agGridApi');
     cy.on('window:alert', cy.stub());
   });
 
@@ -104,7 +118,8 @@ describe('Grid editing as Staff', () => {
   beforeEach(() => {
     cy.login('staff1@gmail.com', 'welcome100');
     cy.visit('/');
-    cy.waitForAgGrid();
+    // Staff may have 0 rows under default insurance group
+    cy.get('.ag-theme-alpine', { timeout: 15000 }).should('be.visible');
     cy.on('window:alert', cy.stub());
   });
 
@@ -128,6 +143,12 @@ describe('Grid editing as Staff', () => {
 
   it('Staff can edit notes text field', () => {
     const testNote = `Staff note ${Date.now()}`;
+    const testName = `StaffNote${Date.now()}`;
+
+    // Add a row so we have something to edit
+    cy.addTestRow(`${testName}, Test`);
+    cy.get('.ag-row[row-index]', { timeout: 10000 }).should('exist');
+    cy.window().should('have.property', '__agGridApi');
 
     cy.getAgGridCellWithScroll(0, 'notes').dblclick();
 

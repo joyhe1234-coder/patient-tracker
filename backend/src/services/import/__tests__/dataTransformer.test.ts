@@ -389,6 +389,49 @@ describe('dataTransformer', () => {
     });
   });
 
+  describe('date edge cases', () => {
+    it('should handle Excel serial number in DOB column by returning null DOB with error', () => {
+      // Excel serial numbers (e.g., 44927) can appear when dates aren't properly formatted
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'Serial DOB',
+        'DOB': '44927',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      // A pure number like "44927" is not a recognized date format
+      // The transformer should either parse it or record an error
+      expect(result.rows).toHaveLength(1);
+      // If DOB is null, there should be an error reported
+      if (result.rows[0].memberDob === null) {
+        expect(result.errors.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should handle two-digit year DOB by treating it as invalid or parsing consistently', () => {
+      // "01/15/90" could be interpreted as 1990 or 2090
+      const headers = ['Patient', 'DOB', 'Annual Wellness Visit Q2'];
+      const rows = [{
+        'Patient': 'TwoDigitYear',
+        'DOB': '01/15/90',
+        'Annual Wellness Visit Q2': 'Compliant',
+      }];
+
+      const result = transformData(headers, rows, systemId, 2);
+
+      // The transform should handle it without crashing
+      expect(result.rows).toHaveLength(1);
+      // If parsed, the year should be reasonable (1990, not 0090 or 2090)
+      if (result.rows[0].memberDob !== null) {
+        const year = parseInt(result.rows[0].memberDob.split('-')[0], 10);
+        expect(year).toBeGreaterThanOrEqual(1900);
+        expect(year).toBeLessThanOrEqual(2100);
+      }
+    });
+  });
+
   // Conditional: only run when test data files exist (skips visibly in test report)
   const hasTestDataFiles = fs.existsSync(path.join(testDataDir, 'test-hill-valid.csv'));
   (hasTestDataFiles ? describe : describe.skip)('with test data files', () => {

@@ -331,4 +331,16 @@ describe('measureDetailsParser', () => {
       expect(result.tracking1).toBe('200');
     });
   });
+
+  describe('semicolon parsing priority over comma parsing', () => {
+    it('should parse semicolons first when both semicolons and commas are present', () => {
+      // Input: "01/15/2025; 7.5, elevated" should be parsed as semicolon format
+      // first part = date, remaining parts joined = "7.5, elevated"
+      const result = parseMeasureDetails('01/15/2025; 7.5, elevated');
+
+      expect(result.statusDate).toBe('2025-01-15');
+      // The tracking1 should contain the remainder after the semicolon
+      expect(result.tracking1).toBe('7.5, elevated');
+    });
+  });
 });

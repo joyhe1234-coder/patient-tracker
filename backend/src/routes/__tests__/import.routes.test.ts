@@ -1493,4 +1493,93 @@ describe('Import Routes', () => {
       );
     });
   });
+
+  // ── Full Pipeline Integration: sheets → preview → execute ──────
+
+  describe('Full pipeline integration: sheets → preview → execute', () => {
+    it('should complete the full import pipeline: POST /sheets → POST /preview → POST /execute', async () => {
+      // Step 1: POST /sheets — discover workbook tabs
+      mockGetWorkbookInfo.mockReturnValue({ sheetNames: ['Sheet1'], workbook: {} });
+      mockGetSheetHeaders.mockReturnValue(
+        new Map([['Sheet1', ['Patient', 'DOB', 'Annual Wellness Visit']]])
+      );
+
+      const sheetsRes = await request(app)
+        .post('/api/import/sheets')
+        .set('x-test-file', 'test.xlsx');
+
+      expect(sheetsRes.status).toBe(200);
+      expect(sheetsRes.body.success).toBe(true);
+      expect(sheetsRes.body.data.sheets).toContain('Sheet1');
+
+      // Step 2: POST /preview — generate diff preview
+      const previewRes = await request(app)
+        .post('/api/import/preview')
+        .set('x-test-file', 'test.csv');
+
+      expect(previewRes.status).toBe(200);
+      expect(previewRes.body.success).toBe(true);
+      const previewId = previewRes.body.data.previewId;
+      expect(previewId).toBe('preview-id-123');
+      expect(previewRes.body.data.summary.inserts).toBe(1);
+
+      // Step 3: POST /execute/:previewId — execute import from cached preview
+      const executeRes = await request(app)
+        .post(`/api/import/execute/${previewId}`);
+
+      expect(executeRes.status).toBe(200);
+      expect(executeRes.body.success).toBe(true);
+      expect(executeRes.body.data.stats.inserted).toBe(1);
+      expect(executeRes.body.message).toContain('Import completed');
+
+      // Verify the full chain of service calls
+      expect(mockGetWorkbookInfo).toHaveBeenCalled();
+      expect(mockLoadMergedConfig).toHaveBeenCalled();
+      expect(mockDetectConflicts).toHaveBeenCalled();
+      expect(mockStorePreview).toHaveBeenCalled();
+      expect(mockGetPreview).toHaveBeenCalledWith(previewId);
+      expect(mockExecuteImport).toHaveBeenCalled();
+    });
+  });
+
+  // T4-1: Import route broadcast + audit
+  describe('POST /api/import/execute — Socket.IO broadcast', () => {
+    it('emits import:started and import:completed events to room', async () => {
+      // Access the broadcastToRoom mock via dynamic import
+      const socketMgr = await import('../../services/socketManager.js');
+      const mockBroadcast = socketMgr.broadcastToRoom as jest.Mock<any>;
+      mockBroadcast.mockClear();
+
+      const res = await request(app).post('/api/import/execute/preview-id-123');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+
+      // broadcastToRoom should have been called for import:started and import:completed
+      expect(mockBroadcast).toHaveBeenCalledTimes(2);
+
+      // First call: import:started
+      expect(mockBroadcast).toHaveBeenCalledWith(
+        'physician:1',
+        'import:started',
+        { importedBy: 'Dr. Test' },
+      );
+
+      // Second call: import:completed with stats
+      expect(mockBroadcast).toHaveBeenCalledWith(
+        'physician:1',
+        'import:completed',
+        expect.objectContaining({
+          importedBy: 'Dr. Test',
+          stats: expect.objectContaining({
+            inserted: 1,
+            updated: 0,
+            deleted: 0,
+            skipped: 0,
+            bothKept: 0,
+          }),
+        }),
+      );
+    });
+  });
 });

@@ -892,4 +892,21 @@ describe('mappingService', () => {
       });
     });
   });
+
+  // ================================================================
+  // Edge case: empty changes array (coverage gap)
+  // ================================================================
+  describe('saveMappingOverrides with empty changes', () => {
+    it('should not call upsert when changes array is empty', async () => {
+      mockMappingFindMany
+        .mockResolvedValueOnce([]) // before
+        .mockResolvedValueOnce([]) // after
+        .mockResolvedValue([]);    // loadMergedConfig
+
+      await saveMappingOverrides('hill', [], 1);
+
+      // No upsert should be called for empty changes
+      expect(mockMappingUpsert).not.toHaveBeenCalled();
+    });
+  });
 });

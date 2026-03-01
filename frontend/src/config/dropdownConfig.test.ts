@@ -17,6 +17,14 @@ import {
   shouldAutoFillQualityMeasure,
   getAutoFillQualityMeasure,
 } from './dropdownConfig';
+import {
+  GRAY_STATUSES,
+  PURPLE_STATUSES,
+  GREEN_STATUSES,
+  BLUE_STATUSES,
+  YELLOW_STATUSES,
+  ORANGE_STATUSES,
+} from './statusColors';
 
 describe('dropdownConfig', () => {
   // ── Constants / Data integrity ──────────────────────────────────────
@@ -347,6 +355,31 @@ describe('dropdownConfig', () => {
         const allStatuses = Object.values(QUALITY_MEASURE_TO_STATUS).flat();
         expect(allStatuses).toContain(status);
       }
+    });
+  });
+
+  // ── T5-1: Color array / dropdown cross-reference integrity ─────────
+
+  describe('color array / dropdown cross-reference integrity', () => {
+    it('every status in color arrays exists in at least one quality measure status list', () => {
+      const allDropdownStatuses = Object.values(QUALITY_MEASURE_TO_STATUS).flat();
+      const allColorStatuses = [
+        ...GRAY_STATUSES,
+        ...PURPLE_STATUSES,
+        ...GREEN_STATUSES,
+        ...BLUE_STATUSES,
+        ...YELLOW_STATUSES,
+        ...ORANGE_STATUSES,
+      ];
+
+      const missing: string[] = [];
+      for (const status of allColorStatuses) {
+        if (!allDropdownStatuses.includes(status)) {
+          missing.push(status);
+        }
+      }
+
+      expect(missing).toEqual([]);
     });
   });
 });

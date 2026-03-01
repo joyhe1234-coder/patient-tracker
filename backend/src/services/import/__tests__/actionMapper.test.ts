@@ -643,4 +643,29 @@ describe('actionMapper', () => {
       expect(result!.fuzzyScore).toBeGreaterThanOrEqual(0.75);
     });
   });
+
+  describe('regex match takes priority over fuzzy match (matching order)', () => {
+    it('should return regex match (not fuzzy) when regex pattern matches exactly', () => {
+      // Build cache with patterns where both regex and fuzzy could match
+      const testMappings: ActionMappingEntry[] = [
+        {
+          pattern: '^Vaccine:',
+          requestType: 'Quality',
+          qualityMeasure: 'Vaccination',
+          measureStatus: 'Not Addressed',
+        },
+      ];
+      const testCache = buildActionMapperCache(testMappings);
+
+      // This text matches the regex directly — matchAction should return a regex match
+      const result = matchAction('Vaccine: Flu 2025-2026', testCache);
+
+      expect(result).not.toBeNull();
+      // Regex match should have matchedBy='regex' and no fuzzyScore
+      // Fuzzy match would have matchedBy='fuzzy' and a fuzzyScore number
+      expect(result!.qualityMeasure).toBe('Vaccination');
+      expect(result!.matchedBy).toBe('regex');
+      expect(result!.fuzzyScore).toBeUndefined();
+    });
+  });
 });

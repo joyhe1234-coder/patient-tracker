@@ -114,29 +114,25 @@ describe('Row Operations', () => {
       // Click Delete Row
       cy.contains('button', 'Delete Row').click({ force: true });
 
-      // Click Cancel in the confirmation dialog
-      cy.wait(300);
-      cy.get('body').then(($body) => {
-        if ($body.find('button:contains("Cancel")').length > 0) {
-          // Find Cancel in the topmost modal
-          cy.get('.bg-white.rounded-lg, [role="dialog"]').last()
-            .find('button').contains('Cancel').click();
-        }
-      });
+      // Wait for confirm modal to appear, then click Cancel
+      cy.get('.bg-white.rounded-lg.shadow-xl', { timeout: 5000 }).should('be.visible');
+      cy.get('.bg-white.rounded-lg.shadow-xl').last()
+        .contains('button', 'Cancel').click({ force: true });
 
+      // Wait for modal to fully close
       cy.wait(500);
+      cy.get('.fixed.inset-0.bg-black', { timeout: 0 }).should('not.exist');
 
-      // Row should still exist
-      cy.findRowByMemberName(testName).then((idx2) => {
-        expect(idx2).to.be.greaterThan(-1);
-      });
+      // Row should still exist — search by the memberName cells
+      cy.get('[col-id="memberName"]').should('contain.text', testName);
     });
   });
 
   it('Add and delete work as Staff', () => {
     cy.login('staff1@gmail.com', 'welcome100');
     cy.visit('/');
-    cy.waitForAgGrid();
+    // Staff may have 0 rows under default insurance group — don't require rows
+    cy.get('.ag-theme-alpine', { timeout: 15000 }).should('be.visible');
 
     const testName = `StaffOps${Date.now()}`;
 

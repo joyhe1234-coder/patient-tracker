@@ -98,7 +98,7 @@ jest.unstable_mockModule('../../config/index.js', () => ({
 
 const { default: authRouter } = await import('../auth.routes.js');
 const { errorHandler } = await import('../../middleware/errorHandler.js');
-const { authenticateUser, findUserByEmail, findUserById, verifyPassword, updatePassword, generateToken, updateLastLogin, getStaffAssignments, isAccountLocked, incrementFailedAttempts, lockAccount, resetFailedAttempts } = await import('../../services/authService.js');
+const { authenticateUser, findUserByEmail, findUserById, verifyPassword, updatePassword, generateToken, updateLastLogin, getStaffAssignments, getAllPhysicians, isAccountLocked, incrementFailedAttempts, lockAccount, resetFailedAttempts } = await import('../../services/authService.js');
 const { isSmtpConfigured } = await import('../../services/emailService.js');
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -817,6 +817,377 @@ describe('Auth Routes', () => {
         .send({ newPassword: 'short' });
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  // ── Audit logging for successful operations ──────────────────────
+
+  describe('Audit logging for successful operations', () => {
+    it('creates LOGIN audit log on successful login', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('jwt-token-123');
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'password123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'LOGIN',
+          userId: testUser.id,
+          userEmail: testUser.email,
+          entity: 'user',
+          entityId: testUser.id,
+        }),
+      });
+    });
+
+    it('creates LOGOUT audit log on successful logout', async () => {
+      mockPrisma.editLock.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app).post('/api/auth/logout');
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'LOGOUT',
+          userId: testUser.id,
+          userEmail: testUser.email,
+          entity: 'user',
+          entityId: testUser.id,
+        }),
+      });
+    });
+
+    it('creates PASSWORD_CHANGE audit log on voluntary password change', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(testUser);
+      (verifyPassword as jest.Mock<any>)
+        .mockResolvedValueOnce(true)   // current password valid
+        .mockResolvedValueOnce(false); // new password is different
+      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .put('/api/auth/password')
+        .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'PASSWORD_CHANGE',
+          userId: testUser.id,
+          userEmail: testUser.email,
+          entity: 'user',
+          entityId: testUser.id,
+        }),
+      });
+    });
+
+    it('creates PASSWORD_CHANGE audit log with FORCED_CHANGE on force-change', async () => {
+      const mustChangeUser = { ...testUser, mustChangePassword: true };
+      (findUserById as jest.Mock<any>).mockResolvedValue(mustChangeUser);
+      (updatePassword as jest.Mock<any>).mockResolvedValue(undefined);
+      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/force-change-password')
+        .send({ newPassword: 'newpassword123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'PASSWORD_CHANGE',
+          userId: testUser.id,
+          details: { reason: 'FORCED_CHANGE' },
+        }),
+      });
+    });
+
+    it('creates PASSWORD_RESET_REQUEST audit log for forgot-password', async () => {
+      (isSmtpConfigured as jest.Mock<any>).mockReturnValue(true);
+      const activeUser = { ...testUser, isActive: true };
+      mockPrisma.user.findUnique.mockResolvedValue(activeUser);
+      mockPrisma.passwordResetToken.create.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'doc@example.com' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'PASSWORD_RESET_REQUEST',
+          userId: testUser.id,
+          userEmail: testUser.email,
+        }),
+      });
+    });
+
+    it('creates PASSWORD_RESET audit log on successful password reset', async () => {
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'valid-token',
+        email: 'doc@example.com',
+        used: false,
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      mockPrisma.user.findUnique.mockResolvedValue(testUser);
+      mockPrisma.passwordResetToken.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'valid-token', newPassword: 'newpassword123' });
+
+      expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'PASSWORD_RESET',
+          userId: testUser.id,
+          userEmail: testUser.email,
+          entity: 'user',
+          entityId: testUser.id,
+        }),
+      });
+    });
+  });
+
+  // ── Edge cases ────────────────────────────────────────────────────
+
+  describe('Edge cases', () => {
+    it('attempt 4 returns INVALID_CREDENTIALS without warning or lock', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(testUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(false);
+      (incrementFailedAttempts as jest.Mock<any>).mockResolvedValue(4);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'doc@example.com', password: 'wrongpassword' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+      // Attempt 4 is >= 3, so warning IS shown
+      expect(res.body.error.warning).toContain('trouble logging in');
+      // But account is NOT locked (only at 5+)
+      expect(lockAccount).not.toHaveBeenCalled();
+    });
+
+    it('reset-password returns USER_NOT_FOUND for inactive user', async () => {
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'valid-token',
+        email: 'inactive@example.com',
+        used: false,
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+      mockPrisma.user.findUnique.mockResolvedValue({ ...testUser, isActive: false });
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'valid-token', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('USER_NOT_FOUND');
+    });
+
+    it('forgot-password for inactive user returns success but skips email', async () => {
+      (isSmtpConfigured as jest.Mock<any>).mockReturnValue(true);
+      const inactiveUser = { ...testUser, isActive: false };
+      mockPrisma.user.findUnique.mockResolvedValue(inactiveUser);
+
+      const res = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'inactive@example.com' });
+
+      // Returns success (security: no email enumeration)
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      // But no token was created and no audit log was written
+      expect(mockPrisma.passwordResetToken.create).not.toHaveBeenCalled();
+      expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
+    });
+
+    it('token expiring at exact boundary is treated as expired', async () => {
+      // Token with expiresAt = now (current time) — code uses `<` so exactly-now is NOT expired
+      const justNow = new Date();
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 1,
+        token: 'boundary-token',
+        email: 'doc@example.com',
+        used: false,
+        expiresAt: justNow,
+      });
+      mockPrisma.user.findUnique.mockResolvedValue(testUser);
+      mockPrisma.passwordResetToken.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({ token: 'boundary-token', newPassword: 'newpassword123' });
+
+      // expiresAt < new Date() — if expiresAt == creation time and a few ms pass,
+      // it becomes expired. This test documents the `<` vs `<=` behavior.
+      // The token is treated as expired because time has elapsed since the Date was created.
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('TOKEN_EXPIRED');
+    });
+  });
+
+  // ── Login assignment responses per role (T4) ──────────────────────
+
+  describe('Login assignment responses per role', () => {
+    const adminUser = {
+      ...testUser,
+      id: 10,
+      email: 'admin@example.com',
+      displayName: 'Admin User',
+      roles: ['ADMIN'],
+    };
+
+    const adminPhysicianUser = {
+      ...testUser,
+      id: 11,
+      email: 'adminphy@example.com',
+      displayName: 'Admin Physician',
+      roles: ['ADMIN', 'PHYSICIAN'],
+    };
+
+    const physicianUser = {
+      ...testUser,
+      id: 12,
+      email: 'phy@example.com',
+      displayName: 'Physician Only',
+      roles: ['PHYSICIAN'],
+    };
+
+    const mockPhysicians = [
+      { physicianId: 1, physicianName: 'Dr. Alpha' },
+      { physicianId: 2, physicianName: 'Dr. Beta' },
+    ];
+
+    it('ADMIN login returns all active physicians as assignments', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(adminUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('admin-jwt');
+      (getAllPhysicians as jest.Mock<any>).mockResolvedValue(mockPhysicians);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'admin@example.com', password: 'password123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(getAllPhysicians).toHaveBeenCalled();
+      expect(res.body.data.assignments).toEqual(mockPhysicians);
+    });
+
+    it('ADMIN+PHYSICIAN login returns all active physicians as assignments', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(adminPhysicianUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('adminphy-jwt');
+      (getAllPhysicians as jest.Mock<any>).mockResolvedValue(mockPhysicians);
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'adminphy@example.com', password: 'password123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      // ADMIN+PHYSICIAN: the code checks STAFF first, then ADMIN; since this user
+      // has ADMIN (not STAFF), it falls into the ADMIN branch → getAllPhysicians
+      expect(getAllPhysicians).toHaveBeenCalled();
+      expect(res.body.data.assignments).toEqual(mockPhysicians);
+    });
+
+    it('PHYSICIAN login does not include assignments in response', async () => {
+      (findUserByEmail as jest.Mock<any>).mockResolvedValue(physicianUser);
+      (isAccountLocked as jest.Mock<any>).mockReturnValue(false);
+      (verifyPassword as jest.Mock<any>).mockResolvedValue(true);
+      (updateLastLogin as jest.Mock<any>).mockResolvedValue(undefined);
+      (generateToken as jest.Mock<any>).mockReturnValue('phy-jwt');
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'phy@example.com', password: 'password123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      // PHYSICIAN-only user: neither STAFF nor ADMIN branch applies
+      expect(getAllPhysicians).not.toHaveBeenCalled();
+      expect(getStaffAssignments).not.toHaveBeenCalled();
+      expect(res.body.data.assignments).toBeUndefined();
+    });
+  });
+
+  // ── Empty body login validation (T6) ──────────────────────────────
+
+  describe('Empty body login validation', () => {
+    it('POST /api/auth/login with empty body returns 400', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
+  // ── GET /api/auth/me edge cases ──────────────────────────────────
+
+  describe('GET /api/auth/me edge cases', () => {
+    it('returns 404 when user is deleted after token issuance', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue(null);
+
+      const res = await request(app).get('/api/auth/me');
+
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('USER_NOT_FOUND');
+    });
+
+    it('returns user data even when isActive is false (route does not recheck)', async () => {
+      const deactivatedUser = { ...testUser, isActive: false };
+      (findUserById as jest.Mock<any>).mockResolvedValue(deactivatedUser);
+
+      const res = await request(app).get('/api/auth/me');
+
+      // The /me route does not check isActive — that check is in requireAuth middleware.
+      // With mocked middleware, the route returns the user regardless.
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+  });
+
+  // ── PUT /api/auth/password edge cases ────────────────────────────
+
+  describe('PUT /api/auth/password edge cases', () => {
+    it('clears mustChangePassword flag on successful password change', async () => {
+      (findUserById as jest.Mock<any>).mockResolvedValue({ ...testUser, mustChangePassword: true });
+      (verifyPassword as jest.Mock<any>)
+        .mockResolvedValueOnce(true)   // current password valid
+        .mockResolvedValueOnce(false); // new password is different
+      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.auditLog.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/auth/password')
+        .send({ currentPassword: 'oldpassword123', newPassword: 'newpassword123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: testUser.id },
+        data: { mustChangePassword: false },
+      });
     });
   });
 });

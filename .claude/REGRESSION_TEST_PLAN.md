@@ -4723,8 +4723,43 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 53. Import Bug Fixes — Insurance Scoping & Reassignment
+
+### TC-53.1: Replace All Scoped by Insurance Group
+- **Precondition:** Database has patients from both Hill and Sutter insurance groups
+- **Steps:** Import a Hill file in Replace All mode
+- **Expected:** Only Hill patients' measures are deleted and replaced; Sutter patients are untouched
+- **Automation:** Automated — `diffCalculator.test.ts` (insurance group scoping tests), `reassignment-merge.test.ts`
+
+### TC-53.2: Reassigned Patient Measures Not Duplicated
+- **Precondition:** Patient exists under Physician A; import targets Physician B with same patient
+- **Steps:** Import file with existing patient assigned to different physician in Merge mode
+- **Expected:** Patient measures produce SKIP/UPDATE (not INSERT duplicates); patient ownerId updated to target physician
+- **Automation:** Automated — `diffCalculator.test.ts` (reassignment record loading), `importExecutor.test.ts` (reassignPatientIfNeeded)
+
+### TC-53.3: Merge Mode Reassigns Patient Owner
+- **Precondition:** Patient owned by Physician A; import targets Physician B
+- **Steps:** Import in merge mode where existing patient has matching measures
+- **Expected:** During SKIP and UPDATE actions, `reassignPatientIfNeeded()` updates patient ownerId to target physician
+- **Automation:** Automated — `importExecutor.test.ts`
+
+### TC-53.4: Admin Role Change Cleans Up Assignments
+- **Precondition:** User has STAFF and PHYSICIAN roles with active assignments
+- **Steps:** Admin removes STAFF role from user; separately admin removes PHYSICIAN role
+- **Expected:** Removing STAFF deletes StaffAssignment records where user is staff; removing PHYSICIAN deletes StaffAssignment records where user is physician AND unassigns owned patients
+- **Automation:** Automated — `updateUser.staffCleanup.test.ts`
+
+### TC-53.5: Socket Reconnection Re-joins Room
+- **Precondition:** User connected and viewing physician data
+- **Steps:** Network interruption causes disconnect, then reconnection
+- **Expected:** Socket re-joins physician room and triggers data refresh on reconnection
+- **Automation:** Automated — `useSocket.test.ts` (reconnection tests)
+
+---
+
 ## Last Updated
 
+March 1, 2026 - Added Section 53: Import Bug Fixes — Insurance Scoping & Reassignment (TC-53.1 to TC-53.5). 5 test cases, 100% automated. Covers Replace All insurance group scoping, reassignment duplicate prevention, merge mode reassignment, admin role cleanup, socket reconnection. Test counts: 1,560 Jest + 1,306 Vitest.
 February 26, 2026 - Added Section 52: Production Deployment — Seed on Deploy (TC-52.1 to TC-52.3). 3 manual test cases for production seed guard, Render auto-seed, and baseDueDays verification. Root cause fix for row colors not turning red on production (NULL baseDueDays from missing seed). Test counts unchanged: 1,419 Jest + 1,211 Vitest.
 February 26, 2026 - Added TC-7.4 (boundary month patterns & priority ordering, 6 tests) and TC-7.5 (baseDueDays edge cases, 4 tests). Updated TC-7.1 test count from 20 to 29. Test counts: 1,428 Jest + 1,211 Vitest.
 

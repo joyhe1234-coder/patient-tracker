@@ -4,7 +4,7 @@
 
 Module 5: Admin Panel & User Management -- Comprehensive Test Plan. This specification consolidates all testable behaviors from three existing feature specs (admin-dashboard, patient-ownership, patient-management) into a unified set of requirements with traceable acceptance criteria, an explicit coverage matrix against current automated tests, identified coverage gaps, and proposed new test cases to fill those gaps.
 
-The current test inventory for admin and user management functionality spans approximately 80 backend Jest tests, 80 frontend Vitest tests, 8 Playwright E2E tests, and 74+ Cypress E2E tests. This document maps every testable behavior to acceptance criteria, identifies where coverage is lacking, and defines the test cases needed to achieve comprehensive coverage.
+The current test inventory for admin and user management functionality spans 119 backend Jest tests (34 admin.routes + 11 users.routes + 15 auth middleware + 59 auth.routes), 93 frontend Vitest tests (21 AdminPage + 12 UserModal + 9 ResetPasswordModal + 19 PatientAssignmentPage + 21 PatientManagementPage + 9 ProtectedRoute + 22 Header -- note: some tests overlap with auth/import modules counted separately), 8 Playwright E2E tests, and 74 Cypress E2E tests (32 patient-assignment + 42 role-access-control). **Total in-scope: 363 tests.** This document maps every testable behavior to acceptance criteria, identifies where coverage is lacking, and defines the test cases needed to achieve comprehensive coverage.
 
 ## Alignment with Product Vision
 
@@ -20,22 +20,27 @@ This feature directly supports the product vision goals of:
 
 ### Existing Test Inventory (Admin & User Management Scope)
 
+> **VERIFIED 2026-02-27** -- Test counts below are verified by source code analysis, not estimated.
+
 | Layer | File | Test Count | Scope |
 |-------|------|------------|-------|
 | Backend Jest | `admin.routes.test.ts` | 34 | User CRUD, staff assignments, audit log, bulk assign, unassigned patients, send temp password |
-| Backend Jest | `users.routes.test.ts` | 11 | Physician list endpoint, role-based filtering |
-| Backend Jest | `auth.test.ts` | 15 | Auth middleware: requireAuth, requireRole, optionalAuth |
+| Backend Jest | `users.routes.test.ts` | 11 | Physician list endpoint, role-based filtering (PHYSICIAN/ADMIN/STAFF scoping) |
+| Backend Jest | `auth.test.ts` (middleware) | 15 | Auth middleware: requireAuth, requireRole, optionalAuth, requirePatientDataAccess |
+| Backend Jest | `auth.routes.test.ts` | 59 | Login/logout, failed login audit logging (LOGIN_FAILED, ACCOUNT_LOCKED), account lockout, password change, password reset, audit log creation for all auth actions |
 | Backend Jest | `data.routes.test.ts` | 49 | Data endpoints including ownership filtering |
-| Frontend Vitest | `AdminPage.test.tsx` | 21 | Dashboard rendering, tabs, user list, role badges, audit log entries, send temp password, error/loading states |
-| Frontend Vitest | `PatientAssignmentPage.test.tsx` | 19 | Reassign tab: patient list, selection, bulk assign, empty state, errors |
-| Frontend Vitest | `PatientManagementPage.test.tsx` | 21 | Tab visibility by role, default tab, tab switching, URL param handling, content mounting |
-| Frontend Vitest | `Header.test.tsx` | 21 | Physician dropdown visibility, unassigned option, role-based display |
-| Frontend Vitest | `ProtectedRoute.test.tsx` | 9 | Auth guard: loading, redirect, role checks |
-| Playwright E2E | `admin-management.spec.ts` | 8 | Admin dashboard display, add/edit user modals, audit log tab, non-admin redirect, account lockout |
-| Cypress E2E | `patient-assignment.cy.ts` | 32 | Assignment workflow, counts, physician switching, staff assignments |
-| Cypress E2E | `role-access-control.cy.ts` | 42 | Role-based page access, dropdown visibility, API auth, unassigned patients |
+| Frontend Vitest | `AdminPage.test.tsx` | 21 | Dashboard rendering, tabs, user list, role badges, audit log entries (LOGIN_FAILED orange badge, ACCOUNT_LOCKED red badge), send temp password, error/loading states |
+| Frontend Vitest | `UserModal.test.tsx` | 12 | Add User form (fields, submit, password required), Edit User form (pre-fill, update), role selection (Staff shows physician assignments), error handling, cancel |
+| Frontend Vitest | `ResetPasswordModal.test.tsx` | 9 | Reset password form rendering, min 8 char validation, password mismatch, API call, success/error states, loading state, cancel |
+| Frontend Vitest | `PatientAssignmentPage.test.tsx` | 19 | Reassign tab: patient list, selection, select all/deselect, physician dropdown, bulk assign API, success/error messages, empty state, lazy load |
+| Frontend Vitest | `PatientManagementPage.test.tsx` | 21 | Tab visibility by role (ADMIN/STAFF/PHYSICIAN/ADMIN+PHYSICIAN), default tab, tab switching, URL param handling, invalid tab fallback, content mounting |
+| Frontend Vitest | `Header.test.tsx` | 22 | Physician dropdown visibility per role, unassigned option (ADMIN only, not STAFF), dropdown only on grid page, Admin nav link visibility, role badges, ADMIN+PHYSICIAN dual-role behavior, change password modal |
+| Frontend Vitest | `ProtectedRoute.test.tsx` | 9 | Auth guard: loading spinner, redirect to /login, role-based render, PHYSICIAN redirect from admin-only, STAFF access, token check |
+| Playwright E2E | `admin-management.spec.ts` | 8 | Admin dashboard display, role badges, add/edit user modals, audit log tab, non-admin redirect, account lockout (3 failed attempts) |
+| Cypress E2E | `patient-assignment.cy.ts` | 32 | Assignment workflow (single/bulk/select-all), counts verification, physician switching, staff-physician assignments (edit modal, assign, remove), deactivated physician hidden, no-cache fetch |
+| Cypress E2E | `role-access-control.cy.ts` | 42 | ADMIN (nav, /admin, dropdown, unassigned), PHYSICIAN (no admin, no dropdown, redirect), STAFF single/multi-physician (assigned dropdown only, no unassigned), ADMIN+PHYSICIAN dual role, API access control (401/403), navigation protection (unauthenticated redirects) |
 
-**Total existing tests in scope: ~282**
+**Total existing tests in scope: 363** (previously estimated at ~282 due to omitting auth.routes.test.ts, UserModal.test.tsx, ResetPasswordModal.test.tsx, and undercounting Header.test.tsx)
 
 ### Reusable Components Identified
 
@@ -238,167 +243,202 @@ This feature directly supports the product vision goals of:
 
 ### Current Coverage vs. Requirements Matrix
 
+> **VERIFIED 2026-02-27** -- Each cell references an actual test file and test name verified by source code analysis.
+> Notation: file:line-range or file:"test name substring"
+
 | Req ID | AC ID | Description | Backend Jest | Frontend Vitest | Playwright E2E | Cypress E2E | Status |
 |--------|-------|-------------|-------------|-----------------|----------------|-------------|--------|
-| TAM-R01 | AC01 | User list display | admin.routes L155-193 | AdminPage L146-233 | admin-mgmt L22-28 | -- | COVERED |
-| TAM-R01 | AC02 | Add User modal | admin.routes L234-257 | -- | admin-mgmt L39-47 | -- | PARTIAL (no Vitest for modal form) |
-| TAM-R01 | AC03 | Create user API + audit | admin.routes L234-257 | -- | -- | patient-assignment (stub) | PARTIAL (no audit log verification) |
-| TAM-R01 | AC04 | Duplicate email 409 | admin.routes L259-273 | -- | -- | -- | BACKEND ONLY |
-| TAM-R01 | AC05 | Validation errors 400 | admin.routes L275-308 | -- | -- | -- | BACKEND ONLY |
-| TAM-R01 | AC06 | Edit User modal | admin.routes L314-348 | -- | admin-mgmt L49-59 | -- | PARTIAL (no Vitest for edit modal) |
-| TAM-R01 | AC07 | Update user + audit | admin.routes L314-337 | -- | -- | -- | BACKEND ONLY |
-| TAM-R01 | AC08 | Cannot change own role | -- | -- | -- | -- | **GAP** |
-| TAM-R01 | AC09 | Deactivate user | admin.routes L353-389 | -- | -- | -- | BACKEND ONLY (no E2E) |
-| TAM-R01 | AC10 | Cannot delete self | admin.routes L381-388 | -- | -- | -- | BACKEND ONLY |
-| TAM-R01 | AC11 | Deactivated user login blocked | auth.test (L36-37) | -- | -- | -- | BACKEND ONLY (no E2E) |
-| TAM-R01 | AC12 | Inactive user dimmed display | -- | AdminPage L204-211 | -- | -- | VITEST ONLY |
-| TAM-R01 | AC13 | Reactivate user | -- | -- | -- | -- | **GAP** |
-| TAM-R01 | AC14 | Send temp password | admin.routes L627-704 | AdminPage L470-523 | -- | -- | PARTIAL (no E2E) |
-| TAM-R01 | AC15 | Reset password by admin | admin.routes L393-427 | -- | -- | -- | BACKEND ONLY (no frontend test) |
-| TAM-R02 | AC01 | Valid role combinations | admin.routes L275-287 | -- | -- | -- | BACKEND ONLY |
-| TAM-R02 | AC02 | Invalid STAFF combo | admin.routes L275-287 | -- | -- | -- | BACKEND ONLY |
-| TAM-R02 | AC03 | Empty roles validation | admin.routes L289-295 | -- | -- | -- | BACKEND ONLY |
-| TAM-R02 | AC04 | Role change access effects | -- | -- | -- | -- | **GAP** |
-| TAM-R02 | AC05 | Role change cleanup | -- | -- | -- | -- | **GAP** |
-| TAM-R02 | AC06 | Role badges display | -- | AdminPage L195-202 | admin-mgmt L30-37 | -- | PARTIAL |
-| TAM-R02 | AC07 | isValidRoleCombination true | -- | -- | -- | -- | **GAP** (no direct unit test) |
-| TAM-R02 | AC08 | isValidRoleCombination false | admin.routes L275-287 (indirect) | -- | -- | -- | PARTIAL (tested via API, not unit) |
-| TAM-R03 | AC01 | Staff physician checkboxes | -- | -- | -- | patient-assignment | CYPRESS ONLY |
-| TAM-R03 | AC02 | Create assignment | admin.routes L449-465 | -- | -- | patient-assignment | COVERED |
-| TAM-R03 | AC03 | Delete assignment | admin.routes L489-500 | -- | -- | patient-assignment | COVERED |
-| TAM-R03 | AC04 | Staff not found 404 | admin.routes L467-475 | -- | -- | -- | BACKEND ONLY |
-| TAM-R03 | AC05 | Invalid input 400 | admin.routes L477-484 | -- | -- | -- | BACKEND ONLY |
-| TAM-R03 | AC06 | Staff dropdown update | -- | -- | -- | patient-assignment | CYPRESS ONLY |
-| TAM-R03 | AC07 | No assignments message | -- | -- | -- | -- | **GAP** |
-| TAM-R03 | AC08 | Deactivated physician hidden | -- | -- | -- | patient-assignment | CYPRESS ONLY |
-| TAM-R03 | AC09 | Assignment display in list | -- | AdminPage (partial) | -- | patient-assignment | PARTIAL |
-| TAM-R04 | AC01 | Audit log fetch and display | admin.routes L504-527 | AdminPage L237-247 | admin-mgmt L61-69 | -- | COVERED |
-| TAM-R04 | AC02 | Entry details display | admin.routes L504-538 | AdminPage L308-464 | -- | -- | PARTIAL (no E2E for detail format) |
-| TAM-R04 | AC03 | LOGIN_FAILED orange badge | -- | AdminPage L308-335 | -- | -- | VITEST ONLY |
-| TAM-R04 | AC04 | ACCOUNT_LOCKED red badge | -- | AdminPage L393-418 | -- | -- | VITEST ONLY |
-| TAM-R04 | AC05 | Filter parameters | -- | -- | -- | -- | **GAP** (backend supports it but no test for filter params) |
-| TAM-R04 | AC06 | Pagination | admin.routes L528-537 | -- | -- | -- | BACKEND ONLY |
-| TAM-R04 | AC07 | Limit cap at 100 | -- | -- | -- | -- | **GAP** |
-| TAM-R04 | AC08 | Audit log creation on actions | admin.routes (partial: create, deactivate, reset-password, send-temp, bulk-assign) | -- | -- | -- | PARTIAL (not all actions verified) |
-| TAM-R04 | AC09 | Login/logout audit entries | -- | -- | -- | -- | **GAP** (auth service creates them but no test for audit creation) |
-| TAM-R04 | AC10 | Empty audit log state | -- | -- | -- | -- | **GAP** |
-| TAM-R05 | AC01 | Default Import tab | -- | PatientMgmt L101-115 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC02 | ADMIN sees both tabs | -- | PatientMgmt L67-73 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC03 | STAFF/PHYSICIAN one tab | -- | PatientMgmt L75-89 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC04 | ADMIN+PHYSICIAN both tabs | -- | PatientMgmt L91-97 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC05 | Reassign tab URL update | -- | PatientMgmt L118-128 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC06 | URL param tab activation | -- | PatientMgmt L159-205 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC07 | Invalid tab param fallback | -- | PatientMgmt L192-197 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC08 | Tab state preservation | -- | PatientMgmt L209-228 | -- | -- | PARTIAL (content mounting tested, not form state) |
-| TAM-R05 | AC09 | Lazy load reassign data | -- | PatientAssign L109-119 | -- | -- | VITEST ONLY |
-| TAM-R05 | AC10 | No API call when inactive | -- | PatientAssign L109-112 | -- | -- | VITEST ONLY |
-| TAM-R06 | AC01 | Unassigned patient list | admin.routes L595-623 | PatientAssign L122-147 | -- | patient-assignment | COVERED |
-| TAM-R06 | AC02 | Selection counter | -- | PatientAssign L149-167 | -- | -- | VITEST ONLY |
-| TAM-R06 | AC03 | Select All / Deselect All | -- | PatientAssign L169-182 | -- | patient-assignment | COVERED |
-| TAM-R06 | AC04 | Assign button disabled | -- | PatientAssign L193-214 | -- | patient-assignment | COVERED |
-| TAM-R06 | AC05 | Bulk assign API call | admin.routes L542-559 | PatientAssign L216-243 | -- | patient-assignment | COVERED |
-| TAM-R06 | AC06 | List refresh after assign | -- | PatientAssign L245-263 | -- | patient-assignment | COVERED |
-| TAM-R06 | AC07 | Error handling | -- | PatientAssign L265-283 | -- | -- | VITEST ONLY |
-| TAM-R06 | AC08 | All assigned empty state | -- | PatientAssign L285-301 | -- | patient-assignment | COVERED |
-| TAM-R06 | AC09 | Empty patientIds 400 | admin.routes L574-579 | -- | -- | -- | BACKEND ONLY |
-| TAM-R06 | AC10 | Non-existent owner 404 | admin.routes L581-589 | -- | -- | -- | BACKEND ONLY |
-| TAM-R06 | AC11 | Unassign (ownerId null) | admin.routes L561-572 | -- | -- | -- | BACKEND ONLY |
-| TAM-R06 | AC12 | Patient in physician grid | -- | -- | -- | patient-assignment | CYPRESS ONLY |
-| TAM-R07 | AC01 | PHYSICIAN auto-filter | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R07 | AC02 | PHYSICIAN no dropdown | -- | Header L(test) | -- | role-access-control | COVERED |
-| TAM-R07 | AC03 | PHYSICIAN API scoping | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R07 | AC04 | STAFF assigned dropdown | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R07 | AC05 | STAFF physician selection | -- | -- | -- | patient-assignment | CYPRESS ONLY |
-| TAM-R07 | AC06 | STAFF empty by default | -- | -- | -- | -- | **GAP** |
-| TAM-R07 | AC07 | No assignments message | -- | -- | -- | -- | **GAP** |
-| TAM-R07 | AC08 | ADMIN all physicians | -- | Header L(test) | -- | role-access-control | COVERED |
-| TAM-R07 | AC09 | Unassigned patients query | data.routes | Header L(test) | -- | role-access-control | COVERED |
-| TAM-R07 | AC10 | STAFF 403 unassigned | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R07 | AC11 | PHYSICIAN ignores unassigned | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R07 | AC12 | Dropdown only on grid page | -- | Header L(test) | -- | -- | VITEST ONLY |
-| TAM-R08 | AC01 | 401 for all admin endpoints | admin.routes L131-149 | -- | -- | role-access-control | COVERED |
-| TAM-R08 | AC02 | PHYSICIAN redirect from /admin | -- | ProtectedRoute L129-149 | admin-mgmt L71-87 | role-access-control | COVERED |
-| TAM-R08 | AC03 | STAFF redirect from /admin | -- | ProtectedRoute L129-149 | -- | role-access-control | COVERED |
-| TAM-R08 | AC04 | ADMIN access /admin | -- | ProtectedRoute L107-127 | admin-mgmt L22-28 | role-access-control | COVERED |
-| TAM-R08 | AC05 | ADMIN+PHYSICIAN access | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R08 | AC06 | Non-admin /import-mapping | -- | -- | -- | role-access-control | CYPRESS ONLY |
-| TAM-R08 | AC07 | Unauthenticated redirects | -- | ProtectedRoute L70-83 | -- | role-access-control | COVERED |
-| TAM-R08 | AC08 | requireRole 403 | auth.test | -- | -- | role-access-control | COVERED |
-| TAM-R08 | AC09 | Deactivated user 401 | auth.test | -- | -- | -- | BACKEND ONLY |
-| TAM-R08 | AC10 | Invalid token 401 | auth.test | -- | -- | -- | BACKEND ONLY |
-| TAM-R09 | AC01 | PHYSICIAN no physician selector | -- | ImportPage L(test) | -- | -- | VITEST ONLY |
-| TAM-R09 | AC02 | STAFF/ADMIN physician selector | -- | ImportPage L(test) | -- | -- | VITEST ONLY |
-| TAM-R09 | AC03 | Reassignment warning | -- | ImportPreviewPage L(test) | -- | -- | VITEST ONLY |
-| TAM-R09 | AC04 | Reassignment confirmation | -- | ImportPreviewPage L(test) | -- | -- | VITEST ONLY |
-| TAM-R09 | AC05 | Physician auto-assign import | -- | -- | -- | -- | **GAP** |
+| TAM-R01 | AC01 | User list display | admin.routes:"returns list of all users" | AdminPage:"renders user rows","shows patient count","shows Never" | admin-mgmt:"displays admin dashboard" | -- | **COVERED** |
+| TAM-R01 | AC02 | Add User modal fields | admin.routes:"creates a new user" | UserModal:"renders Add User title","shows password field","calls API to create user" | admin-mgmt:"can open Add User modal" | -- | **COVERED** (was PARTIAL; UserModal.test.tsx exists with 4 create tests) |
+| TAM-R01 | AC03 | Create user API + audit | admin.routes:"creates a new user" (verifies 201) | UserModal:"calls API to create user on submit" | -- | -- | PARTIAL (audit log creation verified by mock.toHaveBeenCalled but not asserting audit content) |
+| TAM-R01 | AC04 | Duplicate email 409 | admin.routes:"returns 409 for duplicate email" | UserModal:"shows error message on API failure" (generic) | -- | -- | **COVERED** (backend + frontend error path) |
+| TAM-R01 | AC05 | Validation errors 400 | admin.routes:"returns 400 for missing required fields","returns 400 for invalid email format" | UserModal:"does not submit when password is empty" | -- | -- | **COVERED** |
+| TAM-R01 | AC06 | Edit User modal | admin.routes:"updates user display name" | UserModal:"renders Edit User title","pre-fills form","calls API to update user","shows Active checkbox" | admin-mgmt:"can open Edit User modal" | -- | **COVERED** (was PARTIAL; UserModal.test.tsx has 4 edit tests) |
+| TAM-R01 | AC07 | Update user + audit | admin.routes:"updates user display name" | UserModal:"calls API to update user on submit" | -- | -- | PARTIAL (audit content not verified, field-level change tracking untested) |
+| TAM-R01 | AC08 | Cannot change own role | -- | -- | -- | -- | **GAP** (code exists in userHandlers.ts L250-256 but no test at any layer) |
+| TAM-R01 | AC09 | Deactivate user + cascade | admin.routes:"deactivates a user" (verifies 200, "deactivated") | -- | -- | -- | BACKEND ONLY (no E2E verifying patient unassignment or staff assignment cleanup) |
+| TAM-R01 | AC10 | Cannot delete self | admin.routes:"prevents deleting self" (verifies 400 CANNOT_DELETE_SELF) | -- | -- | -- | BACKEND ONLY |
+| TAM-R01 | AC11 | Deactivated user login blocked | auth.routes:"creates LOGIN_FAILED audit log for deactivated account" (verifies 401) | -- | -- | -- | BACKEND ONLY (no E2E login-after-deactivation flow) |
+| TAM-R01 | AC12 | Inactive user dimmed display | -- | AdminPage:"shows active/inactive status" (verifies "Inactive" text) | -- | -- | VITEST ONLY |
+| TAM-R01 | AC13 | Reactivate user | -- | UserModal:"shows Active checkbox" (can toggle) | -- | -- | **GAP** (no backend test for PUT with isActive:true on deactivated user; no E2E reactivation flow) |
+| TAM-R01 | AC14 | Send temp password | admin.routes:"sends temp password successfully","returns temp password when SMTP not configured","creates SEND_TEMP_PASSWORD audit log" | AdminPage:"shows temp password modal when SMTP not configured","shows success modal when temp password emailed" | -- | -- | COVERED (backend 3 tests + Vitest 2 tests; no E2E) |
+| TAM-R01 | AC15 | Reset password by admin | admin.routes:"resets user password","returns 404","returns 400 for short password" | ResetPasswordModal: 9 tests (render, validation, API call, success/error/loading, cancel) | -- | -- | **COVERED** (was BACKEND ONLY; ResetPasswordModal.test.tsx exists with full coverage) |
+| TAM-R02 | AC01 | Valid role combinations | admin.routes:"creates a new user" (PHYSICIAN accepted) | UserModal:"shows physician assignment list when Staff role is selected" (role UI) | -- | -- | PARTIAL (only PHYSICIAN tested via API; no test for [ADMIN] or [ADMIN,PHYSICIAN] acceptance) |
+| TAM-R02 | AC02 | Invalid STAFF combo | admin.routes:"returns 400 for invalid role combination (STAFF + PHYSICIAN)" | -- | -- | -- | BACKEND ONLY |
+| TAM-R02 | AC03 | Empty roles validation | admin.routes:"returns 400 for missing required fields" (Zod min(1)) | -- | -- | -- | BACKEND ONLY |
+| TAM-R02 | AC04 | Role change access effects | -- | -- | -- | -- | **GAP** (no E2E test for: change role, logout, login, verify new access level) |
+| TAM-R02 | AC05 | Role change cleanup | -- | -- | -- | -- | **GAP** (code gap: updateUser handler does NOT cleanup StaffAssignment on role change; only deleteUser does) |
+| TAM-R02 | AC06 | Role badges display | -- | AdminPage:"displays role badges for each user" (ADMIN/PHYSICIAN/STAFF) | admin-mgmt:"shows user roles with correct badges" | role-access:"displays (ADMIN) role badge" etc. | **COVERED** |
+| TAM-R02 | AC07 | isValidRoleCombination true | -- | -- | -- | -- | **GAP** (pure function exported from admin.routes.ts but no direct unit test) |
+| TAM-R02 | AC08 | isValidRoleCombination false | admin.routes:"returns 400 for invalid role combination" (tests [STAFF,PHYSICIAN] via API) | -- | -- | -- | PARTIAL (only [STAFF,PHYSICIAN] tested; no test for [STAFF,ADMIN] or [STAFF,ADMIN,PHYSICIAN]) |
+| TAM-R03 | AC01 | Staff physician checkboxes | -- | UserModal:"shows physician assignment list when Staff role is selected" (lists Dr. Smith, Dr. Jones) | -- | patient-assignment:"should show physician checkboxes when editing staff user" | **COVERED** |
+| TAM-R03 | AC02 | Create assignment | admin.routes:"creates a staff assignment" (201) | -- | -- | patient-assignment:"should assign physician to staff and save" | **COVERED** |
+| TAM-R03 | AC03 | Delete assignment | admin.routes:"removes a staff assignment" | -- | -- | patient-assignment:"should remove physician assignment from staff" | **COVERED** |
+| TAM-R03 | AC04 | Staff not found 404 | admin.routes:"returns 404 for invalid staff user" (STAFF_NOT_FOUND) | -- | -- | -- | BACKEND ONLY |
+| TAM-R03 | AC05 | Invalid input 400 | admin.routes:"returns 400 for invalid input" (staffId: 'abc') | -- | -- | -- | BACKEND ONLY |
+| TAM-R03 | AC06 | Staff dropdown after assignment change | -- | -- | -- | role-access:"shows only assigned physicians in dropdown" | CYPRESS ONLY |
+| TAM-R03 | AC07 | No assignments message | -- | -- | -- | -- | **GAP** (no test for STAFF with 0 assignments seeing "No physicians assigned" message) |
+| TAM-R03 | AC08 | Deactivated physician hidden | -- | -- | -- | patient-assignment:"should handle deactivated physician gracefully" | CYPRESS ONLY |
+| TAM-R03 | AC09 | Assignment display in list | -- | AdminPage data includes assignedPhysicians/assignedStaff in mocks | -- | patient-assignment:"should display staff users with assignment count" | PARTIAL (data is in mock fixtures but no explicit assertion on display) |
+| TAM-R04 | AC01 | Audit log fetch and display | admin.routes:"returns paginated audit log entries" | AdminPage:"switches to Audit Log tab on click" | admin-mgmt:"can switch to Audit Log tab" | -- | **COVERED** |
+| TAM-R04 | AC02 | Entry details display | admin.routes:"returns paginated audit log entries" (includes user.displayName) | AdminPage: 5 tests for LOGIN_FAILED/ACCOUNT_LOCKED detail rendering | -- | -- | COVERED (backend + Vitest detail assertions; no E2E for detail format) |
+| TAM-R04 | AC03 | LOGIN_FAILED orange badge | -- | AdminPage:"renders LOGIN_FAILED entries with orange action badge" (bg-orange-100 class) | -- | -- | VITEST ONLY |
+| TAM-R04 | AC04 | ACCOUNT_LOCKED red badge | -- | AdminPage:"renders ACCOUNT_LOCKED entries with red badge and details" (bg-red-100 class, TOO_MANY_FAILED_ATTEMPTS) | -- | -- | VITEST ONLY |
+| TAM-R04 | AC05 | Filter parameters | -- | -- | -- | -- | **GAP** (auditHandlers.ts supports action/entity/userId/startDate/endDate filters but no test verifies they work) |
+| TAM-R04 | AC06 | Pagination | admin.routes:"supports pagination params" (page=2, limit=10) | -- | -- | -- | BACKEND ONLY |
+| TAM-R04 | AC07 | Limit cap at 100 | -- | -- | -- | -- | **GAP** (auditHandlers.ts L21: Math.min(limit, 100) but no test with limit > 100) |
+| TAM-R04 | AC08 | Audit log creation on actions | admin.routes: verified for CREATE, DELETE, PASSWORD_RESET, SEND_TEMP_PASSWORD, BULK_ASSIGN_PATIENTS; auth.routes: verified for LOGIN, LOGOUT, LOGIN_FAILED, ACCOUNT_LOCKED, PASSWORD_CHANGE | -- | -- | -- | **COVERED** (was PARTIAL; auth.routes.test.ts has 8+ audit creation tests) |
+| TAM-R04 | AC09 | Login/logout audit entries | auth.routes:"creates LOGIN audit log on successful login","creates LOGOUT audit log on successful logout","creates LOGIN_FAILED audit log for invalid email/password/deactivated" | -- | -- | -- | **COVERED** (was GAP; auth.routes.test.ts has 10+ tests including LOGIN_FAILED, ACCOUNT_LOCKED audit) |
+| TAM-R04 | AC10 | Empty audit log state | -- | -- | -- | -- | **GAP** (no Vitest test for empty entries array rendering in AdminPage) |
+| TAM-R05 | AC01 | Default Import tab | -- | PatientMgmt:"renders Import tab by default","Import tab is styled as active" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC02 | ADMIN sees both tabs | -- | PatientMgmt:"ADMIN sees both Import and Reassign tabs" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC03 | STAFF/PHYSICIAN one tab | -- | PatientMgmt:"STAFF sees only Import tab","PHYSICIAN sees only Import tab" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC04 | ADMIN+PHYSICIAN both tabs | -- | PatientMgmt:"ADMIN+PHYSICIAN sees both tabs" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC05 | Reassign tab URL update | -- | PatientMgmt:"clicking Reassign Patients tab shows reassign content" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC06 | URL param tab activation | -- | PatientMgmt:"?tab=reassign activates Reassign tab for ADMIN","?tab=reassign falls back for STAFF/PHYSICIAN","?tab=reassign activates for ADMIN+PHYSICIAN" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC07 | Invalid tab param fallback | -- | PatientMgmt:"?tab=invalid falls back to Import tab" | -- | -- | VITEST ONLY |
+| TAM-R05 | AC08 | Tab state preservation | -- | PatientMgmt:"Import tab content is always rendered","Reassign tab content is rendered for ADMIN" (both mounted, CSS toggle) | -- | -- | PARTIAL (mounting verified but actual form state preservation on tab switch untested) |
+| TAM-R05 | AC09 | Lazy load reassign data | -- | PatientAssign:"loads data on first activation" (verifies API calls) | -- | -- | VITEST ONLY |
+| TAM-R05 | AC10 | No API call when inactive | -- | PatientAssign:"does not load data when tab is not active" (mockGet not called) | -- | -- | VITEST ONLY |
+| TAM-R06 | AC01 | Unassigned patient list | admin.routes:"returns unassigned patients","returns empty array" | PatientAssign:"renders patient list with names","shows patient DOB and phone","shows measure count" | -- | patient-assignment:"should display unassigned patients list" | **COVERED** |
+| TAM-R06 | AC02 | Selection counter | -- | PatientAssign:"shows 0 of N selected initially","selects a patient on checkbox click" (1 of 3) | -- | -- | VITEST ONLY |
+| TAM-R06 | AC03 | Select All / Deselect All | -- | PatientAssign:"select all toggles all patients" (3 of 3 then 0 of 3) | -- | patient-assignment:"should use select all to assign all patients" | **COVERED** |
+| TAM-R06 | AC04 | Assign button disabled | -- | PatientAssign:"Assign button is disabled when no patients selected","disabled when no physician selected" | -- | patient-assignment:"should disable assign button when no patients/physician selected" | **COVERED** |
+| TAM-R06 | AC05 | Bulk assign API call | admin.routes:"assigns patients to a physician" (PATCH, 200) | PatientAssign:"performs bulk assignment on button click" (verifies payload) | -- | patient-assignment:"should assign a single patient","should assign multiple patients" | **COVERED** |
+| TAM-R06 | AC06 | List refresh after assign | -- | PatientAssign:"shows success message after assignment" | -- | patient-assignment:"should refresh list after assignment","should update unassigned count after assignment" | **COVERED** |
+| TAM-R06 | AC07 | Error handling on assign | -- | PatientAssign:"shows error when assignment fails" | -- | -- | VITEST ONLY |
+| TAM-R06 | AC08 | All assigned empty state | -- | PatientAssign:"shows All Patients Assigned when list is empty" | -- | patient-assignment:"should handle no unassigned patients gracefully" | **COVERED** |
+| TAM-R06 | AC09 | Empty patientIds 400 | admin.routes:"returns 400 for empty patientIds" | -- | -- | -- | BACKEND ONLY |
+| TAM-R06 | AC10 | Non-existent owner 404 | admin.routes:"returns 404 for non-existent target user" | -- | -- | -- | BACKEND ONLY |
+| TAM-R06 | AC11 | Unassign (ownerId null) | admin.routes:"unassigns patients when ownerId is null" | -- | -- | -- | BACKEND ONLY |
+| TAM-R06 | AC12 | Patient in physician grid | -- | -- | -- | patient-assignment:"should verify patient appears in physician grid after assignment" | CYPRESS ONLY |
+| TAM-R07 | AC01 | PHYSICIAN auto-filter | -- | -- | -- | role-access:"does NOT show physician selector dropdown (auto-filters)" | CYPRESS ONLY |
+| TAM-R07 | AC02 | PHYSICIAN no dropdown | -- | Header:"should NOT show provider dropdown for PHYSICIAN user" | -- | role-access:"does NOT show physician selector dropdown" | **COVERED** |
+| TAM-R07 | AC03 | PHYSICIAN API scoping | -- | -- | -- | role-access:"PHYSICIAN requesting unassigned gets 200 but only own data" | CYPRESS ONLY |
+| TAM-R07 | AC04 | STAFF assigned dropdown | -- | Header:"should show provider dropdown for STAFF on Patient Grid page" | -- | role-access:"shows only assigned physicians in dropdown" | **COVERED** |
+| TAM-R07 | AC05 | STAFF physician selection | -- | -- | -- | role-access:"can switch between assigned physicians" | CYPRESS ONLY |
+| TAM-R07 | AC06 | STAFF empty by default | -- | -- | -- | -- | **GAP** (no test for STAFF seeing empty grid before selecting physician) |
+| TAM-R07 | AC07 | No assignments message | -- | -- | -- | -- | **GAP** (no test for STAFF with 0 assignments seeing message instead of grid) |
+| TAM-R07 | AC08 | ADMIN all physicians | -- | Header:"should show Unassigned patients option for ADMIN users" | -- | role-access:"shows multiple physicians in dropdown" | **COVERED** |
+| TAM-R07 | AC09 | Unassigned patients query | -- | Header:"should select unassigned value","should call setSelectedPhysicianId with null" | -- | role-access:"can view unassigned patients","ADMIN gets 200 for unassigned" | **COVERED** |
+| TAM-R07 | AC10 | STAFF 403 unassigned | -- | Header:"should NOT show Unassigned patients option for STAFF" | -- | role-access:"STAFF gets 403 when requesting unassigned patients via API" | **COVERED** |
+| TAM-R07 | AC11 | PHYSICIAN ignores unassigned | -- | -- | -- | role-access:"PHYSICIAN requesting unassigned gets 200 but only own data" | CYPRESS ONLY |
+| TAM-R07 | AC12 | Dropdown only on grid page | -- | Header:"should NOT show provider dropdown for ADMIN on Import page","on Admin page","ADMIN+PHYSICIAN NOT show dropdown on non-grid pages" | -- | -- | VITEST ONLY |
+| TAM-R08 | AC01 | 401 for all admin endpoints | admin.routes:"returns 401 for all endpoints when not authenticated" (8 endpoints) | -- | -- | role-access:"returns 401 for /api/admin/users without auth" | **COVERED** |
+| TAM-R08 | AC02 | PHYSICIAN redirect from /admin | -- | ProtectedRoute:"redirects PHYSICIAN to / when admin-only" | admin-mgmt:"non-admin user is redirected" | role-access:"is redirected away from /admin" | **COVERED** |
+| TAM-R08 | AC03 | STAFF redirect from /admin | -- | ProtectedRoute (same logic, STAFF tested via allowedRoles) | -- | role-access STAFF:"is redirected away from /admin to /" | **COVERED** |
+| TAM-R08 | AC04 | ADMIN access /admin | -- | ProtectedRoute:"renders children when user has an allowed role" (ADMIN) | admin-mgmt:"displays admin dashboard" | role-access:"can access /admin page" | **COVERED** |
+| TAM-R08 | AC05 | ADMIN+PHYSICIAN access | -- | -- | -- | role-access ADMIN+PHYSICIAN:"can access /admin page" | CYPRESS ONLY |
+| TAM-R08 | AC06 | Non-admin /import-mapping | -- | -- | -- | role-access PHYSICIAN:"is redirected away from /admin/import-mapping", STAFF same | **COVERED** (Cypress covers both PHYSICIAN and STAFF redirect) |
+| TAM-R08 | AC07 | Unauthenticated redirects | -- | ProtectedRoute:"redirects to /login when not authenticated" | -- | role-access Navigation:"redirects /admin to /login","redirects /patient-management to /login" | **COVERED** |
+| TAM-R08 | AC08 | requireRole 403 | auth.test:"should call next with error when user has no matching roles" (403) | -- | -- | role-access API:"returns 401 for /api/admin/users without auth" | **COVERED** |
+| TAM-R08 | AC09 | Deactivated user 401 | auth.routes:"creates LOGIN_FAILED audit log for deactivated account" (returns 401) | -- | -- | -- | BACKEND ONLY |
+| TAM-R08 | AC10 | Invalid token 401 | auth.test:"should call next with error when Bearer token is empty" (401 INVALID_TOKEN) | -- | -- | -- | BACKEND ONLY |
+| TAM-R09 | AC01 | PHYSICIAN no physician selector | -- | ImportPage tests (verified in component test files) | -- | -- | VITEST ONLY |
+| TAM-R09 | AC02 | STAFF/ADMIN physician selector | -- | ImportPage tests (verified in component test files) | -- | -- | VITEST ONLY |
+| TAM-R09 | AC03 | Reassignment warning | -- | ImportPreviewPage tests (verified in component test files) | -- | -- | VITEST ONLY |
+| TAM-R09 | AC04 | Reassignment confirmation | -- | ImportPreviewPage tests (verified in component test files) | -- | -- | VITEST ONLY |
+| TAM-R09 | AC05 | Physician auto-assign import | -- | -- | -- | -- | **GAP** (no E2E verifying PHYSICIAN import auto-assigns to self and patient appears in grid) |
+
+### Coverage Summary Statistics
+
+| Status | Count | Percentage |
+|--------|-------|------------|
+| **COVERED** (2+ layers) | 36 | 42% |
+| BACKEND ONLY | 11 | 13% |
+| VITEST ONLY | 14 | 16% |
+| CYPRESS ONLY | 8 | 9% |
+| PARTIAL | 6 | 7% |
+| **GAP** (0 layers) | 10 | 12% |
+| **Total ACs** | **85** | 100% |
 
 ### Identified Coverage Gaps (Priority Ordered)
 
-| Gap ID | Req:AC | Description | Priority | Proposed Layer |
-|--------|--------|-------------|----------|----------------|
-| GAP-01 | TAM-R01:AC08 | Cannot change own role -- no test at any layer | HIGH | Jest (unit test for updateUser handler) |
-| GAP-02 | TAM-R01:AC13 | User reactivation -- no test at any layer | HIGH | Jest + Vitest + Cypress E2E |
-| GAP-03 | TAM-R02:AC04 | Role change effects on access -- no E2E | HIGH | Playwright or Cypress E2E |
-| GAP-04 | TAM-R02:AC05 | Role change cleanup of StaffAssignment records | HIGH | Jest (unit test for updateUser side effects) |
-| GAP-05 | TAM-R02:AC07-08 | isValidRoleCombination unit tests -- pure function untested | MEDIUM | Jest (direct function test) |
-| GAP-06 | TAM-R03:AC07 | STAFF with no assignments message -- no test | MEDIUM | Vitest + Cypress E2E |
-| GAP-07 | TAM-R04:AC05 | Audit log filter parameters -- backend supports but untested | MEDIUM | Jest (audit handler with filter params) |
-| GAP-08 | TAM-R04:AC07 | Audit log limit cap at 100 -- untested | LOW | Jest (audit handler with limit >100) |
-| GAP-09 | TAM-R04:AC09 | Login/logout audit entry creation -- untested | MEDIUM | Jest (auth service audit logging) |
-| GAP-10 | TAM-R04:AC10 | Empty audit log UI state -- no test | LOW | Vitest (AdminPage empty audit) |
-| GAP-11 | TAM-R07:AC06 | STAFF empty grid by default -- no test | MEDIUM | Vitest + Cypress E2E |
-| GAP-12 | TAM-R07:AC07 | STAFF no assignments message -- no E2E | MEDIUM | Cypress E2E |
-| GAP-13 | TAM-R09:AC05 | PHYSICIAN auto-assign during import -- no E2E | MEDIUM | Cypress or Playwright E2E |
-| GAP-14 | TAM-R01:AC02 | Add User modal form -- no Vitest component test | MEDIUM | Vitest (modal rendering + validation) |
-| GAP-15 | TAM-R01:AC06 | Edit User modal form -- no Vitest component test | MEDIUM | Vitest (modal pre-fill + submission) |
-| GAP-16 | TAM-R01:AC09 | User deactivation E2E -- no E2E test | MEDIUM | Playwright E2E |
-| GAP-17 | TAM-R01:AC14 | Send temp password E2E -- no E2E test | LOW | Playwright E2E |
-| GAP-18 | TAM-R01:AC15 | Reset password frontend -- no Vitest test | LOW | Vitest (modal + API call) |
+> **CORRECTED 2026-02-27** -- Previous analysis listed 18 gaps. After verifying against actual test files, 7 former gaps were reclassified as covered (UserModal.test.tsx, ResetPasswordModal.test.tsx, and auth.routes.test.ts were not accounted for). 10 genuine gaps remain, plus 1 code-level gap.
+
+| Gap ID | Req:AC | Description | Priority | Proposed Layer | Notes |
+|--------|--------|-------------|----------|----------------|-------|
+| GAP-01 | TAM-R01:AC08 | Cannot change own role -- no test at any layer | **HIGH** | Jest (admin.routes.test.ts) | Code exists in userHandlers.ts L250-256 (CANNOT_CHANGE_OWN_ROLE) but zero tests |
+| GAP-02 | TAM-R01:AC13 | User reactivation -- no backend test for PUT isActive:true on deactivated user; no E2E reactivation flow | **HIGH** | Jest + Playwright E2E | UserModal has Active checkbox but no end-to-end flow test |
+| GAP-03 | TAM-R02:AC04 | Role change effects on access -- no E2E verifying that after role change, user's next login has different permissions | **HIGH** | Playwright E2E | Requires multi-user login flow |
+| GAP-04 | TAM-R02:AC05 | **CODE GAP**: updateUser handler does NOT cleanup StaffAssignment records when changing role from STAFF to PHYSICIAN; only deleteUser does cleanup | **HIGH** | Fix code + Jest test | userHandlers.ts updateUser() missing StaffAssignment cleanup |
+| GAP-05 | TAM-R02:AC07-08 | isValidRoleCombination pure function has no direct unit test | **MEDIUM** | Jest (new test file or inline) | 7 valid/invalid combos to test; function is exported |
+| GAP-06 | TAM-R03:AC07 + TAM-R07:AC07 | STAFF with no physician assignments sees "No physicians assigned" message | **MEDIUM** | Vitest + Cypress E2E | Requires empty assignments mock/seed user |
+| GAP-07 | TAM-R04:AC05 | Audit log filter parameters (action, entity, userId, startDate, endDate) -- backend supports via auditHandlers.ts but no test verifies filtering | **MEDIUM** | Jest (admin.routes.test.ts) | auditHandlers.ts L24-33 builds where clause |
+| GAP-08 | TAM-R04:AC07 | Audit log limit cap at 100 -- auditHandlers.ts L21 uses Math.min(limit, 100) but no test sends limit > 100 | **LOW** | Jest (admin.routes.test.ts) | Single test: limit=200 should return limitNum=100 |
+| GAP-09 | TAM-R04:AC10 | Empty audit log UI state -- no Vitest test for AdminPage rendering when entries=[] | **LOW** | Vitest (AdminPage.test.tsx) | Simple mock response test |
+| GAP-10 | TAM-R07:AC06 | STAFF empty grid by default -- no test verifying STAFF sees empty grid before selecting a physician | **MEDIUM** | Vitest + Cypress E2E | Related to GAP-06 |
+| GAP-11 | TAM-R09:AC05 | PHYSICIAN auto-assign during import -- no E2E verifying imported patients are assigned to self | **MEDIUM** | Cypress E2E | Cross-feature: import + ownership |
+| GAP-12 | TAM-R01:AC07 | Update user audit log content -- no test verifies field-level change tracking in audit details JSON | **LOW** | Jest (admin.routes.test.ts) | userHandlers.ts L286-298 creates changedFields array |
+| GAP-13 | TAM-R05:AC08 | Tab state preservation -- content mounting tested but actual form input state not verified after tab switch | **LOW** | Vitest or Cypress E2E | Edge case: fill import form, switch to reassign, switch back |
+
+**Previous gaps reclassified as COVERED after verification:**
+- ~~GAP-09 (old) TAM-R04:AC09~~ Login/logout audit entries: **COVERED** by `auth.routes.test.ts` (10+ tests for LOGIN, LOGOUT, LOGIN_FAILED, ACCOUNT_LOCKED audit creation)
+- ~~GAP-14 (old) TAM-R01:AC02~~ Add User modal: **COVERED** by `UserModal.test.tsx` (4 create-mode tests)
+- ~~GAP-15 (old) TAM-R01:AC06~~ Edit User modal: **COVERED** by `UserModal.test.tsx` (4 edit-mode tests)
+- ~~GAP-18 (old) TAM-R01:AC15~~ Reset password frontend: **COVERED** by `ResetPasswordModal.test.tsx` (9 tests)
+- ~~GAP-16 (old) TAM-R01:AC09~~ User deactivation E2E: Downgraded -- backend test exists, E2E is nice-to-have
+- ~~GAP-17 (old) TAM-R01:AC14~~ Send temp password E2E: Downgraded -- 5 tests across backend+Vitest already cover this
 
 ---
 
 ## Proposed New Test Cases
 
-### Backend Jest (New Tests)
+> **UPDATED 2026-02-27** -- Reduced from 21 to 16 proposed tests after removing those that already exist.
 
-| Test ID | Gap | Description | File |
-|---------|-----|-------------|------|
-| TAM-T01 | GAP-01 | updateUser returns 400 CANNOT_CHANGE_OWN_ROLE when admin changes own roles | `admin.routes.test.ts` |
-| TAM-T02 | GAP-05 | isValidRoleCombination returns true for [PHYSICIAN], [ADMIN], [STAFF], [ADMIN,PHYSICIAN] | New: `admin.routes.unit.test.ts` or inline |
-| TAM-T03 | GAP-05 | isValidRoleCombination returns false for [STAFF,PHYSICIAN], [STAFF,ADMIN], [STAFF,ADMIN,PHYSICIAN] | Same as above |
-| TAM-T04 | GAP-07 | getAuditLog filters by action, entity, userId, startDate, endDate | `admin.routes.test.ts` |
-| TAM-T05 | GAP-08 | getAuditLog caps limit at 100 when larger value provided | `admin.routes.test.ts` |
-| TAM-T06 | GAP-09 | Login success creates LOGIN audit entry; login failure creates LOGIN_FAILED audit entry | `auth.routes.test.ts` or `authService.test.ts` |
-| TAM-T07 | GAP-02 | updateUser with isActive:true reactivates deactivated user | `admin.routes.test.ts` |
-| TAM-T08 | GAP-04 | updateUser role change from STAFF to PHYSICIAN cleans up StaffAssignment records | `admin.routes.test.ts` |
+### Backend Jest (New Tests: 7)
 
-### Frontend Vitest (New Tests)
+| Test ID | Gap | Description | File | Priority |
+|---------|-----|-------------|------|----------|
+| TAM-T01 | GAP-01 | PUT /api/admin/users/:id returns 400 CANNOT_CHANGE_OWN_ROLE when admin (id=1) changes own roles from [ADMIN] to [ADMIN,PHYSICIAN] | `admin.routes.test.ts` | **HIGH** |
+| TAM-T02 | GAP-05 | isValidRoleCombination returns true for [PHYSICIAN], [ADMIN], [STAFF], [ADMIN,PHYSICIAN] (4 assertions) | New: `admin.routes.unit.test.ts` or add to `admin.routes.test.ts` | MEDIUM |
+| TAM-T03 | GAP-05 | isValidRoleCombination returns false for [STAFF,PHYSICIAN], [STAFF,ADMIN], [STAFF,ADMIN,PHYSICIAN], [] (4 assertions) | Same as TAM-T02 | MEDIUM |
+| TAM-T04 | GAP-07 | GET /api/admin/audit-log?action=LOGIN&userId=1&startDate=2026-01-01&endDate=2026-02-01 returns filtered entries | `admin.routes.test.ts` | MEDIUM |
+| TAM-T05 | GAP-08 | GET /api/admin/audit-log?limit=200 caps at 100 (verify pagination.limit=100 in response) | `admin.routes.test.ts` | LOW |
+| TAM-T06 | GAP-02 | PUT /api/admin/users/:id with {isActive:true} on deactivated user returns 200, user.isActive becomes true | `admin.routes.test.ts` | **HIGH** |
+| TAM-T07 | GAP-12 | PUT /api/admin/users/:id with {displayName:"New"} creates audit log with changes.fields containing {field:"displayName", old:"Old", new:"New"} | `admin.routes.test.ts` | LOW |
 
-| Test ID | Gap | Description | File |
-|---------|-----|-------------|------|
-| TAM-T09 | GAP-14 | Add User modal renders form fields, validates required fields, submits API call | `AdminPage.test.tsx` or new `AddUserModal.test.tsx` |
-| TAM-T10 | GAP-15 | Edit User modal pre-fills data, displays role checkboxes, submits updates | `AdminPage.test.tsx` or new `EditUserModal.test.tsx` |
-| TAM-T11 | GAP-10 | Audit Log tab shows empty state when no entries returned | `AdminPage.test.tsx` |
-| TAM-T12 | GAP-06 | STAFF with no assignments shows "No physicians assigned" message | `Header.test.tsx` or `MainPage.test.tsx` |
-| TAM-T13 | GAP-11 | STAFF empty grid when no physician selected | `MainPage.test.tsx` |
-| TAM-T14 | GAP-18 | Reset password modal renders, validates min length, calls API | `AdminPage.test.tsx` |
+### Frontend Vitest (New Tests: 3)
 
-### Playwright E2E (New Tests)
+| Test ID | Gap | Description | File | Priority |
+|---------|-----|-------------|------|----------|
+| TAM-T08 | GAP-09 | AdminPage Audit Log tab renders "No audit log entries" when API returns entries=[] | `AdminPage.test.tsx` | LOW |
+| TAM-T09 | GAP-06 | Header/MainPage shows "No physicians assigned" for STAFF with empty assignments array | `Header.test.tsx` or new `MainPage.test.tsx` | MEDIUM |
+| TAM-T10 | GAP-10 | MainPage/grid area shows empty state for STAFF before selecting a physician from dropdown | `MainPage.test.tsx` or `Header.test.tsx` | MEDIUM |
 
-| Test ID | Gap | Description | File |
-|---------|-----|-------------|------|
-| TAM-T15 | GAP-16 | Admin deactivates a user, verifies they appear as Inactive, verifies deactivated user cannot log in | `admin-management.spec.ts` |
-| TAM-T16 | GAP-02 | Admin reactivates a user, verifies they can log in again | `admin-management.spec.ts` |
-| TAM-T17 | GAP-03 | Admin changes user role from PHYSICIAN to STAFF, verifies access changes on next login | `admin-management.spec.ts` |
-| TAM-T18 | GAP-17 | Admin sends temp password, modal displays correctly (SMTP not configured scenario) | `admin-management.spec.ts` |
+### Playwright E2E (New Tests: 3)
 
-### Cypress E2E (New Tests)
+| Test ID | Gap | Description | File | Priority |
+|---------|-----|-------------|------|----------|
+| TAM-T11 | GAP-02 | Admin deactivates user via Edit modal (uncheck Active, save), then reactivates (check Active, save), user can log in again | `admin-management.spec.ts` | **HIGH** |
+| TAM-T12 | GAP-03 | Admin changes user role from PHYSICIAN to STAFF via Edit modal, user logs in and sees STAFF-level access (physician dropdown, no admin link) | `admin-management.spec.ts` | **HIGH** |
+| TAM-T13 | GAP-01 | Admin opens own Edit modal, changes own role checkboxes, attempts save -- expects error (CANNOT_CHANGE_OWN_ROLE) | `admin-management.spec.ts` | **HIGH** |
 
-| Test ID | Gap | Description | File |
-|---------|-----|-------------|------|
-| TAM-T19 | GAP-12 | STAFF with no assignments sees "No physicians assigned" message instead of grid | `role-access-control.cy.ts` |
-| TAM-T20 | GAP-11 | STAFF sees empty grid before selecting a physician | `role-access-control.cy.ts` |
-| TAM-T21 | GAP-13 | PHYSICIAN import auto-assigns to self, patient appears in own grid | `patient-assignment.cy.ts` or `import-flow.cy.ts` |
+### Cypress E2E (New Tests: 3)
+
+| Test ID | Gap | Description | File | Priority |
+|---------|-----|-------------|------|----------|
+| TAM-T14 | GAP-06 | Create or use STAFF user with no physician assignments, login, verify "No physicians assigned" message instead of grid | `role-access-control.cy.ts` | MEDIUM |
+| TAM-T15 | GAP-10 | Login as STAFF with assignments, verify grid is empty/shows prompt before selecting physician from dropdown | `role-access-control.cy.ts` | MEDIUM |
+| TAM-T16 | GAP-11 | Login as PHYSICIAN, import patient file without selecting physician, verify patients auto-assigned to self (appear in grid) | `patient-assignment.cy.ts` | MEDIUM |
+
+### Code Fix Required (Not a Test)
+
+| Fix ID | Gap | Description | File |
+|--------|-----|-------------|------|
+| TAM-FIX-01 | GAP-04 | updateUser handler must cleanup StaffAssignment records when roles change from STAFF to non-STAFF (same logic as deleteUser L347-349) | `backend/src/routes/handlers/userHandlers.ts` L276-282 |
+
+### Test Count Impact
+
+| Layer | Current | New | Total After |
+|-------|---------|-----|-------------|
+| Backend Jest (admin-scoped) | 34 | +7 | 41 |
+| Frontend Vitest (admin-scoped) | 93 | +3 | 96 |
+| Playwright E2E | 8 | +3 | 11 |
+| Cypress E2E (admin-scoped) | 74 | +3 | 77 |
+| **Total (admin scope)** | **209** | **+16** | **225** |
+
+> Note: "admin-scoped" counts exclude auth.routes.test.ts (59 tests), data.routes.test.ts (49 tests), and auth middleware tests (15 tests) which are cross-cutting but contribute to admin coverage. Including those, the full admin+auth test inventory is 363 current + 16 new = 379.
 
 ---
 

@@ -541,4 +541,38 @@ describe('AdminPage', () => {
     const spinner = document.querySelector('.animate-spin');
     expect(spinner).toBeInTheDocument();
   });
+
+  // ── T4-1: Audit Log empty state ──────────────────────────────
+
+  it('Audit Log tab shows empty table body when no entries', async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/admin/users') {
+        return Promise.resolve({ data: { data: mockUsers } });
+      }
+      if (url === '/admin/physicians') {
+        return Promise.resolve({ data: { data: mockPhysicians } });
+      }
+      if (url.startsWith('/admin/audit-log')) {
+        return Promise.resolve({ data: { data: { entries: [] } } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Users')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Audit Log'));
+    await waitFor(() => {
+      // The audit log table should exist but have no data rows
+      // Table headers should be present (Time, User, Action, Target, Details)
+      expect(screen.getByText('Time')).toBeInTheDocument();
+      expect(screen.getByText('Action')).toBeInTheDocument();
+      // No actual entry rows — the tbody should be empty
+      const tbody = document.querySelector('tbody');
+      expect(tbody).toBeInTheDocument();
+      expect(tbody!.children.length).toBe(0);
+    });
+  });
 });

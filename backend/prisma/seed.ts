@@ -316,7 +316,7 @@ async function main() {
     { code: 'Not Addressed', label: 'Not Addressed', datePrompt: null, baseDueDays: null, sortOrder: 1 },
     { code: 'Called to schedule', label: 'Called to schedule', datePrompt: 'Date Called', baseDueDays: 7, sortOrder: 2 },
     { code: 'Visit scheduled', label: 'Visit scheduled', datePrompt: 'Date Scheduled', baseDueDays: 1, sortOrder: 3 },
-    { code: 'Screening complete', label: 'Screening complete', datePrompt: 'Date Completed', baseDueDays: null, sortOrder: 4 },
+    { code: 'Screening complete', label: 'Screening complete', datePrompt: 'Date Completed', baseDueDays: 365, sortOrder: 4 },
     { code: 'Screening unnecessary', label: 'Screening unnecessary', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 5 },
     { code: 'Patient declined', label: 'Patient declined', datePrompt: 'Date Declined', baseDueDays: null, sortOrder: 6 },
     { code: 'No longer applicable', label: 'No longer applicable', datePrompt: 'Date Determined', baseDueDays: null, sortOrder: 7 },

@@ -268,4 +268,123 @@ describe('useSocket', () => {
 
     expect(mockOptions.onRowDeleted).toHaveBeenCalledWith(1, 'Dr. Smith');
   });
+
+  it('should re-join room and refresh data after reconnection', () => {
+    renderHook(() => useSocket(mockOptions));
+
+    // Initial connect + join room
+    const handlers = mockConnect.mock.calls[0][1];
+    expect(mockJoinRoom).toHaveBeenCalledWith(5);
+    mockJoinRoom.mockClear();
+    mockOptions.onDataRefresh.mockClear();
+
+    // Simulate initial connection
+    act(() => {
+      handlers.onConnectionChange('connected');
+    });
+
+    // Simulate disconnection
+    act(() => {
+      handlers.onConnectionChange('disconnected');
+    });
+
+    // Simulate reconnection
+    act(() => {
+      handlers.onConnectionChange('connected');
+    });
+
+    // Should re-join the room with the current physician ID
+    expect(mockJoinRoom).toHaveBeenCalledWith(5);
+    // Should trigger data refresh to get latest state
+    expect(mockOptions.onDataRefresh).toHaveBeenCalled();
+  });
+
+  it('should NOT re-join room on initial connection (only on reconnection)', () => {
+    renderHook(() => useSocket(mockOptions));
+
+    const handlers = mockConnect.mock.calls[0][1];
+
+    // Initial join happens via the selectedPhysicianId useEffect, not onConnectionChange
+    expect(mockJoinRoom).toHaveBeenCalledTimes(1);
+    mockJoinRoom.mockClear();
+    mockOptions.onDataRefresh.mockClear();
+
+    // Simulate the initial connection event
+    act(() => {
+      handlers.onConnectionChange('connected');
+    });
+
+    // Should NOT double-join on first connect — only the useEffect join counts
+    expect(mockJoinRoom).not.toHaveBeenCalled();
+    expect(mockOptions.onDataRefresh).not.toHaveBeenCalled();
+  });
+
+  it('should NOT re-join room on reconnect when no physician is selected', () => {
+    authStoreState.selectedPhysicianId = null;
+
+    renderHook(() => useSocket(mockOptions));
+
+    const handlers = mockConnect.mock.calls[0][1];
+    mockJoinRoom.mockClear();
+    mockOptions.onDataRefresh.mockClear();
+
+    // Simulate connect -> disconnect -> reconnect
+    act(() => {
+      handlers.onConnectionChange('connected');
+    });
+    act(() => {
+      handlers.onConnectionChange('disconnected');
+    });
+    act(() => {
+      handlers.onConnectionChange('connected');
+    });
+
+    // No physician selected, so should NOT re-join any room
+    expect(mockJoinRoom).not.toHaveBeenCalled();
+    // But should still refresh data so the user sees latest state
+    expect(mockOptions.onDataRefresh).toHaveBeenCalled();
+  });
+
+  // T3-3: onPresenceUpdate filters out current user
+  it('onPresenceUpdate filters out current user from room users', () => {
+    renderHook(() => useSocket(mockOptions));
+
+    const handlers = mockConnect.mock.calls[0][1];
+
+    // Simulate presence update with self (id=99) and another user
+    const users = [
+      { id: 99, displayName: 'Current User' },
+      { id: 5, displayName: 'Dr. Other' },
+    ];
+    handlers.onPresenceUpdate({ users });
+
+    // Should filter out user id=99 (the current user) and only pass 'Dr. Other'
+    expect(mockSetRoomUsers).toHaveBeenCalledWith([
+      { id: 5, displayName: 'Dr. Other' },
+    ]);
+  });
+
+  it('onPresenceUpdate with only self returns empty array', () => {
+    renderHook(() => useSocket(mockOptions));
+
+    const handlers = mockConnect.mock.calls[0][1];
+
+    // Presence with only the current user
+    const users = [{ id: 99, displayName: 'Current User' }];
+    handlers.onPresenceUpdate({ users });
+
+    // Should filter out self, resulting in empty array
+    expect(mockSetRoomUsers).toHaveBeenCalledWith([]);
+  });
+
+  // T3-3: offline status clears active edits (same as disconnected)
+  it('offline status clears active edits and room users', () => {
+    renderHook(() => useSocket(mockOptions));
+
+    const handlers = mockConnect.mock.calls[0][1];
+    handlers.onConnectionChange('offline');
+
+    expect(mockClearActiveEdits).toHaveBeenCalled();
+    expect(mockSetRoomUsers).toHaveBeenCalledWith([]);
+  });
 });

@@ -1713,4 +1713,73 @@ describe('conflictDetector', () => {
       expect(conflict!.suggestions[0].columnName).toBe('Annual Wellness Visit');
     });
   });
+
+  // ----------------------------------------------------------------
+  // Sutter-specific conflict detection
+  // ----------------------------------------------------------------
+  describe('Sutter config conflict detection', () => {
+    it('should detect MISSING/NEW/CHANGED conflicts with Sutter column names', () => {
+      // Build a config that resembles Sutter with its unique column names
+      const sutterConfig = buildMockConfig({
+        systemId: 'sutter',
+        systemName: 'Sutter/SIP',
+        format: 'long',
+        patientColumns: [
+          patientCol('Member Name', 'memberName'),
+          patientCol('Member DOB', 'memberDob'),
+          patientCol('Member Telephone', 'memberTelephone'),
+          patientCol('Member Home Address', 'memberAddress'),
+        ],
+        measureColumns: [],
+        dataColumns: [
+          dataCol('Health Plans'),
+          dataCol('Race-Ethnicity'),
+          dataCol('Possible Actions Needed'),
+          dataCol('Request Type'),
+          dataCol('Measure Details'),
+          dataCol('High Priority'),
+        ],
+        skipColumns: [],
+      });
+
+      // File has one MISSING column ("Member DOB" renamed to "DOB"),
+      // one NEW column ("Extra Column"), all else exact
+      const fileHeaders = [
+        'Member Name',
+        'DOB',  // MISSING: "Member DOB" not found; "DOB" is NEW
+        'Member Telephone',
+        'Member Home Address',
+        'Health Plans',
+        'Race-Ethnicity',
+        'Possible Actions Needed',
+        'Request Type',
+        'Measure Details',
+        'High Priority',
+        'Extra Column',  // NEW - not in config
+      ];
+
+      const report = detect(fileHeaders, sutterConfig, 'sutter');
+
+      // "Member DOB" should be MISSING (not found in file)
+      const missingDob = report.conflicts.find(
+        c => c.type === 'MISSING' && c.configColumn === 'Member DOB'
+      );
+      expect(missingDob).toBeDefined();
+
+      // "DOB" should be NEW (not in config)
+      const newDob = report.conflicts.find(
+        c => c.type === 'NEW' && c.sourceHeader === 'DOB'
+      );
+      expect(newDob).toBeDefined();
+
+      // "Extra Column" should be NEW
+      const newExtra = report.conflicts.find(
+        c => c.type === 'NEW' && c.sourceHeader === 'Extra Column'
+      );
+      expect(newExtra).toBeDefined();
+
+      // Should have blocking conflicts because a required patient column is missing
+      expect(report.hasBlockingConflicts).toBe(true);
+    });
+  });
 });

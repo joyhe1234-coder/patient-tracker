@@ -6,15 +6,10 @@
  *   - PHYSICIAN (phy1@gmail.com)
  *   - STAFF (staff1@gmail.com)
  *
- * Each role runs the same 8 core scenarios:
- *   1. AWV scheduled + past date → overdue (red)
- *   2. AWV scheduled + Today → blue
- *   3. Screening → CCS → ordered → blue
- *   4. CCS ordered + Tracking1=Colonoscopy → blue
- *   5. CCS + Colonoscopy + past date → overdue
- *   6. HgbA1c + T2=3 months + past date → overdue
- *   7. BP not at goal + T1=Call every 1 wk + past date → overdue
- *   8. Screening discussed + T1=In 1 Month + past date → overdue
+ * Each role runs the same core scenarios:
+ *   1-8. Original AWV, CCS, HgbA1c, BP, Screening overdue tests
+ *   9-11. Depression Screening color verification (blue, yellow, green)
+ *   12-14. Chronic DX attestation color verification (orange, green, green)
  *
  * Uses gridApi.startEditingCell() for reliable dropdown interactions
  * and dblclick('left') for date entry (avoids Today button overlay).
@@ -23,7 +18,7 @@
  */
 
 const ROLES = [
-  { name: 'Admin', email: 'admin@gmail.com', password: 'welcome100' },
+  { name: 'Admin', email: 'ko037291@gmail.com', password: 'welcome100' },
   { name: 'Physician', email: 'phy1@gmail.com', password: 'welcome100' },
   { name: 'Staff', email: 'staff1@gmail.com', password: 'welcome100' },
 ] as const;
@@ -36,7 +31,11 @@ ROLES.forEach((role) => {
     beforeEach(() => {
       cy.login(role.email, role.password);
       cy.visit('/');
-      cy.waitForAgGrid();
+      // Wait for grid container to load (but don't require existing rows — may be empty for non-admin)
+      cy.get('.ag-theme-alpine', { timeout: 15000 }).should('be.visible');
+      cy.window().should('have.property', '__agGridApi');
+      // Short settle for grid API initialization
+      cy.wait(500);
     });
 
     // ── Helpers ──────────────────────────────────────────────────────
@@ -54,17 +53,36 @@ ROLES.forEach((role) => {
       cy.wait(1500);
     }
 
-    /** Enter date via dblclick on LEFT side (avoids Today button) */
+    /** Enter date via grid API startEditingCell (more reliable than dblclick) */
     function enterDate(dateStr: string) {
-      cy.get('[row-index="0"] [col-id="statusDate"]').first()
-        .dblclick('left', { force: true });
+      // Ensure statusDate column is scrolled into view
+      cy.get('.ag-center-cols-viewport').then(($v) => {
+        $v[0].scrollLeft = 0;
+        $v[0].dispatchEvent(new Event('scroll', { bubbles: true }));
+      });
+      cy.wait(300);
+
+      // Use grid API to programmatically start editing (bypasses click timing issues)
+      cy.window().then((win) => {
+        const api = (win as any).__agGridApi;
+        if (api) {
+          api.startEditingCell({ rowIndex: 0, colKey: 'statusDate' });
+        } else {
+          // Fallback: dblclick
+          cy.get('[row-index="0"] [col-id="statusDate"]').first()
+            .dblclick('left', { force: true });
+        }
+      });
       cy.get('.date-cell-editor', { timeout: 5000 }).should('exist');
       cy.get('.date-cell-editor').clear().type(`${dateStr}{enter}`);
       cy.wait(2000);
     }
 
-    /** Click Today button on status date cell */
+    /** Click Today button on status date cell (hidden via CSS, revealed on hover) */
     function clickToday() {
+      cy.get('[row-index="0"] [col-id="statusDate"]').first()
+        .trigger('mouseover', { force: true });
+      cy.wait(300);
       cy.get('[row-index="0"] [col-id="statusDate"]').first()
         .find('.status-date-today-btn', { timeout: 5000 })
         .should('exist')
@@ -175,6 +193,70 @@ ROLES.forEach((role) => {
       scrollLeft();
       enterDate('1/1/2024');
       assertColor('row-status-overdue');
+    });
+
+    // ── Depression Screening Color Tests (M3 T3-1) ─────────────────
+
+    it('9. Depression Screening "Called to schedule" → blue', () => {
+      addRow('DS-blue');
+      selectAndWait('requestType', 'Screening');
+      cy.wait(500);
+      selectAndWait('qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      selectAndWait('measureStatus', 'Called to schedule');
+      assertColor('row-status-blue');
+    });
+
+    it('10. Depression Screening "Visit scheduled" → yellow', () => {
+      addRow('DS-yellow');
+      selectAndWait('requestType', 'Screening');
+      cy.wait(500);
+      selectAndWait('qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      selectAndWait('measureStatus', 'Visit scheduled');
+      assertColor('row-status-yellow');
+    });
+
+    it('11. Depression Screening "Screening complete" → green', () => {
+      addRow('DS-green');
+      selectAndWait('requestType', 'Screening');
+      cy.wait(500);
+      selectAndWait('qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      selectAndWait('measureStatus', 'Screening complete');
+      assertColor('row-status-green');
+    });
+
+    // ── Chronic DX Attestation Color Tests (M3 T6-1) ──────────────
+
+    it('12. Chronic DX resolved + Attestation not sent → orange', () => {
+      addRow('CDX-orange');
+      selectAndWait('requestType', 'Chronic DX');
+      selectAndWait('measureStatus', 'Chronic diagnosis resolved');
+      scrollRight();
+      selectAndWait('tracking1', 'Attestation not sent');
+      scrollLeft();
+      assertColor('row-status-orange');
+    });
+
+    it('13. Chronic DX resolved + Attestation sent → green', () => {
+      addRow('CDX-green1');
+      selectAndWait('requestType', 'Chronic DX');
+      selectAndWait('measureStatus', 'Chronic diagnosis resolved');
+      scrollRight();
+      selectAndWait('tracking1', 'Attestation sent');
+      scrollLeft();
+      assertColor('row-status-green');
+    });
+
+    it('14. Chronic DX invalid + Attestation sent → green', () => {
+      addRow('CDX-green2');
+      selectAndWait('requestType', 'Chronic DX');
+      selectAndWait('measureStatus', 'Chronic diagnosis invalid');
+      scrollRight();
+      selectAndWait('tracking1', 'Attestation sent');
+      scrollLeft();
+      assertColor('row-status-green');
     });
   });
 });

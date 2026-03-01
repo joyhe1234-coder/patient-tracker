@@ -56,8 +56,8 @@ test.describe('Password Flows', () => {
     test('shows invalid link when no token provided', async ({ page }) => {
       await page.goto('/reset-password');
 
-      // Should show "Invalid Reset Link" message
-      await expect(page.getByRole('heading', { name: /invalid reset link/i })).toBeVisible({ timeout: 5000 });
+      // Should show "Invalid Link" heading
+      await expect(page.getByRole('heading', { name: /invalid link/i })).toBeVisible({ timeout: 5000 });
     });
 
     test('shows error for invalid token when submitting', async ({ page }) => {

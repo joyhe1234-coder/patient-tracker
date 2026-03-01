@@ -151,6 +151,36 @@ describe('previewCache', () => {
     });
   });
 
+  describe('TTL expiration with default 30-minute TTL', () => {
+    it('should return null when preview has expired past default 30-minute TTL', () => {
+      jest.useFakeTimers();
+
+      // Store with default TTL (30 minutes)
+      const id = storePreview(
+        'hill',
+        'merge',
+        createMockDiff(),
+        createMockRows(),
+        createMockValidation()
+      );
+
+      // Verify preview is valid immediately
+      expect(getPreview(id)).not.toBeNull();
+      expect(hasValidPreview(id)).toBe(true);
+
+      // Advance time by 29 minutes — should still be valid
+      jest.advanceTimersByTime(29 * 60 * 1000);
+      expect(getPreview(id)).not.toBeNull();
+
+      // Advance past 30-minute TTL (1 more minute + 1ms)
+      jest.advanceTimersByTime(1 * 60 * 1000 + 1);
+      expect(getPreview(id)).toBeNull();
+      expect(hasValidPreview(id)).toBe(false);
+
+      jest.useRealTimers();
+    });
+  });
+
   describe('deletePreview', () => {
     it('should delete existing preview', () => {
       const id = storePreview('hill', 'merge', createMockDiff(), createMockRows(), createMockValidation());
@@ -282,6 +312,58 @@ describe('previewCache', () => {
       expect(summary.summary.updates).toBe(2);
       expect(summary.expiresAt).toBeDefined();
       expect(summary.createdAt).toBeDefined();
+    });
+  });
+
+  describe('concurrent store and get (TTL race condition)', () => {
+    it('should handle store followed by immediate get correctly under fake timers', () => {
+      jest.useFakeTimers();
+
+      // Store with a 5-second TTL
+      const id = storePreview(
+        'hill',
+        'merge',
+        createMockDiff(),
+        createMockRows(),
+        createMockValidation(),
+        [], // warnings
+        [], // reassignments
+        null, // targetOwner
+        5000 // 5 second TTL
+      );
+
+      // Immediately get — should be valid (no time advanced)
+      const entry = getPreview(id);
+      expect(entry).not.toBeNull();
+      expect(entry?.id).toBe(id);
+
+      // Advance to just before expiration (4999ms)
+      jest.advanceTimersByTime(4999);
+      expect(getPreview(id)).not.toBeNull();
+
+      // Advance 2ms more (total 5001ms) — should now be expired
+      jest.advanceTimersByTime(2);
+      expect(getPreview(id)).toBeNull();
+
+      // Store a new entry at the same moment the old one expired
+      const id2 = storePreview(
+        'sutter',
+        'replace',
+        createMockDiff(),
+        createMockRows(),
+        createMockValidation(),
+        [], [], null,
+        5000
+      );
+
+      // New entry should be accessible even though old one expired at same tick
+      expect(getPreview(id2)).not.toBeNull();
+      expect(getPreview(id2)?.systemId).toBe('sutter');
+
+      // Old entry should still be expired
+      expect(getPreview(id)).toBeNull();
+
+      jest.useRealTimers();
     });
   });
 });

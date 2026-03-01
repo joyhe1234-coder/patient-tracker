@@ -32,7 +32,10 @@ This document tracks planned features and enhancements for future development.
 - [x] Duplicate detector edge-case tests (+5 Jest)
 - [x] Toolbar edge-case tests (+3 Vitest)
 - [x] Spec docs reconciled (tracking3 -> depressionScreeningStatus, depression color ACs, security deferred items)
-- [ ] Execute remaining Tier 1 test plans (M1-M7)
+- [x] M1 Auth: +10 Jest tests (audit logging for 6 successful operations + 4 edge cases), +8 Playwright E2E (force-change modal, account lockout, post-logout)
+- [x] M1 Auth: Fixed pre-existing E2E failure (password-flows.spec.ts "Invalid Link" heading mismatch)
+- [x] M1 Auth: Security audit completed — 16 findings, 10 security-specific test gaps identified (added to TODO)
+- [ ] Execute remaining Tier 1 test plans (M7 Filter, M4 Import, M6 Realtime, M5 Admin)
 - [ ] Execute Tier 2 test plans
 
 ### Real-Time Collaborative Editing / Parallel Editing (Complete)
@@ -164,10 +167,15 @@ This document tracks planned features and enhancements for future development.
 - [x] Phase 8: Import E2E tests (Cypress: 29 passing)
   - Import page: system selection, mode selection, file upload
   - Preview page: summary cards, action filters, changes table
-- [x] Phase 9: Authentication tests (Feb 2, 2026)
+- [x] Phase 9: Authentication tests (Feb 2, 2026; updated Feb 27, 2026)
   - LoginPage.test.tsx (17 Vitest tests)
   - authStore.test.ts (25 Vitest tests)
   - auth.spec.ts (9 Playwright E2E tests)
+  - password-flows.spec.ts (7 Playwright E2E tests)
+  - auth-edge-cases.spec.ts (8 Playwright E2E tests — force-change, lockout, post-logout)
+  - auth.routes.test.ts (59 Jest tests — login, lockout, audit logging, password flows, edge cases)
+  - data.routes.test.ts (role-based filtering: PHYSICIAN, ADMIN, STAFF, dual-role — 15 tests)
+  - role-access-control.cy.ts (42 Cypress tests — all 4 role patterns + API access control)
   - Execution: success message, statistics, navigation
   - Error handling: invalid format, expired preview
 
@@ -293,19 +301,8 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - Fixed in `diffCalculator.ts`: `detectReassignments()` now deduplicates `existingPatients` by `memberName|memberDob` before building the reassignment array
 - Root cause: `prisma.patient.findMany` returns all rows (one per quality measure) for each patient; without dedup, a patient with 5 measures counted as 5 reassignments
 
-### BUG-6: Status filter bar counts don't match row colors for overdue/attestation rows
-- **Severity:** Medium
-- **Location:** `StatusFilterBar.tsx` (`getRowStatusColor()`) and filter chip count logic
-- **Issue:** The status filter counts are based on `measureStatus` category, but when a row's actual displayed color differs (due to overdue or attestation logic), the count doesn't match what the user sees. Examples:
-  - `Chronic diagnosis resolved` + `Attestation sent` → displays **GREEN**, but counted as **Orange** (Resolved)
-  - `Chronic diagnosis resolved` + `Attestation not sent` + overdue → displays **RED**, but counted as **Orange** (Resolved)
-  - `Chronic diagnosis invalid` + `Attestation sent` → displays **GREEN**, but counted as **Orange** (Resolved)
-  - `Chronic diagnosis invalid` + `Attestation not sent` + overdue → displays **RED**, but counted as **Orange** (Resolved)
-  - `Scheduled call back - BP not at goal` + overdue → displays **RED**, but counted as **Blue** (In Progress)
-  - `Scheduled call back - BP at goal` + overdue → displays **RED**, but counted as **Blue** (In Progress)
-- **Expected:** Filter chip counts should match the actual displayed row color — overdue rows should count toward Overdue/Red, attestation-sent rows should count toward Green
-- **Root cause:** `getRowStatusColor()` may be returning the correct color, but the filter chip aggregation or the filtering logic groups by status category rather than actual computed color
-- **Fix hint:** Ensure filter bar counts use the same color computation as `rowClassRules` in PatientGrid, so the count reflects the visual color the user sees
+### BUG-6: ~~Status filter bar counts don't match row colors for overdue/attestation rows~~ FIXED
+- Fixed: Both filter counting (MainPage.tsx) and visual display (PatientGrid.tsx rowClassRules) now use the shared `getRowStatusColor()` from `statusColors.ts`, which correctly handles overdue override, attestation override, and terminal status exclusions. 54 tests cover all scenarios.
 
 ---
 
@@ -514,6 +511,7 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 ### Security Hardening (In Spec Process)
 **Spec:** `.claude/specs/security-hardening/requirements.md`
 **Status:** Phases 1-3 complete (env var validation, failed login audit logging, account lockout), remaining items pending
+**Security Audit:** Feb 27, 2026 — MEDIUM risk, 16 findings (0 critical, 5 high, 7 medium, 4 low)
 
 #### Included (7 items):
 - [ ] REQ-SEC-02: CORS Origin Whitelist (require `CORS_ORIGIN` env var in production)
@@ -524,9 +522,40 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] REQ-SEC-07: Move JWT to httpOnly Cookie (sameSite strict, same-origin Docker)
 - [x] REQ-SEC-10: Failed Login Audit Logging (LOGIN_FAILED entries with reason/email/IP, admin panel display) -- **Done Feb 13, 2026**
 
+#### New from Security Audit (Feb 27, 2026):
+
+**HIGH priority:**
+- [ ] Pin JWT algorithm: Add `algorithm: 'HS256'` to `jwt.sign()` and `algorithms: ['HS256']` to `jwt.verify()` in `authService.ts` (prevents algorithm confusion / `alg: none` attacks — 2-line fix)
+- [ ] Rate limiting on auth endpoints: Install `express-rate-limit` for `/login` (10/15min/IP), `/forgot-password` (3/hr/IP), `/reset-password` (5/hr/IP) — overlaps REQ-SEC-03
+- [ ] Token invalidation on password change: Add `tokenVersion` field to User model, increment on password change/reset, validate in `requireAuth` middleware (stolen tokens survive password changes today)
+- [ ] Move token from localStorage to httpOnly cookies: Eliminates XSS token theft — overlaps REQ-SEC-07
+
+**MEDIUM priority:**
+- [ ] Enable Content Security Policy: Remove `contentSecurityPolicy: false` from helmet config in `app.ts` — overlaps REQ-SEC-08
+- [ ] Tighten CORS in production: Change fallback from `true` (allow all) to explicit whitelist — overlaps REQ-SEC-02
+- [ ] Strengthen password policy: Add complexity rules (uppercase, lowercase, digit, special char) to Zod schemas
+- [ ] Invalidate old reset tokens on new request: `updateMany({ where: { email, used: false }, data: { used: true } })` before creating new token
+- [ ] Add maximum password length (`.max(128)`) to prevent bcrypt DoS
+
+**LOW priority:**
+- [ ] Add bcrypt salt rounds minimum floor: `Math.max(parseInt(...), 10)` in config
+- [ ] Monitor xlsx vulnerability (no fix available — prototype pollution + ReDoS)
+
+#### Security-Specific Test Gaps (from audit):
+- [ ] JWT with `alg: none` is rejected by `verifyToken()` (Jest — HIGH)
+- [ ] JWT with wrong algorithm (RS256) is rejected (Jest — HIGH)
+- [ ] Old JWT still works after password change — document known risk (Jest — HIGH)
+- [ ] Two concurrent sessions both work — document behavior (Jest — MEDIUM)
+- [ ] Second reset request does NOT invalidate first token — document risk (Jest — MEDIUM)
+- [ ] `POST /reset-password` allows same password as before (Jest — MEDIUM)
+- [ ] `POST /force-change-password` allows same password (Jest — MEDIUM)
+- [ ] 10,000-char password doesn't DoS the server (Jest — MEDIUM)
+- [ ] Deactivated user mid-session gets 401 on next request (Playwright — MEDIUM)
+- [ ] SQL injection in email field confirmed safe via Prisma (Jest — LOW)
+
 #### Deferred (5 items):
 - [ ] REQ-SEC-01: HTTPS/TLS Enforcement (no cert info available)
-- [ ] REQ-SEC-08: Content-Security-Policy (deferred by user)
+- [ ] REQ-SEC-08: Content-Security-Policy (deferred by user — now recommended by audit)
 - [ ] REQ-SEC-09: Refresh Token Mechanism (8hr JWT sufficient)
 - [ ] REQ-SEC-11: Hide DB Port in Docker (deferred by user)
 - [ ] REQ-SEC-12: Field-Level Encryption for PHI (deferred by user)
@@ -697,6 +726,8 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion. 1,560 Jest + 1,306 Vitest = 2,866 unit/component tests (+227 from v4.13.3). Security audit 16 findings documented.
+February 27, 2026 - M1 Auth complete: +10 Jest (auth.routes 49→59), +8 Playwright E2E (auth-edge-cases.spec.ts), +1 E2E fix (password-flows heading). Security audit: 16 findings, 10 test gaps added to TODO. 1,438 Jest + 1,211 Vitest + 24 auth Playwright + 42 auth Cypress.
 February 26, 2026 - v4.13.1 release: Test gap remediation plan complete, 7 new E2E test files, spec reconciliation done. 1,419 Jest + 1,211 Vitest = 2,630 unit/component tests. Execute remaining Tier 1-2 test plans is next priority.
 February 26, 2026 - Added HIGH PRIORITY: Feature-by-Feature Coverage Audit (7 features × 5 audit layers). Added row-color-comprehensive.cy.ts (179 Cypress tests). Fixed edit conflict bug (cascading 409 from stale updatedAt). Updated REGRESSION_TEST_PLAN.md Section 5 to 100% automated.
 February 25, 2026 - Release 4.12.1: Test hardening (fireEvent→userEvent migration, accessibility labels, Playwright waitForTimeout elimination), Depression Screening quality measure, conflict detection false positives fix. 1,415 Jest + 1,202 Vitest + Playwright + Cypress = ~2,617+ automated tests.

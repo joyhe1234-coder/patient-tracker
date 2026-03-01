@@ -63,6 +63,75 @@ describe('Compact Filter Bar — Grid Integration', () => {
     });
   });
 
+  it('T10-1: Depression Screening filter bar option exists', () => {
+    // The quality measure dropdown should include an option containing "Depression Screening"
+    cy.get('select[aria-label="Filter by quality measure"]').then(($select) => {
+      const options: string[] = [];
+      $select.find('option').each((_, opt) => {
+        options.push(Cypress.$(opt).text().trim());
+      });
+      const hasDepression = options.some(opt => opt.includes('Depression Screening'));
+      expect(hasDepression).to.be.true;
+    });
+
+    // Find and select the Depression Screening option
+    cy.get('select[aria-label="Filter by quality measure"]')
+      .find('option')
+      .then(($options) => {
+        const dsOption = [...$options].find(opt => Cypress.$(opt).text().trim().includes('Depression Screening'));
+        if (dsOption) {
+          const value = dsOption.getAttribute('value') || Cypress.$(dsOption).text().trim();
+          cy.get('select[aria-label="Filter by quality measure"]').select(value);
+        }
+      });
+
+    // Wait for filter to apply and verify grid shows Depression Screening rows
+    cy.wait(500);
+    cy.get('.ag-center-cols-container').then(($container) => {
+      const rows = $container.find('.ag-row');
+      if (rows.length > 0) {
+        // Check first row has Depression Screening
+        const firstQM = $container.find('.ag-row').first().find('[col-id="qualityMeasure"]');
+        if (firstQM.length > 0) {
+          const text = firstQM.text().replace(/▾/g, '').trim();
+          if (text) {
+            expect(text).to.include('Depression Screening');
+          }
+        }
+      } else {
+        cy.log('No Depression Screening rows in current dataset');
+      }
+    });
+
+    // Reset
+    cy.get('select[aria-label="Filter by quality measure"]')
+      .select('All Measures');
+  });
+
+  it('T10-2: Filter count updates after inline edit', () => {
+    // Get initial All count
+    cy.contains('button', 'All').invoke('text').then((allText) => {
+      const allMatch = allText.match(/\((\d+)\)/);
+      const totalBefore = allMatch ? parseInt(allMatch[1], 10) : 0;
+
+      // Select a specific quality measure
+      cy.get('select[aria-label="Filter by quality measure"]')
+        .select('Annual Wellness Visit');
+
+      // Get AWV-specific All count
+      cy.contains('button', 'All').invoke('text').then((awvText) => {
+        const awvMatch = awvText.match(/\((\d+)\)/);
+        const awvCount = awvMatch ? parseInt(awvMatch[1], 10) : 0;
+        // AWV count should be less than or equal to total
+        expect(awvCount).to.be.lte(totalBefore);
+      });
+
+      // Reset
+      cy.get('select[aria-label="Filter by quality measure"]')
+        .select('All Measures');
+    });
+  });
+
   it('measure dropdown + color chip applies AND filter to grid', () => {
     // Select a measure
     cy.get('select[aria-label="Filter by quality measure"]')
@@ -90,6 +159,53 @@ describe('Compact Filter Bar — Grid Integration', () => {
 
       // Row count should restore to measure-filtered count (auto-retries)
       cy.get('.ag-center-cols-container .ag-row').should('have.length', measureCount);
+    });
+  });
+
+  it('quality measure dropdown has expected number of options', () => {
+    cy.get('select[aria-label="Filter by quality measure"]').then(($select) => {
+      const options = [...$select[0].querySelectorAll('option')];
+      // Should have "All Measures" plus at least one specific measure
+      expect(options.length).to.be.greaterThan(1);
+      // First option should be "All Measures"
+      expect(options[0].textContent).to.include('All Measures');
+    });
+  });
+
+  it('zero-count chip still renders and is clickable', () => {
+    // Find any chip with count 0
+    const chipLabels = ['Not Addressed', 'Overdue', 'In Progress', 'Contacted', 'Completed', 'Declined', 'Resolved', 'N/A'];
+
+    let foundZero = false;
+    chipLabels.forEach((label) => {
+      cy.contains('button', label).invoke('text').then((text) => {
+        const match = text.match(/\((\d+)\)/);
+        const count = match ? parseInt(match[1], 10) : -1;
+        if (count === 0 && !foundZero) {
+          foundZero = true;
+          // Zero-count chip should still be visible and clickable
+          cy.contains('button', label).should('be.visible');
+          cy.contains('button', label).click();
+          cy.contains('button', label).should('have.attr', 'aria-pressed', 'true');
+
+          // Grid should show 0 rows
+          cy.get('.ag-center-cols-container .ag-row').should('have.length', 0);
+
+          // Click All to restore
+          cy.contains('button', 'All').click();
+        }
+      });
+    });
+
+    // If no zero-count chip exists, just verify all chips are rendered
+    cy.wrap(null).then(() => {
+      if (!foundZero) {
+        cy.log('No zero-count chips found — all statuses have at least 1 row');
+        // Verify all chips exist regardless
+        chipLabels.forEach((label) => {
+          cy.contains('button', label).should('be.visible');
+        });
+      }
     });
   });
 });

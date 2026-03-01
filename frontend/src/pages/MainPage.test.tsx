@@ -758,3 +758,96 @@ describe('Pinned row behavior', () => {
     expect(unpinned.map(r => r.id)).not.toContain(3);
   });
 });
+
+// ── T5-1: STAFF empty-state logic ────────────────────────────────
+// Replicates the staffHasNoAssignments and needsPhysicianSelection
+// logic from MainPage.tsx as pure functions.
+
+interface MockUser {
+  roles: string[];
+}
+
+function staffHasNoAssignments(
+  user: MockUser | null,
+  assignments: Array<{ physicianId: number; physicianName: string }>
+): boolean {
+  return !!(
+    user?.roles.includes('STAFF') &&
+    !user?.roles.includes('ADMIN') &&
+    assignments.length === 0
+  );
+}
+
+function needsPhysicianSelection(
+  user: MockUser | null,
+  selectedPhysicianId: number | null | undefined,
+  _assignments: Array<{ physicianId: number; physicianName: string }>
+): boolean {
+  return !!(
+    (user?.roles.includes('STAFF') && !selectedPhysicianId) ||
+    (user?.roles.includes('ADMIN') && selectedPhysicianId === undefined)
+  );
+}
+
+describe('STAFF empty-state logic', () => {
+  describe('staffHasNoAssignments', () => {
+    it('STAFF with zero physician assignments triggers "No Physician Assignments"', () => {
+      const user: MockUser = { roles: ['STAFF'] };
+      const assignments: Array<{ physicianId: number; physicianName: string }> = [];
+      expect(staffHasNoAssignments(user, assignments)).toBe(true);
+    });
+
+    it('STAFF with assignments does NOT trigger "No Physician Assignments"', () => {
+      const user: MockUser = { roles: ['STAFF'] };
+      const assignments = [{ physicianId: 10, physicianName: 'Dr. Smith' }];
+      expect(staffHasNoAssignments(user, assignments)).toBe(false);
+    });
+
+    it('ADMIN with no assignments does NOT trigger (ADMIN is not STAFF)', () => {
+      const user: MockUser = { roles: ['ADMIN'] };
+      const assignments: Array<{ physicianId: number; physicianName: string }> = [];
+      expect(staffHasNoAssignments(user, assignments)).toBe(false);
+    });
+
+    it('PHYSICIAN with no assignments does NOT trigger', () => {
+      const user: MockUser = { roles: ['PHYSICIAN'] };
+      const assignments: Array<{ physicianId: number; physicianName: string }> = [];
+      expect(staffHasNoAssignments(user, assignments)).toBe(false);
+    });
+  });
+
+  describe('needsPhysicianSelection', () => {
+    it('STAFF with assignments but no physician selected triggers prompt', () => {
+      const user: MockUser = { roles: ['STAFF'] };
+      const assignments = [{ physicianId: 10, physicianName: 'Dr. Smith' }];
+      // selectedPhysicianId is null (not yet selected)
+      expect(needsPhysicianSelection(user, null, assignments)).toBe(true);
+    });
+
+    it('STAFF with physician selected does NOT trigger prompt', () => {
+      const user: MockUser = { roles: ['STAFF'] };
+      const assignments = [{ physicianId: 10, physicianName: 'Dr. Smith' }];
+      expect(needsPhysicianSelection(user, 10, assignments)).toBe(false);
+    });
+
+    it('ADMIN with undefined selectedPhysicianId triggers prompt', () => {
+      const user: MockUser = { roles: ['ADMIN'] };
+      const assignments = [{ physicianId: 10, physicianName: 'Dr. Smith' }];
+      expect(needsPhysicianSelection(user, undefined, assignments)).toBe(true);
+    });
+
+    it('ADMIN with null selectedPhysicianId (viewing unassigned) does NOT trigger prompt', () => {
+      const user: MockUser = { roles: ['ADMIN'] };
+      const assignments = [{ physicianId: 10, physicianName: 'Dr. Smith' }];
+      // null means "unassigned patients" — valid selection for ADMIN
+      expect(needsPhysicianSelection(user, null, assignments)).toBe(false);
+    });
+
+    it('PHYSICIAN never triggers prompt', () => {
+      const user: MockUser = { roles: ['PHYSICIAN'] };
+      const assignments: Array<{ physicianId: number; physicianName: string }> = [];
+      expect(needsPhysicianSelection(user, null, assignments)).toBe(false);
+      expect(needsPhysicianSelection(user, undefined, assignments)).toBe(false);
+    });
+  });
+});

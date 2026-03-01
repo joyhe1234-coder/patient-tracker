@@ -21,19 +21,24 @@ A comprehensive test plan ensures the real-time collaboration layer is productio
 
 ## Codebase Analysis: Current Test Inventory
 
-### Existing Tests by Layer
+### Existing Tests by Layer (Corrected 2026-02-27)
+
+> Test counts below were verified by reading each file and counting individual `it()` / `test()` calls.
 
 | Layer | File | Test Count | Coverage Area |
 |-------|------|------------|---------------|
-| **Backend Jest** | `socketManager.test.ts` | 14 | Room naming, presence add/remove/dedup/disconnect, active edit add/replace/remove/clear |
-| **Backend Jest** | `versionCheck.test.ts` | 10 | Version match, conflict with overlap, auto-merge non-overlap, missing audit data, deleted row, email fallback, multiple overlapping fields, DB error, toGridRowPayload |
+| **Backend Jest** | `socketManager.test.ts` | 20 | Room naming (3), presence add/multi/dedup/remove/empty/cleanup/disconnect/graceful (8), active edit add/replace/multi/remove/empty/clear/non-existent/graceful (9) |
+| **Backend Jest** | `versionCheck.test.ts` | 12 | Version match, conflict with overlap, auto-merge non-overlap, missing audit data, deleted row, email fallback, multiple overlapping fields, DB error, toGridRowPayload basic, null dates, insuranceGroup present, insuranceGroup null |
 | **Backend Jest** | `socketAuth.test.ts` | 8 | No token, undefined token, invalid token, user not found, deactivated user, success, admin multi-role, unexpected error |
+| **Backend Jest** | `socketIdMiddleware.test.ts` | 5 | Header present, header missing, always calls next, empty string, full format preserved |
 | **Backend Jest** | `data.routes.version.test.ts` | 6 | No expectedVersion (backward compat), matching version, 409 conflict, forceOverwrite bypass, audit conflictOverride, auto-merge |
-| **Frontend Vitest** | `socketService.test.ts` | 17 | Server URL, connect with JWT, connecting status, all event listeners registered, reconnection events registered, no duplicate connections, event handler invocation (row:updated, connect, disconnect), connect_error auth and generic |
-| **Frontend Vitest** | `realtimeStore.test.ts` | 10 | Initial state, setRoomUsers (update/replace/empty), addActiveEdit (single/multiple/dedup), removeActiveEdit (match/non-match/no-op), clearActiveEdits (populated/empty), setImportInProgress (set/clear/missing) |
-| **Frontend Vitest** | `ConflictModal.test.tsx` | 13 | isOpen false, isOpen true, patient name, changedBy, field name, three-column headers, values display, null values, multiple fields, Keep Mine callback, Keep Theirs callback, Cancel callback, backdrop click, three buttons |
-| **Frontend Vitest** | `StatusBar.test.tsx` | 13 | Row count (filtered/unfiltered/undefined/large/zero), filter summary (present/absent/combined), connection status (connected/reconnecting/disconnected/offline/connecting), presence (single/plural/empty/tooltip hover/tooltip leave) |
-| **Frontend Vitest** | `useSocket.test.ts` | 16 | Connect on mount, no connect without token, disconnect on unmount, join room, no join without physician, leave/rejoin on physician change, disconnected status on null token, handlers passed, onConnectionChange wiring, clear edits on disconnect, onPresenceUpdate wiring, onEditingActive wiring, onEditingInactive wiring, onImportStarted wiring, onImportCompleted wiring, onRowUpdated/onRowDeleted wiring |
+| **Backend Jest** | `data.routes.socket.test.ts` | 6 | row:updated on PUT (emit + exclude socket + correct room), row:created on POST, row:deleted on DELETE, row:created on duplicate |
+| **Frontend Vitest** | `socketService.test.ts` | 25 | Server URL, connect with JWT, connecting status, all event listeners (9 events), reconnection events (3), no duplicate connections, event handler invocation (3), connect_error (2), disconnect cleanup (3), joinRoom (3), leaveRoom (2), emitEditingStart (2), emitEditingStop (2), getSocket (2) |
+| **Frontend Vitest** | `realtimeStore.test.ts` | 15 | Initial state (1), setRoomUsers (3), addActiveEdit (3), removeActiveEdit (3), clearActiveEdits (2), setImportInProgress (3) |
+| **Frontend Vitest** | `ConflictModal.test.tsx` | 14 | isOpen false, isOpen true, patient name, changedBy, field name, three-column headers, values display, null values, multiple fields, Keep Mine callback, Keep Theirs callback, Cancel callback, backdrop click, three buttons |
+| **Frontend Vitest** | `StatusBar.test.tsx` | 18 | Row count (5), filter summary (3), connection status (5), presence (5) |
+| **Frontend Vitest** | `useSocket.test.ts` | 17 | Connect on mount, no connect without token, disconnect on unmount, join room, no join without physician, leave/rejoin on physician change, disconnected status on null token, handlers passed, onConnectionChange wiring, clear edits on disconnect, onPresenceUpdate wiring, onEditingActive wiring, onEditingInactive wiring, onImportStarted wiring, onImportCompleted wiring, onRowUpdated wiring, onRowDeleted wiring |
+| **Frontend Vitest** | `PatientGrid.test.tsx` (Socket Integration section) | 8 | onCellEditingStarted callback, onCellEditingStopped callback, ConflictModal rendered, cellClass includes remote edit callback, cellClass returns cell-remote-editing on match, cellClass no match, cellClass different row, Version Tracking updatedAt (2) |
 | **Playwright E2E** | `parallel-editing-connection.spec.ts` | 3 | Connected status after login, presence shows when 2nd user joins, presence clears when 2nd user leaves |
 | **Playwright E2E** | `parallel-editing-conflict.spec.ts` | 3 | Two users same cell triggers conflict, Keep Mine resolves, Keep Theirs reverts |
 | **Playwright E2E** | `parallel-editing-reconnection.spec.ts` | 2 | Reconnecting shown when socket blocked, Connected returns when unblocked |
@@ -42,7 +47,7 @@ A comprehensive test plan ensures the real-time collaboration layer is productio
 | **Cypress E2E** | `parallel-editing-grid-updates.cy.ts` | 3 | Cell value update on remote event, scroll position preserved, row selection maintained |
 | **Cypress E2E** | `parallel-editing-row-operations.cy.ts` | 4 | Rows loaded, selection state, add row count, delete row count |
 
-**Totals:** ~38 Backend Jest | ~69 Frontend Vitest | 11 Playwright E2E | 11 Cypress E2E = **~129 total tests**
+**Totals:** 57 Backend Jest | 97 Frontend Vitest (realtime-relevant) | 11 Playwright E2E | 11 Cypress E2E = **~153 realtime-relevant tests** (corrected from original ~129)
 
 ### Reusable Components Identified
 
@@ -197,10 +202,10 @@ A comprehensive test plan ensures the real-time collaboration layer is productio
 
 | AC | Covered By | Status |
 |----|-----------|--------|
-| AC1 | Not tested (route-level broadcast emission) | GAP: broadcastToRoom called after PUT |
-| AC2 | Not tested (route-level broadcast emission) | GAP: broadcastToRoom called after POST |
-| AC3 | Not tested (route-level broadcast emission) | GAP: broadcastToRoom called after DELETE |
-| AC4 | Not tested (route-level broadcast emission) | GAP: broadcastToRoom called after duplicate |
+| AC1 | `data.routes.socket.test.ts` (3 tests: emit, exclude originating socket, correct room) | **COVERED** (corrected -- was incorrectly marked as GAP) |
+| AC2 | `data.routes.socket.test.ts` (row:created on POST) | **COVERED** (corrected) |
+| AC3 | `data.routes.socket.test.ts` (row:deleted on DELETE) | **COVERED** (corrected) |
+| AC4 | `data.routes.socket.test.ts` (row:created on duplicate) | **COVERED** (corrected) |
 | AC5 | `parallel-editing-grid-updates.cy.ts` (scroll position, selection maintained) | PARTIAL: Tests scroll/selection but not in-place update verification |
 | AC6 | `parallel-editing-edit-indicators.cy.ts` (CSS class/animation exists) | PARTIAL: CSS existence tested, not animation trigger |
 | AC7 | `parallel-editing-updates.spec.ts` (Playwright: add row appears) | COVERED |
@@ -208,12 +213,9 @@ A comprehensive test plan ensures the real-time collaboration layer is productio
 | AC9 | Not tested | GAP: Out-of-order broadcast rejection |
 | AC10 | Not tested | GAP: isDuplicate flag refresh on remote update |
 
-#### Proposed New Tests
+#### Proposed New Tests (Revised -- removed TRC-R4-T1..T4 as they already exist in data.routes.socket.test.ts)
 
-- **TRC-R4-T1** (Backend Jest): Data routes -- verify `broadcastToRoom()` is called with `row:updated` event and correct room after successful PUT /api/data/:id.
-- **TRC-R4-T2** (Backend Jest): Data routes -- verify `broadcastToRoom()` is called with `row:created` event after successful POST /api/data.
-- **TRC-R4-T3** (Backend Jest): Data routes -- verify `broadcastToRoom()` is called with `row:deleted` event after successful DELETE /api/data/:id.
-- **TRC-R4-T4** (Backend Jest): Data routes -- verify `broadcastToRoom()` is called with `row:created` event after successful POST /api/data/duplicate.
+- ~~**TRC-R4-T1..T4** (Backend Jest):~~ **ALREADY COVERED** by `data.routes.socket.test.ts` (6 tests).
 - **TRC-R4-T5** (Frontend Vitest): `PatientGrid` `handleRemoteRowUpdate` -- verify `node.setData()` is called (mock AG Grid API), scroll position not changed.
 - **TRC-R4-T6** (Frontend Vitest): `PatientGrid` `handleRemoteRowUpdate` -- verify out-of-order broadcast (older `updatedAt`) is discarded.
 - **TRC-R4-T7** (Frontend Vitest): `PatientGrid` `handleRemoteRowDelete` -- verify row node removed and selection cleared if that row was selected.
@@ -527,50 +529,288 @@ A comprehensive test plan ensures the real-time collaboration layer is productio
 
 ---
 
-## Gap Analysis Summary
+## Coverage Analysis (Updated 2026-02-27)
 
-### Coverage by Area
+> This section was generated by a comprehensive test coverage audit that read every test file
+> and source file, counted individual test cases, and verified each coverage claim against
+> the actual codebase. Several inaccuracies from the original spec have been corrected.
+
+### Complete Test Inventory
+
+#### Backend Jest Tests (57 tests across 6 files)
+
+| File | Test Count | Coverage Area |
+|------|-----------|---------------|
+| `backend/src/middleware/__tests__/socketAuth.test.ts` | 8 | JWT auth: no token, undefined token, invalid token, user not found, deactivated, success, admin multi-role, unexpected error |
+| `backend/src/middleware/__tests__/socketIdMiddleware.test.ts` | 5 | X-Socket-ID extraction: present, missing, always-next, empty string, full format |
+| `backend/src/services/__tests__/socketManager.test.ts` | 20 | Room naming (3), presence add/multi/dedup/remove/empty/cleanup/disconnect/non-existent (8), active edit add/replace/multi/remove/empty/clear/non-existent/graceful (9) |
+| `backend/src/services/__tests__/versionCheck.test.ts` | 12 | Version match, conflict with overlap, auto-merge non-overlap, missing audit data, deleted row, email fallback, multiple overlapping fields, DB error, toGridRowPayload (4 including insuranceGroup) |
+| `backend/src/routes/__tests__/data.routes.version.test.ts` | 6 | No expectedVersion (backward compat), matching version, 409 conflict, forceOverwrite bypass, audit conflictOverride, auto-merge |
+| `backend/src/routes/__tests__/data.routes.socket.test.ts` | 6 | **Row:updated on PUT** (emit + exclude originating socket + correct room), **row:created on POST**, **row:deleted on DELETE**, **row:created on duplicate** |
+
+#### Frontend Vitest Tests (122 tests across 6 files)
+
+| File | Test Count | Coverage Area |
+|------|-----------|---------------|
+| `frontend/src/services/socketService.test.ts` | 25 | Server URL, connect with JWT auth, connecting status, all event listeners registered (row:updated/created/deleted, data:refresh, import:started/completed, editing:active/inactive, presence:update), reconnection events (attempt/reconnect/failed), no duplicate connections, event handler invocation (row:updated, connect, disconnect), connect_error (auth + generic), disconnect cleanup, safe disconnect, joinRoom (connected/unassigned/not connected), leaveRoom (connected/not connected), emitEditingStart (connected/not connected), emitEditingStop (connected/not connected), getSocket (null/connected) |
+| `frontend/src/hooks/useSocket.test.ts` | 17 | Connect on mount, no connect without token, disconnect on unmount, join room with physician, no join without physician, leave/rejoin on physician change, disconnected status on null token, handlers passed, onConnectionChange wiring, clear edits on disconnect, onPresenceUpdate wiring, onEditingActive wiring, onEditingInactive wiring, onImportStarted wiring, onImportCompleted wiring, onRowUpdated wiring, onRowDeleted wiring |
+| `frontend/src/stores/realtimeStore.test.ts` | 15 | Initial state (1), setRoomUsers (update/replace/empty) (3), addActiveEdit (single/multiple/dedup) (3), removeActiveEdit (match/only-matching/no-op) (3), clearActiveEdits (populated/empty) (2), setImportInProgress (set/clear/missing) (3) |
+| `frontend/src/components/modals/ConflictModal.test.tsx` | 14 | isOpen false, isOpen true, patient name, changedBy, field name, three column headers, values display, null values as "(empty)", multiple fields, Keep Mine callback, Keep Theirs callback, Cancel callback, backdrop click, three buttons |
+| `frontend/src/components/layout/StatusBar.test.tsx` | 18 | Row count (filtered/unfiltered/undefined/large/zero) (5), filter summary (present/absent/combined) (3), connection status (connected/reconnecting/disconnected/offline/connecting) (5), presence (single/plural/empty/tooltip hover/tooltip leave) (5) |
+| `frontend/src/components/grid/PatientGrid.test.tsx` | 8 (realtime-relevant) | Socket Integration: onCellEditingStarted callback, onCellEditingStopped callback, ConflictModal rendered, cellClass remote edit indicator callback, cellClass returns cell-remote-editing on match, cellClass does NOT return cell-remote-editing on no match, cellClass for different row, Version Tracking: updatedAt field exists, default mock includes updatedAt |
+
+> Note: PatientGrid.test.tsx has 58 total tests, but only 8 are realtime-relevant. The remaining 50 cover rendering, column definitions, row class rules, and general grid configuration.
+
+#### Playwright E2E Tests (11 tests across 4 files)
+
+| File | Test Count | Coverage Area |
+|------|-----------|---------------|
+| `frontend/e2e/parallel-editing-connection.spec.ts` | 3 | Connected status after login, presence shows when 2nd user joins, presence clears when 2nd user leaves |
+| `frontend/e2e/parallel-editing-conflict.spec.ts` | 3 | Two users same cell triggers conflict dialog, Keep Mine resolves, Keep Theirs reverts |
+| `frontend/e2e/parallel-editing-reconnection.spec.ts` | 2 | Reconnecting shown when socket blocked, Connected returns when unblocked |
+| `frontend/e2e/parallel-editing-updates.spec.ts` | 3 | Cell edit appears on other user's grid, add row appears, delete row disappears |
+
+#### Cypress E2E Tests (11 tests across 3 files)
+
+| File | Test Count | Coverage Area |
+|------|-----------|---------------|
+| `frontend/cypress/e2e/parallel-editing-edit-indicators.cy.ts` | 4 | CSS class exists, cellFlash animation exists, dashed orange border applied, class removal on stop |
+| `frontend/cypress/e2e/parallel-editing-grid-updates.cy.ts` | 3 | Cell value update on remote event, scroll position preserved, row selection maintained |
+| `frontend/cypress/e2e/parallel-editing-row-operations.cy.ts` | 4 | Rows loaded, selection state, add row count, delete row count |
+
+#### Grand Total: **~153 realtime-relevant tests** (57 Backend Jest + 74 Frontend Vitest [realtime-relevant] + 11 Playwright E2E + 11 Cypress E2E)
+
+> The original spec estimated ~129 tests. The corrected count is higher because:
+> 1. `socketIdMiddleware.test.ts` (5 tests) was not originally counted
+> 2. `data.routes.socket.test.ts` (6 tests) was not reflected in the coverage tables
+> 3. PatientGrid Socket Integration tests (8 relevant) were undercounted
+> 4. `socketService.test.ts` has 25 tests, not 17
+
+---
+
+### Coverage Matrix
+
+This matrix maps every acceptance criterion from Requirements 1-12 to existing tests and identifies true gaps.
+
+#### Requirement 1: WebSocket Connection (TRC-R1)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (server init) | **GAP** | -- | `socketManager.test.ts` tests room/presence logic but NOT `initializeSocketIO()` (CORS config, middleware registration, singleton behavior) |
+| AC2 (valid JWT connect) | COVERED | `socketAuth.test.ts` (success + admin multi-role) | Verifies socket.data populated with userId, email, displayName, roles, currentRoom:null |
+| AC3 (invalid/missing JWT) | COVERED | `socketAuth.test.ts` (no token, undefined, invalid, not found) | 4 rejection scenarios |
+| AC4 (deactivated user) | COVERED | `socketAuth.test.ts` (deactivated user) | |
+| AC5 (client connect config) | COVERED | `socketService.test.ts` (connect with JWT) | Verifies io() config: auth.token, transports, reconnection params |
+| AC6 (StatusBar states) | COVERED | `StatusBar.test.tsx` (5 connection states) | Green/yellow/red/gray/no-indicator |
+| AC7 (connect_error handling) | COVERED | `socketService.test.ts` (auth error + generic) | Auth -> offline, generic -> disconnected |
+| AC8 (HTTP-only fallback) | **GAP** | -- | No E2E test verifying grid works with socket.io blocked at page load |
+
+#### Requirement 2: Room Management (TRC-R2)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (getRoomName) | COVERED | `socketManager.test.ts` (3 tests) | Numeric IDs + 'unassigned' |
+| AC2 (joinRoom on mount) | COVERED | `useSocket.test.ts` | |
+| AC3 (room switch) | COVERED | `useSocket.test.ts` | leaveRoom(old), joinRoom(new) |
+| AC4 (null physician) | COVERED | `useSocket.test.ts` | No joinRoom called |
+| AC5 (joinRoom not connected) | COVERED | `socketService.test.ts` | No event emitted |
+| AC6 (admin room switch E2E) | **GAP** | -- | No E2E test for admin switching physician dropdown |
+| AC7 (backend room:join handler) | **GAP** | -- | `handleRoomJoin()` in socketManager.ts is NOT tested (the tests cover `addUserToRoom`/`removeUserFromRoom` helpers but not the `room:join` event handler itself) |
+| AC8 (unauthorized room join) | **GAP** | -- | Authorization logic in `handleRoomJoin()` is not tested |
+
+#### Requirement 3: Presence Tracking (TRC-R3)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (add user to room) | COVERED | `socketManager.test.ts` | |
+| AC2 (multi-tab dedup) | COVERED | `socketManager.test.ts` | Same user, different socket -> appears once |
+| AC3 (user leaves, presence update) | PARTIAL | `socketManager.test.ts` (unit) | Removal tested, broadcast not verified |
+| AC4 (disconnect cleanup) | COVERED | `socketManager.test.ts` (removeUserFromAllRooms) | |
+| AC5 (1 other / 2 others) | COVERED | `StatusBar.test.tsx` (singular/plural) | |
+| AC6 (no others = no indicator) | COVERED | `StatusBar.test.tsx` (empty roomUsers) | |
+| AC7 (tooltip hover/unhover) | COVERED | `StatusBar.test.tsx` (2 tests) | |
+| AC8 (self-filter in onPresenceUpdate) | **PARTIAL** | `useSocket.test.ts` (wiring tested) | The `onPresenceUpdate` handler in `useSocket.ts` (line 87-90) DOES filter out current user. The test at line 198-206 verifies `setRoomUsers` is called with the users list, but does NOT verify the filter logic (it passes already-filtered data). **The filter logic itself is untested.** |
+
+#### Requirement 4: Real-Time Row Synchronization (TRC-R4)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (PUT broadcasts row:updated) | **COVERED** | `data.routes.socket.test.ts` (3 tests) | **Corrected from original spec which marked this as GAP.** Tests verify broadcastToRoom called with 'row:updated', correct room, correct payload, and X-Socket-ID exclusion |
+| AC2 (POST broadcasts row:created) | **COVERED** | `data.routes.socket.test.ts` (1 test) | **Corrected from original spec** |
+| AC3 (DELETE broadcasts row:deleted) | **COVERED** | `data.routes.socket.test.ts` (1 test) | **Corrected from original spec** |
+| AC4 (duplicate broadcasts row:created) | **COVERED** | `data.routes.socket.test.ts` (1 test) | **Corrected from original spec** |
+| AC5 (AG Grid in-place update) | PARTIAL | `parallel-editing-grid-updates.cy.ts` (scroll/selection) | Tests scroll/selection preservation but not `node.setData()` call |
+| AC6 (cell flash animation) | PARTIAL | `parallel-editing-edit-indicators.cy.ts` | CSS class and animation exist, but animation trigger from a remote event is not tested |
+| AC7 (row:created appears in grid) | COVERED | `parallel-editing-updates.spec.ts` (Playwright) | |
+| AC8 (row:deleted removes row) | PARTIAL | `parallel-editing-updates.spec.ts` (Playwright) | Row removal tested, selection clear NOT verified |
+| AC9 (out-of-order rejection) | **GAP** | -- | No test for discarding older updatedAt broadcasts |
+| AC10 (isDuplicate flag refresh) | **GAP** | -- | No test for duplicate flag refresh on remote update |
+
+#### Requirement 5: Concurrent Edit Detection (TRC-R5)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (emitEditingStart) | COVERED | `socketService.test.ts` | |
+| AC2 (emitEditingStop) | COVERED | `socketService.test.ts` | |
+| AC3 (not connected, no emit) | COVERED | `socketService.test.ts` | |
+| AC4 (editing:active -> addActiveEdit) | COVERED | `useSocket.test.ts` | |
+| AC5 (editing:inactive -> removeActiveEdit) | COVERED | `useSocket.test.ts` | |
+| AC6 (cell-remote-editing CSS class) | COVERED | `parallel-editing-edit-indicators.cy.ts` + `PatientGrid.test.tsx` (cellClass tests) | Dashed orange border applied, cellClass returns correct class based on activeEdits |
+| AC7 (class removed on stop) | COVERED | `parallel-editing-edit-indicators.cy.ts` + `PatientGrid.test.tsx` | |
+| AC8 (disconnect clears edits) | PARTIAL | `socketManager.test.ts` (clearEditsForSocket) | Unit tested; `handleDisconnect()` broadcasts `editing:inactive` for each cleared edit, but the disconnect handler itself is NOT directly tested |
+| AC9 (multiple edits same row) | **GAP** | -- | No test for independent indicators on different cells of same row |
+
+#### Requirement 6: Conflict Resolution (TRC-R6)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (matching version, 200 OK) | COVERED | `versionCheck.test.ts` + `data.routes.version.test.ts` | |
+| AC2 (mismatch + overlap, 409) | COVERED | `versionCheck.test.ts` + `data.routes.version.test.ts` | |
+| AC3 (mismatch + no overlap, auto-merge) | COVERED | `versionCheck.test.ts` + `data.routes.version.test.ts` | |
+| AC4 (forceOverwrite bypass + audit) | COVERED | `data.routes.version.test.ts` (2 tests) | |
+| AC5 (no expectedVersion, backward compat) | COVERED | `data.routes.version.test.ts` | |
+| AC6 (ConflictModal rendering) | COVERED | `ConflictModal.test.tsx` (title, name, columns, buttons) | |
+| AC7 (Keep Mine -> forceOverwrite PUT) | PARTIAL | `ConflictModal.test.tsx` (callback fires) | Callback verified, but the second PUT with `forceOverwrite: true` is NOT integration-tested |
+| AC8 (Keep Theirs -> cell revert) | PARTIAL | `ConflictModal.test.tsx` (callbacks fire) | Callbacks verified, but cell revert to server value NOT verified |
+| AC9 (multiple fields in modal) | COVERED | `ConflictModal.test.tsx` (multiple fields test) | |
+| AC10 (null values as "(empty)") | COVERED | `ConflictModal.test.tsx` (null values test) | |
+
+#### Requirement 7: Import Broadcast (TRC-R7)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (import:started emission) | **GAP** | -- | `import.routes.test.ts` mocks `broadcastToRoom` but does NOT assert it is called with `import:started` |
+| AC2 (import:completed emission) | **GAP** | -- | Same as above |
+| AC3 (setImportInProgress on started) | COVERED | `useSocket.test.ts` + `realtimeStore.test.ts` | |
+| AC4 (clear import + refresh on completed) | COVERED | `useSocket.test.ts` + `realtimeStore.test.ts` | |
+| AC5 (edit during import allowed) | **GAP** | -- | No test verifying editing is not blocked during import |
+| AC6 (multi-physician import broadcast) | **GAP** | -- | No test for broadcast to multiple rooms |
+
+#### Requirement 8: Connection Resilience (TRC-R8)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (reconnection config) | COVERED | `socketService.test.ts` | reconnection: true, delay: 1000, max: 30000, attempts: 10 |
+| AC2 (reconnect_attempt -> reconnecting) | COVERED | `socketService.test.ts` + `StatusBar.test.tsx` | |
+| AC3 (reconnect -> re-join room + refresh) | **GAP** | -- | No test for room re-join or data refresh after reconnect. `useSocket.ts` does NOT currently re-join room on reconnect (the `io.on('reconnect')` in socketService only sets status to 'connected'). **This may be a feature gap, not just a test gap.** |
+| AC4 (reconnect_failed -> offline) | PARTIAL | `socketService.test.ts` (handler) + `StatusBar.test.tsx` (offline) | Status tested, HTTP-only continuation NOT verified |
+| AC5 (server restart detection) | PARTIAL | `parallel-editing-reconnection.spec.ts` | Uses route blocking (not true restart) |
+| AC6 (stale edits cleared on reconnect) | COVERED | `useSocket.test.ts` (clearActiveEdits on disconnect) | |
+| AC7 (multi-tab independence) | **GAP** | -- | No test |
+
+#### Requirement 9: Cascading Edits (TRC-R9)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (cascade cancels active edit) | **GAP** | -- | |
+| AC2 (atomic multi-field update) | **GAP** | -- | |
+| AC3 (silent cascade on non-editing row) | **GAP** | -- | |
+
+#### Requirement 10: Audit Trail (TRC-R10)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (normal save audit detail) | PARTIAL | `data.routes.version.test.ts` | Audit call exists but field-level changes (old/new values) not asserted |
+| AC2 (forceOverwrite audit) | COVERED | `data.routes.version.test.ts` | conflictOverride: true verified |
+| AC3 (Keep Theirs = no audit) | **GAP** | -- | |
+
+#### Requirement 11: Edge Cases (TRC-R11)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (row deleted during edit) | **GAP** | -- | |
+| AC2 (rapid sequential edits) | **GAP** | -- | |
+| AC3 (same user multi-tab) | **GAP** | -- | |
+| AC4 (save while socket disconnected) | **GAP** | -- | |
+| AC5 (derived field conflict filter) | **GAP** | -- | |
+| AC6 (room isolation between physicians) | **GAP** | -- | |
+
+#### Requirement 12: Type Safety (TRC-R12)
+
+| AC | Status | Covered By | Notes |
+|----|--------|-----------|-------|
+| AC1 (toGridRowPayload fields) | PARTIAL | `versionCheck.test.ts` (basic fields + insuranceGroup) | Does NOT assert absence of tracking3/depressionScreeningStatus |
+| AC2 (payload structure conformance) | **GAP** | -- | |
+| AC3 (updatedAt is ISO string) | COVERED | `versionCheck.test.ts` | typeof updatedAt === 'string' |
+
+---
+
+### Gap Analysis Summary
+
+#### Coverage by Area (Corrected)
 
 | Area | Existing Tests | Coverage Level | Key Gaps |
 |------|---------------|----------------|----------|
-| WebSocket Connection | 33 (auth + service + status + E2E) | **High** | Server initialization test, HTTP-only fallback E2E |
-| Room Management | 11 (naming + hook + service) | **Medium** | Backend join/leave handlers, authorization check, admin room switch E2E |
-| Presence Tracking | 14 (manager + status bar + hook) | **High** | Self-filter in onPresenceUpdate, broadcast verification |
-| Real-Time Row Sync | 14 (E2E updates + grid updates) | **Medium** | Route-level broadcast emission (4 routes), out-of-order rejection, isDuplicate refresh |
-| Concurrent Edit Detection | 14 (service + store + indicators) | **Medium** | Disconnect cleanup broadcast, multi-edit per row, stale lock cleanup, live E2E edit indicator |
-| Conflict Resolution | 25 (version check + modal + routes) | **High** | End-to-end conflict flow (409 -> modal -> forceOverwrite), Keep Theirs cell revert |
-| Import Broadcast | 5 (store + hook) | **Low** | Route-level emission, import banner rendering, multi-physician broadcast |
-| Connection Resilience | 8 (config + E2E reconnect) | **Low** | Room re-join after reconnect, data refresh after reconnect, max retry exhaustion, multi-tab |
-| Cascading Edits | 0 | **None** | All cascade scenarios untested |
-| Audit Trail | 2 (forceOverwrite audit) | **Low** | Normal save audit detail, Keep Theirs no-audit |
-| Edge Cases | 0 | **None** | Row delete during edit, rapid edits, multi-tab, disconnected save, derived field conflict, room isolation |
-| Type Safety | 4 (toGridRowPayload) | **Medium** | Absence of removed fields, full payload structure assertion |
+| WebSocket Connection | 36 (auth 8 + middleware 5 + service 25 + status 5 + E2E 3) | **High** | Server init test (TRC-R1-T1), HTTP-only fallback E2E (TRC-R1-T2) |
+| Room Management | 11 (naming 3 + hook 4 + service 4) | **Medium** | Backend room:join/leave handlers (TRC-R2-T1..T3), authorization check (TRC-R2-T2), admin room switch E2E (TRC-R2-T4) |
+| Presence Tracking | 16 (manager 8 + status bar 5 + hook 2 + E2E 1) | **High** | Self-filter verification (TRC-R3-T1), presence broadcast (TRC-R3-T2) |
+| Real-Time Row Sync | 17 (broadcast routes 6 + E2E updates 3 + grid updates 3 + grid PatientGrid 5) | **High** (corrected from Medium) | Out-of-order rejection (TRC-R4-T6), isDuplicate refresh (TRC-R4-T7), cell flash trigger (TRC-R4-T8) |
+| Concurrent Edit Detection | 17 (service 4 + store 6 + PatientGrid cellClass 3 + Cypress indicators 4) | **High** (corrected from Medium) | Disconnect handler test (TRC-R5-T1), multiple edits same row (TRC-R5-T3), stale lock cleanup (TRC-R5-T5), live E2E indicator (TRC-R5-T4) |
+| Conflict Resolution | 25 (version check 12 + modal 14 + routes 6) | **High** | 409 -> modal -> forceOverwrite integration (TRC-R6-T1..T3), Keep Theirs cell revert (TRC-R6-T3) |
+| Import Broadcast | 5 (store 3 + hook 2) | **Low** | Route-level emission (TRC-R7-T1), multi-physician (TRC-R7-T2), banner rendering (TRC-R7-T3) |
+| Connection Resilience | 8 (config 1 + handlers 2 + E2E reconnect 2 + hook cleanup 1 + StatusBar 2) | **Low** | Room re-join after reconnect (TRC-R8-T1, **possible feature gap**), data refresh after reconnect (TRC-R8-T2), max retry exhaustion (TRC-R8-T3), multi-tab (TRC-R8-T4) |
+| Cascading Edits | 0 | **None** | All 3 ACs untested (TRC-R9-T1..T3) |
+| Audit Trail | 2 (forceOverwrite audit 1 + audit call exists 1) | **Low** | Normal save field detail (TRC-R10-T1), overwritten user identity (TRC-R10-T2), Keep Theirs no-audit (TRC-R10-T3) |
+| Edge Cases | 0 | **None** | All 6 ACs untested (TRC-R11-T1..T5) |
+| Type Safety | 5 (toGridRowPayload 4 + updatedAt check 1) | **Medium** | Absence of removed fields (TRC-R12-T1), full payload assertion (TRC-R12-T2) |
 
-### Proposed New Test Count
+#### Key Corrections from Original Analysis
+
+1. **Route-level broadcast emission (TRC-R4-AC1..AC4):** Originally marked as GAP. **Now COVERED** by `data.routes.socket.test.ts` (6 tests covering PUT row:updated, POST row:created, DELETE row:deleted, POST duplicate row:created, X-Socket-ID exclusion, and correct room routing).
+
+2. **PatientGrid cellClass tests:** Originally undercounted. **8 tests** in PatientGrid.test.tsx cover Socket Integration including cellClass callback for `cell-remote-editing`, ConflictModal rendering, and onCellEditingStarted/Stopped callbacks.
+
+3. **socketIdMiddleware.test.ts:** 5 tests were not included in the original inventory.
+
+4. **Total test count:** Corrected from ~129 to ~153 realtime-relevant tests.
+
+5. **TRC-R8-AC3 (reconnect room re-join):** Investigation of `useSocket.ts` and `socketService.ts` reveals that `io.on('reconnect')` only calls `handlers.onConnectionChange('connected')`. There is NO code that re-joins the room after reconnection. Socket.IO may auto-rejoin rooms in some configurations, but the application code does not explicitly call `joinRoom()` on reconnect. **This may be a feature gap requiring implementation, not just a test gap.**
+
+---
+
+### Revised Proposed New Test Count
 
 | Layer | New Tests | Details |
 |-------|-----------|---------|
-| Backend Jest | 17 | Server init (1), room handlers (3), broadcast emission (4), disconnect cleanup (1), stale edit cleanup (1), import routes (2), audit trail (2), version check edge (2), type safety (1) |
-| Frontend Vitest | 12 | PatientGrid remote handlers (4), conflict flow integration (3), cascade handling (2), cellClass edit indicator (2), rapid edit version tracking (1) |
-| Playwright E2E | 9 | HTTP-only fallback (1), admin room switch (1), edit indicator live (1), conflict strengthen (1), reconnect with data refresh (1), max retry exhaustion (1), multi-tab (1), row delete during edit (1), room isolation (1) |
-| Cypress E2E | 1 | Cell flash animation trigger (1) |
-| **Total** | **39** | |
+| Backend Jest | 10 | Server init (1), room join/leave/auth handlers (3), disconnect handler with editing:inactive broadcast (1), stale edit cleanup (1), import route broadcast (2), audit trail detail (1), type safety removal assertion (1) |
+| Frontend Vitest | 10 | Self-filter in onPresenceUpdate (1), PatientGrid handleRemoteRowUpdate out-of-order rejection (1), PatientGrid handleRemoteRowDelete selection clear (1), 409 -> ConflictModal integration (1), Keep Mine -> forceOverwrite PUT (1), Keep Theirs -> cell revert + no API call (1), cascade edit cancellation (1), atomic multi-field cascade update (1), rapid sequential edit version tracking (1), Keep Theirs no-audit (1) |
+| Playwright E2E | 8 | HTTP-only fallback (1), admin room switch (1), live edit indicator two-context (1), reconnect with data refresh (1), max retry exhaustion -> offline (1), multi-tab same user (1), row deleted during edit (1), room isolation between physicians (1) |
+| Cypress E2E | 1 | Cell flash animation trigger from remote event (1) |
+| **Total** | **29** | (reduced from original 39 due to corrections: 4 broadcast tests already exist, 2 cellClass tests already exist, PatientGrid already has edit indicator tests, socketIdMiddleware already tested) |
 
-### Priority Ranking
+### Priority Ranking (Revised)
 
 | Priority | Area | Rationale |
 |----------|------|-----------|
-| **P0 - Critical** | Connection Resilience (reconnect + room re-join + data refresh) | Silent data staleness is the highest-risk failure mode |
-| **P0 - Critical** | Route-level broadcast emission (row:updated, row:created, row:deleted) | Without broadcast, no real-time sync works |
-| **P0 - Critical** | Stale edit lock cleanup | Zombie edit indicators block UX indefinitely |
-| **P1 - High** | Cascading edit conflict handling | Cascade can silently destroy in-progress work |
-| **P1 - High** | Multi-tab scenarios | Common user behavior, untested |
-| **P1 - High** | Edge case: row deleted during edit | Data integrity risk |
-| **P2 - Medium** | Import broadcast at route level | Import is less frequent but affects many rows |
-| **P2 - Medium** | Type safety (tracking3 removal) | Prevents regression if schema drifts |
-| **P2 - Medium** | Audit trail completeness | Required for compliance |
-| **P3 - Low** | Server initialization test | Low risk of regression |
-| **P3 - Low** | Room authorization (STAFF assignment check) | Existing HTTP auth likely covers most of this path |
+| **P0 - Critical** | Connection Resilience: reconnect room re-join + data refresh (TRC-R8-T1..T2) | **Possible feature gap**: `useSocket.ts` does NOT re-join room on reconnect. If Socket.IO auto-rejoin fails, user sees stale data silently. |
+| **P0 - Critical** | Stale edit lock cleanup (TRC-R5-T5) | Zombie edit indicators block UX indefinitely |
+| **P0 - Critical** | Disconnect handler broadcast (TRC-R5-T1) | Without broadcasting editing:inactive on disconnect, other users see permanent phantom edit indicators |
+| **P1 - High** | Cascading edit conflict handling (TRC-R9-T1..T3) | Cascade can silently destroy in-progress work |
+| **P1 - High** | Edge case: row deleted during edit (TRC-R11-T1) | Data integrity risk; 404 on save must be handled gracefully |
+| **P1 - High** | Multi-tab scenarios (TRC-R11-T3) | Common user behavior, completely untested |
+| **P1 - High** | Out-of-order broadcast rejection (TRC-R4-T6) | Stale data can overwrite newer data |
+| **P2 - Medium** | Import broadcast at route level (TRC-R7-T1..T2) | Import is less frequent but affects many rows |
+| **P2 - Medium** | Conflict flow integration (TRC-R6-T1..T3) | Individual pieces tested, end-to-end flow not verified |
+| **P2 - Medium** | Audit trail completeness (TRC-R10-T1..T3) | Required for compliance |
+| **P2 - Medium** | Type safety: tracking3 removal (TRC-R12-T1..T2) | Prevents regression if schema drifts |
+| **P3 - Low** | Server initialization test (TRC-R1-T1) | Low risk of regression; singleton + CORS already work in production |
+| **P3 - Low** | Room authorization (TRC-R2-T2) | Existing HTTP auth covers most of this path; Socket auth adds same checks |
+| **P3 - Low** | HTTP-only fallback E2E (TRC-R1-T2) | Useful but low regression risk |
+
+---
+
+### Feature Gap Alert: Reconnection Room Re-Join
+
+During this analysis, a potential **feature gap** was discovered in the reconnection flow:
+
+**Current behavior (from source code):**
+1. `socketService.ts` line 95-97: `socket.io.on('reconnect', () => handlers.onConnectionChange('connected'))` -- only updates status
+2. `useSocket.ts` line 36-44: `handleConnectionChange('connected')` only calls `setConnectionStatus('connected')` -- no re-join logic
+3. The `selectedPhysicianId` effect (useSocket.ts line 104-119) only fires when `selectedPhysicianId` changes, NOT on reconnect
+
+**Risk:** After a WebSocket reconnect, the socket may not be in the correct Socket.IO room, meaning the user would not receive any real-time updates until they manually switch physicians. Socket.IO has built-in room re-join on reconnect in some configurations, but the application-level presence tracking (server-side `roomPresence` map) would NOT be updated.
+
+**Recommendation:** Before writing TRC-R8-T1 (reconnect room re-join test), verify whether Socket.IO's built-in reconnect auto-joins rooms at the transport level. If it does NOT, a code change is needed in `useSocket.ts` to call `joinRoom(selectedPhysicianId)` after receiving a 'connected' status following a 'disconnected' or 'reconnecting' status.
 
 ---
 
@@ -612,26 +852,39 @@ A comprehensive test plan ensures the real-time collaboration layer is productio
 
 ## Integration Points
 
-### Test Files to Create
+### Test Files to Create (Revised)
+
+> Updated after coverage audit. Removed `data.routes.broadcast.test.ts` because all 4 route-level
+> broadcast tests already exist in `data.routes.socket.test.ts`. Reduced PatientGrid test count
+> because cellClass tests already exist.
 
 | Framework | File Path | Tests | Covers Requirements |
 |-----------|-----------|-------|-------------------|
-| Backend Jest | `backend/src/services/__tests__/socketManager.init.test.ts` | 4 | TRC-R1, TRC-R2 |
-| Backend Jest | `backend/src/services/__tests__/socketManager.handlers.test.ts` | 5 | TRC-R2, TRC-R3, TRC-R5 |
-| Backend Jest | `backend/src/routes/__tests__/data.routes.broadcast.test.ts` | 6 | TRC-R4, TRC-R10 |
-| Backend Jest | `backend/src/routes/__tests__/import.routes.broadcast.test.ts` | 2 | TRC-R7 |
-| Backend Jest | `backend/src/services/__tests__/versionCheck.edge.test.ts` | 2 | TRC-R6, TRC-R11, TRC-R12 |
-| Frontend Vitest | `frontend/src/components/grid/PatientGrid.remote.test.tsx` | 8 | TRC-R4, TRC-R5, TRC-R9, TRC-R11 |
-| Frontend Vitest | `frontend/src/components/grid/PatientGrid.conflict.test.tsx` | 3 | TRC-R6, TRC-R10 |
-| Frontend Vitest | `frontend/src/hooks/useSocket.reconnect.test.ts` | 1 | TRC-R8 |
-| Playwright E2E | `frontend/e2e/parallel-editing-resilience.spec.ts` | 4 | TRC-R1, TRC-R8 |
-| Playwright E2E | `frontend/e2e/parallel-editing-edge-cases.spec.ts` | 5 | TRC-R9, TRC-R11 |
-| Cypress E2E | `frontend/cypress/e2e/parallel-editing-flash-animation.cy.ts` | 1 | TRC-R4 |
+| Backend Jest | `backend/src/services/__tests__/socketManager.init.test.ts` | 2 | TRC-R1 (CORS config, singleton behavior) |
+| Backend Jest | `backend/src/services/__tests__/socketManager.handlers.test.ts` | 5 | TRC-R2 (room:join handler + auth + room:leave), TRC-R3 (presence broadcast), TRC-R5 (disconnect handler + stale cleanup) |
+| Backend Jest | `backend/src/routes/__tests__/import.routes.broadcast.test.ts` | 2 | TRC-R7 (import:started + import:completed emission) |
+| Backend Jest | `backend/src/services/__tests__/versionCheck.edge.test.ts` | 3 | TRC-R12 (tracking3 absence, full payload assertion), TRC-R10 (normal save audit detail) |
+| Frontend Vitest | `frontend/src/components/grid/PatientGrid.remote.test.tsx` | 5 | TRC-R4 (out-of-order rejection, selection clear on delete), TRC-R9 (cascade edit cancellation, atomic update), TRC-R11 (rapid edit version tracking) |
+| Frontend Vitest | `frontend/src/components/grid/PatientGrid.conflict.test.tsx` | 3 | TRC-R6 (409 -> modal, Keep Mine -> forceOverwrite, Keep Theirs -> revert + no API) |
+| Frontend Vitest | `frontend/src/hooks/useSocket.reconnect.test.ts` | 1 | TRC-R8 (room re-join after reconnect) |
+| Playwright E2E | `frontend/e2e/parallel-editing-resilience.spec.ts` | 4 | TRC-R1 (HTTP-only fallback), TRC-R8 (reconnect data refresh, max retry exhaustion, multi-tab) |
+| Playwright E2E | `frontend/e2e/parallel-editing-edge-cases.spec.ts` | 4 | TRC-R9 (cascade E2E), TRC-R11 (row delete during edit, multi-tab same user, room isolation) |
+| Cypress E2E | `frontend/cypress/e2e/parallel-editing-flash-animation.cy.ts` | 1 | TRC-R4 (cell flash trigger from remote event) |
 
 ### Existing Test Files to Extend
 
 | Framework | File Path | New Tests | Covers Requirements |
 |-----------|-----------|-----------|-------------------|
-| Frontend Vitest | `frontend/src/hooks/useSocket.test.ts` | 1 | TRC-R3 (self-filter in onPresenceUpdate) |
-| Frontend Vitest | `frontend/src/components/modals/ConflictModal.test.tsx` | 0 | Already comprehensive |
-| Frontend Vitest | `frontend/src/stores/realtimeStore.test.ts` | 0 | Already comprehensive |
+| Frontend Vitest | `frontend/src/hooks/useSocket.test.ts` | 1 | TRC-R3 (self-filter in onPresenceUpdate: verify current user is excluded) |
+| Frontend Vitest | `frontend/src/components/modals/ConflictModal.test.tsx` | 0 | Already comprehensive (14 tests) |
+| Frontend Vitest | `frontend/src/stores/realtimeStore.test.ts` | 0 | Already comprehensive (15 tests) |
+
+### Already-Existing Tests (No Action Required)
+
+> These were incorrectly proposed as new tests in the original spec but already exist.
+
+| Framework | File Path | Tests | Covers Requirements |
+|-----------|-----------|-------|-------------------|
+| Backend Jest | `backend/src/routes/__tests__/data.routes.socket.test.ts` | 6 | TRC-R4-AC1..AC4 (row:updated/created/deleted/duplicate broadcast emission, X-Socket-ID exclusion, correct room routing) |
+| Frontend Vitest | `frontend/src/components/grid/PatientGrid.test.tsx` | 8 | TRC-R5-AC6..AC7 (cellClass cell-remote-editing application/removal, onCellEditingStarted/Stopped, ConflictModal rendering) |
+| Backend Jest | `backend/src/middleware/__tests__/socketIdMiddleware.test.ts` | 5 | Broadcast exclusion via X-Socket-ID header extraction |

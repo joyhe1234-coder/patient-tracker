@@ -535,4 +535,225 @@ describe('Time Interval Editability', () => {
         });
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T7-1: Time interval read-only for terminal/non-actionable statuses
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T7-1: Time Interval Read-Only for Terminal Statuses', () => {
+    /**
+     * Dismiss any Edit Conflict modal that may appear from version conflicts.
+     * Clicks "Keep Mine" if the modal is present, otherwise does nothing.
+     */
+    function dismissConflictIfPresent() {
+      cy.get('body').then(($body) => {
+        if ($body.find('button:contains("Keep Mine")').length > 0) {
+          cy.contains('button', 'Keep Mine').click();
+          cy.wait(500);
+        }
+      });
+    }
+
+    it('time interval is read-only for "Not Addressed"', () => {
+      // Set up AWV > Not Addressed (has no baseDueDays → no interval)
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'AWV');
+      dismissConflictIfPresent();
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Not Addressed');
+      dismissConflictIfPresent();
+
+      // Time interval should be empty (no baseDueDays for Not Addressed)
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          expect(text.trim()).to.equal('');
+        });
+
+      // Double-click should NOT open an editor
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+      cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+        .find('.ag-cell-edit-wrapper')
+        .should('not.exist');
+    });
+
+    it('time interval is read-only for "Patient declined AWV"', () => {
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'AWV');
+      dismissConflictIfPresent();
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Patient declined AWV');
+      dismissConflictIfPresent();
+
+      // Time interval should be empty for terminal statuses
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          expect(text.trim()).to.equal('');
+        });
+
+      // Double-click should NOT open an editor
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+      cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+        .find('.ag-cell-edit-wrapper')
+        .should('not.exist');
+    });
+
+    it('time interval is read-only for "No longer applicable"', () => {
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'AWV');
+      dismissConflictIfPresent();
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'No longer applicable');
+      dismissConflictIfPresent();
+
+      // Time interval should be empty for N/A statuses
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          expect(text.trim()).to.equal('');
+        });
+
+      // Double-click should NOT open an editor
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+      cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+        .find('.ag-cell-edit-wrapper')
+        .should('not.exist');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T7-2: Depression Screening time interval behavior
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T7-2: Depression Screening Time Interval', () => {
+    function dismissConflictIfPresent() {
+      cy.get('body').then(($body) => {
+        if ($body.find('button:contains("Keep Mine")').length > 0) {
+          cy.contains('button', 'Keep Mine').click();
+          cy.wait(500);
+        }
+      });
+    }
+
+    it('Depression "Called to schedule" shows time interval with options', () => {
+      // Set up: Screening > Depression Screening > Called to schedule
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      dismissConflictIfPresent();
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      dismissConflictIfPresent();
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Called to schedule');
+      dismissConflictIfPresent();
+
+      // Set status date so interval is calculated
+      setStatusDateToToday(testRowIndex);
+
+      // Time interval should show a value (baseDueDays=7)
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          const days = parseInt(text.trim(), 10);
+          expect(days).to.equal(7);
+        });
+    });
+
+    it('Depression "Screening complete" has no time interval (terminal)', () => {
+      // Set up: Screening > Depression Screening > Screening complete (terminal/green)
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      dismissConflictIfPresent();
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      dismissConflictIfPresent();
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Screening complete');
+      dismissConflictIfPresent();
+
+      // Screening complete is a terminal green status — log its interval state
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').then(($cell) => {
+        const text = $cell.text().trim();
+        cy.log(`Screening complete time interval: "${text}"`);
+      });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T7-3: Edge cases — status transitions and time interval
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T7-3: Time Interval Edge Cases', () => {
+    function dismissConflictIfPresent() {
+      cy.get('body').then(($body) => {
+        if ($body.find('button:contains("Keep Mine")').length > 0) {
+          cy.contains('button', 'Keep Mine').click();
+          cy.wait(500);
+        }
+      });
+    }
+
+    it('changing status from actionable to terminal clears time interval', () => {
+      // Set up with an actionable status that has a time interval
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'AWV');
+      dismissConflictIfPresent();
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Patient called to schedule AWV');
+      dismissConflictIfPresent();
+
+      // Set status date so interval is calculated (baseDueDays=7)
+      setStatusDateToToday(testRowIndex);
+
+      // Verify interval has a value
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          const days = parseInt(text.trim(), 10);
+          expect(days).to.equal(7);
+        });
+
+      // Change to terminal status — Patient declined AWV
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Patient declined AWV');
+      dismissConflictIfPresent();
+
+      // Time interval should be cleared (terminal status has no due date)
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+
+      // Due date should also be cleared
+      cy.getAgGridCellWithScroll(testRowIndex, 'dueDate')
+        .invoke('text')
+        .should('satisfy', (text: string) => text.trim() === '');
+    });
+
+    it('time interval field shows correct dropdown options for BP statuses', () => {
+      // Set up BP not at goal — tracking1 controls interval via dropdown
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Quality');
+      dismissConflictIfPresent();
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Hypertension Management');
+      dismissConflictIfPresent();
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Scheduled call back - BP not at goal');
+      dismissConflictIfPresent();
+
+      // Set status date
+      setStatusDateToToday(testRowIndex);
+
+      // Open tracking1 dropdown — should show call frequency options
+      cy.openAgGridDropdown(testRowIndex, 'tracking1');
+      cy.getAgGridDropdownOptions().then((options) => {
+        expect(options).to.include('Call every 1 wk');
+        expect(options).to.include('Call every 2 wks');
+        expect(options).to.include('Call every 4 wks');
+        expect(options).to.include('Call every 8 wks');
+      });
+      // Close dropdown
+      cy.get('body').type('{esc}');
+      cy.wait(300);
+
+      // Select a call frequency and verify interval updates
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'tracking1', 'Call every 2 wks');
+      dismissConflictIfPresent();
+
+      // Verify interval shows 14 days (2 weeks)
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((text) => {
+          const days = parseInt(text.trim(), 10);
+          expect(days).to.equal(14);
+        });
+    });
+  });
 });

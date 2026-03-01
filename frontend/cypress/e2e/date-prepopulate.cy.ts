@@ -61,7 +61,9 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
   describe('Today Button Click', () => {
     it('should stamp today\'s date on Today button click', () => {
-      // Click the Today button
+      // Hover to reveal Today button (hidden via CSS display:none until hover)
+      cy.getAgGridCell(0, 'statusDate').trigger('mouseover', { force: true });
+      cy.wait(300);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
 
@@ -71,6 +73,8 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     });
 
     it('should remove prompt class after stamping today', () => {
+      cy.getAgGridCell(0, 'statusDate').trigger('mouseover', { force: true });
+      cy.wait(300);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
 
@@ -107,7 +111,9 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
 
   describe('Filled Cell Behavior', () => {
     it('should show date without Today button for filled cells', () => {
-      // Stamp a date first
+      // Stamp a date first — hover to reveal, then click
+      cy.getAgGridCell(0, 'statusDate').trigger('mouseover', { force: true });
+      cy.wait(300);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
 
@@ -121,7 +127,9 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
     });
 
     it('should show existing date on double-click edit of filled cell', () => {
-      // Stamp today first
+      // Stamp today first — hover to reveal, then click
+      cy.getAgGridCell(0, 'statusDate').trigger('mouseover', { force: true });
+      cy.wait(300);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
 
@@ -140,7 +148,9 @@ describe('Date Prepopulate — Today Button (Option A)', () => {
   describe('Due Date Recalculation', () => {
     it('should trigger due date calculation after Today button click', () => {
       // beforeEach already set measureStatus to "AWV scheduled" which has a datePrompt.
-      // Click Today to stamp date
+      // Hover to reveal Today button, then click
+      cy.getAgGridCell(0, 'statusDate').trigger('mouseover', { force: true });
+      cy.wait(300);
       cy.getAgGridCell(0, 'statusDate').find('.status-date-today-btn')
         .click({ force: true });
 

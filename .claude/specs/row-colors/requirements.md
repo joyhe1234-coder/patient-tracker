@@ -48,12 +48,12 @@ Each row in the patient grid displays a background color based on its Measure St
 - AC-15: `Not Addressed` → **White** (#FFFFFF) — default/unstarted
 - AC-16: `Called to schedule` → **Blue** (#CCE5FF) — in progress, outreach made
 - AC-17: `Visit scheduled` → **Yellow** (#FFF9E6) — appointment pending
-- AC-18: `Screening complete` → **Green** (#D4EDDA) — completed, no due date
+- AC-18: `Screening complete` → **Green** (#D4EDDA) — completed, annual rescreening (365 days)
 - AC-19: `Screening unnecessary` → **Gray** (#E9EBF3) — not applicable
 - AC-20: `Patient declined` → **Purple** (#E5D9F2) — patient refused
 - AC-21: `No longer applicable` → **Gray** (#E9EBF3) — no longer relevant
-- AC-22: Overdue applies to `Called to schedule` (blue) and `Visit scheduled` (yellow) only — turns **Red** (#FFCDD2) when `dueDate < today`
-- AC-23: `Screening complete` has no due date → never overdue
+- AC-22: Overdue applies to `Called to schedule` (blue), `Visit scheduled` (yellow), and `Screening complete` (green) — turns **Red** (#FFCDD2) when `dueDate < today`
+- AC-23: `Screening complete` follows the same overdue rules as all other green statuses (annual rescreening, 365-day due date)
 - AC-24: Purple/Gray Depression Screening statuses → never overdue (standard exclusion)
 
 ## Hypertension "Scheduled Call Back" Statuses

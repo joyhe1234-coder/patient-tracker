@@ -632,8 +632,8 @@ router.post('/preview', handleUpload, async (req: Request, res: Response, next: 
       });
     }
 
-    // Step 4: Calculate diff against database (filtered by target owner)
-    const diffResult = await calculateDiff(transformResult.rows, mode, targetOwnerId);
+    // Step 4: Calculate diff against database (filtered by target owner and insurance group)
+    const diffResult = await calculateDiff(transformResult.rows, mode, targetOwnerId, systemId);
 
     // Step 5: Detect patient reassignments (existing patients that would change owner)
     const reassignments = await detectReassignments(transformResult.rows, targetOwnerId);
