@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **New Playwright E2E tests** — auth-edge-cases.spec.ts (force-change modal, account lockout, post-logout)
 - **New backend test files** — cors.test.ts (CORS headers), securityHeaders.test.ts, updateUser.staffCleanup.test.ts, reassignment-merge.test.ts
 - **Security audit findings** — 16 findings (0 critical, 5 high, 7 medium, 4 low) documented in TODO.md with remediation plan
+- **Workflow audit reports** — `.claude/audit/feature-1-authentication.md` (8 workflows) and `.claude/audit/feature-6-realtime-collaboration.md` (13 workflows + critical gaps identified)
 
 ### Changed
 - **Test spec requirements updated** — All 8 test spec requirements.md files refined with expanded test cases and updated module boundaries

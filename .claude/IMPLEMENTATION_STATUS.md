@@ -51,6 +51,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Seed fix** — Depression "Screening complete" baseDueDays set to 365 (was null)
 - [x] **Massive test expansion** — +132 Jest, +95 Vitest across 30+ test files
 - [x] **Security audit** — 16 findings documented with remediation plan
+- [x] **Workflow audits** — Authentication (8 workflows) and Real-Time Collaboration (13 workflows + critical gaps) documented in `.claude/audit/`
 - [x] **Bug reports** — Structured report/analysis/verification docs for both import bugs
 
 **Tests:** +132 Jest (1,560 total), +95 Vitest (1,306 total), expanded Cypress + Playwright E2E

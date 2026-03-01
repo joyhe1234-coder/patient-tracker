@@ -35,6 +35,7 @@ This document tracks planned features and enhancements for future development.
 - [x] M1 Auth: +10 Jest tests (audit logging for 6 successful operations + 4 edge cases), +8 Playwright E2E (force-change modal, account lockout, post-logout)
 - [x] M1 Auth: Fixed pre-existing E2E failure (password-flows.spec.ts "Invalid Link" heading mismatch)
 - [x] M1 Auth: Security audit completed — 16 findings, 10 security-specific test gaps identified (added to TODO)
+- [x] Workflow audits — Authentication (8 workflows) and Real-Time Collaboration (13 workflows + critical gaps)
 - [ ] Execute remaining Tier 1 test plans (M7 Filter, M4 Import, M6 Realtime, M5 Admin)
 - [ ] Execute Tier 2 test plans
 
