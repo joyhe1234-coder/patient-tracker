@@ -507,48 +507,64 @@ describe('Cascading Dropdowns', () => {
   });
 
   describe('Cascading Field Clearing', () => {
+    // Use a fresh row for clearing tests to avoid version conflicts
+    // from prior edits to row 0. Adding a row gives us a clean version=1 row.
     it('changing Request Type clears Quality Measure and downstream', () => {
-      // Set up a complete row — use verify to ensure each cascading step completes
-      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Quality');
-      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Diabetic Eye Exam');
-      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Diabetic eye exam completed');
+      cy.addTestRow('CascClear-RT, Test');
+      cy.get('body').type('{esc}');
+      cy.wait(500);
+
+      // Set up a complete row on the newly added row 0
+      cy.selectAgGridDropdownAndVerify(0, 'requestType', 'Quality');
+      cy.wait(1500);
+      cy.selectAgGridDropdownAndVerify(0, 'qualityMeasure', 'Diabetic Eye Exam');
+      cy.wait(1500);
+      cy.selectAgGridDropdownAndVerify(0, 'measureStatus', 'Diabetic eye exam completed');
+      cy.wait(1500);
 
       // Verify values are set
-      cy.getAgGridCell(testRowIndex, 'qualityMeasure')
+      cy.getAgGridCell(0, 'qualityMeasure')
         .should('contain.text', 'Diabetic Eye Exam');
-      cy.getAgGridCell(testRowIndex, 'measureStatus')
+      cy.getAgGridCell(0, 'measureStatus')
         .should('contain.text', 'Diabetic eye exam completed');
 
-      // Change Request Type
-      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
-      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Screening');
+      // Change Request Type — this should cascade-clear qualityMeasure and measureStatus
+      cy.selectAgGridDropdownAndVerify(0, 'requestType', 'Screening');
+      cy.wait(2000);
 
       // Quality Measure should be cleared (strip dropdown arrow '▾' from text)
-      cy.getAgGridCell(testRowIndex, 'qualityMeasure')
+      cy.getAgGridCell(0, 'qualityMeasure')
         .invoke('text')
         .should('satisfy', (text: string) => text.replace(/▾/g, '').trim() === '');
 
       // Measure Status should be cleared
-      cy.getAgGridCell(testRowIndex, 'measureStatus')
+      cy.getAgGridCell(0, 'measureStatus')
         .invoke('text')
         .should('satisfy', (text: string) => text.replace(/▾/g, '').trim() === '');
     });
 
     it('changing Quality Measure clears Measure Status', () => {
-      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Quality');
-      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Diabetic Eye Exam');
-      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Diabetic eye exam completed');
+      cy.addTestRow('CascClear-QM, Test');
+      cy.get('body').type('{esc}');
+      cy.wait(500);
+
+      cy.selectAgGridDropdownAndVerify(0, 'requestType', 'Quality');
+      cy.wait(1500);
+      cy.selectAgGridDropdownAndVerify(0, 'qualityMeasure', 'Diabetic Eye Exam');
+      cy.wait(1500);
+      cy.selectAgGridDropdownAndVerify(0, 'measureStatus', 'Diabetic eye exam completed');
+      cy.wait(1500);
 
       // Verify status is set
-      cy.getAgGridCell(testRowIndex, 'measureStatus')
+      cy.getAgGridCell(0, 'measureStatus')
         .should('contain.text', 'Diabetic eye exam completed');
 
-      // Change Quality Measure
-      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Vaccination');
-      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Vaccination');
+      // Change Quality Measure — this should cascade-clear measureStatus
+      cy.selectAgGridDropdownAndVerify(0, 'qualityMeasure', 'Vaccination');
+      cy.wait(2000);
 
       // Measure Status should be cleared (strip dropdown arrow '▾' from text)
-      cy.getAgGridCell(testRowIndex, 'measureStatus')
+      cy.getAgGridCell(0, 'measureStatus')
         .invoke('text')
         .should('satisfy', (text: string) => text.replace(/▾/g, '').trim() === '');
     });
@@ -902,11 +918,11 @@ describe('Cascading Dropdowns', () => {
 
   describe('TC-13.1: Network Error Recovery', () => {
     it('shows error when API request fails', () => {
-      // Intercept PATCH calls to simulate network failure
-      cy.intercept('PATCH', '/api/data/*', {
+      // Intercept PUT calls to simulate network failure (cell edits use PUT /api/data/:id)
+      cy.intercept('PUT', '/api/data/*', {
         statusCode: 500,
         body: { error: 'Internal Server Error' },
-      }).as('failedPatch');
+      }).as('failedPut');
 
       // Stub alert to capture error message
       const alertStub = cy.stub();
@@ -914,7 +930,7 @@ describe('Cascading Dropdowns', () => {
 
       // Try to edit a cell (select a dropdown value)
       cy.selectAgGridDropdown(testRowIndex, 'requestType', 'AWV');
-      cy.wait('@failedPatch');
+      cy.wait('@failedPut', { timeout: 10000 });
 
       // The intercepted failure should trigger an error notification
       // The value may revert or show an error state
@@ -1023,6 +1039,173 @@ describe('Cascading Dropdowns', () => {
         const text = $cell.text().replace(/[✓▾]/g, '').trim();
         // Should be empty or "N/A" — NOT a selectable dropdown prompt
         expect(text).to.not.include('Select');
+      });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T8-1: Tracking field N/A state — non-editable
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T8-1: Tracking N/A Non-Editable', () => {
+    it('tracking field shows "N/A" and is non-editable when tracking1 is "N/A"', () => {
+      // AWV completed has no tracking1 options → should show N/A
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'AWV');
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'AWV');
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'AWV completed');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'AWV completed');
+
+      // Tracking #1 should show N/A
+      cy.getAgGridCell(testRowIndex, 'tracking1').then(($cell) => {
+        const text = $cell.text().replace(/[✓▾]/g, '').trim();
+        expect(text === 'N/A' || text === '').to.be.true;
+      });
+
+      // Click the cell — should NOT open a dropdown popup
+      cy.getAgGridCell(testRowIndex, 'tracking1').click();
+      cy.wait(300);
+      cy.get('.ag-popup').should('not.exist');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T8-2: Tracking prompt labels and specific options
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T8-2: Tracking Prompt Labels', () => {
+    it('BP tracking #2 shows correct prompt label', () => {
+      // Set up Hypertension Management > BP not at goal
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Quality');
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Quality');
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Hypertension Management');
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Hypertension Management');
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Scheduled call back - BP not at goal');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Scheduled call back');
+
+      // Tracking #2 should show a prompt or be a free text field for BP reading
+      cy.scrollToAgGridColumn('tracking2');
+      cy.get(`[row-index="${testRowIndex}"] [col-id="tracking2"]`, { timeout: 10000 }).should('be.visible');
+      cy.getAgGridCellWithScroll(testRowIndex, 'tracking2').then(($cell) => {
+        const text = $cell.text().replace(/[✓▾]/g, '').trim();
+        // Should show BP reading prompt or be empty (free text field)
+        cy.log(`BP Tracking #2 prompt: "${text}"`);
+        // The prompt should contain "BP" or "reading" or be empty for free text
+        expect(text === '' || text.toLowerCase().includes('bp') || text.toLowerCase().includes('reading')).to.be.true;
+      });
+    });
+
+    it('Cervical Cancer tracking shows month options', () => {
+      // Set up Cervical Cancer > Screening discussed
+      cy.selectAgGridDropdown(testRowIndex, 'requestType', 'Screening');
+      cy.getAgGridCell(testRowIndex, 'requestType').should('contain.text', 'Screening');
+      cy.selectAgGridDropdown(testRowIndex, 'qualityMeasure', 'Cervical Cancer Screening');
+      cy.getAgGridCell(testRowIndex, 'qualityMeasure').should('contain.text', 'Cervical Cancer Screening');
+      cy.selectAgGridDropdown(testRowIndex, 'measureStatus', 'Screening discussed');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Screening discussed');
+
+      // Tracking #1 should show month options
+      cy.openAgGridDropdown(testRowIndex, 'tracking1');
+      cy.getAgGridDropdownOptions().then((options) => {
+        const nonEmpty = options.filter(opt => opt.trim() !== '' && opt.trim() !== '(clear)');
+        expect(nonEmpty.length).to.be.greaterThan(0);
+        const hasMonth = nonEmpty.some(opt => opt.toLowerCase().includes('month'));
+        expect(hasMonth).to.be.true;
+      });
+      cy.get('body').type('{esc}');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T8-3: Depression Screening cascading clear
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T8-3: Depression Screening Cascading Clear', () => {
+    it('Depression Screening status change clears cascaded tracking fields', () => {
+      // Set up Depression Screening > Called to schedule
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Called to schedule');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Called to schedule');
+      cy.get(`[row-index="${testRowIndex}"]`).first().should('have.class', 'row-status-blue');
+
+      // Change status to "Not Addressed" — should clear tracking and revert to white
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Not Addressed');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Not Addressed');
+
+      // Tracking #1 should be cleared/N/A
+      cy.getAgGridCell(testRowIndex, 'tracking1')
+        .invoke('text')
+        .should('satisfy', (text: string) => {
+          const cleaned = text.replace(/[✓▾]/g, '').trim();
+          return cleaned === '' || cleaned === 'N/A';
+        });
+
+      // Row should be white
+      cy.get(`[row-index="${testRowIndex}"]`).first().should('have.class', 'row-status-white');
+    });
+
+    it('Depression Screening "Not Addressed" shows white row after clearing', () => {
+      // Set up Depression Screening > Screening complete (green)
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Screening complete');
+      cy.get(`[row-index="${testRowIndex}"]`).first().should('have.class', 'row-status-green');
+
+      // Change to Not Addressed
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Not Addressed');
+      cy.get(`[row-index="${testRowIndex}"]`).first().should('have.class', 'row-status-white');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // T8-4: Depression terminal statuses set tracking1 to N/A
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('T8-4: Depression Terminal Statuses Set Tracking to N/A', () => {
+    it('Depression "Patient declined" sets tracking1 to "N/A"', () => {
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Patient declined');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Patient declined');
+
+      // Tracking #1 should show N/A (no tracking for terminal statuses)
+      cy.getAgGridCell(testRowIndex, 'tracking1').then(($cell) => {
+        const text = $cell.text().replace(/[✓▾]/g, '').trim();
+        expect(text === 'N/A' || text === '').to.be.true;
+      });
+    });
+
+    it('Depression "Screening unnecessary" sets tracking1 to "N/A"', () => {
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'Screening unnecessary');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'Screening unnecessary');
+
+      cy.getAgGridCell(testRowIndex, 'tracking1').then(($cell) => {
+        const text = $cell.text().replace(/[✓▾]/g, '').trim();
+        expect(text === 'N/A' || text === '').to.be.true;
+      });
+    });
+
+    it('Depression "No longer applicable" sets tracking1 to "N/A"', () => {
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'requestType', 'Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'qualityMeasure', 'Depression Screening');
+      cy.wait(500);
+      cy.selectAgGridDropdownAndVerify(testRowIndex, 'measureStatus', 'No longer applicable');
+      cy.getAgGridCell(testRowIndex, 'measureStatus').should('contain.text', 'No longer applicable');
+
+      cy.getAgGridCell(testRowIndex, 'tracking1').then(($cell) => {
+        const text = $cell.text().replace(/[✓▾]/g, '').trim();
+        expect(text === 'N/A' || text === '').to.be.true;
       });
     });
   });

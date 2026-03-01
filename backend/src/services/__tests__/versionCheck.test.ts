@@ -289,5 +289,43 @@ describe('versionCheck', () => {
 
       expect(payload.insuranceGroup).toBeNull();
     });
+
+    // T4-2: Type safety payload assertions
+    it('toGridRowPayload does NOT include tracking3 or depressionScreeningStatus', () => {
+      const measure = createMockMeasure();
+      const payload = toGridRowPayload(measure as any);
+
+      // These fields should NOT exist on the payload
+      expect(payload).not.toHaveProperty('tracking3');
+      expect(payload).not.toHaveProperty('depressionScreeningStatus');
+      // Also verify other internal-only fields are excluded
+      expect(payload).not.toHaveProperty('createdAt');
+      expect(payload).not.toHaveProperty('patient');
+    });
+
+    it('toGridRowPayload includes all current GridRowPayload fields', () => {
+      const measure = createMockMeasure();
+      const payload = toGridRowPayload(measure as any);
+
+      // All expected GridRowPayload fields must be present
+      const expectedFields = [
+        'id', 'patientId', 'memberName', 'memberDob',
+        'memberTelephone', 'memberAddress', 'insuranceGroup',
+        'requestType', 'qualityMeasure', 'measureStatus',
+        'statusDate', 'statusDatePrompt',
+        'tracking1', 'tracking2',
+        'dueDate', 'timeIntervalDays', 'notes',
+        'rowOrder', 'isDuplicate',
+        'hgba1cGoal', 'hgba1cGoalReachedYear', 'hgba1cDeclined',
+        'updatedAt',
+      ];
+
+      for (const field of expectedFields) {
+        expect(payload).toHaveProperty(field);
+      }
+
+      // Verify the payload has exactly the expected number of fields (no extras)
+      expect(Object.keys(payload).sort()).toEqual(expectedFields.sort());
+    });
   });
 });

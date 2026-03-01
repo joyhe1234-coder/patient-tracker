@@ -28,9 +28,17 @@ export function useSocket(options: UseSocketOptions): void {
   // Track previous physician ID for room switching
   const prevPhysicianIdRef = useRef<number | null>(null);
 
+  // Track whether we have been connected before (to distinguish reconnect from initial connect)
+  const hasBeenConnectedRef = useRef(false);
+  const wasDisconnectedRef = useRef(false);
+
   // Keep callbacks in refs to avoid reconnection on callback changes
   const optionsRef = useRef(options);
   optionsRef.current = options;
+
+  // selectedPhysicianId ref for use inside handleConnectionChange without adding it as a dependency
+  const selectedPhysicianIdRef = useRef(selectedPhysicianId);
+  selectedPhysicianIdRef.current = selectedPhysicianId;
 
   // Stable handler references
   const handleConnectionChange = useCallback(
@@ -39,6 +47,21 @@ export function useSocket(options: UseSocketOptions): void {
       if (status === 'disconnected' || status === 'offline') {
         clearActiveEdits();
         setRoomUsers([]);
+        if (hasBeenConnectedRef.current) {
+          wasDisconnectedRef.current = true;
+        }
+      }
+      if (status === 'connected') {
+        if (wasDisconnectedRef.current) {
+          // This is a reconnection — re-join the physician room and refresh data
+          const physicianId = selectedPhysicianIdRef.current;
+          if (physicianId !== null) {
+            socketService.joinRoom(physicianId);
+          }
+          optionsRef.current.onDataRefresh();
+        }
+        hasBeenConnectedRef.current = true;
+        wasDisconnectedRef.current = false;
       }
     },
     [setConnectionStatus, clearActiveEdits, setRoomUsers]

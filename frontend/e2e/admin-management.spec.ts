@@ -20,20 +20,20 @@ test.describe('Admin User Management', () => {
   });
 
   test('displays admin dashboard with user list', async ({ page }) => {
-    // Should show Users tab content
-    await expect(page.getByText('User Management')).toBeVisible({ timeout: 10000 });
+    // Should show Admin Dashboard heading
+    await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible({ timeout: 10000 });
 
     // Should list seeded users
-    await expect(page.getByText('admin@gmail.com')).toBeVisible();
+    await expect(page.locator('td', { hasText: 'admin@gmail.com' })).toBeVisible();
   });
 
   test('shows user roles with correct badges', async ({ page }) => {
     // Wait for user list to load
-    await expect(page.getByText('admin@gmail.com')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('td', { hasText: 'admin@gmail.com' })).toBeVisible({ timeout: 10000 });
 
-    // Admin user should have ADMIN badge
+    // Admin user should have ADMIN badge (use .first() to avoid strict mode on nested elements)
     const adminRow = page.locator('tr', { hasText: 'admin@gmail.com' });
-    await expect(adminRow.getByText('ADMIN')).toBeVisible();
+    await expect(adminRow.getByText('ADMIN').first()).toBeVisible();
   });
 
   test('can open Add User modal', async ({ page }) => {
@@ -41,7 +41,7 @@ test.describe('Admin User Management', () => {
     await page.getByRole('button', { name: /add user/i }).click();
 
     // Modal should appear with form fields
-    await expect(page.getByText('Add User')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Add User' })).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
   });
@@ -55,7 +55,7 @@ test.describe('Admin User Management', () => {
     await phyRow.getByRole('button', { name: /edit/i }).first().click();
 
     // Modal should show Edit User with pre-filled data
-    await expect(page.getByText('Edit User')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Edit User' })).toBeVisible();
   });
 
   test('can switch to Audit Log tab', async ({ page }) => {
@@ -72,12 +72,13 @@ test.describe('Admin User Management', () => {
     // Logout first
     const userMenuButton = page.locator('header button:has(svg)').last();
     await userMenuButton.click();
-    await page.getByText('Logout').click();
+    await page.getByRole('button', { name: /logout/i }).click();
     await page.waitForURL(/\/login/);
+    await page.waitForLoadState('networkidle');
 
-    // Login as physician (non-admin)
+    // Login as physician (non-admin) — use phy2 to avoid lockout issues with phy1
     const loginPage = new LoginPage(page);
-    await loginPage.loginAndWaitForRedirect('phy1@gmail.com', 'welcome100');
+    await loginPage.loginAndWaitForRedirect('phy2@gmail.com', 'welcome100');
 
     // Try to navigate to admin
     await page.goto('/admin');
@@ -89,40 +90,42 @@ test.describe('Admin User Management', () => {
 
 test.describe('Account Lockout', () => {
   test('shows error after multiple failed login attempts', async ({ page }) => {
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
+    await page.goto('/login');
+    await page.locator('#email').waitFor({ state: 'visible', timeout: 10000 });
 
-    // Attempt login with wrong password multiple times
-    // Note: The lockout threshold may vary; we test that repeated failures show errors
-    for (let i = 0; i < 3; i++) {
-      await loginPage.emailInput.fill('phy1@gmail.com');
-      await loginPage.passwordInput.fill('wrongpassword');
-      await loginPage.signInButton.click();
+    // Attempt login with wrong password twice (not enough to lock, but enough to verify errors)
+    // Use a non-existent email so we don't risk locking real accounts
+    for (let i = 0; i < 2; i++) {
+      await page.locator('#email').fill('lockout-test@example.com');
+      await page.locator('#password').click();
+      await page.locator('#password').fill('wrongpassword');
+      await page.getByRole('button', { name: /sign in/i }).click();
 
       // Wait for error to appear
-      await expect(loginPage.errorMessage).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('.bg-red-50')).toBeVisible({ timeout: 10000 });
 
-      // Clear inputs for next attempt
-      await loginPage.emailInput.clear();
-      await loginPage.passwordInput.clear();
+      // Brief pause between attempts
+      await page.waitForTimeout(500);
     }
 
     // After multiple failures, error message should still be visible
-    await expect(loginPage.errorMessage).toBeVisible();
+    await expect(page.locator('.bg-red-50')).toBeVisible();
   });
 
   test('locked account eventually becomes accessible again', async ({ page }) => {
-    // This test verifies the lockout message appears but we don't actually
-    // wait 15 minutes for it to expire. We verify the error messaging path.
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
+    // This test verifies the error message appears for invalid credentials
+    await page.goto('/login');
+    await page.locator('#email').waitFor({ state: 'visible', timeout: 10000 });
 
-    // Attempt login with wrong password
-    await loginPage.login('phy1@gmail.com', 'wrongpassword');
-    await expect(loginPage.errorMessage).toBeVisible({ timeout: 5000 });
+    await page.locator('#email').fill('lockout-test@example.com');
+    await page.locator('#password').click();
+    await page.locator('#password').fill('wrongpassword');
+    await page.getByRole('button', { name: /sign in/i }).click();
 
-    const errorText = await loginPage.getErrorMessage();
-    // Error should indicate invalid credentials (or locked if threshold reached)
+    await expect(page.locator('.bg-red-50')).toBeVisible({ timeout: 10000 });
+
+    const errorText = await page.locator('.bg-red-50').innerText();
+    // Error should indicate invalid credentials
     expect(errorText.length).toBeGreaterThan(0);
   });
 });

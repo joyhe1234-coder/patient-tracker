@@ -54,6 +54,7 @@ function createMockExistingRecord(overrides: Partial<ExistingRecord> = {}): Exis
     measureStatus: 'Not Addressed',
     ownerId: null,
     ownerName: null,
+    insuranceGroup: null,
     ...overrides,
   };
 }
@@ -1174,6 +1175,367 @@ describe('Edge Cases', () => {
       expect(typeof result.summary.skips).toBe('number');
       expect(typeof result.summary.duplicates).toBe('number');
       expect(typeof result.summary.deletes).toBe('number');
+    });
+  });
+});
+
+describe('ExistingRecord insuranceGroup field', () => {
+  it('should include insuranceGroup in ExistingRecord', () => {
+    const record = createMockExistingRecord({ insuranceGroup: 'hill' });
+    expect(record.insuranceGroup).toBe('hill');
+  });
+
+  it('should default insuranceGroup to null', () => {
+    const record = createMockExistingRecord();
+    expect(record.insuranceGroup).toBeNull();
+  });
+});
+
+describe('Replace All insurance group filtering (bug fix)', () => {
+  describe('calculateReplaceAllDiff with pre-filtered records', () => {
+    it('should only delete records that were passed in (pre-filtered by insurance group)', () => {
+      // Simulate the fix: only Hill records are passed in after filtering
+      const hillRecords: ExistingRecord[] = [
+        createMockExistingRecord({
+          patientId: 1, measureId: 101, memberName: 'Hill Patient 1', insuranceGroup: 'hill',
+        }),
+        createMockExistingRecord({
+          patientId: 2, measureId: 102, memberName: 'Hill Patient 2', insuranceGroup: 'hill',
+        }),
+      ];
+
+      const rows: TransformedRow[] = [
+        createMockRow({ memberName: 'New Hill Patient' }),
+      ];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, hillRecords, summary);
+
+      // Should only delete the 2 Hill records, not any Sutter records
+      expect(summary.deletes).toBe(2);
+      expect(summary.inserts).toBe(1);
+      expect(changes).toHaveLength(3);
+
+      const deletes = changes.filter(c => c.action === 'DELETE');
+      expect(deletes).toHaveLength(2);
+      expect(deletes[0].memberName).toBe('Hill Patient 1');
+      expect(deletes[1].memberName).toBe('Hill Patient 2');
+    });
+
+    it('should not delete Sutter records when only Hill records are passed', () => {
+      // Only Hill records passed in (Sutter records filtered out by loadExistingRecords)
+      const hillOnlyRecords: ExistingRecord[] = [
+        createMockExistingRecord({
+          patientId: 1, measureId: 101, memberName: 'Hill Patient', insuranceGroup: 'hill',
+        }),
+      ];
+      // Sutter records NOT in the list (they were filtered out)
+
+      const rows: TransformedRow[] = [
+        createMockRow({ memberName: 'New Hill Patient' }),
+      ];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, hillOnlyRecords, summary);
+
+      // Only 1 delete (Hill), Sutter was never passed in
+      expect(summary.deletes).toBe(1);
+      const deletes = changes.filter(c => c.action === 'DELETE');
+      expect(deletes).toHaveLength(1);
+      expect(deletes[0].memberName).toBe('Hill Patient');
+    });
+
+    it('should handle mixed insurance groups when no filter is applied (backwards compatible)', () => {
+      // Without insurance filter, ALL records are passed in (backwards compatible)
+      const allRecords: ExistingRecord[] = [
+        createMockExistingRecord({
+          patientId: 1, measureId: 101, memberName: 'Hill Patient', insuranceGroup: 'hill',
+        }),
+        createMockExistingRecord({
+          patientId: 2, measureId: 102, memberName: 'Sutter Patient', insuranceGroup: 'sutter',
+        }),
+        createMockExistingRecord({
+          patientId: 3, measureId: 103, memberName: 'Unknown Patient', insuranceGroup: null,
+        }),
+      ];
+
+      const rows: TransformedRow[] = [
+        createMockRow({ memberName: 'New Patient' }),
+      ];
+      const summary = createMockSummary();
+
+      const changes = calculateReplaceAllDiff(rows, allRecords, summary);
+
+      // All 3 existing records should be deleted (no filter)
+      expect(summary.deletes).toBe(3);
+      expect(summary.inserts).toBe(1);
+    });
+  });
+
+  describe('scenario: Hill import should not delete Sutter data', () => {
+    it('should demonstrate the fixed behavior with insurance group separation', () => {
+      // Physician has both Hill and Sutter patients
+      // When importing Hill with Replace All, only Hill records should be deleted
+
+      // Step 1: Pre-filter existing records to only Hill (simulates loadExistingRecords with insuranceGroup filter)
+      const hillRecords: ExistingRecord[] = [
+        createMockExistingRecord({
+          patientId: 1, measureId: 101, memberName: 'Alice Hill',
+          insuranceGroup: 'hill', qualityMeasure: 'AWV',
+        }),
+        createMockExistingRecord({
+          patientId: 2, measureId: 102, memberName: 'Bob Hill',
+          insuranceGroup: 'hill', qualityMeasure: 'Diabetic Eye Exam',
+        }),
+      ];
+
+      // These Sutter records exist in DB but are NOT included (filtered out)
+      // - Charlie Sutter (patientId: 3, insuranceGroup: 'sutter')
+      // - Diana Sutter (patientId: 4, insuranceGroup: 'sutter')
+
+      // Step 2: New Hill import rows
+      const newHillRows: TransformedRow[] = [
+        createMockRow({ memberName: 'Alice Hill', qualityMeasure: 'AWV', measureStatus: 'Completed' }),
+        createMockRow({ memberName: 'Bob Hill', qualityMeasure: 'Diabetic Eye Exam', measureStatus: 'At Goal' }),
+        createMockRow({ memberName: 'Eve Hill', qualityMeasure: 'AWV', measureStatus: 'Not Addressed' }),
+      ];
+
+      const summary = createMockSummary();
+      const changes = calculateReplaceAllDiff(newHillRows, hillRecords, summary);
+
+      // Verify: only Hill records deleted, Sutter untouched
+      expect(summary.deletes).toBe(2); // Only Alice Hill + Bob Hill measures
+      expect(summary.inserts).toBe(3); // All 3 new Hill rows inserted
+
+      const deletes = changes.filter(c => c.action === 'DELETE');
+      expect(deletes.every(d => d.memberName.includes('Hill'))).toBe(true);
+
+      const inserts = changes.filter(c => c.action === 'INSERT');
+      expect(inserts).toHaveLength(3);
+    });
+  });
+
+  describe('merge mode is unaffected by insurance filter', () => {
+    it('should apply normal merge logic regardless of insuranceGroup field', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'John Smith',
+          memberDob: '1990-01-15',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'AWV completed', // compliant
+        }),
+      ];
+
+      const existingByKey = new Map<string, ExistingRecord>();
+      existingByKey.set(
+        'John Smith|1990-01-15|AWV|Annual Wellness Visit',
+        createMockExistingRecord({
+          measureStatus: 'Not Addressed', // non-compliant
+          insuranceGroup: 'hill',
+        })
+      );
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      // Merge logic: non-compliant -> compliant = UPDATE (insurance group doesn't affect merge)
+      expect(summary.updates).toBe(1);
+      expect(changes[0].action).toBe('UPDATE');
+    });
+
+    it('should merge records from different insurance groups without filtering', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'Cross-Insurance Patient',
+          memberDob: '1985-03-20',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'Completed',
+        }),
+      ];
+
+      const existingByKey = new Map<string, ExistingRecord>();
+      existingByKey.set(
+        'Cross-Insurance Patient|1985-03-20|AWV|Annual Wellness Visit',
+        createMockExistingRecord({
+          memberName: 'Cross-Insurance Patient',
+          memberDob: '1985-03-20',
+          measureStatus: 'Not Addressed',
+          insuranceGroup: 'sutter', // Different insurance group
+        })
+      );
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      // Should still apply merge logic normally regardless of insurance group
+      expect(changes[0].action).toBe('UPDATE');
+      expect(summary.updates).toBe(1);
+    });
+  });
+});
+
+describe('Idempotency and edge cases', () => {
+  describe('re-import same data produces all SKIP actions', () => {
+    it('should produce all SKIP when importing identical data', () => {
+      // Simulate re-importing the same data that already exists in the database
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'John Smith',
+          memberDob: '1990-01-15',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'AWV completed', // compliant - same as existing
+        }),
+        createMockRow({
+          memberName: 'Jane Doe',
+          memberDob: '1985-03-22',
+          requestType: 'Screening',
+          qualityMeasure: 'Breast Cancer Screening',
+          measureStatus: 'Completed', // compliant - same as existing
+          sourceRowIndex: 1,
+        }),
+        createMockRow({
+          memberName: 'Bob Wilson',
+          memberDob: '1970-07-08',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'Not Addressed', // non-compliant - same as existing
+          sourceRowIndex: 2,
+        }),
+      ];
+
+      const existingByKey = new Map<string, ExistingRecord>();
+      // Same data already in DB
+      existingByKey.set(
+        'John Smith|1990-01-15|AWV|Annual Wellness Visit',
+        createMockExistingRecord({ measureStatus: 'Completed', patientId: 1, measureId: 100 })
+      );
+      existingByKey.set(
+        'Jane Doe|1985-03-22|Screening|Breast Cancer Screening',
+        createMockExistingRecord({
+          memberName: 'Jane Doe', memberDob: '1985-03-22',
+          measureStatus: 'Completed', patientId: 2, measureId: 200,
+        })
+      );
+      existingByKey.set(
+        'Bob Wilson|1970-07-08|AWV|Annual Wellness Visit',
+        createMockExistingRecord({
+          memberName: 'Bob Wilson', memberDob: '1970-07-08',
+          measureStatus: 'Not Addressed', patientId: 3, measureId: 300,
+        })
+      );
+
+      const summary = createMockSummary();
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      // All should be SKIP since data is identical
+      expect(changes).toHaveLength(3);
+      expect(changes.every(c => c.action === 'SKIP')).toBe(true);
+      expect(summary.skips).toBe(3);
+      expect(summary.inserts).toBe(0);
+      expect(summary.updates).toBe(0);
+      expect(summary.duplicates).toBe(0);
+    });
+  });
+
+  describe('Sutter diff with non-null notes and tracking1', () => {
+    it('should include notes and tracking1 values in diff changes for Sutter import', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'Sutter Patient',
+          memberDob: '1960-01-15',
+          requestType: 'Chronic DX',
+          qualityMeasure: 'Chronic Diagnosis Code',
+          measureStatus: 'Not Addressed',
+          notes: 'Diabetes Type 2, E11.65',
+          tracking1: '7.5',
+        }),
+      ];
+
+      const existingByKey = new Map<string, ExistingRecord>();
+      // Existing record with different status -> should UPDATE
+      existingByKey.set(
+        'Sutter Patient|1960-01-15|Chronic DX|Chronic Diagnosis Code',
+        createMockExistingRecord({
+          memberName: 'Sutter Patient',
+          memberDob: '1960-01-15',
+          requestType: 'Chronic DX',
+          qualityMeasure: 'Chronic Diagnosis Code',
+          measureStatus: 'Pending', // unknown -> UPDATE when new has value
+          patientId: 10,
+          measureId: 500,
+        })
+      );
+
+      const summary = createMockSummary();
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(changes).toHaveLength(1);
+      expect(changes[0].action).toBe('UPDATE');
+      expect(changes[0].notes).toBe('Diabetes Type 2, E11.65');
+      expect(changes[0].tracking1).toBe('7.5');
+    });
+  });
+
+  describe('merge with existing status null/empty', () => {
+    it('should UPDATE when existing record has null measureStatus and import has a value', () => {
+      const row = createMockRow({
+        memberName: 'John Smith',
+        memberDob: '1990-01-15',
+        requestType: 'AWV',
+        qualityMeasure: 'Annual Wellness Visit',
+        measureStatus: 'Completed', // compliant
+      });
+      const existing = createMockExistingRecord({
+        measureStatus: null, // null status
+      });
+
+      const result = applyMergeLogic(row, existing);
+
+      // Old is null (unknown category), new has value -> UPDATE
+      expect(result.action).toBe('UPDATE');
+      expect(result.reason).toContain('unknown');
+    });
+
+    it('should UPDATE when existing record has empty string measureStatus', () => {
+      const row = createMockRow({
+        measureStatus: 'Not Addressed', // non-compliant
+      });
+      const existing = createMockExistingRecord({
+        measureStatus: '', // empty string -> categorizes as unknown
+      });
+
+      const result = applyMergeLogic(row, existing);
+
+      // Old is empty (unknown category), new has value -> UPDATE
+      expect(result.action).toBe('UPDATE');
+    });
+
+    it('should produce UPDATE in calculateMergeDiff when existing status is null', () => {
+      const rows: TransformedRow[] = [
+        createMockRow({
+          memberName: 'John Smith',
+          memberDob: '1990-01-15',
+          requestType: 'AWV',
+          qualityMeasure: 'Annual Wellness Visit',
+          measureStatus: 'AWV completed',
+        }),
+      ];
+      const existingByKey = new Map<string, ExistingRecord>();
+      existingByKey.set(
+        'John Smith|1990-01-15|AWV|Annual Wellness Visit',
+        createMockExistingRecord({ measureStatus: null })
+      );
+      const summary = createMockSummary();
+
+      const changes = calculateMergeDiff(rows, existingByKey, summary);
+
+      expect(summary.updates).toBe(1);
+      expect(changes[0].action).toBe('UPDATE');
+      expect(changes[0].oldStatus).toBeNull();
+      expect(changes[0].newStatus).toBe('AWV completed');
     });
   });
 });

@@ -860,4 +860,356 @@ describe('importExecutor', () => {
       );
     });
   });
+
+  describe('BUG FIX: Reassignment duplicate prevention (BUG-REASSIGN-DUP-001)', () => {
+    // When importing data for Physician B and a patient already exists under Physician A,
+    // the diff produces SKIP/UPDATE (not INSERT) thanks to loadReassignmentRecords().
+    // The executor must also reassign the patient's ownerId on SKIP and UPDATE.
+
+    it('should reassign patient ownerId on UPDATE for reassigned patient', async () => {
+      // Patient 42 exists under Physician A (ownerId=5), import targets Physician B (ownerId=10)
+      // Diff says UPDATE because import has better status
+      const preview = createMockPreview({
+        targetOwnerId: 10,
+        systemId: 'hill',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 1, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'UPDATE',
+            existingPatientId: 42,
+            existingMeasureId: 200,
+            oldStatus: 'Not Addressed',
+            newStatus: 'Completed',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockMeasureUpdate.mockResolvedValue({ id: 200 });
+      // Patient currently belongs to ownerId=5 (different from target 10)
+      mockPatientFindUnique.mockResolvedValue({ id: 42, ownerId: 5 });
+      mockPatientUpdate.mockResolvedValue({ id: 42, ownerId: 10 });
+
+      // Pass ownerId=10 as second argument (mirrors route behavior)
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      expect(result.stats.updated).toBe(1);
+      // Should have called patient.update for BOTH insuranceGroup AND ownerId reassignment
+      const updateCalls = mockPatientUpdate.mock.calls.map((c: any) => c[0]?.data);
+      expect(updateCalls).toContainEqual({ insuranceGroup: 'hill' }); // from updateMeasure
+      expect(updateCalls).toContainEqual({ ownerId: 10 }); // from reassignPatientIfNeeded
+    });
+
+    it('should reassign patient ownerId on SKIP for reassigned patient', async () => {
+      // Patient 42 has identical status but different owner — SKIP measure, but still reassign patient
+      const preview = createMockPreview({
+        targetOwnerId: 10,
+        systemId: 'hill',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 0, skips: 1, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'SKIP',
+            existingPatientId: 42,
+            existingMeasureId: 200,
+            oldStatus: 'Not Addressed',
+            newStatus: 'Not Addressed',
+            reason: 'Both non-compliant',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      // Patient currently under different owner
+      mockPatientFindUnique.mockResolvedValue({ id: 42, ownerId: 5 });
+      mockPatientUpdate.mockResolvedValue({ id: 42, ownerId: 10 });
+
+      // Pass ownerId=10 (mirrors route behavior)
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      expect(result.stats.skipped).toBe(1);
+      // CRITICAL: Even on SKIP, patient ownerId must be updated for reassignment
+      expect(mockPatientFindUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 42 },
+          select: { ownerId: true },
+        })
+      );
+      expect(mockPatientUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 42 },
+          data: { ownerId: 10 },
+        })
+      );
+    });
+
+    it('should NOT reassign when patient already belongs to target owner', async () => {
+      // Patient already under ownerId=10, no reassignment needed
+      const preview = createMockPreview({
+        targetOwnerId: 10,
+        systemId: 'hill',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 0, updates: 0, skips: 1, duplicates: 0, deletes: 0 },
+          changes: [createMockChange({
+            action: 'SKIP',
+            existingPatientId: 42,
+            existingMeasureId: 200,
+            oldStatus: 'Completed',
+            newStatus: 'Completed',
+            reason: 'Both compliant',
+          })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      // Patient already belongs to target owner
+      mockPatientFindUnique.mockResolvedValue({ id: 42, ownerId: 10 });
+
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      // findUnique is called to check, but update should NOT be called for ownerId
+      // (insuranceGroup update may still be called)
+      const ownerUpdateCalls = mockPatientUpdate.mock.calls.filter(
+        (call: any) => call[0]?.data?.ownerId !== undefined
+      );
+      expect(ownerUpdateCalls).toHaveLength(0);
+    });
+
+    it('should handle multiple reassigned patients in one import', async () => {
+      // 2 patients being reassigned + 1 new patient INSERT
+      const preview = createMockPreview({
+        targetOwnerId: 10,
+        systemId: 'hill',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 1, updates: 1, skips: 1, duplicates: 0, deletes: 0 },
+          changes: [
+            createMockChange({
+              action: 'UPDATE',
+              memberName: 'Smith, John',
+              existingPatientId: 42,
+              existingMeasureId: 200,
+              oldStatus: 'Not Addressed',
+              newStatus: 'Completed',
+            }),
+            createMockChange({
+              action: 'SKIP',
+              memberName: 'Doe, Jane',
+              existingPatientId: 43,
+              existingMeasureId: 201,
+              oldStatus: 'Not Addressed',
+              newStatus: 'Not Addressed',
+              reason: 'Both non-compliant',
+            }),
+            createMockChange({
+              action: 'INSERT',
+              memberName: 'New, Patient',
+              existingPatientId: undefined,
+              existingMeasureId: undefined,
+              oldStatus: null,
+              newStatus: 'Not Addressed',
+            }),
+          ],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockMeasureUpdate.mockResolvedValue({ id: 200 });
+      // findUnique calls: Smith (UPDATE reassign check), Doe (SKIP reassign check), New (INSERT patient lookup)
+      mockPatientFindUnique
+        .mockResolvedValueOnce({ id: 42, ownerId: 5 })   // Smith UPDATE → reassign
+        .mockResolvedValueOnce({ id: 43, ownerId: 7 })   // Doe SKIP → reassign
+        .mockResolvedValueOnce(null);                      // New patient INSERT → create
+      mockPatientCreate.mockResolvedValue({ id: 99 });
+      mockPatientUpdate.mockResolvedValue({ id: 42, ownerId: 10 });
+
+      // Pass ownerId=10
+      const result = await executeImport('test-preview-123', 10);
+
+      expect(result.success).toBe(true);
+      expect(result.stats.updated).toBe(1);
+      expect(result.stats.skipped).toBe(1);
+      expect(result.stats.inserted).toBe(1);
+      // Should have reassigned both Smith and Doe
+      const ownerUpdateCalls = mockPatientUpdate.mock.calls.filter(
+        (call: any) => call[0]?.data?.ownerId === 10
+      );
+      expect(ownerUpdateCalls.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('transaction rollback on failure', () => {
+    it('should return success=false when transaction throws mid-execution constraint violation', async () => {
+      // Arrange: preview has 3 INSERT changes, transaction throws after being called
+      const preview = createMockPreview({
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          summary: { inserts: 3, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [
+            createMockChange({ action: 'INSERT', memberName: 'Alice' }),
+            createMockChange({ action: 'INSERT', memberName: 'Bob' }),
+            createMockChange({ action: 'INSERT', memberName: 'Carol' }),
+          ],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      // Mock transaction to throw a constraint violation mid-execution
+      mockTransaction.mockRejectedValue(
+        new Error('Unique constraint violation on field: memberName_memberDob')
+      );
+
+      const result = await executeImport('test-preview-123');
+
+      // Assert: result indicates failure, 0 rows persisted (transaction rolled back)
+      expect(result.success).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].error).toContain('Transaction failed');
+      expect(result.errors[0].error).toContain('constraint violation');
+      // Stats should show 0 since transaction was rolled back atomically
+      expect(result.stats.inserted).toBe(0);
+      expect(result.stats.updated).toBe(0);
+    });
+
+    it('should include systemId from preview in import execution context', async () => {
+      // Verify the systemId ('hill' or 'sutter') flows through to patient creation
+      const preview = createMockPreview({
+        systemId: 'sutter',
+        mode: 'merge',
+        diff: createMockDiffResult({
+          mode: 'merge',
+          changes: [createMockChange({ action: 'INSERT' })],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      // Verify patient was created with systemId='sutter' as insuranceGroup
+      expect(mockPatientCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            insuranceGroup: 'sutter',
+          }),
+        })
+      );
+    });
+
+    it('should call syncAllDuplicateFlags after successful import only', async () => {
+      // Test 1: Successful import should call syncAllDuplicateFlags
+      const preview = createMockPreview();
+      (getPreview as jest.Mock).mockReturnValue(preview);
+
+      await executeImport('test-preview-123');
+      expect(syncAllDuplicateFlags).toHaveBeenCalled();
+
+      // Test 2: Failed transaction should NOT call syncAllDuplicateFlags
+      jest.clearAllMocks();
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockTransaction.mockRejectedValue(new Error('DB constraint error'));
+
+      await executeImport('test-preview-123');
+      expect(syncAllDuplicateFlags).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('BUG FIX: Replace All insurance group scoping', () => {
+    // Replace All mode should only delete records from the same insurance group.
+    // The fix filters records at the loadExistingRecords level (diffCalculator),
+    // but the executor should correctly process the filtered DELETE + INSERT list.
+
+    it('should only delete the records present in the diff (insurance-filtered)', async () => {
+      // Diff was calculated with insurance filter — only 2 Hill records to delete
+      const preview = createMockPreview({
+        targetOwnerId: 10,
+        systemId: 'hill',
+        mode: 'replace',
+        diff: createMockDiffResult({
+          mode: 'replace',
+          summary: { inserts: 3, updates: 0, skips: 0, duplicates: 0, deletes: 2 },
+          changes: [
+            createMockChange({
+              action: 'DELETE',
+              memberName: 'Hill Patient A',
+              existingPatientId: 1,
+              existingMeasureId: 101,
+            }),
+            createMockChange({
+              action: 'DELETE',
+              memberName: 'Hill Patient B',
+              existingPatientId: 2,
+              existingMeasureId: 102,
+            }),
+            // Sutter patients (IDs 3, 4) are NOT in the diff — they were filtered out
+            createMockChange({
+              action: 'INSERT',
+              memberName: 'New Hill Patient 1',
+              newStatus: 'Completed',
+            }),
+            createMockChange({
+              action: 'INSERT',
+              memberName: 'New Hill Patient 2',
+              newStatus: 'Not Addressed',
+            }),
+            createMockChange({
+              action: 'INSERT',
+              memberName: 'New Hill Patient 3',
+              newStatus: 'AWV completed',
+            }),
+          ],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockMeasureDeleteMany.mockResolvedValue({ count: 2 });
+      mockPatientFindUnique.mockResolvedValue(null);
+      mockPatientCreate.mockResolvedValue({ id: 99 });
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      // deleteMany should only receive the 2 Hill measure IDs, not Sutter IDs
+      expect(mockMeasureDeleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: { in: [101, 102] },
+          },
+        })
+      );
+      expect(result.stats.inserted).toBe(3);
+    });
+
+    it('should not delete any records when diff has zero DELETEs (empty physician)', async () => {
+      // First import for a physician — no existing records to delete
+      const preview = createMockPreview({
+        targetOwnerId: 10,
+        systemId: 'sutter',
+        mode: 'replace',
+        diff: createMockDiffResult({
+          mode: 'replace',
+          summary: { inserts: 2, updates: 0, skips: 0, duplicates: 0, deletes: 0 },
+          changes: [
+            createMockChange({ action: 'INSERT', memberName: 'Patient A', newStatus: 'Completed' }),
+            createMockChange({ action: 'INSERT', memberName: 'Patient B', newStatus: 'Not Addressed' }),
+          ],
+        }),
+      });
+      (getPreview as jest.Mock).mockReturnValue(preview);
+      mockPatientFindUnique.mockResolvedValue(null);
+      mockPatientCreate.mockResolvedValue({ id: 99 });
+
+      const result = await executeImport('test-preview-123');
+
+      expect(result.success).toBe(true);
+      // No deleteMany call at all — no records to delete
+      expect(mockMeasureDeleteMany).not.toHaveBeenCalled();
+      expect(result.stats.inserted).toBe(2);
+    });
+  });
 });

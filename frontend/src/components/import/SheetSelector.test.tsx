@@ -1085,4 +1085,49 @@ describe('SheetSelector', () => {
       });
     });
   });
+
+  // ================================================================
+  // Physician Auto-Match Ambiguity (Coverage Gap T2-6)
+  // ================================================================
+  describe('Physician Auto-Match Ambiguity', () => {
+    it('does not auto-match physician when tab name has no close match in physicians list', async () => {
+      setAuthUser('STAFF', 10);
+      // Use tab names that share NO substrings (>= 2 chars) with any physician displayName
+      // mockPhysicians are: "Dr. Smith, John", "Dr. Johnson, Mary", "Dr. Lee, Robert"
+      // Use names with no overlapping parts
+      (api.post as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            sheets: ['Xu, Qi', 'Paz, Ivy'],
+            totalSheets: 2,
+            filteredSheets: 2,
+            skippedSheets: [],
+            invalidSheets: [],
+          },
+        },
+      });
+
+      const onSelect = vi.fn();
+      renderSheetSelector({ onSelect });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Import Tab')).toBeInTheDocument();
+      });
+
+      // Select a tab that does not match any physician in the list
+      await userEvent.selectOptions(screen.getByLabelText('Import Tab'), 'Xu, Qi');
+
+      // Physician dropdown should be visible but no physician auto-selected
+      expect(screen.getByLabelText('Assign to Physician')).toBeInTheDocument();
+
+      // onSelect should NOT have been called since no physician was auto-matched
+      expect(onSelect).not.toHaveBeenCalled();
+
+      // The "please select" prompt should be shown
+      expect(
+        screen.getByText('Please select a physician to continue.')
+      ).toBeInTheDocument();
+    });
+  });
 });

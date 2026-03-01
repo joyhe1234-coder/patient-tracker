@@ -237,4 +237,61 @@ describe('Patient Name Search', () => {
       cy.get('input[aria-label="Search patients by name"]').should('not.have.focus');
     });
   });
+
+  describe('Coverage gap: multi-word, whitespace, and search+color filter', () => {
+    it('should match multi-word search (first and last name)', () => {
+      // Read an actual name from the grid to build a multi-word query
+      cy.get('.ag-body-viewport [col-id="memberName"]').first()
+        .invoke('text').then((fullName) => {
+          // fullName is typically "Last, First" — search for "Last First" (no comma)
+          const searchTerm = fullName.trim().replace(',', '').trim();
+
+          cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
+
+          // Should find at least one row matching the multi-word search
+          cy.get('.ag-center-cols-container .ag-row').should('have.length.at.least', 1);
+
+          cy.get('button[aria-label="Clear search"]').click();
+        });
+    });
+
+    it('should handle leading/trailing whitespace gracefully', () => {
+      // Type search with extra whitespace
+      cy.get('input[aria-label="Search patients by name"]').type('   ');
+
+      // Should either show all rows (whitespace ignored) or handle gracefully
+      cy.get('.ag-body-viewport').should('exist');
+
+      // Clear
+      cy.get('input[aria-label="Search patients by name"]').clear();
+      cy.get('.ag-center-cols-container .ag-row').should('have.length.at.least', 1);
+    });
+
+    it('should apply search AND color chip filter together', () => {
+      // Click Completed filter
+      cy.contains('button', 'Completed').click();
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+
+      // Check if there are completed rows
+      cy.get('.ag-center-cols-container .ag-row').then(($rows) => {
+        if ($rows.length > 0) {
+          // Read a name from the filtered rows
+          cy.get('.ag-body-viewport [col-id="memberName"]').first()
+            .invoke('text').then((name) => {
+              const searchTerm = name.trim().split(',')[0].trim();
+
+              // Add search on top of color filter
+              cy.get('input[aria-label="Search patients by name"]').type(searchTerm);
+
+              // All visible rows should be green AND match the name
+              cy.get('.ag-center-cols-container .ag-row').each(($row) => {
+                cy.wrap($row).should('have.class', 'row-status-green');
+              });
+            });
+        } else {
+          cy.log('No Completed rows — search + color filter test skipped');
+        }
+      });
+    });
+  });
 });

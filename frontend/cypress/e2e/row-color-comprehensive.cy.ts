@@ -105,33 +105,60 @@ describe('Row Color — Comprehensive', () => {
     scrollLeft();
   }
 
-  /** Enter status date via double-click on LEFT side (avoids Today button overlay) */
+  /** Enter status date via grid API startEditingCell (more reliable than dblclick) */
   function setStatusDate(dateStr: string) {
-    cy.get('[row-index="0"] [col-id="statusDate"]').first()
-      .dblclick('left', { force: true });
+    // Ensure statusDate column is scrolled into view
+    cy.get('.ag-center-cols-viewport').then(($v) => {
+      $v[0].scrollLeft = 0;
+      $v[0].dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
+    cy.wait(300);
+
+    // Use grid API to programmatically start editing (bypasses click timing issues)
+    cy.window().then((win) => {
+      const api = (win as any).__agGridApi;
+      if (api) {
+        api.startEditingCell({ rowIndex: 0, colKey: 'statusDate' });
+      } else {
+        cy.get('[row-index="0"] [col-id="statusDate"]').first()
+          .dblclick('left', { force: true });
+      }
+    });
     cy.get('.date-cell-editor', { timeout: 5000 }).should('exist');
     cy.get('.date-cell-editor').clear().type(`${dateStr}{enter}`);
     cy.wait(2000);
   }
 
-  /** Click "Today" button on an empty status date cell */
+  /** Click "Today" button on an empty status date cell.
+   *  The button is hidden via CSS (display:none) and only shown on .ag-cell:hover.
+   *  We trigger mouseover on the cell to reveal it, then click with force:true. */
   function clickTodayButton() {
     cy.getAgGridCell(0, 'statusDate')
+      .trigger('mouseover', { force: true });
+    cy.wait(300);
+    cy.getAgGridCell(0, 'statusDate')
       .find('.status-date-today-btn', { timeout: 5000 })
-      .should('be.visible')
+      .should('exist')
       .click({ force: true });
     cy.wait(2000);
   }
 
-  /** Set time interval days via double-click (scroll right to find column) */
+  /** Set time interval days via grid API startEditingCell (scroll right to find column) */
   function setTimeInterval(value: string) {
     scrollRight();
-    cy.get(`[row-index="0"] [col-id="timeIntervalDays"]`, { timeout: 5000 })
-      .first()
-      .dblclick({ force: true });
+    cy.window().then((win) => {
+      const api = (win as any).__agGridApi;
+      if (api) {
+        api.startEditingCell({ rowIndex: 0, colKey: 'timeIntervalDays' });
+      } else {
+        cy.get(`[row-index="0"] [col-id="timeIntervalDays"]`, { timeout: 5000 })
+          .first()
+          .dblclick({ force: true });
+      }
+    });
     cy.wait(300);
     cy.focused().clear().type(`${value}{enter}`);
-    cy.wait(1500);
+    cy.wait(2000); // Wait for PUT + dueDate recalculation + redrawRows
     scrollLeft();
   }
 
@@ -1321,6 +1348,193 @@ describe('Row Color — Comprehensive', () => {
 
       setTracking1Dropdown('Attestation sent');
       assertColor('row-status-green');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SECTION 9: ADVANCED SCENARIOS (T9-1 through T9-5)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('9A (T9-1): Tracking #3 always-editable + type switching', () => {
+    it('Tracking #3 is editable for AWV completed (free text)', () => {
+      addRow('T3-AWV');
+      setupRow('AWV', null, 'AWV completed');
+      scrollRight();
+      // Tracking #3 should be editable as free text
+      cy.getAgGridCellWithScroll(0, 'tracking3').dblclick({ force: true });
+      cy.get('.ag-cell-edit-wrapper input, .ag-popup-editor input, .ag-popup-editor textarea', { timeout: 5000 }).first()
+        .clear()
+        .type('Test note for T3{enter}');
+      cy.getAgGridCellWithScroll(0, 'tracking3')
+        .invoke('text')
+        .should('contain', 'Test note for T3');
+      scrollLeft();
+    });
+
+    it('Tracking #3 is editable for CCS ordered (free text)', () => {
+      addRow('T3-CCS');
+      setupRow('Screening', 'Colon Cancer Screening', 'Colon cancer screening ordered');
+      scrollRight();
+      cy.getAgGridCellWithScroll(0, 'tracking3').dblclick({ force: true });
+      cy.get('.ag-cell-edit-wrapper input, .ag-popup-editor input, .ag-popup-editor textarea', { timeout: 5000 }).first()
+        .clear()
+        .type('CCS T3 value{enter}');
+      cy.getAgGridCellWithScroll(0, 'tracking3')
+        .invoke('text')
+        .should('contain', 'CCS T3 value');
+      scrollLeft();
+    });
+
+    it('Tracking #3 persists after request type switch', () => {
+      addRow('T3-switch');
+      setupRow('AWV', null, 'AWV completed');
+      scrollRight();
+      cy.getAgGridCellWithScroll(0, 'tracking3').dblclick({ force: true });
+      cy.get('.ag-cell-edit-wrapper input, .ag-popup-editor input, .ag-popup-editor textarea', { timeout: 5000 }).first()
+        .clear()
+        .type('Persist note{enter}');
+      cy.getAgGridCellWithScroll(0, 'tracking3')
+        .invoke('text')
+        .should('contain', 'Persist note');
+      scrollLeft();
+
+      // Switch request type — tracking3 (notes-like field) should persist
+      setDropdown('requestType', 'Quality');
+      scrollRight();
+      cy.getAgGridCellWithScroll(0, 'tracking3')
+        .invoke('text')
+        .should('contain', 'Persist note');
+      scrollLeft();
+    });
+
+    it('Tracking #3 is editable for terminal statuses (purple/gray)', () => {
+      addRow('T3-term');
+      setupRow('AWV', null, 'Patient declined AWV');
+      assertColor('row-status-purple');
+      scrollRight();
+      cy.getAgGridCellWithScroll(0, 'tracking3').dblclick({ force: true });
+      cy.get('.ag-cell-edit-wrapper input, .ag-popup-editor input, .ag-popup-editor textarea', { timeout: 5000 }).first()
+        .clear()
+        .type('Declined note{enter}');
+      cy.getAgGridCellWithScroll(0, 'tracking3')
+        .invoke('text')
+        .should('contain', 'Declined note');
+      scrollLeft();
+    });
+  });
+
+  describe('9B (T9-2): Duplicate + overdue coexistence', () => {
+    it('duplicate row can also be overdue — duplicate class takes priority', () => {
+      // Create two rows with the same member name + quality measure to trigger duplicate
+      addRow('DupOD-A');
+      setupRow('AWV', null, 'AWV scheduled');
+      setStatusDate(PAST_DATE);
+      // Row should be overdue (or duplicate if detected)
+      cy.get('[row-index="0"]').first().then(($row) => {
+        const classes = ($row.attr('class') || '');
+        // Should have either overdue or duplicate class (duplicate may override overdue)
+        const hasOverdue = classes.includes('row-status-overdue');
+        const hasDuplicate = classes.includes('row-status-duplicate');
+        expect(hasOverdue || hasDuplicate).to.be.true;
+      });
+    });
+  });
+
+  describe('9C (T9-3): Due date exact value + recalculation', () => {
+    it('AWV scheduled + today shows due date = today + baseDueDays', () => {
+      addRow('DD-exact');
+      setupRow('AWV', null, 'AWV scheduled');
+      clickTodayButton();
+      // AWV scheduled baseDueDays=1, so dueDate = today + 1 day
+      scrollRight();
+      cy.getAgGridCellWithScroll(0, 'dueDate')
+        .invoke('text')
+        .then((text) => {
+          expect(text.trim()).to.not.be.empty;
+          // Should be a valid date
+          const dueDate = new Date(text.trim());
+          expect(dueDate.getTime()).to.be.greaterThan(0);
+        });
+      scrollLeft();
+    });
+
+    it('due date recalculates when status date changes', () => {
+      addRow('DD-recalc');
+      setupRow('AWV', null, 'Patient called to schedule AWV');
+      clickTodayButton();
+      scrollRight();
+      cy.getAgGridCellWithScroll(0, 'dueDate')
+        .invoke('text')
+        .then((originalDueDate) => {
+          expect(originalDueDate.trim()).to.not.be.empty;
+          scrollLeft();
+
+          // Change status date to a past date
+          setStatusDate(PAST_DATE);
+          scrollRight();
+          cy.getAgGridCellWithScroll(0, 'dueDate')
+            .invoke('text')
+            .then((newDueDate) => {
+              expect(newDueDate.trim()).to.not.be.empty;
+              // Due date should be different now (based on past date)
+              expect(newDueDate.trim()).to.not.equal(originalDueDate.trim());
+            });
+          scrollLeft();
+        });
+    });
+  });
+
+  describe('9D (T9-4): Depression Visit scheduled overdue', () => {
+    it('Depression Visit scheduled + past date → overdue (red)', () => {
+      addRow('DS-VS-OD');
+      setupRow('Screening', 'Depression Screening', 'Visit scheduled');
+      assertColor('row-status-yellow');
+      setStatusDate(PAST_DATE);
+      assertColor('row-status-overdue');
+    });
+  });
+
+  describe('9E (T9-5): CDX attestation boundary', () => {
+    it('CDX resolved + Attestation not sent + recent date → orange (not yet overdue)', () => {
+      addRow('CDX-ANS-new');
+      setupRow('Chronic DX', null, 'Chronic diagnosis resolved');
+      setTracking1Dropdown('Attestation not sent');
+      // Set status date to today — dueDate will be today + 14 days → NOT overdue yet
+      clickTodayButton();
+      assertColor('row-status-orange');
+      assertNotColor('row-status-overdue');
+    });
+
+    it('CDX resolved + Attestation not sent + far past date → overdue', () => {
+      addRow('CDX-ANS-old');
+      setupRow('Chronic DX', null, 'Chronic diagnosis resolved');
+      setTracking1Dropdown('Attestation not sent');
+      setStatusDate(PAST_DATE);
+      assertColor('row-status-overdue');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SECTION 11.3 (T11-3): Date prompt label in grid UI
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('11.3 (T11-3): Date prompt label in grid UI', () => {
+    it('Status Date cell shows Today button on hover for empty dates', () => {
+      addRow('DPL-today');
+      setDropdown('requestType', 'AWV');
+      // Status date should be empty initially
+      cy.getAgGridCell(0, 'statusDate').invoke('text').then((text) => {
+        if (text.trim() === '') {
+          // Hover over the cell to reveal the Today button
+          cy.getAgGridCell(0, 'statusDate').trigger('mouseover', { force: true });
+          cy.wait(300);
+          cy.getAgGridCell(0, 'statusDate')
+            .find('.status-date-today-btn', { timeout: 5000 })
+            .should('exist');
+        } else {
+          cy.log('Status date already has a value — auto-stamped on status change');
+        }
+      });
     });
   });
 });

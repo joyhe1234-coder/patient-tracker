@@ -29,14 +29,31 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.13.3):**
-- Layer 1 (Backend Jest): 1,428 tests passing (48 suites)
-- Layer 2 (Frontend Vitest): 1,211 tests passing (48 suites)
-- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment
-- Layer 4 (Cypress E2E): ~486+ tests (expanded: +179 row-color-comprehensive, +24 row-color-roles, rewritten role-access-control ~36 tests, +new cell-editing-conflict, grid-editing-roles, row-operations)
+**Test Coverage (as of v4.14.0):**
+- Layer 1 (Backend Jest): 1,560 tests passing (52 suites) — +132 from v4.13.3
+- Layer 2 (Frontend Vitest): 1,306 tests passing (48 suites) — +95 from v4.13.3
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases
+- Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles)
 - Visual test plan v2.1: 427 test cases documented
 - Regression test plan: 48 sections, Row Colors section upgraded to 16 TCs / 100% automated
 - Test Gap Remediation Plan: `.claude/TEST_PLAN.md` with 7 module test plans targeting ~154 new tests
+
+### Import Bug Fixes + Test Gap Remediation + Socket Reconnection
+
+**Status: Complete** (Mar 1, 2026)
+**Bugs:** `.claude/bugs/import-reassignment-duplicates/`, `.claude/bugs/replace-all-deletes-other-insurance/`
+
+- [x] **Replace All insurance group scoping** — `diffCalculator.ts` now passes `systemId` so Replace All only deletes records from the same insurance system
+- [x] **Reassignment duplicate prevention** — New `loadReassignmentRecords()` loads existing measures for patients being reassigned, preventing INSERT duplicates
+- [x] **Merge mode reassignment** — `importExecutor.ts` now reassigns patient ownerId during SKIP/UPDATE actions
+- [x] **Admin role change cleanup** — `userHandlers.ts` removes StaffAssignment records when STAFF/PHYSICIAN roles are removed
+- [x] **Socket reconnection** — `useSocket.ts` re-joins rooms and refreshes data after network reconnection
+- [x] **Seed fix** — Depression "Screening complete" baseDueDays set to 365 (was null)
+- [x] **Massive test expansion** — +132 Jest, +95 Vitest across 30+ test files
+- [x] **Security audit** — 16 findings documented with remediation plan
+- [x] **Bug reports** — Structured report/analysis/verification docs for both import bugs
+
+**Tests:** +132 Jest (1,560 total), +95 Vitest (1,306 total), expanded Cypress + Playwright E2E
 
 ### Row Color Comprehensive E2E + Add Row Modal Split + Conflict Fix
 
@@ -74,7 +91,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ### Test Gap Remediation — Planning & New E2E Tests
 
-**Status: In Progress** (Feb 26, 2026)
+**Status: In Progress** (Mar 1, 2026)
 **Spec:** `.claude/TEST_PLAN.md`, `.claude/specs/test-*/`, `.claude/test-plans/M1-M7`
 
 - [x] **Test Gap Remediation Plan** — Comprehensive plan with 5-layer pyramid, role-based strategy, per-module coverage targets

@@ -9,13 +9,26 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+// Mock ForcePasswordChange component
+vi.mock('../ForcePasswordChange', () => ({
+  default: ({ onPasswordChanged }: { onPasswordChanged: () => void }) => (
+    <div>
+      <h2>Password Change Required</h2>
+      <button onClick={onPasswordChanged}>Change Password</button>
+    </div>
+  ),
+}));
+
 // Mock auth store
 const mockCheckAuth = vi.fn();
+const mockLogout = vi.fn();
 let mockAuthState = {
   isAuthenticated: false,
   isLoading: false,
   user: null as { id: number; email: string; displayName: string; roles: string[]; isActive: boolean; lastLoginAt: null } | null,
   checkAuth: mockCheckAuth,
+  mustChangePassword: false,
+  logout: mockLogout,
 };
 
 vi.mock('../../stores/authStore', () => ({
@@ -49,6 +62,8 @@ describe('ProtectedRoute', () => {
       isLoading: false,
       user: null,
       checkAuth: mockCheckAuth,
+      mustChangePassword: false,
+      logout: mockLogout,
     };
     // Simulate no token by default
     vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
@@ -230,5 +245,29 @@ describe('ProtectedRoute', () => {
     await waitFor(() => {
       expect(screen.getByText('Staff Content')).toBeInTheDocument();
     });
+  });
+
+  it('renders ForcePasswordChange component when mustChangePassword is true', async () => {
+    mockAuthState.isAuthenticated = true;
+    mockAuthState.mustChangePassword = true;
+    mockAuthState.user = {
+      id: 1,
+      email: 'temp@example.com',
+      displayName: 'Temp User',
+      roles: ['PHYSICIAN'],
+      isActive: true,
+      lastLoginAt: null,
+    };
+
+    renderWithRouter(
+      <ProtectedRoute>
+        <div>Protected Content</div>
+      </ProtectedRoute>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Password Change Required')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 });

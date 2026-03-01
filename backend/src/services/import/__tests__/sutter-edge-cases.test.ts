@@ -262,6 +262,7 @@ describe('Sutter Edge Cases', () => {
           measureStatus: row.measureStatus,
           ownerId: null,
           ownerName: null,
+          insuranceGroup: null,
         });
       }
 

@@ -92,6 +92,27 @@ describe('authService', () => {
     });
 
     // Removed: 'different tokens for different users' — tests JWT library uniqueness, not our code
+
+    it('creates token with correct exp claim', () => {
+      const user = {
+        id: 99,
+        email: 'expiry@clinic.com',
+        roles: ['PHYSICIAN'] as UserRole[],
+      };
+
+      const beforeTime = Math.floor(Date.now() / 1000);
+      const token = generateToken(user);
+      const afterTime = Math.floor(Date.now() / 1000);
+
+      const decoded = jwt.decode(token) as { exp: number };
+      expect(decoded.exp).toBeDefined();
+
+      // Config jwtExpiresIn defaults to '8h' = 28800 seconds
+      const expectedExpMin = beforeTime + 28800;
+      const expectedExpMax = afterTime + 28800;
+      expect(decoded.exp).toBeGreaterThanOrEqual(expectedExpMin);
+      expect(decoded.exp).toBeLessThanOrEqual(expectedExpMax);
+    });
   });
 
   describe('verifyToken', () => {

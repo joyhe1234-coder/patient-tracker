@@ -247,7 +247,14 @@ describe('Cell Editing Conflict (409)', () => {
   it('conflict resolution works as Physician', () => {
     cy.login('phy1@gmail.com', 'welcome100');
     cy.visit('/');
-    cy.waitForAgGrid();
+    // Physician may have 0 rows under the default insurance group.
+    // Wait for grid to render (but don't require rows).
+    cy.get('.ag-theme-alpine', { timeout: 15000 }).should('be.visible');
+
+    // Add a row so we have something to edit
+    cy.addTestRow(`PhyConflict${Date.now()}, Test`);
+    cy.get('.ag-row[row-index]', { timeout: 10000 }).should('exist');
+    cy.window().should('have.property', '__agGridApi');
 
     let putCount = 0;
     cy.intercept('PUT', '/api/data/*', (req) => {

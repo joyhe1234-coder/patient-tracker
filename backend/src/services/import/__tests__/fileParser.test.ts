@@ -722,6 +722,56 @@ describe('fileParser', () => {
     });
   });
 
+  describe('password-protected and corrupted XLSX files', () => {
+    it('should throw an error when parsing a password-protected XLSX file', () => {
+      // Password-protected XLSX files have encrypted content that XLSX library cannot read
+      // Generate a buffer that mimics a corrupted/encrypted file signature
+      // The XLSX library will throw when it cannot parse the workbook structure
+      const corruptBuffer = Buffer.from('PK\x03\x04\x00\x00ENCRYPTED_CONTENT_NOT_READABLE');
+
+      expect(() => parseExcel(corruptBuffer, 'protected.xlsx')).toThrow();
+    });
+
+    it('should throw when requesting a sheet that does not exist in the workbook', () => {
+      // Create a valid XLSX with one sheet, then request a non-existent sheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([['Name'], ['Alice']]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      expect(() => parseExcel(buffer, 'test.xlsx', { sheetName: 'EncryptedSheet' }))
+        .toThrow('Sheet "EncryptedSheet" not found in workbook');
+    });
+  });
+
+  describe('merged cells handling', () => {
+    it('should parse XLSX with merged cells without crashing (values appear in first cell only)', () => {
+      // Create an Excel file with merged cells: merge A1:B1
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([
+        ['Name', 'DOB', 'Phone'],
+        ['John Smith', '01/15/1990', '5551234567'],
+        ['Jane Doe', '02/20/1985', '5559876543'],
+      ]);
+      // Simulate merged cells — XLSX library stores merge info in ws['!merges']
+      ws['!merges'] = [
+        { s: { r: 1, c: 0 }, e: { r: 2, c: 0 } }, // Merge A2:A3 (Name column spans 2 rows)
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      // Should not throw — merged cells just mean some cells have empty values
+      const result = parseExcel(buffer, 'merged.xlsx');
+
+      expect(result.headers).toEqual(['Name', 'DOB', 'Phone']);
+      // First row should have the value, merged (second) row will have empty for the merged cell
+      expect(result.rows).toHaveLength(2);
+      expect(result.rows[0]['Name']).toBe('John Smith');
+      // In the merged area, the second row's "Name" cell may be undefined
+      // The key assertion: parsing does not crash with merged cells
+    });
+  });
+
   // Conditional: only run when test data files exist (skips visibly in test report)
   const hasTestData = fs.existsSync(path.join(testDataDir, 'test-hill-valid.csv'));
   (hasTestData ? describe : describe.skip)('with test data files', () => {

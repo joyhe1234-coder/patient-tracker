@@ -306,6 +306,65 @@ describe('calculateDueDate', () => {
       expect(result.dueDate).not.toBeNull();
       expect(result.timeIntervalDays).toBe(14);
     });
+
+    it.each([
+      ['Call every 1 wks', 7],
+      ['Call every 3 wks', 21],
+      ['Call every 4 wks', 28],
+      ['Call every 5 wks', 35],
+      ['Call every 6 wks', 42],
+      ['Call every 7 wks', 49],
+      ['Call every 8 wks', 56],
+    ] as const)(
+      'uses DueDayRule for BP "%s" → %i days',
+      async (tracking1, expectedDays) => {
+        mockPrisma.dueDayRule.findFirst.mockResolvedValue({
+          id: 100,
+          dueDays: expectedDays,
+          measureStatus: { code: 'Scheduled call back - BP not at goal' },
+        });
+
+        const result = await calculateDueDate(
+          new Date('2026-01-15'),
+          'Scheduled call back - BP not at goal',
+          tracking1,
+          null
+        );
+
+        expect(result.dueDate).not.toBeNull();
+        expect(result.timeIntervalDays).toBe(expectedDays);
+
+        // Verify the correct due date
+        const expectedDate = new Date('2026-01-15');
+        expectedDate.setUTCDate(expectedDate.getUTCDate() + expectedDays);
+        expect(result.dueDate!.getUTCDate()).toBe(expectedDate.getUTCDate());
+        expect(result.dueDate!.getUTCMonth()).toBe(expectedDate.getUTCMonth());
+      }
+    );
+  });
+
+  describe('Chronic DX Attestation DueDayRule', () => {
+    it('returns 14 days for "Chronic diagnosis resolved" with tracking1 "Attestation not sent"', async () => {
+      mockPrisma.dueDayRule.findFirst.mockResolvedValue({
+        id: 50,
+        dueDays: 14,
+        measureStatus: { code: 'Chronic diagnosis resolved' },
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-02-01'),
+        'Chronic diagnosis resolved',
+        'Attestation not sent',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.timeIntervalDays).toBe(14);
+
+      // Feb 1 + 14 = Feb 15
+      expect(result.dueDate!.getUTCDate()).toBe(15);
+      expect(result.dueDate!.getUTCMonth()).toBe(1); // February (0-indexed)
+    });
   });
 
   describe('Screening discussed - boundary month patterns', () => {
@@ -465,12 +524,78 @@ describe('calculateDueDate', () => {
     it('baseDueDays = null returns no due date', async () => {
       mockPrisma.measureStatus.findFirst.mockResolvedValue({
         id: 23,
-        code: 'Screening complete',
+        code: 'Screening unnecessary',
         baseDueDays: null,
       });
 
       const result = await calculateDueDate(
         new Date('2026-01-15'),
+        'Screening unnecessary',
+        null,
+        null
+      );
+
+      expect(result.dueDate).toBeNull();
+      expect(result.timeIntervalDays).toBeNull();
+    });
+
+    it('Depression Screening complete has 365-day annual rescreening', async () => {
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 23,
+        code: 'Screening complete',
+        baseDueDays: 365,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2026-01-15'),
+        'Screening complete',
+        null,
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      expect(result.timeIntervalDays).toBe(365);
+      expect(result.dueDate!.getUTCFullYear()).toBe(2027);
+    });
+  });
+
+  describe('Depression Screening baseDueDays', () => {
+    it('Visit scheduled baseDueDays=1 uses 1-day interval', async () => {
+      // No DueDayRule match
+      mockPrisma.dueDayRule.findFirst.mockResolvedValue(null);
+      // baseDueDays = 1 for Depression Screening + Visit scheduled
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 30,
+        code: 'Visit scheduled',
+        baseDueDays: 1,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2025-02-01'),
+        'Visit scheduled',
+        null,
+        null
+      );
+
+      expect(result.timeIntervalDays).toBe(1);
+      expect(result.dueDate).not.toBeNull();
+      // Feb 1 + 1 day = Feb 2
+      expect(result.dueDate!.getUTCDate()).toBe(2);
+      expect(result.dueDate!.getUTCMonth()).toBe(1); // February (0-indexed)
+    });
+
+    it('Screening complete baseDueDays=null means no due date', async () => {
+      // No DueDayRule match
+      mockPrisma.dueDayRule.findFirst.mockResolvedValue(null);
+      // baseDueDays = null for Depression Screening + Screening complete
+      mockPrisma.measureStatus.findFirst.mockResolvedValue({
+        id: 31,
+        code: 'Screening complete',
+        baseDueDays: null,
+      });
+
+      const result = await calculateDueDate(
+        new Date('2025-02-01'),
         'Screening complete',
         null,
         null

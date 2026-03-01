@@ -912,3 +912,165 @@ describe('Row Color Verification', () => {
     });
   });
 });
+
+// ─── Coverage gap: pinned rows, badge clearing, sort preservation ─
+describe('Sorting/Filtering Coverage Gaps', () => {
+  const adminEmail = 'ko037291@gmail.com';
+  const adminPassword = 'welcome100';
+
+  beforeEach(() => {
+    cy.login(adminEmail, adminPassword);
+    cy.visit('/');
+    cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
+  });
+
+  it('pinned (left) columns are always visible regardless of filter', () => {
+    // Member Name is pinned left — should always be visible
+    cy.get('.ag-pinned-left-cols-container [col-id="memberName"]').should('exist');
+
+    // Apply a filter
+    cy.contains('button', 'Completed').click();
+    cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+
+    // Pinned columns should still be visible
+    cy.get('.ag-pinned-left-cols-container').should('exist');
+
+    // If there are rows, memberName should be in pinned container
+    cy.get('.ag-center-cols-container .ag-row').then(($rows) => {
+      if ($rows.length > 0) {
+        cy.get('.ag-pinned-left-cols-container [col-id="memberName"]').first().should('be.visible');
+      }
+    });
+  });
+
+  it('clicking All chip clears active filter badge/state', () => {
+    // Activate a color chip
+    cy.contains('button', 'Completed').click();
+    cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+    cy.contains('button', 'All').should('have.attr', 'aria-pressed', 'false');
+
+    // Status bar should show "Showing X of Y rows"
+    cy.get('.bg-gray-100.border-t').should('contain.text', 'Showing');
+
+    // Click All to clear
+    cy.contains('button', 'All').click();
+    cy.contains('button', 'All').should('have.attr', 'aria-pressed', 'true');
+    cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'false');
+
+    // All rows should be restored
+    cy.get('.ag-center-cols-container .ag-row').should('have.length.at.least', 1);
+  });
+
+  it('sort order is preserved when applying a filter', () => {
+    // Sort by Member Name ascending
+    cy.contains('.ag-header-cell-text', 'Member Name').click();
+    cy.get('.ag-header-cell[col-id="memberName"]')
+      .find('.ag-sort-ascending-icon')
+      .should('be.visible');
+
+    // Record the first name in sorted order
+    cy.getAgGridCell(0, 'memberName').invoke('text').then((sortedFirst) => {
+      // Apply a filter
+      cy.contains('button', 'Completed').click();
+      cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+
+      // Sort indicator should still be visible
+      cy.get('.ag-header-cell[col-id="memberName"]')
+        .find('.ag-sort-ascending-icon')
+        .should('be.visible');
+
+      // Remove filter
+      cy.contains('button', 'All').click();
+
+      // Sort indicator should still be active
+      cy.get('.ag-header-cell[col-id="memberName"]')
+        .find('.ag-sort-ascending-icon')
+        .should('be.visible');
+
+      // First row should still be the same sorted name
+      cy.getAgGridCell(0, 'memberName').invoke('text').should((text) => {
+        expect(text.trim()).to.equal(sortedFirst.trim());
+      });
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// T10-3: Selection preserves color for multiple categories
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('T10-3: Selection Preserves Color for Multiple Categories', () => {
+  const adminEmail = 'ko037291@gmail.com';
+  const adminPassword = 'welcome100';
+
+  beforeEach(() => {
+    cy.login(adminEmail, adminPassword);
+    cy.visit('/');
+    cy.get('.ag-body-viewport', { timeout: 10000 }).should('exist');
+    cy.get('.ag-center-cols-container .ag-row', { timeout: 10000 }).should('have.length.at.least', 1);
+  });
+
+  it('selecting row in Completed (green) filter preserves green color', () => {
+    cy.contains('button', 'Completed').click();
+    cy.contains('button', 'Completed').should('have.attr', 'aria-pressed', 'true');
+
+    cy.get('.ag-center-cols-container').then(($container) => {
+      const rows = $container.find('.ag-row');
+      if (rows.length > 0) {
+        // Click first row
+        cy.get('.ag-center-cols-container .ag-row').first().click();
+        // Row should still be green
+        cy.get('.ag-center-cols-container .ag-row').first()
+          .should('have.class', 'row-status-green');
+      } else {
+        cy.log('No Completed rows to test');
+      }
+    });
+
+    // Reset
+    cy.contains('button', 'All').click();
+  });
+
+  it('selecting row in In Progress (blue) filter preserves blue color', () => {
+    cy.contains('button', 'In Progress').click();
+    cy.contains('button', 'In Progress').should('have.attr', 'aria-pressed', 'true');
+
+    cy.get('.ag-center-cols-container').then(($container) => {
+      const rows = $container.find('.ag-row');
+      if (rows.length > 0) {
+        // Click first row
+        cy.get('.ag-center-cols-container .ag-row').first().click();
+        // Row should still be blue
+        cy.get('.ag-center-cols-container .ag-row').first()
+          .should('have.class', 'row-status-blue');
+      } else {
+        cy.log('No In Progress rows to test');
+      }
+    });
+
+    // Reset
+    cy.contains('button', 'All').click();
+  });
+
+  it('selecting row in Declined (purple) filter preserves purple color', () => {
+    cy.contains('button', 'Declined').click();
+    cy.contains('button', 'Declined').should('have.attr', 'aria-pressed', 'true');
+
+    cy.get('.ag-center-cols-container').then(($container) => {
+      const rows = $container.find('.ag-row');
+      if (rows.length > 0) {
+        // Click first row
+        cy.get('.ag-center-cols-container .ag-row').first().click();
+        // Row should still be purple
+        cy.get('.ag-center-cols-container .ag-row').first()
+          .should('have.class', 'row-status-purple');
+      } else {
+        cy.log('No Declined rows to test');
+      }
+    });
+
+    // Reset
+    cy.contains('button', 'All').click();
+  });
+});

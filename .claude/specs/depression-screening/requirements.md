@@ -65,7 +65,7 @@ This feature directly supports the product vision of replacing Excel-based quali
 
 1. WHEN a user sets the Measure Status to "Called to schedule" and enters a Status Date, THEN the system SHALL calculate `dueDate = statusDate + 7 days` and set `timeIntervalDays = 7`.
 2. WHEN a user sets the Measure Status to "Visit scheduled" and enters a Status Date, THEN the system SHALL calculate `dueDate = statusDate + 1 day` and set `timeIntervalDays = 1`.
-3. IF the Measure Status is "Screening complete", THEN `baseDueDays` SHALL be null and no due date SHALL be calculated.
+3. IF the Measure Status is "Screening complete", THEN `baseDueDays` SHALL be 365 and the system SHALL calculate `dueDate = statusDate + 365 days` and set `timeIntervalDays = 365` (annual rescreening, same as other completed green statuses like AWV completed).
 4. IF the Measure Status is "Screening unnecessary", THEN `baseDueDays` SHALL be null and no due date SHALL be calculated.
 5. IF the Measure Status is "Patient declined", THEN `baseDueDays` SHALL be null and no due date SHALL be calculated.
 6. IF the Measure Status is "No longer applicable", THEN `baseDueDays` SHALL be null and no due date SHALL be calculated.
@@ -77,9 +77,9 @@ This feature directly supports the product vision of replacing Excel-based quali
 
 #### Acceptance Criteria
 
-1. WHEN a Depression Screening row has a due date AND the due date is before today's date, AND the Measure Status is "Called to schedule" or "Visit scheduled", THEN the row SHALL display a red background (#FFCDD2), overriding the normal blue or yellow color.
+1. WHEN a Depression Screening row has a due date AND the due date is before today's date, AND the Measure Status is "Called to schedule", "Visit scheduled", or "Screening complete", THEN the row SHALL display a red background (#FFCDD2), overriding the normal blue, yellow, or green color.
 2. IF the Measure Status is "Patient declined" (purple) or "No longer applicable" / "Screening unnecessary" (gray), THEN the row SHALL NOT turn red regardless of due date.
-3. IF the Measure Status is "Screening complete" (green) AND no due date exists, THEN the row SHALL remain green (no overdue possible).
+3. "Screening complete" follows the same overdue rules as all other green statuses — it CAN turn red when its annual due date passes (indicates rescreening needed).
 
 ### REQ-DS-6: Database Seed Data
 
@@ -182,7 +182,7 @@ This feature directly supports the product vision of replacing Excel-based quali
 - ASM-1: Depression Screening does not require any Tracking #1 dropdown options. The statuses are self-contained and do not have sub-selections (unlike Colon Cancer with test type or Hypertension with call intervals).
 - ASM-2: Depression Screening does not allow duplicate measures per patient (`allowDuplicates = false`), consistent with other screening measures.
 - ASM-3: The "Visit scheduled" status uses `baseDueDays = 1`, meaning the due date is 1 day after the status date. This represents "1 day after the scheduled visit date" -- the user enters the scheduled visit date as the Status Date, and the system flags it as overdue if the visit has not been completed by the day after.
-- ASM-4: The "Screening complete" status does NOT have a `baseDueDays` value (unlike AWV completed which has 365 for annual renewal). Depression Screening completion is considered final and does not require annual recurrence tracking. If annual recurrence is needed in the future, `baseDueDays` can be added without structural changes.
+- ASM-4: The "Screening complete" status has `baseDueDays = 365` for annual rescreening, consistent with other completed green statuses (e.g., AWV completed). When the annual due date passes, the row turns red to indicate rescreening is needed.
 - ASM-5: Import from Hill Healthcare or Sutter systems for Depression Screening data is out of scope and will be addressed in a separate feature if needed.
 - ASM-6: The status label "Called to schedule" is a new, unique string that does not conflict with existing status strings. Other screening measures use "Screening discussed" or "Patient contacted for screening" for their initial outreach step. This is intentional -- Depression Screening has a distinct workflow where the first action is a phone call to schedule a visit rather than an in-office discussion.
 - ASM-7: The status label "Screening complete" (without the "d" suffix) is intentionally distinct from "Screening completed" used by Cervical Cancer Screening. Both must be added to GREEN_STATUSES. This follows the handwritten requirement source exactly.

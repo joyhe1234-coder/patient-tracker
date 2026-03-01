@@ -628,6 +628,407 @@ The product vision identifies the AG Grid-based patient data grid as the core us
 
 ---
 
+## Coverage Matrix (Post-Analysis)
+
+This section maps every testable behavior category to its coverage status across all 4 test layers. Coverage is rated as:
+- **FULL**: All significant behaviors tested with assertions
+- **PARTIAL**: Some behaviors tested but key scenarios missing
+- **NONE**: No automated tests exist for this behavior
+
+### Category 1: Cell Editing (Inline Edit, Dropdown, Date, Free Text)
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| Dropdown single-click opens editor | PatientGrid.test (config) | -- | cell-editing.cy | -- | FULL |
+| Dropdown option rendering & selection | AutoOpenSelectEditor.test (22) | -- | cascading-dropdowns.cy | -- | FULL |
+| Dropdown keyboard nav (arrow, enter, tab, escape) | AutoOpenSelectEditor.test (8) | -- | -- | -- | FULL (Vitest only) |
+| Dropdown type-ahead search | AutoOpenSelectEditor.test (1) | -- | -- | -- | FULL (Vitest only) |
+| Date MM/DD/YYYY input | DateCellEditor.test (4) | -- | cell-editing.cy (1) | -- | FULL |
+| Date M/D/YY short format | -- | -- | cell-editing.cy (1) | -- | PARTIAL (no Vitest valueSetter test) |
+| Date M.D.YYYY dot format | -- | -- | cell-editing.cy (1) | -- | PARTIAL (no Vitest valueSetter test) |
+| Date YYYY-MM-DD ISO format | -- | -- | cell-editing.cy (1) | -- | PARTIAL (no Vitest valueSetter test) |
+| Date invalid input rejection | DateCellEditor.test (basic) | -- | cell-editing.cy (2) | -- | FULL |
+| Date clearing to null (statusDate) | -- | -- | cell-editing.cy (1) | -- | PARTIAL (no Vitest valueSetter test) |
+| DOB required — cannot be empty | -- | -- | -- | -- | **NONE** |
+| Text double-click edit (notes/memberName) | -- | -- | cell-editing.cy (4) | -- | FULL (Cypress) |
+| Text save on Enter | -- | -- | cell-editing.cy (1) | -- | FULL |
+| Text save on blur (click elsewhere) | -- | -- | cell-editing.cy (1) | -- | FULL |
+| Tab navigation between cells | -- | -- | -- | -- | **NONE** |
+| Special characters in text fields | -- | -- | -- | -- | **NONE** |
+| Long text in notes (1000+ chars) | -- | -- | -- | -- | **NONE** |
+| timeIntervalDays validation (1-1000) | -- | -- | -- | -- | **NONE** |
+| timeIntervalDays non-numeric rejection | -- | -- | -- | -- | **NONE** |
+| timeIntervalDays non-editable for TIME_PERIOD_DROPDOWN statuses | -- | -- | -- | -- | **NONE** |
+
+### Category 2: Dropdown Cascading Dependencies
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| requestType change clears downstream | cascadingFields.test (7) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| AWV auto-fills qualityMeasure | cascadingFields.test (1) | -- | cascading-dropdowns.cy (1) | -- | FULL |
+| Chronic DX auto-fills qualityMeasure | cascadingFields.test (1) | -- | cascading-dropdowns.cy (1) | -- | FULL |
+| Quality/Screening clears qualityMeasure | cascadingFields.test (2) | -- | cascading-dropdowns.cy | -- | FULL |
+| qualityMeasure change clears downstream | cascadingFields.test (3) | -- | cascading-dropdowns.cy (1) | -- | FULL |
+| measureStatus change clears downstream | cascadingFields.test (3) | -- | cascading-dropdowns.cy (1) | -- | FULL |
+| cellEditorParams dynamic QM population | -- | -- | cascading-dropdowns.cy (implicit) | -- | PARTIAL (no Vitest unit test) |
+| cellEditorParams dynamic MS population | -- | -- | cascading-dropdowns.cy (implicit) | -- | PARTIAL (no Vitest unit test) |
+| cellEditorSelector tracking1 dropdown vs text | -- | -- | cascading-dropdowns.cy (yes) | -- | PARTIAL (no Vitest unit test) |
+| cellEditorSelector tracking2 HgbA1c months | -- | -- | cascading-dropdowns.cy (1) | -- | PARTIAL (no Vitest unit test) |
+| cellEditorSelector tracking2 BP free text | -- | -- | cascading-dropdowns.cy (1) | -- | PARTIAL (no Vitest unit test) |
+| valueGetter null-to-empty conversion | -- | -- | -- | -- | **NONE** |
+| valueSetter empty-to-null conversion | -- | -- | -- | -- | **NONE** |
+| dropdownCellRenderer shows arrow indicator | -- | -- | -- | -- | **NONE** |
+| dropdownCellRenderer shows plain text for non-dropdown | -- | -- | -- | -- | **NONE** |
+| Remote edit blocks dropdown open | -- | -- | -- | -- | **NONE** |
+
+### Category 3: Auto-Save Pipeline (onCellValueChanged)
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| PUT called with correct payload + expectedVersion | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| applyCascadingUpdates called | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| node.setData on success | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| Save status: saving -> saved -> idle (2s) | useGridCellUpdate.test (2) | -- | cell-editing.cy (3) | -- | FULL |
+| No-op when newValue === oldValue | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| No-op when data undefined | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| No-op when colDef.field empty | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| No-op when isCascadingUpdate true | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| Query params in API URL | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| Revert to oldValue on 500 error | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| Sort freeze on edit (capture order + clear sort indicator) | -- | -- | sorting-filtering.cy (3) | -- | PARTIAL (no Vitest unit test) |
+| gridApi.redrawRows after success | -- | -- | -- | -- | **NONE** (assertion missing in Vitest) |
+| node.setSelected(true) after success | -- | -- | -- | -- | **NONE** (assertion missing in Vitest) |
+| onRowUpdated called after success | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| isCascadingUpdateRef reset in finally | useGridCellUpdate.test (1) | -- | -- | -- | FULL |
+| Rapid sequential edits version tracking | -- | -- | -- | -- | **NONE** |
+| Non-Axios error revert | useGridCellUpdate.test (partial) | -- | -- | -- | PARTIAL |
+
+### Category 4: 409 Conflict Resolution
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| Backend version check (expectedVersion) | -- | versionCheck.test (12), data.routes.version.test (6) | -- | -- | FULL |
+| 409 response with VERSION_CONFLICT code | -- | data.routes.version.test (1) | -- | -- | FULL |
+| ConflictModal renders with title/fields/buttons | ConflictModal.test (14) | -- | -- | -- | FULL |
+| Frontend detects 409 and opens modal | useGridCellUpdate.test (1) | -- | cell-editing-conflict.cy (1) | -- | FULL |
+| Keep Mine sends forceOverwrite PUT | -- | -- | cell-editing-conflict.cy (1) | -- | FULL |
+| Keep Mine error (500 on forceOverwrite) | -- | -- | cell-editing-conflict.cy (1) | -- | FULL |
+| Keep Theirs reverts to server value | -- | -- | cell-editing-conflict.cy (1) | -- | PARTIAL (no Vitest test for setData vs setDataValue) |
+| Cancel restores server row + updatedAt | -- | -- | cell-editing-conflict.cy (1) | -- | PARTIAL (no Vitest test) |
+| Next edit after Keep Theirs uses fresh updatedAt | -- | -- | cell-editing-conflict.cy (1) | -- | PARTIAL (no Vitest test) |
+| Multi-field conflict shows all fields | -- | -- | cell-editing-conflict.cy (1) | -- | FULL |
+| Conflict resolution as Physician | -- | -- | cell-editing-conflict.cy (1) | -- | FULL |
+| forceOverwrite bypass version check | -- | data.routes.version.test (1) | -- | -- | FULL |
+| forceOverwrite audit log | -- | data.routes.version.test (1) | -- | -- | FULL |
+| Auto-merge non-overlapping fields | -- | data.routes.version.test (1) | -- | -- | FULL |
+| handleConflictKeepMine (full lifecycle in Vitest) | -- | -- | -- | -- | **NONE** (only Cypress) |
+| handleConflictKeepTheirs (setData not setDataValue) | -- | -- | -- | -- | **NONE** |
+| handleConflictCancel (restore updatedAt) | -- | -- | -- | -- | **NONE** |
+| Sequential conflicts (conflict after conflict) | -- | -- | -- | -- | **NONE** |
+| 404 during conflict resolution | -- | -- | -- | -- | **NONE** |
+| ConflictModal non-blocking scroll | -- | -- | -- | -- | **NONE** |
+
+### Category 5: Row Operations (Add/Delete/Duplicate)
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| AddRowModal renders fields (Last, First, MI, DOB, Phone, Address) | AddRowModal.test (6) | -- | -- | -- | FULL |
+| AddRowModal required field validation (Last, First, DOB) | AddRowModal.test (5) | -- | -- | -- | FULL |
+| AddRowModal name concatenation | AddRowModal.test (4) | -- | -- | -- | FULL |
+| AddRowModal form submission + reset | AddRowModal.test (3) | -- | -- | -- | FULL |
+| Add row E2E — row appears in grid | -- | -- | row-operations.cy (1) | add-row.spec.ts (PW) | FULL |
+| New row has null requestType/QM/MS | -- | -- | row-operations.cy (1) | -- | FULL |
+| Delete button disabled when no selection | -- | -- | row-operations.cy (1) | delete-row.spec.ts (PW) | FULL |
+| Delete confirmation modal | -- | -- | row-operations.cy (1) | delete-row.spec.ts (PW) | FULL |
+| Cancel delete preserves row | -- | -- | row-operations.cy (1) | -- | FULL |
+| Add/delete as Staff | -- | -- | row-operations.cy (1) | -- | FULL |
+| Duplicate row copies demographics | -- | -- | -- | duplicate-member.spec.ts (PW) | FULL |
+| Duplicate button disabled when no selection | -- | -- | -- | duplicate-member.spec.ts (PW) | FULL |
+| New row auto-focus requestType cell | -- | -- | -- | -- | **NONE** (newRowId effect untested) |
+| New row rowOrder = 0 | -- | -- | -- | -- | **NONE** |
+| Duplicate clears measures (RT/QM/MS) | -- | -- | -- | -- | **NONE** |
+| Duplicate row positioning below source | -- | -- | -- | -- | **NONE** |
+| Delete last row shows empty state | -- | -- | -- | -- | **NONE** |
+| Delete error (500) shows error + preserves row | -- | -- | -- | -- | **NONE** |
+| DOB format validation in AddRowModal | -- | -- | -- | -- | **NONE** |
+| Add row to empty grid | -- | -- | -- | -- | **NONE** |
+
+### Category 6: Duplicate Detection
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| Backend: same patient+RT+QM = duplicate | -- | duplicateDetector.test (12) | -- | -- | FULL |
+| Backend: null/empty RT or QM = never duplicate | -- | duplicateDetector.test (8) | -- | -- | FULL |
+| Backend: different patients = not duplicate | -- | duplicateDetector.test (1) | -- | -- | FULL |
+| Backend: updateDuplicateFlags per patient | -- | duplicateDetector.test (8) | -- | -- | FULL |
+| Backend: syncAllDuplicateFlags global | -- | duplicateDetector.test (2) | -- | -- | FULL |
+| Backend: deletion clears flag on remaining | -- | duplicateDetector.test (1) | -- | -- | FULL |
+| Backend: 3-way duplicate, delete one leaves 2 flagged | -- | duplicateDetector.test (1) | -- | -- | FULL |
+| Backend: whitespace-padded requestType | -- | duplicateDetector.test (1) | -- | -- | FULL |
+| Backend: QM edit from match to non-match | -- | duplicateDetector.test (1) | -- | -- | FULL |
+| Frontend: row-status-duplicate CSS class | PatientGrid.test (1) | -- | duplicate-detection.cy (3) | -- | FULL |
+| Frontend: 409 duplicate resets to null | useGridCellUpdate.test (2) | -- | duplicate-detection.cy (2) | -- | FULL |
+| Duplicates filter chip with count | -- | -- | duplicate-detection.cy (2) | -- | FULL |
+| Duplicate flag cleared when fields changed | -- | -- | duplicate-detection.cy (1) | -- | FULL |
+| Null fields never flagged as duplicate | -- | -- | duplicate-detection.cy (3) | -- | FULL |
+| Duplicate + status color combined | -- | -- | duplicate-detection.cy (2) | -- | FULL |
+| Duplicate count shows "(0)" when none | -- | -- | -- | -- | **NONE** |
+| Delete one of pair clears flag (E2E) | -- | -- | -- | -- | **NONE** |
+
+### Category 7: Sorting
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| Ascending sort on 1st click | -- | -- | sorting-filtering.cy (5) | -- | FULL |
+| Descending sort on 2nd click | -- | -- | sorting-filtering.cy (3) | -- | FULL |
+| Clear sort on 3rd click | -- | -- | sorting-filtering.cy (1) | -- | FULL |
+| Status Date chronological sort | -- | -- | sorting-filtering.cy (1) | -- | FULL |
+| Sort indicator cleared on edit | -- | -- | sorting-filtering.cy (3) | -- | FULL |
+| Row stays in place after edit | -- | -- | sorting-filtering.cy (3) | -- | FULL |
+| defaultColDef.sortable = true | PatientGrid.test (1) | -- | -- | -- | FULL |
+| deltaSort = false | PatientGrid.test (1) | -- | -- | -- | FULL |
+| postSortRows callback provided | PatientGrid.test (1) | -- | -- | -- | FULL |
+| postSortRows frozen order logic | -- | -- | -- | -- | **NONE** (unit test) |
+| postSortRows clears frozen ref after apply | -- | -- | -- | -- | **NONE** (unit test) |
+| Null date sort position (end) | -- | -- | sorting-filtering.cy (2) | -- | FULL (Cypress) |
+| timeIntervalDays numeric sort | -- | -- | sorting-filtering.cy (1) | -- | FULL |
+| Add row clears sort | -- | -- | -- | -- | **NONE** |
+| Sort + filter interaction | -- | -- | sorting-filtering.cy (2) | -- | FULL |
+
+### Category 8: Column Display & Configuration
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| 13 column definitions | PatientGrid.test (2) | -- | -- | -- | FULL |
+| Correct header names | PatientGrid.test (1) | -- | -- | -- | FULL |
+| requestType + memberName pinned left | PatientGrid.test (1) | -- | -- | -- | FULL |
+| headerTooltip on all columns | PatientGrid.test (1) | -- | -- | -- | FULL |
+| Member info columns hidden by default | PatientGrid.test (1) | -- | -- | -- | FULL |
+| Member info columns visible when toggled | PatientGrid.test (1) | -- | -- | -- | FULL |
+| DOB masked as "###" | PatientGrid.test (2) | -- | -- | -- | FULL |
+| notes flex=1 | PatientGrid.test (1) | -- | -- | -- | FULL |
+| ag-theme-alpine container | PatientGrid.test (1) | -- | -- | -- | FULL |
+| getRowId returns string(data.id) | PatientGrid.test (1) | -- | -- | -- | FULL |
+| Column widths (130, 180, etc.) | -- | -- | -- | -- | **NONE** |
+| Phone (XXX) XXX-XXXX formatting (10-digit) | -- | -- | -- | -- | **NONE** |
+| Phone non-10-digit passthrough | -- | -- | -- | -- | **NONE** |
+| insuranceGroup field in GridRow | -- | -- | -- | -- | **NONE** |
+| Cypress row count verification | -- | -- | -- | -- | **NONE** |
+| Grid virtualization (100+ rows) | -- | -- | -- | -- | **NONE** |
+
+### Category 9: Row Class Rules & Status Colors
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| Green (completed) | PatientGrid.test (1) | -- | cascading-dropdowns.cy (5) | -- | FULL |
+| Blue (in-progress) | PatientGrid.test (1) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| Gray (N/A) | PatientGrid.test (1) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| Purple (declined) | PatientGrid.test (1) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| Yellow (discussed) | PatientGrid.test (1) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| Orange (chronic DX no attestation) | PatientGrid.test (2) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| Green for chronic DX + attestation sent | PatientGrid.test (2) | -- | cascading-dropdowns.cy (2) | -- | FULL |
+| White (unmatched/null/"") | PatientGrid.test (1) | -- | -- | -- | FULL |
+| Overdue priority over colors | PatientGrid.test (2) | -- | sorting-filtering.cy (2) | -- | FULL |
+| Declined immune to overdue | PatientGrid.test (1) | -- | sorting-filtering.cy (1) | -- | FULL |
+| Gray immune to overdue | PatientGrid.test (1) | -- | -- | -- | FULL |
+| Duplicate class (isDuplicate) | PatientGrid.test (1) | -- | duplicate-detection.cy (3) | -- | FULL |
+| Visual color change after measureStatus edit (E2E) | -- | -- | cascading-dropdowns.cy (yes) | -- | FULL |
+| Combined duplicate + green | -- | -- | duplicate-detection.cy (1) | -- | PARTIAL |
+| Color transition overdue -> completed | -- | -- | -- | -- | **NONE** |
+
+### Category 10: Toolbar Buttons & Save Indicator
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| 4 buttons render | Toolbar.test (1) | -- | -- | -- | FULL |
+| Add Row always enabled | Toolbar.test (1) | -- | -- | -- | FULL |
+| Delete disabled when canDelete=false | Toolbar.test (1) | -- | row-operations.cy (1) | -- | FULL |
+| Delete enabled when canDelete=true | Toolbar.test (1) | -- | row-operations.cy (1) | -- | FULL |
+| Duplicate disabled/enabled | Toolbar.test (2) | -- | -- | -- | FULL |
+| Member Info toggle visual state | Toolbar.test (1) | -- | -- | -- | FULL |
+| Save indicator: idle (nothing) | Toolbar.test (1) | -- | -- | -- | FULL |
+| Save indicator: saving | Toolbar.test (1) | -- | -- | -- | FULL |
+| Save indicator: saved | Toolbar.test (1) | -- | -- | -- | FULL |
+| Save indicator: error | Toolbar.test (1) | -- | -- | -- | FULL |
+| All 4 buttons enabled simultaneously | Toolbar.test (1) | -- | -- | -- | FULL |
+| Delete click does nothing when disabled | Toolbar.test (1) | -- | -- | -- | FULL |
+
+### Category 11: Remote/Parallel Editing
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| cellClass "cell-remote-editing" when active edit matches | PatientGrid.test (1) | -- | parallel-editing-edit-indicators.cy | -- | FULL |
+| cellClass not applied when no match | PatientGrid.test (2) | -- | -- | -- | FULL |
+| onCellEditingStarted emits | PatientGrid.test (1) | -- | -- | -- | PARTIAL (callback exists, no emit test) |
+| onCellEditingStopped emits | PatientGrid.test (1) | -- | -- | -- | PARTIAL |
+| handleRemoteRowUpdate (setData + redraw) | -- | -- | parallel-editing-grid-updates.cy | -- | PARTIAL (no Vitest unit test) |
+| Out-of-order protection (discard older update) | -- | -- | -- | -- | **NONE** |
+| Remote update cancels active edit | -- | -- | -- | -- | **NONE** |
+| handleRemoteRowCreate (applyTransaction + dedup) | -- | -- | -- | -- | **NONE** |
+| handleRemoteRowDelete (remove + toast) | -- | -- | -- | -- | **NONE** |
+| Remote delete cancels active edit | -- | -- | -- | -- | **NONE** |
+| handleDataRefresh | -- | -- | -- | -- | **NONE** |
+
+### Category 12: Role-Based Editing Permissions
+
+| Behavior | Vitest | Jest | Cypress | Playwright | Status |
+|----------|--------|------|---------|------------|--------|
+| Admin can edit requestType dropdown | -- | -- | grid-editing-roles.cy (1) | -- | FULL |
+| Admin can edit notes text | -- | -- | grid-editing-roles.cy (1) | -- | FULL |
+| Physician can edit measureStatus | -- | -- | grid-editing-roles.cy (1) | -- | FULL |
+| Physician can edit memberName | -- | -- | grid-editing-roles.cy (1) | -- | FULL |
+| Staff can edit requestType | -- | -- | grid-editing-roles.cy (1) | -- | FULL |
+| Staff can edit notes | -- | -- | grid-editing-roles.cy (1) | -- | FULL |
+| Physician selector (Admin sees all) | -- | -- | role-access-control.cy | -- | FULL |
+| Staff sees assigned physicians only | -- | -- | role-access-control.cy | -- | FULL |
+
+---
+
+## Gap Analysis (Post-Analysis)
+
+### Summary: Tasks.md Coverage vs. Actual State
+
+The tasks.md file describes 5 implementation tasks (T1-1 through T2-2) totaling 27 tests. After analysis of the actual codebase, **all 27 tasks.md tests have been implemented and exist in the codebase**:
+
+| Task | File | Tests Planned | Tests Found | Status |
+|------|------|--------------|-------------|--------|
+| T1-1 | `cell-editing-conflict.cy.ts` | 8 | 8 | DONE |
+| T1-2 | `row-operations.cy.ts` | 6 | 6 | DONE |
+| T1-3 | `Toolbar.test.tsx` (Edge cases) | 3 | 3 | DONE |
+| T2-1 | `duplicateDetector.test.ts` (Deletion edge cases) | 4 | 4 | DONE |
+| T2-2 | `grid-editing-roles.cy.ts` | 6 | 6 | DONE |
+
+### Remaining Gaps Not Addressed by Tasks.md
+
+The following gaps from the Coverage Gap Summary (GAP-01 through GAP-30) remain untested even after the 27 tasks.md tests. These are organized by priority.
+
+#### HIGH PRIORITY — Untested Critical Business Logic (Vitest)
+
+| Gap ID | Description | Req ID | Proposed Framework | Why Critical |
+|--------|-------------|--------|-------------------|-------------|
+| GAP-01a | `handleConflictKeepMine` — forceOverwrite PUT lifecycle, grid update, error path | TPG-R11-AC12, AC13 | Vitest | Only tested in Cypress (network-mocked). No Vitest unit test for the `useCallback` function in PatientGrid.tsx. |
+| GAP-02 | `handleConflictKeepTheirs` — uses `setData` (not `setDataValue`) to avoid triggering additional onCellValueChanged | TPG-R11-AC14 | Vitest | Prevents cascading 409s. Only Cypress covers "Keep Theirs" but doesn't verify setData vs setDataValue. |
+| GAP-03 | `handleConflictCancel` — restores server row including fresh `updatedAt` | TPG-R11-AC15 | Vitest | Without restoring updatedAt, all future edits fail with VERSION_CONFLICT. |
+| GAP-04 | `handleRemoteRowUpdate` — out-of-order protection (discard older update) | TPG-R13-AC7 | Vitest | Source code has `new Date(row.updatedAt) <= new Date(localUpdatedAt)` guard. Zero tests. |
+| GAP-05a | `handleRemoteRowCreate` — dedup check (skip if row already exists) | TPG-R13-AC9, AC10 | Vitest | Source code has `if (existing) return`. Zero tests. |
+| GAP-05b | `handleRemoteRowDelete` — cancel active edit + remove + toast | TPG-R13-AC11, AC12 | Vitest | Source code stops editing if user is editing the deleted row. Zero tests. |
+| GAP-08 | Sequential conflict resolution (conflict immediately after resolving a previous conflict) | TPG-R11-AC22 | Vitest | State corruption risk — conflictData clearing must be verified. |
+
+#### MEDIUM PRIORITY — Untested Functional Behaviors (Vitest + Cypress)
+
+| Gap ID | Description | Req ID | Proposed Framework | Why Important |
+|--------|-------------|--------|-------------------|--------------|
+| GAP-06a | `postSortRows` frozen order logic (reorder nodes then clear ref) | TPG-R10-AC10, AC11 | Vitest | Cypress tests sort suppression end-to-end, but the postSortRows callback logic is not unit-tested. |
+| GAP-11 | Column width values not asserted (requestType:130, memberName:180, etc.) | TPG-R1-AC13 | Vitest | Regressions could shrink columns. Easy to add. |
+| GAP-12 | Phone number formatting — 10-digit `(XXX) XXX-XXXX` + non-10-digit passthrough | TPG-R1-AC14, AC15 | Vitest | `formatPhone` function exists in PatientGrid.tsx but zero tests. |
+| GAP-13 | `cellEditorParams` callbacks for qualityMeasure and measureStatus columns | TPG-R2-AC8, AC9 | Vitest | The params are functions `(params) => ({values: getQMForRT(...)})`. Not unit-tested. |
+| GAP-14 | `cellEditorSelector` for tracking1 (dropdown vs text) and tracking2 (HgbA1c months vs BP text) | TPG-R2-AC10-AC13 | Vitest | The selector logic chooses between AutoOpenSelectEditor and agTextCellEditor. Not unit-tested. |
+| GAP-15 | `valueGetter` null-to-empty and `valueSetter` empty-to-null for dropdown columns | TPG-R2-AC14, AC15 | Vitest | Conversion logic exists in column defs. No isolated tests. |
+| GAP-16 | Date valueSetter for M/D/YY, M.D.YYYY, YYYY-MM-DD formats | TPG-R3-AC7-AC9 | Vitest | Cypress tests these formats E2E. No Vitest unit test for the `valueSetter` function itself. |
+| GAP-17 | Custom date comparators: null dates sort to end | TPG-R3-AC13, AC14 | Vitest | `comparator` functions exist in statusDate and dueDate column defs. Not unit-tested. |
+| GAP-18 | `timeIntervalDays` valueSetter: validates 1-1000, rejects non-numeric | TPG-R4-AC11-AC13 | Vitest | Source code at line 877-888 shows validation. Zero tests. |
+| GAP-19 | `isTimeIntervalEditable` function: returns false for TIME_PERIOD_DROPDOWN_STATUSES | TPG-R4-AC14 | Vitest | Function exists at line 51-67. Not unit-tested. |
+| GAP-20 | Tab navigation between editable cells (E2E) | TPG-R4-AC8 | Cypress | Tab key pressing to move between cells. |
+| GAP-30 | `dropdownCellRenderer` shows arrow for dropdown cells, plain text for non-dropdown | TPG-R2-AC17, AC18 | Vitest | `dropdownCellRenderer` callback at line 472-488. Not tested. |
+| GAP-5c | `handleRemoteRowUpdate` cancels active edit when remote update affects same cell | TPG-R13-AC8 | Vitest | Source code at line 206-222 has `gridApi.stopEditing(true)` + toast. Not tested. |
+
+#### LOW PRIORITY — Edge Cases & Polish
+
+| Gap ID | Description | Req ID | Proposed Framework |
+|--------|-------------|--------|-------------------|
+| GAP-21 | Add row to empty grid (0 rows -> 1 row) | EC-9 | Playwright |
+| GAP-22 | Delete last row (1 row -> 0 rows, empty state) | TPG-R7-AC6 | Playwright |
+| GAP-23 | Edit during active filter (row may disappear from filtered view) | EC-2 | Cypress |
+| GAP-25 | Duplicate row while grid is sorted (sort cleared, row below source) | TPG-R8-AC5 | Cypress |
+| GAP-26 | Very long text in Notes (1000+ characters) | TPG-R4-AC10 | Cypress |
+| GAP-27 | Special characters in text fields (quotes, angle brackets) | TPG-R4-AC9 | Cypress |
+| GAP-28 | Status bar row count after add/delete | TPG-R6-AC9, TPG-R7-AC5 | Cypress |
+| GAP-29 | Grid virtualization (100+ rows not all in DOM) | TPG-R1-AC16 | Cypress |
+| GAP-09 | Post-conflict edit version freshness (after "Keep Theirs") | TPG-R11-AC18 | Vitest |
+| GAP-5d | `handleDataRefresh` invokes onDataRefresh callback | TPG-R13-AC13 | Vitest |
+| GAP-R1-18 | `insuranceGroup` field presence in GridRow interface | TPG-R1-AC18 | Vitest |
+| GAP-R3-15 | cellClass for statusDate prompt includes "stripe-overlay" + "cell-prompt" | TPG-R3-AC15 | Vitest |
+| GAP-R7-7 | DELETE /api/data/:id returns 500 — error shown, row preserved | TPG-R7-AC7 | Cypress |
+| GAP-R9-9 | Duplicates filter chip shows "(0)" when no duplicates | TPG-R9-AC9 | Cypress |
+| GAP-R12-15 | Row transitions from overdue (red) to completed (green) | TPG-R12-AC15 | Cypress |
+| GAP-R6-13 | newRowId effect — selects row, starts editing requestType | TPG-R6-AC13 | Vitest |
+
+---
+
+## Proposed New Tests (Post-Analysis)
+
+### HIGH PRIORITY — 14 tests
+
+| # | Test Name | Framework | Target File | Req ID | Description |
+|---|-----------|-----------|-------------|--------|-------------|
+| 1 | `handleConflictKeepMine sends forceOverwrite PUT and updates grid` | Vitest | `PatientGrid.test.tsx` or new `useConflictResolution.test.ts` | TPG-R11-AC12 | Render PatientGrid with conflictData. Simulate handleConflictKeepMine. Assert: api.put called with forceOverwrite=true, node.setData called with response, redrawRows called, conflictData cleared. |
+| 2 | `handleConflictKeepMine shows error toast on 500` | Vitest | same as #1 | TPG-R11-AC13 | Mock api.put to reject with 500. Assert: showToast called with error, saveStatus set to 'error', grid remains interactive. |
+| 3 | `handleConflictKeepTheirs uses setData not setDataValue` | Vitest | same as #1 | TPG-R11-AC14 | Assert: node.setData called (not setDataValue), redrawRows called, onRowUpdated called, conflictData cleared, saveStatus set to 'idle'. |
+| 4 | `handleConflictCancel restores server row including updatedAt` | Vitest | same as #1 | TPG-R11-AC15 | Assert: node.setData called with serverRow data, redrawRows called, conflictData cleared, saveStatus 'idle'. |
+| 5 | `handleRemoteRowUpdate discards older update (out-of-order)` | Vitest | new `PatientGrid.remoteHandlers.test.ts` | TPG-R13-AC7 | Create rowNode with updatedAt="2026-01-02". Call handleRemoteRowUpdate with updatedAt="2026-01-01" (older). Assert: setData NOT called. |
+| 6 | `handleRemoteRowUpdate accepts newer update` | Vitest | same as #5 | TPG-R13-AC6 | Create rowNode with updatedAt="2026-01-01". Call with updatedAt="2026-01-02". Assert: setData called, redrawRows called. |
+| 7 | `handleRemoteRowUpdate cancels edit when remote update affects same cell` | Vitest | same as #5 | TPG-R13-AC8 | Mock getEditingCells to return cell editing row with matching ID. Assert: stopEditing(true) called, showToast called. |
+| 8 | `handleRemoteRowCreate adds row via applyTransaction` | Vitest | same as #5 | TPG-R13-AC9 | Call with new row ID. Assert: applyTransaction called with {add: [row]}, onRowAdded called. |
+| 9 | `handleRemoteRowCreate ignores existing row (dedup)` | Vitest | same as #5 | TPG-R13-AC10 | Mock getRowNode to return existing. Assert: applyTransaction NOT called. |
+| 10 | `handleRemoteRowDelete removes row and shows toast` | Vitest | same as #5 | TPG-R13-AC11 | Call with existing row ID. Assert: applyTransaction called with {remove: [data]}, showToast called, onRowDeleted called. |
+| 11 | `handleRemoteRowDelete cancels edit if user editing that row` | Vitest | same as #5 | TPG-R13-AC12 | Mock getEditingCells to return matching row. Assert: stopEditing(true) called before remove. |
+| 12 | `sequential conflict resolution — no state corruption` | Vitest | same as #1 | TPG-R11-AC22 | Trigger conflict 1, resolve with Keep Mine. Immediately trigger conflict 2. Assert: second conflict modal opens correctly with new data. |
+| 13 | `gridApi.redrawRows called after successful save` | Vitest | `useGridCellUpdate.test.ts` | TPG-R5-AC12 | After successful PUT, assert: event.api.redrawRows called with { rowNodes: [node] }. |
+| 14 | `node.setSelected(true) called after successful save` | Vitest | `useGridCellUpdate.test.ts` | TPG-R5-AC13 | After successful PUT, assert: event.node.setSelected called with true. |
+
+### MEDIUM PRIORITY — 20 tests
+
+| # | Test Name | Framework | Target File | Req ID | Description |
+|---|-----------|-----------|-------------|--------|-------------|
+| 15 | `column widths match spec (13 columns)` | Vitest | `PatientGrid.test.tsx` | TPG-R1-AC13 | Assert capturedGridProps.columnDefs[i].width for each column. |
+| 16 | `formatPhone formats 10-digit as (XXX) XXX-XXXX` | Vitest | `PatientGrid.test.tsx` or new `formatPhone.test.ts` | TPG-R1-AC14 | Call formatPhone('5551234567'). Assert: '(555) 123-4567'. |
+| 17 | `formatPhone returns raw value for non-10-digit` | Vitest | same as #16 | TPG-R1-AC15 | Call formatPhone('12345'). Assert: '12345'. Also test 11-digit, with dashes, null. |
+| 18 | `qualityMeasure cellEditorParams calls getQMForRT` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC8 | Get QM column cellEditorParams. Invoke as function({data: {requestType: 'AWV'}}). Assert: values array includes QM options. |
+| 19 | `measureStatus cellEditorParams calls getMSForQM` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC9 | Get MS column cellEditorParams. Invoke as function({data: {qualityMeasure: 'Annual Wellness Visit'}}). Assert: values array includes MS options. |
+| 20 | `tracking1 cellEditorSelector returns AutoOpenSelectEditor when options exist` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC10 | Get tracking1 cellEditorSelector. Invoke with status that has options. Assert: component is AutoOpenSelectEditor. |
+| 21 | `tracking1 cellEditorSelector returns agTextCellEditor for HgbA1c status` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC11 | Get tracking1 cellEditorSelector. Invoke with HgbA1c status. Assert: component is 'agTextCellEditor'. |
+| 22 | `tracking2 cellEditorSelector returns AutoOpenSelectEditor with 12 month options for HgbA1c` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC12 | Get tracking2 cellEditorSelector. Invoke with HgbA1c status. Assert: 12 month strings in values. |
+| 23 | `tracking2 cellEditorSelector returns agTextCellEditor for BP status` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC13 | Invoke with BP status. Assert: component is 'agTextCellEditor'. |
+| 24 | `requestType valueGetter returns '' for null` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC14 | Get requestType valueGetter. Call with data.requestType=null. Assert: returns ''. |
+| 25 | `requestType valueSetter converts '' to null` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC15 | Get requestType valueSetter. Call with newValue=''. Assert: data.requestType set to null. |
+| 26 | `statusDate comparator: null dates sort to end` | Vitest | `PatientGrid.test.tsx` | TPG-R3-AC13 | Get statusDate comparator. Call with (null, "2025-01-01"). Assert: returns 1 (null goes after). |
+| 27 | `dueDate comparator: null dates sort to end` | Vitest | `PatientGrid.test.tsx` | TPG-R3-AC14 | Get dueDate comparator. Call with (null, "2025-01-01"). Assert: returns 1. |
+| 28 | `timeIntervalDays valueSetter accepts valid integer (1-1000)` | Vitest | `PatientGrid.test.tsx` | TPG-R4-AC11 | Get valueSetter. Call with newValue='30'. Assert: returns true, data.timeIntervalDays=30. |
+| 29 | `timeIntervalDays valueSetter rejects non-numeric` | Vitest | `PatientGrid.test.tsx` | TPG-R4-AC12 | Call with newValue='abc'. Assert: returns false, alert called. |
+| 30 | `timeIntervalDays valueSetter rejects 0 and negative` | Vitest | `PatientGrid.test.tsx` | TPG-R4-AC13 | Call with 0, -1. Assert: returns false. |
+| 31 | `isTimeIntervalEditable returns false for TIME_PERIOD_DROPDOWN_STATUSES` | Vitest | `PatientGrid.test.tsx` or new | TPG-R4-AC14 | Call with data.measureStatus='Screening discussed'. Assert: false. |
+| 32 | `postSortRows reorders nodes by frozen order then clears ref` | Vitest | `PatientGrid.test.tsx` | TPG-R10-AC10, AC11 | Set frozenRowOrderRef to [3,1,2]. Call postSortRows with 3 nodes. Assert: nodes sorted [3,1,2], ref cleared to null. |
+| 33 | `dropdownCellRenderer shows arrow for requestType` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC17 | Invoke dropdownCellRenderer with field='requestType'. Assert: renders div with '.cell-dropdown-arrow'. |
+| 34 | `dropdownCellRenderer shows plain text for tracking1 N/A` | Vitest | `PatientGrid.test.tsx` | TPG-R2-AC18 | Invoke with field='tracking1', data with non-dropdown status. Assert: renders plain text, no arrow. |
+
+### LOW PRIORITY — 12 tests
+
+| # | Test Name | Framework | Target File | Req ID | Description |
+|---|-----------|-----------|-------------|--------|-------------|
+| 35 | `Tab key moves focus to next editable cell` | Cypress | new `cell-navigation.cy.ts` | TPG-R4-AC8 | Double-click notes, press Tab. Assert: next editable cell enters edit mode. |
+| 36 | `Special characters saved correctly (quotes, angle brackets)` | Cypress | extend `cell-editing.cy.ts` | TPG-R4-AC9 | Type `<script>"test" & O'Brien`. Save. Assert: text preserved without encoding. |
+| 37 | `Long text (1000 chars) saved in Notes` | Cypress | extend `cell-editing.cy.ts` | TPG-R4-AC10 | Generate 1000-char string, type into notes, save, verify persisted. |
+| 38 | `DOB required — empty rejected in valueSetter` | Vitest | `PatientGrid.test.tsx` | TPG-R3-AC11 | Get memberDob valueSetter. Call with empty newValue. Assert: returns false, alert called. |
+| 39 | `insuranceGroup field exists in GridRow interface` | Vitest | `PatientGrid.test.tsx` | TPG-R1-AC18 | Create mock row with insuranceGroup. Assert: field accessible. |
+| 40 | `statusDate cellClass includes stripe-overlay + cell-prompt when no value but has prompt` | Vitest | `PatientGrid.test.tsx` | TPG-R3-AC15 | Get statusDate cellClass. Call with value=null, data.statusDatePrompt='Date Ordered'. Assert: includes 'stripe-overlay', 'cell-prompt'. |
+| 41 | `handleDataRefresh calls onDataRefresh` | Vitest | new remote handlers file | TPG-R13-AC13 | Call handleDataRefresh. Assert: onDataRefresh called. |
+| 42 | `newRowId effect selects row and starts editing requestType` | Vitest | `PatientGrid.test.tsx` | TPG-R6-AC13 | Render with newRowId prop. Assert: gridApi.setFocusedCell called, startEditingCell called with requestType. |
+| 43 | `Delete API 500 shows error and preserves row` | Cypress | extend `row-operations.cy.ts` | TPG-R7-AC7 | Intercept DELETE with 500. Click delete+confirm. Assert: error visible, row still in grid. |
+| 44 | `Edit during active filter — row disappears from filtered view` | Cypress | new `filter-edit-interaction.cy.ts` | EC-2 | Filter to "Not Addressed". Edit measureStatus to "AWV completed". Assert: row disappears from filtered view. |
+| 45 | `Add row to empty grid` | Playwright | extend `add-row.spec.ts` | EC-9 | Delete all rows first (or use empty test DB). Add row. Assert: 1 row appears. |
+| 46 | `Duplicate count shows (0) when no duplicates exist` | Cypress | extend `duplicate-detection.cy.ts` | TPG-R9-AC9 | Ensure no duplicates. Check Duplicates chip text matches "Duplicates (0)". |
+
+### Summary of Proposed Tests
+
+| Priority | Count | Frameworks |
+|----------|-------|------------|
+| High | 14 | Vitest (14) |
+| Medium | 20 | Vitest (20) |
+| Low | 12 | Vitest (5), Cypress (5), Playwright (1), Cypress/Vitest (1) |
+| **Total** | **46** | Vitest: 39, Cypress: 5, Playwright: 1, Mixed: 1 |
+
+---
+
 ## Dependencies
 
 ### Depends On (Existing, Completed)

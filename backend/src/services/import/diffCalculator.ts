@@ -103,6 +103,7 @@ export interface ExistingRecord {
   measureStatus: string | null;
   ownerId: number | null;
   ownerName: string | null;
+  insuranceGroup: string | null;
 }
 
 /**
@@ -165,22 +166,38 @@ export function categorizeStatus(status: string | null): ComplianceCategory {
  * @param rows - Transformed import rows
  * @param mode - Import mode (merge or replace)
  * @param targetOwnerId - Owner ID to filter existing records (null = unassigned patients only)
+ * @param systemId - Insurance system ID (e.g., 'hill', 'sutter'). In replace mode, only
+ *                   records matching this insurance group are deleted. Null/undefined = all.
  */
 export async function calculateDiff(
   rows: TransformedRow[],
   mode: ImportMode,
-  targetOwnerId: number | null = null
+  targetOwnerId: number | null = null,
+  systemId?: string | null
 ): Promise<DiffResult> {
-  // Load existing data from database filtered by target owner
-  const existingRecords = await loadExistingRecords(targetOwnerId);
+  // Load existing data from database filtered by target owner.
+  // In replace mode, also filter by insurance group so we only delete records
+  // belonging to the same insurance system being imported (e.g., Hill import
+  // should not delete Sutter patients' measures).
+  const insuranceFilter = mode === 'replace' && systemId ? systemId : undefined;
+  const existingRecords = await loadExistingRecords(targetOwnerId, insuranceFilter);
+
+  // Also load records for patients being reassigned (owned by a different physician)
+  // Without this, reassigned patients' existing measures are invisible to the diff,
+  // causing INSERT (duplicates) instead of SKIP/UPDATE
+  const reassignmentRecords = await loadReassignmentRecords(rows, targetOwnerId);
+  const allExistingRecords = [...existingRecords, ...reassignmentRecords];
 
   // Build lookup map: "memberName|memberDob|requestType|qualityMeasure" -> record
   const existingByKey = new Map<string, ExistingRecord>();
   const existingPatientKeys = new Set<string>();
 
-  for (const record of existingRecords) {
+  for (const record of allExistingRecords) {
     const measureKey = `${record.memberName}|${record.memberDob}|${record.requestType}|${record.qualityMeasure}`;
-    existingByKey.set(measureKey, record);
+    // Don't overwrite if already present (target owner records take precedence)
+    if (!existingByKey.has(measureKey)) {
+      existingByKey.set(measureKey, record);
+    }
 
     const patientKey = `${record.memberName}|${record.memberDob}`;
     existingPatientKeys.add(patientKey);
@@ -199,8 +216,8 @@ export async function calculateDiff(
   const importPatientKeys = new Set<string>();
 
   if (mode === 'replace') {
-    // Replace All mode: Delete everything, then insert all new rows
-    changes.push(...calculateReplaceAllDiff(rows, existingRecords, summary));
+    // Replace All mode: Delete existing (filtered by insurance group + reassigned), then insert all new rows
+    changes.push(...calculateReplaceAllDiff(rows, allExistingRecords, summary));
   } else {
     // Merge mode: Apply merge logic
     changes.push(...calculateMergeDiff(rows, existingByKey, summary));
@@ -233,18 +250,28 @@ export async function calculateDiff(
 }
 
 /**
- * Load all existing patient measures from database
- */
-/**
- * Load existing records filtered by owner
+ * Load existing records filtered by owner and optionally by insurance group.
  * @param targetOwnerId - Owner ID to filter by (null = unassigned patients only)
+ * @param insuranceGroup - When provided, only load records for patients in this insurance group.
+ *                         Used in Replace All mode to avoid deleting records from other systems.
  */
-async function loadExistingRecords(targetOwnerId: number | null): Promise<ExistingRecord[]> {
+async function loadExistingRecords(
+  targetOwnerId: number | null,
+  insuranceGroup?: string
+): Promise<ExistingRecord[]> {
+  // Build the patient filter
+  const patientWhere: Record<string, unknown> = {
+    ownerId: targetOwnerId, // null matches unassigned patients
+  };
+
+  // In replace mode, filter by insurance group so only matching records are loaded for deletion
+  if (insuranceGroup) {
+    patientWhere.insuranceGroup = insuranceGroup;
+  }
+
   const measures = await prisma.patientMeasure.findMany({
     where: {
-      patient: {
-        ownerId: targetOwnerId, // null matches unassigned patients
-      },
+      patient: patientWhere,
     },
     include: {
       patient: {
@@ -272,6 +299,99 @@ async function loadExistingRecords(targetOwnerId: number | null): Promise<Existi
     measureStatus: m.measureStatus,
     ownerId: m.patient.ownerId,
     ownerName: m.patient.owner?.displayName ?? null,
+    insuranceGroup: m.patient.insuranceGroup ?? null,
+  }));
+}
+
+/**
+ * Load existing measures for patients being reassigned during import.
+ * These are patients that appear in the import rows but exist in the DB
+ * under a different owner than targetOwnerId. Without loading these records,
+ * the diff calculator cannot see them and produces INSERT (duplicates)
+ * instead of SKIP/UPDATE.
+ *
+ * @param rows - The import rows to check
+ * @param targetOwnerId - The owner ID the import is targeting
+ * @returns ExistingRecord[] for reassigned patients' measures
+ */
+async function loadReassignmentRecords(
+  rows: TransformedRow[],
+  targetOwnerId: number | null
+): Promise<ExistingRecord[]> {
+  // Get unique patients from import rows
+  const importPatients = new Map<string, { memberName: string; memberDob: string }>();
+  for (const row of rows) {
+    if (row.memberDob) {
+      const key = `${row.memberName}|${row.memberDob}`;
+      importPatients.set(key, {
+        memberName: row.memberName,
+        memberDob: row.memberDob,
+      });
+    }
+  }
+
+  if (importPatients.size === 0) {
+    return [];
+  }
+
+  // Find patients in the DB that match the import rows but have a DIFFERENT owner
+  const existingPatients = await prisma.patient.findMany({
+    where: {
+      AND: [
+        {
+          OR: Array.from(importPatients.values()).map((p) => ({
+            memberName: p.memberName,
+            memberDob: new Date(p.memberDob),
+          })),
+        },
+        {
+          NOT: {
+            ownerId: targetOwnerId, // Exclude patients already owned by target
+          },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (existingPatients.length === 0) {
+    return [];
+  }
+
+  const reassignedPatientIds = existingPatients.map((p) => p.id);
+
+  // Load all measures for these reassigned patients
+  const measures = await prisma.patientMeasure.findMany({
+    where: {
+      patientId: { in: reassignedPatientIds },
+    },
+    include: {
+      patient: {
+        include: {
+          owner: {
+            select: {
+              id: true,
+              displayName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return measures.map((m) => ({
+    patientId: m.patientId,
+    measureId: m.id,
+    memberName: m.patient.memberName,
+    memberDob: m.patient.memberDob.toISOString().split('T')[0],
+    memberTelephone: m.patient.memberTelephone,
+    memberAddress: m.patient.memberAddress,
+    requestType: m.requestType,
+    qualityMeasure: m.qualityMeasure,
+    measureStatus: m.measureStatus,
+    ownerId: m.patient.ownerId,
+    ownerName: m.patient.owner?.displayName ?? null,
+    insuranceGroup: m.patient.insuranceGroup ?? null,
   }));
 }
 

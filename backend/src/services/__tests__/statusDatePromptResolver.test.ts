@@ -268,6 +268,21 @@ describe('statusDatePromptResolver', () => {
       });
     });
 
+    // --- Depression Screening statuses ---
+    describe('Depression Screening statuses', () => {
+      it('should return "Date Called" for "Called to schedule"', () => {
+        expect(getDefaultDatePrompt('Called to schedule')).toBe('Date Called');
+      });
+
+      it('should return "Date Scheduled" for "Visit scheduled"', () => {
+        expect(getDefaultDatePrompt('Visit scheduled')).toBe('Date Scheduled');
+      });
+
+      it('should return "Date Completed" for "Screening complete"', () => {
+        expect(getDefaultDatePrompt('Screening complete')).toBe('Date Completed');
+      });
+    });
+
     // --- Case sensitivity ---
     it('should be case-sensitive (status must match exactly)', () => {
       // All lowercase should not match

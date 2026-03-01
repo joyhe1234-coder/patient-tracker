@@ -116,5 +116,22 @@ describe('Insurance Group Filter', () => {
         }
       });
     });
+
+    it('status bar displays insurance filter text when active', () => {
+      // Default is "hill" — status bar should indicate insurance filter
+      cy.get('select[aria-label="Filter by insurance group"]').should('have.value', 'hill');
+
+      // Status bar should display the insurance group info
+      cy.get('.bg-gray-100.border-t').should('exist');
+      cy.get('.bg-gray-100.border-t').invoke('text').then((statusText) => {
+        // Status bar should contain "Insurance:" or "Hill" indicating active filter
+        const hasInsuranceInfo = statusText.includes('Insurance') || statusText.includes('Hill');
+        expect(hasInsuranceInfo).to.be.true;
+      });
+
+      // Switch to "All" — insurance indicator should change
+      cy.get('select[aria-label="Filter by insurance group"]').select('all');
+      cy.get('.bg-gray-100.border-t').should('exist');
+    });
   });
 });

@@ -203,6 +203,23 @@ describe('statusColors', () => {
       ).toBe(false);
     });
 
+    // ── T2-2: Terminal status non-overdue completeness (purple) ─────
+    it('returns false for "Patient declined screening" even if overdue', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-01-01', measureStatus: 'Patient declined screening' })
+      ).toBe(false);
+    });
+
+    it('returns false for "Declined BP control" even if overdue', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        isRowOverdue({ dueDate: '2025-01-01', measureStatus: 'Declined BP control' })
+      ).toBe(false);
+    });
+
     it('returns false for chronic DX with attestation sent even if overdue', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
@@ -498,6 +515,121 @@ describe('statusColors', () => {
           getRowStatusColor({ ...baseRow, measureStatus: 'Screening unnecessary', dueDate: '2025-06-01' })
         ).toBe('gray');
       });
+    });
+
+    // ── T2-1: Parameterized overdue tests for all color categories ────
+
+    describe('overdue returns red for every GREEN status', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it.each([...GREEN_STATUSES])('overdue %s returns red', (status) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: status, dueDate: '2025-01-01' })
+        ).toBe('red');
+      });
+    });
+
+    describe('overdue returns red for every BLUE status', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it.each([...BLUE_STATUSES])('overdue %s returns red', (status) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: status, dueDate: '2025-01-01' })
+        ).toBe('red');
+      });
+    });
+
+    describe('overdue returns red for every YELLOW status', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it.each([...YELLOW_STATUSES])('overdue %s returns red', (status) => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({ ...baseRow, measureStatus: status, dueDate: '2025-01-01' })
+        ).toBe('red');
+      });
+    });
+
+    // ── T4-1: Missing status-to-color unit assertions (non-overdue) ──
+
+    describe('non-overdue green statuses (gap fill)', () => {
+      it.each([
+        'Diabetic eye exam completed',
+        'Colon cancer screening completed',
+        'Screening test completed',
+        'GC/Clamydia screening completed',
+        'Urine microalbumin completed',
+        'Blood pressure at goal',
+        'Vaccination completed',
+        'Chronic diagnosis confirmed',
+      ] as const)('%s returns green', (status) => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: status })).toBe('green');
+      });
+    });
+
+    describe('non-overdue blue statuses (gap fill)', () => {
+      it.each([
+        'Diabetic eye exam scheduled',
+        'Diabetic eye exam referral made',
+        'Colon cancer screening ordered',
+        'Screening test ordered',
+        'Screening appt made',
+        'Test ordered',
+        'Urine microalbumin ordered',
+        'Appointment scheduled',
+        'ACE/ARB prescribed',
+        'Vaccination scheduled',
+        'Lab ordered',
+        'Scheduled call back - BP not at goal',
+        'Scheduled call back - BP at goal',
+        'Will call later to schedule',
+      ] as const)('%s returns blue', (status) => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: status })).toBe('blue');
+      });
+    });
+
+    describe('non-overdue yellow statuses (gap fill)', () => {
+      it.each([
+        'Diabetic eye exam discussed',
+        'Vaccination discussed',
+      ] as const)('%s returns yellow', (status) => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: status })).toBe('yellow');
+      });
+    });
+
+    describe('non-overdue purple statuses (gap fill)', () => {
+      it.each([
+        'Patient declined screening',
+        'Declined BP control',
+      ] as const)('%s returns purple', (status) => {
+        expect(getRowStatusColor({ ...baseRow, measureStatus: status })).toBe('purple');
+      });
+    });
+
+    // ── T4-2: Orange overdue via getRowStatusColor ────────────────────
+
+    it('returns red for overdue chronic DX without attestation sent', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        getRowStatusColor({
+          ...baseRow,
+          measureStatus: 'Chronic diagnosis resolved',
+          tracking1: 'Attestation not sent',
+          dueDate: '2025-01-01',
+        })
+      ).toBe('red');
     });
   });
 });

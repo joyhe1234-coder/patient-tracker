@@ -281,6 +281,30 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       data: updateData as Parameters<typeof prisma.user.update>[0]['data'],
     });
 
+    // Clean up StaffAssignment records when roles change
+    if (updates.roles) {
+      const oldRoles = existing.roles as string[];
+      const newRoles = updates.roles as string[];
+
+      // If user had STAFF role but no longer does, remove their staff assignments
+      if (oldRoles.includes('STAFF') && !newRoles.includes('STAFF')) {
+        await prisma.staffAssignment.deleteMany({
+          where: { staffId: userId },
+        });
+      }
+
+      // If user had PHYSICIAN role but no longer does, remove physician assignments and unassign patients
+      if (oldRoles.includes('PHYSICIAN') && !newRoles.includes('PHYSICIAN')) {
+        await prisma.staffAssignment.deleteMany({
+          where: { physicianId: userId },
+        });
+        await prisma.patient.updateMany({
+          where: { ownerId: userId },
+          data: { ownerId: null },
+        });
+      }
+    }
+
     // Log the action — cast to indexable for dynamic field access in audit log
     type Indexable = Record<string, unknown>;
     const changedFields = Object.keys(updates).map(k => ({

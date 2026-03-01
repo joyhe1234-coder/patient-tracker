@@ -406,4 +406,23 @@ describe('fuzzyMatcher', () => {
       }
     });
   });
+
+  // ---- single-character input edge case ----
+
+  describe('single-character input edge case', () => {
+    it('should return 1.0 for identical single characters', () => {
+      expect(jaroWinklerSimilarity('a', 'a')).toBe(1.0);
+    });
+
+    it('should return 0 for different single characters', () => {
+      const score = jaroWinklerSimilarity('a', 'z');
+      expect(score).toBe(0.0);
+    });
+
+    it('compositeScore should handle single-character inputs without error', () => {
+      const score = compositeScore('X', 'Y');
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(1);
+    });
+  });
 });

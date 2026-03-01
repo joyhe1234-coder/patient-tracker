@@ -608,6 +608,7 @@ describe('test-sutter-merge.xlsx', () => {
       measureStatus: vaccineRow!.measureStatus,
       ownerId: null,
       ownerName: null,
+      insuranceGroup: null,
     });
 
     const summary = emptySummary();
@@ -638,6 +639,7 @@ describe('test-sutter-merge.xlsx', () => {
       measureStatus: 'Completed', // different from "Not Addressed"
       ownerId: null,
       ownerName: null,
+      insuranceGroup: null,
     });
 
     const summary = emptySummary();

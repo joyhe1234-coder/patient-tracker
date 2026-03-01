@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Consolidate all testable behaviors from the import pipeline feature family into a single comprehensive test plan. This document maps every testable behavior across four existing specifications (import-pipeline, sutter-import, smart-column-mapping, sutter-sheet-validation) to acceptance criteria, identifies coverage gaps against the current test suite (~926 backend Jest for import services/routes, ~276 frontend Vitest for import components, ~86 Playwright E2E for import flows, ~71 Cypress E2E for import interactions), and proposes new test cases to fill gaps.
+Consolidate all testable behaviors from the import pipeline feature family into a single comprehensive test plan. This document maps every testable behavior across four existing specifications (import-pipeline, sutter-import, smart-column-mapping, sutter-sheet-validation) to acceptance criteria, identifies coverage gaps against the current test suite (926 backend Jest for import services/routes, 315 frontend Vitest for import components, 71 Playwright E2E for import flows, 83 Cypress E2E for import interactions -- 1,395 total verified 2026-02-27), and proposes new test cases to fill gaps.
 
 The import pipeline is the largest and most complex subsystem in Patient Tracker, spanning 17 backend service files (7,081 LOC), 2 route files (1,266 LOC), 16 frontend components/pages, and touching authentication, role-based access control, file parsing, fuzzy matching, conflict detection, diff calculation, transaction execution, and real-time UI updates.
 
@@ -18,16 +18,45 @@ This test plan covers eight key areas:
 7. **Import Page UI** -- File dropzone, system selector, sheet selector, physician assignment, progress indicators
 8. **Mapping Management Page** -- Saved mappings CRUD, conflict resolution when mappings overlap, action pattern management
 
-### Current Test Inventory
+### Current Test Inventory (Verified 2026-02-27)
 
 | Layer | Framework | Import-Related Tests | Files |
 |-------|-----------|---------------------|-------|
-| Backend Services | Jest | ~832 test cases | 24 files in `backend/src/services/import/__tests__/` |
-| Backend Routes | Jest + supertest | ~94 test cases | `import.routes.test.ts` (52), `mapping.routes.test.ts` (42) |
-| Frontend Components | Vitest + RTL | ~276 test cases | 11 files (`ImportPage`, `ImportPreviewPage`, `SheetSelector`, `ConflictBanner`, `ConflictResolutionStep`, `MappingTable`, `ActionPatternTable`, `MappingManagementPage`, `PreviewChangesTable`, `PreviewSummaryCards`, `UnmappedActionsBanner`, `ImportResultsDisplay`) |
-| Playwright E2E | Playwright | ~86 test cases | 7 import-related spec files + `smart-column-mapping.spec.ts` |
-| Cypress E2E | Cypress | ~71 test cases | `import-flow.cy.ts` (48), `import-conflict-admin.cy.ts` (8), `import-conflict-nonadmin.cy.ts` (6), `mapping-management.cy.ts` (9) |
-| **Total** | | **~1,359** | **44 test files** |
+| Backend Services | Jest | **832** test cases | 24 files in `backend/src/services/import/__tests__/` |
+| Backend Routes | Jest + supertest | **94** test cases | `import.routes.test.ts` (52), `mapping.routes.test.ts` (42) |
+| Frontend Components | Vitest + RTL | **315** test cases | 12 files (ImportPage 40, ImportPreviewPage 33, MappingManagementPage 18, SheetSelector 58, ConflictResolutionStep 27, ConflictBanner 17, MappingTable 19, ActionPatternTable 18, PreviewChangesTable 21, PreviewSummaryCards 18, UnmappedActionsBanner 17, ImportResultsDisplay 15) + ConflictModal 14 |
+| Playwright E2E | Playwright | **71** test cases | 8 files: import-all-roles (13), import-conflict-resolution (6), import-reassignment (1), smart-column-mapping (8), sutter-import (11), sutter-import-edge-cases (5), sutter-import-errors (5), sutter-import-visual (22) |
+| Cypress E2E | Cypress | **83** test cases | 5 files: import-flow (48), import-conflict-admin (8), import-conflict-nonadmin (6), mapping-management (9), insurance-group-filter (12) |
+| **Total** | | **1,395** | **49 test files** |
+
+#### Backend Service Test Breakdown (832 tests)
+
+| Test File | Tests | Area |
+|-----------|-------|------|
+| `fileParser.test.ts` | 53 | Excel/CSV parsing, sheet discovery, header extraction |
+| `columnMapper.test.ts` | 13 | Hill Q1/Q2 column mapping |
+| `sutterColumnMapper.test.ts` | 18 | Sutter direct column mapping |
+| `configLoader.test.ts` | 47 | System config loading, required columns, validation |
+| `fuzzyMatcher.test.ts` | 56 | Normalization, Jaro-Winkler, Jaccard, composite score |
+| `conflictDetector.test.ts` | 64 | All 7 conflict types, severity, wrong-file, fail-open |
+| `diffCalculator.test.ts` | 81 | Merge/replace modes, status categorization, notes/tracking1 |
+| `dataTransformer.test.ts` | 23 | Hill wide-to-long, compliance logic |
+| `sutterDataTransformer.test.ts` | 51 | Sutter row transform, action mapping, Measure Details |
+| `actionMapper.test.ts` | 56 | All 10+ regex patterns, fuzzy fallback, edge cases |
+| `measureDetailsParser.test.ts` | 42 | Date parsing, semicolon/comma formats, tracking1 |
+| `mergeLogic.test.ts` | 12 | Merge strategy (upgrade, downgrade, same status) |
+| `validator.test.ts` | 47 | Required fields, duplicates, Sutter-specific validation |
+| `errorReporter.test.ts` | 25 | Error formatting, deduplication, severity display |
+| `importExecutor.test.ts` | 31 | Merge/replace execution, stats, notes/tracking1, insuranceGroup |
+| `previewCache.test.ts` | 17 | Store, get, delete, TTL, cleanup, summary, stats |
+| `mappingService.test.ts` | 31 | Merged config, CRUD, audit logging, optimistic locking |
+| `reassignment.test.ts` | 21 | Detection, counting, listing, display formatting |
+| `integration.test.ts` | 14 | Full Hill pipeline end-to-end |
+| `sutter-integration.test.ts` | 67 | Full Sutter pipeline (8 fixture files) |
+| `sutter-import-flow.test.ts` | 14 | Sutter import flow scenarios |
+| `sutter-edge-cases.test.ts` | 29 | Special chars, date formats, boundary conditions |
+| `sutter-error-handling.test.ts` | 15 | Error paths for Sutter imports |
+| `sutter-performance.test.ts` | 5 | Performance benchmarks for large files |
 
 ## Alignment with Product Vision
 
@@ -207,7 +236,7 @@ This test plan directly supports the product.md goals:
 - `ActionPatternTable.test.tsx`: 18 tests for pattern editing, regex validation
 - `mappingService.test.ts`: 31 tests for DB CRUD, merge logic, audit logging
 - `mapping.routes.test.ts`: 42 tests for API endpoints auth, validation, CRUD
-- `smart-column-mapping.spec.ts`: 10 Playwright E2E tests
+- `smart-column-mapping.spec.ts`: 8 Playwright E2E tests
 - `mapping-management.cy.ts`: 9 Cypress E2E tests
 
 **Gap Analysis:**
@@ -265,9 +294,10 @@ This test plan directly supports the product.md goals:
 **Current Coverage:**
 - `ConflictResolutionStep.test.tsx`: 27 tests for admin/non-admin views, save/cancel, progress, loading/error states
 - `ConflictBanner.test.tsx`: 17 tests for banner rendering, badges, buttons
+- `ConflictModal.test.tsx`: 14 tests for modal rendering and interactions
 - `import-conflict-admin.cy.ts`: 8 Cypress tests
 - `import-conflict-nonadmin.cy.ts`: 6 Cypress tests
-- `import-conflict-resolution.spec.ts`: 8 Playwright E2E tests
+- `import-conflict-resolution.spec.ts`: 6 Playwright E2E tests
 
 **Gap Analysis:**
 - GAP-08A: No test for ACCEPT_SUGGESTION auto-populating measure info from fuzzy suggestion in E2E context
@@ -501,9 +531,9 @@ This test plan directly supports the product.md goals:
 - `ImportPage.test.tsx`: 40 tests for page rendering, system selection, mode selection, file upload, role-based behavior
 - `SheetSelector.test.tsx`: 58 tests for sheet/physician selection, role-based variants
 - `import-flow.cy.ts`: 48 Cypress E2E tests
-- `import-all-roles.spec.ts`: 21 Playwright E2E tests for all roles
-- `sutter-import.spec.ts`: 13 Playwright E2E for Sutter-specific flow
-- `sutter-import-visual.spec.ts`: 29 Playwright visual tests
+- `import-all-roles.spec.ts`: 13 Playwright E2E tests for all roles
+- `sutter-import.spec.ts`: 11 Playwright E2E for Sutter-specific flow
+- `sutter-import-visual.spec.ts`: 22 Playwright visual tests
 
 **Gap Analysis:**
 - GAP-16A: No test for maximum file size enforcement at the frontend level
@@ -745,12 +775,12 @@ This test plan directly supports the product.md goals:
 
 **Current Coverage:**
 - `reassignment.test.ts`: 21 tests for detection, counting, listing
-- `import-reassignment.spec.ts`: 2 Playwright E2E tests for the warning flow
+- `import-reassignment.spec.ts`: 1 Playwright E2E test for the warning flow
 
 **Gap Analysis:**
 - GAP-25A: No test for reassignment when the source physician is a different role (e.g., imported by STAFF for their assigned physician)
 - GAP-25B: No test for reassignment combined with merge mode (patient exists under physician A, import targets physician B)
-- GAP-25C: Limited E2E coverage (only 2 tests) for the reassignment warning flow
+- GAP-25C: Limited E2E coverage (only 1 test) for the reassignment warning flow
 
 ---
 
@@ -857,7 +887,7 @@ This test plan directly supports the product.md goals:
 | NEW-30 | GAP-16B | Test drag-and-drop file upload in E2E | Cypress | import-flow |
 | NEW-31 | GAP-16C | Test remove file and re-upload different file | Cypress | import-flow |
 | NEW-32 | GAP-08C | Test DUPLICATE and AMBIGUOUS conflict resolution in E2E | Playwright | import-conflict-resolution |
-| NEW-33 | GAP-25C | Add more E2E tests for reassignment warning flow (currently only 2) | Playwright | import-reassignment |
+| NEW-33 | GAP-25C | Add more E2E tests for reassignment warning flow (currently only 1) | Playwright | import-reassignment |
 | NEW-34 | GAP-12A | Test Socket.IO broadcast after successful import execution | Jest | import.routes |
 | NEW-35 | GAP-17B | Test tab names with special characters in E2E | Playwright | sutter-import |
 | NEW-36 | GAP-18B | Test double-submission prevention during execution | Vitest | ImportPreviewPage |
@@ -966,7 +996,301 @@ This test plan directly supports the product.md goals:
 
 ---
 
-## Summary of Coverage Gaps
+## Verified Coverage Matrix (2026-02-27)
+
+This section maps every testable behavior to its covering test(s), organized by functional area. All test counts have been verified by grep against `it(` and `test(` patterns in the actual test files.
+
+### Matrix Legend
+
+- **COVERED**: Test(s) explicitly exercise this behavior
+- **PARTIAL**: Behavior tested indirectly or only in some scenarios
+- **NOT COVERED**: No test exercises this behavior
+
+### 1. File Upload and Validation
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Accept .xlsx file | COVERED | `fileParser.test.ts` | "should parse Excel with headers on first row" |
+| Accept .csv file | COVERED | `fileParser.test.ts` | "should parse CSV with headers on first row" |
+| Accept .xls file | COVERED | `fileParser.test.ts` | "should parse xls file by extension" |
+| Reject unsupported file types (.pdf, .doc) | COVERED | `fileParser.test.ts` | "should throw error for unsupported file type" |
+| Handle uppercase extensions (.XLSX, .CSV) | COVERED | `fileParser.test.ts` | "should handle uppercase file extensions" |
+| Empty file (no rows) | COVERED | `fileParser.test.ts` | "should throw error for empty Excel", "should throw error for empty CSV" |
+| Headers-only file (no data rows) | COVERED | `fileParser.test.ts` | "should throw error for Excel with only title row" |
+| Title row detection and skip | COVERED | `fileParser.test.ts` | "should detect and skip title row in Excel" |
+| Password-protected Excel | NOT COVERED | -- | GAP-01A |
+| Merged cells in header row | NOT COVERED | -- | GAP-01B |
+| Max file size enforcement (frontend) | NOT COVERED | -- | GAP-16A |
+| Drag-and-drop upload (E2E) | NOT COVERED | -- | GAP-16B |
+| Remove file and re-upload | PARTIAL | `sutter-import-edge-cases.spec.ts` | "removing file and re-uploading resets sheet selection" (Playwright) |
+| File upload via Cypress | COVERED | `import-flow.cy.ts` | "accepts CSV file upload and shows sheet selector" |
+
+### 2. Sheet Discovery
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Single sheet auto-selection | COVERED | `import-flow.cy.ts`, `sutter-import-edge-cases.spec.ts` | "auto-selects single tab", "single-tab file pre-selects the tab" |
+| Multi-sheet listing (Sutter) | COVERED | `sutter-import.spec.ts`, `import.routes.test.ts` | "returns sheet names from a multi-sheet Excel file" |
+| skipTabs name filtering (Sutter) | COVERED | `import.routes.test.ts` | "filters tabs using skipTabs patterns", "handles suffix/contains patterns" |
+| Header-based validation | COVERED | `import.routes.test.ts` | "returns invalidSheets for tabs that fail header validation" |
+| NO_VALID_TABS error | COVERED | `import.routes.test.ts`, `sutter-error-handling.test.ts` | "returns 400 when no valid tabs remain" |
+| Hill multi-tab file (unexpected) | NOT COVERED | -- | GAP-02C |
+| Performance: 10+ sheet workbook | NOT COVERED | -- | GAP-02A |
+| Single XLSX.read() optimization | NOT COVERED | -- | GAP-02B |
+| Invalid sheet names in response | COVERED | `import.routes.test.ts` | "returns invalidSheets for tabs that fail header validation" |
+
+### 3. Column Mapping
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Hill Q1/Q2 suffix mapping | COVERED | `columnMapper.test.ts` | 13 tests for Q1/Q2 mapping |
+| Sutter direct column mapping | COVERED | `sutterColumnMapper.test.ts` | 18 tests for direct mapping |
+| Case-insensitive matching | COVERED | `fuzzyMatcher.test.ts` | "should match regardless of case" |
+| Whitespace trimming | COVERED | `fileParser.test.ts` | "should trim whitespace from headers" |
+| Merged config (DB overrides + JSON) | COVERED | `mappingService.test.ts` | 11 tests for loadMergedConfig |
+| DB override takes precedence | COVERED | `mappingService.test.ts` | "should replace seed entries with DB overrides" |
+| Fallback to JSON when DB fails | COVERED | `mappingService.test.ts` | "should fall back to JSON-only when DB query fails" |
+| mapColumns() with mergedConfig (Hill) | NOT COVERED | -- | GAP-04A |
+| mapSutterColumns() with mergedConfig + DB overrides | NOT COVERED | -- | GAP-04B |
+| DB override changes column from MEASURE to IGNORED | NOT COVERED | -- | GAP-04C |
+| Double-space in column headers | NOT COVERED | -- | GAP-03A |
+
+### 4. Fuzzy Matching
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Jaro-Winkler scoring | COVERED | `fuzzyMatcher.test.ts` | 6 tests |
+| Jaccard token overlap | COVERED | `fuzzyMatcher.test.ts` | 7 tests |
+| 60/40 composite score | COVERED | `fuzzyMatcher.test.ts` | 7 tests |
+| 80% threshold for probable match | COVERED | `conflictDetector.test.ts` | UC2 tests |
+| 50% lower threshold for suggestions | COVERED | `conflictDetector.test.ts` | "broader suggestions from lower threshold" |
+| Normalization (trim, lowercase, suffix strip) | COVERED | `fuzzyMatcher.test.ts` | 17 normalization tests |
+| Medical abbreviation expansion (30+) | COVERED | `fuzzyMatcher.test.ts` | 8 abbreviation tests |
+| Top 3 suggestions sorted descending | COVERED | `conflictDetector.test.ts` | "should limit suggestions to top 3" |
+| Action text fuzzy fallback (75% threshold) | COVERED | `actionMapper.test.ts` | "matchAction should fall back to fuzzy" |
+| Action text line break normalization | COVERED | `actionMapper.test.ts` | "should normalize \\n line breaks" |
+| Action text 500-char truncation | COVERED | `actionMapper.test.ts` | "should truncate action text longer than 500 chars" |
+| Year-stripped matching | COVERED | `actionMapper.test.ts` | "should normalize year patterns" |
+| Performance: 100 headers vs 200 columns | NOT COVERED | -- | GAP-05A |
+| 500-char truncation boundary | NOT COVERED | -- | GAP-05B |
+| Year-stripped text becomes empty | NOT COVERED | -- | GAP-05C |
+
+### 5. Conflict Detection
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| UC1: Exact match (no conflict) | COVERED | `conflictDetector.test.ts` | 4 tests |
+| UC2: CHANGED (>=80% fuzzy) | COVERED | `conflictDetector.test.ts` | 3 tests |
+| UC3-4: NEW (<80% fuzzy) | COVERED | `conflictDetector.test.ts` | 3 tests |
+| UC5: MISSING measure (WARNING) | COVERED | `conflictDetector.test.ts` | 2 tests |
+| UC6: MISSING patient (BLOCKING) | COVERED | `conflictDetector.test.ts` | 5 tests |
+| UC7: Required renamed (BLOCKING) | COVERED | `conflictDetector.test.ts` | 2 tests |
+| UC8: DUPLICATE (BLOCKING) | COVERED | `conflictDetector.test.ts` | 2 tests |
+| UC9: AMBIGUOUS (BLOCKING) | COVERED | `conflictDetector.test.ts` | 2 tests |
+| UC10: Column split | COVERED | `conflictDetector.test.ts` | 1 test |
+| UC11: Column merge | COVERED | `conflictDetector.test.ts` | 1 test |
+| UC12: Suffix normalization | COVERED | `conflictDetector.test.ts` | 5 tests |
+| UC13: Wrong file (<10%) | COVERED | `conflictDetector.test.ts` | 4 tests |
+| UC14: Duplicate file headers | COVERED | `conflictDetector.test.ts` | 4 tests |
+| UC15: Skip column renamed (INFO) | COVERED | `conflictDetector.test.ts` | 2 tests |
+| Per-header fail-open | COVERED | `conflictDetector.test.ts` | 2 tests |
+| Summary counts | COVERED | `conflictDetector.test.ts` | 4 tests |
+| hasBlockingConflicts flag | COVERED | `conflictDetector.test.ts` | 4 tests |
+| Conflict IDs and metadata | COVERED | `conflictDetector.test.ts` | 3 tests |
+| Inactive columns excluded | COVERED | `conflictDetector.test.ts` | 1 test |
+| Conflict detection with Sutter config | NOT COVERED | -- | GAP-07B |
+| Conflict detection with DB overrides | NOT COVERED | -- | GAP-07C |
+| Integration test via preview endpoint | NOT COVERED | -- | GAP-07A (partially covered in import.routes.test.ts conflict tests) |
+
+### 6. Conflict Resolution
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Admin interactive dropdowns | COVERED | `ConflictResolutionStep.test.tsx` (27), `import-conflict-admin.cy.ts` (8), `import-conflict-resolution.spec.ts` (6) | Multiple |
+| Non-admin read-only banner | COVERED | `ConflictBanner.test.tsx` (17), `import-conflict-nonadmin.cy.ts` (6), `import-all-roles.spec.ts` (4 non-admin tests) | Multiple |
+| NEW resolution options | COVERED | `ConflictResolutionStep.test.tsx` | Resolution option tests |
+| MISSING resolution options | COVERED | `ConflictResolutionStep.test.tsx` | Resolution option tests |
+| CHANGED resolution options | COVERED | `ConflictResolutionStep.test.tsx` | ACCEPT_SUGGESTION auto-populate test |
+| DUPLICATE resolution | COVERED | `ConflictResolutionStep.test.tsx` | "TC-CR-16: renders DUPLICATE resolution options" |
+| AMBIGUOUS resolution | COVERED | `ConflictResolutionStep.test.tsx` | "TC-CR-17: renders AMBIGUOUS resolution options" |
+| Save & Continue disabled until all resolved | COVERED | `ConflictResolutionStep.test.tsx`, `import-conflict-admin.cy.ts` | Multiple |
+| Cancel returns to file upload | COVERED | `ConflictResolutionStep.test.tsx`, `import-conflict-resolution.spec.ts` | Cancel tests |
+| Copy Details button | COVERED | `ConflictBanner.test.tsx`, `import-conflict-nonadmin.cy.ts` | "Copy Details button" |
+| 409 optimistic locking error | COVERED | `ConflictResolutionStep.test.tsx` | "TC-CR-18: shows 409 error message" |
+| DUPLICATE/AMBIGUOUS in E2E | NOT COVERED | -- | GAP-08C (only unit-tested) |
+| Session timeout during resolution | NOT COVERED | -- | GAP-08B |
+
+### 7. Patient Name+DOB Matching and Diff
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| INSERT for new patient | COVERED | `diffCalculator.test.ts` | "should create INSERT for new patient+measure" |
+| UPDATE (non-compliant to compliant) | COVERED | `diffCalculator.test.ts` | "should return UPDATE for non-compliant to compliant" |
+| SKIP (same status) | COVERED | `diffCalculator.test.ts` | "should return SKIP for compliant to compliant" |
+| BOTH (downgrade) | COVERED | `diffCalculator.test.ts` | "should return BOTH for compliant to non-compliant" |
+| DELETE (replace mode) | COVERED | `diffCalculator.test.ts` | "should create DELETE changes for all existing records" |
+| Merge logic (6 documented cases) | COVERED | `diffCalculator.test.ts` | 6 "documents Case N" tests |
+| Notes/tracking1 propagation | COVERED | `diffCalculator.test.ts` | 7 notes/tracking1 tests |
+| Status categorization | COVERED | `diffCalculator.test.ts` | 13 categorizeStatus tests |
+| Duplicate detection in import file | COVERED | `validator.test.ts` | "should detect duplicate rows (same patient + measure)" |
+| Re-import idempotency (all SKIPs) | NOT COVERED | -- | GAP-09A |
+| Diff with Sutter notes/tracking1 | NOT COVERED | -- | GAP-09B |
+| Merge with null/empty existing status | NOT COVERED | -- | GAP-09C |
+
+### 8. Preview Display
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Action badges (INSERT/UPDATE/SKIP/BOTH/DELETE) | COVERED | `PreviewChangesTable.test.tsx` | "renders action badges with correct text" |
+| Color coding | COVERED | `PreviewChangesTable.test.tsx` | "applies green color for INSERT", "applies blue for UPDATE" |
+| Action filter cards | COVERED | `PreviewChangesTable.test.tsx`, `import-flow.cy.ts` | Filter tests |
+| Dynamic preview columns (Sutter) | COVERED | `PreviewChangesTable.test.tsx` | "renders dynamic column headers from previewColumns" |
+| Empty state | COVERED | `PreviewChangesTable.test.tsx` | "shows empty message when filter matches no rows" |
+| Overflow indicator (>50 rows) | COVERED | `PreviewChangesTable.test.tsx` | "shows overflow message when totalChanges > 50" |
+| Summary cards | COVERED | `PreviewSummaryCards.test.tsx` (18) | Multiple rendering tests |
+| Unmapped actions banner | COVERED | `UnmappedActionsBanner.test.tsx` (17) | Multiple rendering tests |
+| Import results stats | COVERED | `ImportResultsDisplay.test.tsx` (15) | Stats display tests |
+| Large dataset (1000+ rows) performance | NOT COVERED | -- | GAP-10B |
+| Action override (SKIP to UPDATE) | NOT IMPLEMENTED | -- | FUTURE-01 |
+| Row-level detail expansion | NOT IMPLEMENTED | -- | FUTURE-02 |
+
+### 9. Import Execution
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Merge mode INSERT | COVERED | `importExecutor.test.ts` | "should create new patient and measure for INSERT action" |
+| Merge mode UPDATE | COVERED | `importExecutor.test.ts` | "should update existing measure for UPDATE action" |
+| Merge mode SKIP | COVERED | `importExecutor.test.ts` | "should not modify database for SKIP action" |
+| Merge mode BOTH | COVERED | `importExecutor.test.ts` | "should keep existing and insert new for BOTH action" |
+| Replace mode (delete + insert) | COVERED | `importExecutor.test.ts` | "should delete all existing records", "should insert all new records" |
+| 5-minute transaction timeout | COVERED | `importExecutor.test.ts` | "should execute operations in a transaction" (verifies config) |
+| Preview deletion after success | COVERED | `importExecutor.test.ts` | "should delete preview from cache after successful execution" |
+| Duplicate flag sync post-execution | COVERED | `importExecutor.test.ts` | "should sync duplicate flags after execution" |
+| Insurance group assignment | COVERED | `importExecutor.test.ts` | 5 insuranceGroup tests |
+| Notes persistence on INSERT | COVERED | `importExecutor.test.ts` | "should persist notes on INSERT action" |
+| Tracking1 persistence on INSERT | COVERED | `importExecutor.test.ts` | "should persist tracking1 on INSERT action" |
+| Due date recalculation on UPDATE | COVERED | `importExecutor.test.ts` | "should recalculate due date on UPDATE" |
+| Transaction error returns failure | COVERED | `importExecutor.test.ts` | "should return failure result on transaction error" |
+| Transaction rollback mid-execution | NOT COVERED | -- | GAP-11A |
+| Concurrent execution for same physician | NOT COVERED | -- | GAP-11B |
+| Database connection lost mid-transaction | NOT COVERED | -- | GAP-11C |
+| Socket.IO broadcast after execution | NOT COVERED | -- | GAP-12A |
+
+### 10. Role-Based Access
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| ADMIN: physician dropdown shows ALL | COVERED | `sutter-import-visual.spec.ts`, `import-all-roles.spec.ts` | "ADMIN sees physician dropdown" |
+| PHYSICIAN: auto-assigned, no dropdown | COVERED | `sutter-import-visual.spec.ts`, `import-all-roles.spec.ts` | "PHYSICIAN role auto-assigns without dropdown" |
+| STAFF: dropdown shows assigned only | COVERED | `sutter-import-visual.spec.ts`, `import-all-roles.spec.ts` | "STAFF role shows dropdown with only assigned physicians" |
+| ADMIN+PHYSICIAN dual role: ADMIN behavior | COVERED | `sutter-import-visual.spec.ts`, `import-all-roles.spec.ts` | "ADMIN+PHYSICIAN dual role shows physician dropdown" |
+| Admin interactive conflict resolution | COVERED | `import-all-roles.spec.ts`, `import-conflict-admin.cy.ts` | Multiple |
+| Non-admin read-only conflict banner | COVERED | `import-all-roles.spec.ts`, `import-conflict-nonadmin.cy.ts` | Multiple |
+| 401 for unauthenticated requests | COVERED | `import.routes.test.ts` | 5 auth tests |
+| 403 for mapping writes by non-ADMIN | COVERED | `mapping.routes.test.ts` | 4 authorization tests |
+
+### 11. Mapping Management
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| System selector dropdown | COVERED | `MappingManagementPage.test.tsx`, `mapping-management.cy.ts`, `smart-column-mapping.spec.ts` | Multiple |
+| Load merged config | COVERED | `mapping.routes.test.ts` | "returns 200 with merged config for valid systemId" |
+| Edit mode toggle | COVERED | `mapping-management.cy.ts` | "Edit Mappings button toggles edit mode" |
+| Add mapping inline form | COVERED | `mapping-management.cy.ts` | "Add Mapping button opens inline form" |
+| Save mapping changes | COVERED | `mappingService.test.ts`, `mapping.routes.test.ts` | Multiple CRUD tests |
+| Validation (empty sourceColumn, duplicates) | COVERED | `mapping.routes.test.ts` | 5 validation tests |
+| ReDoS detection | COVERED | `mapping.routes.test.ts` | "rejects nested quantifier ReDoS pattern" |
+| Reset to defaults | COVERED | `mappingService.test.ts`, `mapping.routes.test.ts`, `smart-column-mapping.spec.ts` | Reset tests |
+| Audit logging | COVERED | `mappingService.test.ts` | "should create AuditLog entry with correct fields" |
+| Optimistic locking 409 | COVERED | `mapping.routes.test.ts`, `mappingService.test.ts` | 409 tests |
+| Action pattern configuration (Sutter) | COVERED | `ActionPatternTable.test.tsx` (18), `mapping.routes.test.ts` | Multiple |
+| XSS in column names | COVERED | `mapping.routes.test.ts` | "TC-SV-14: accepts script tag in sourceColumn" |
+| SQL injection defense | COVERED | `mapping.routes.test.ts` | "TC-SV-16: accepts SQL injection string" |
+| Non-existent quality measure in add | NOT COVERED | -- | GAP-06B |
+| Concurrent admin editing E2E | NOT COVERED | -- | GAP-06C |
+| ReDoS via UI submission | NOT COVERED | -- | GAP-06D |
+
+### 12. Sutter-Specific Behaviors
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Long-format processing (no pivot) | COVERED | `sutterDataTransformer.test.ts` | Multiple transform tests |
+| AWV/APV request type mapping | COVERED | `sutterDataTransformer.test.ts` | "should map AWV/APV request type correctly" |
+| HCC to Chronic DX with notes | COVERED | `sutterDataTransformer.test.ts` | "should map HCC to Chronic DX with notes" |
+| Quality via action regex (10 patterns) | COVERED | `actionMapper.test.ts` | 10 pattern-specific tests |
+| Depression Screening pattern | COVERED | `actionMapper.test.ts` | "should match Depression Screening due in 2025" |
+| Unmatched action defaults to "Not Addressed" | COVERED | `sutterDataTransformer.test.ts` | "should skip unmatched Quality rows" |
+| Measure Details parsing (semicolon) | COVERED | `measureDetailsParser.test.ts` (42), `sutter-integration.test.ts` | Multiple |
+| Measure Details parsing (comma dates) | COVERED | `measureDetailsParser.test.ts` | "should parse comma-separated dates" |
+| Excel serial number in DOB | COVERED | `sutter-edge-cases.test.ts` | "should NOT parse Excel serial number as a date" |
+| Missing Member Name skip | COVERED | `sutterDataTransformer.test.ts` | "should skip rows with missing Member Name" |
+| Duplicate row merging | COVERED | `sutter-integration.test.ts` | Multiple duplicate merge tests |
+| Insurance group = 'sutter' | COVERED | `importExecutor.test.ts` | "should create patient with insuranceGroup from systemId" |
+| Unrecognized Request Type | NOT COVERED | -- | GAP-14C |
+| Action text matching order (first wins) | NOT COVERED | -- | GAP-14A |
+| 3-part semicolon Measure Details | PARTIAL | `sutter-integration.test.ts` | "should parse 3-part semicolon" (tested in fixture, but not in isolated unit test for edge cases) |
+
+### 13. Validation
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Required fields (name, DOB, requestType, qualityMeasure) | COVERED | `validator.test.ts` | 4 required field tests |
+| Invalid DOB format | COVERED | `validator.test.ts` | "should report error for invalid memberDob format" |
+| Duplicate detection within import | COVERED | `validator.test.ts` | "should detect duplicate rows" |
+| Error deduplication | COVERED | `validator.test.ts` | 3 deduplication tests |
+| Error includes memberName | COVERED | `validator.test.ts` | 2 identification tests |
+| Row index tracking | COVERED | `validator.test.ts` | "should use sourceRowIndex in error reports" |
+| Sutter measureStatus warning suppression | COVERED | `validator.test.ts` | 5 Sutter-specific tests |
+| Sutter request types (Chronic DX, Screening) | COVERED | `validator.test.ts` | "should validate Sutter TransformedRows with Chronic DX" |
+| Request type validation (blocking vs warning) | COVERED | `validator.test.ts` | "should treat invalid requestType as warning for Sutter" |
+| Large dataset handling | COVERED | `validator.test.ts` | "should handle a large number of rows efficiently" |
+| Row number offset for Sutter | NOT COVERED | -- | GAP-20B |
+| Error dedup with 100+ duplicates | NOT COVERED | -- | GAP-20C |
+
+### 14. Preview Cache
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Store and retrieve | COVERED | `previewCache.test.ts` | "should store preview and return unique ID" |
+| Unique IDs | COVERED | `previewCache.test.ts` | "should generate unique IDs for each store" |
+| TTL expiration | COVERED | `previewCache.test.ts` | "should return null for expired preview" |
+| Delete on execute | COVERED | `previewCache.test.ts`, `importExecutor.test.ts` | Delete tests |
+| Cleanup expired entries | COVERED | `previewCache.test.ts` | "should remove expired entries" |
+| getPreviewSummary() | COVERED | `previewCache.test.ts` | "should return summary for API response" |
+| getCacheStats() | COVERED | `previewCache.test.ts` | "should return accurate statistics" |
+| extendPreviewTTL() | COVERED | `previewCache.test.ts` | "should extend TTL for valid preview" |
+| Preview expiration notification to user | NOT COVERED | -- | GAP-18A |
+| Race: TTL expires during execute | NOT COVERED | -- | GAP-22C |
+
+### 15. Reassignment Detection
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Same owner (no reassignment) | COVERED | `reassignment.test.ts` | "should not reassign when current and target are same physician" |
+| Different owner (reassignment) | COVERED | `reassignment.test.ts` | "should reassign from physician A to physician B" |
+| Unassigned to physician | COVERED | `reassignment.test.ts` | "should reassign from unassigned to physician" |
+| Display formatting | COVERED | `reassignment.test.ts` | 3 formatting tests |
+| E2E warning flow | PARTIAL | `import-reassignment.spec.ts` | 1 test only |
+| Reassignment + STAFF role | NOT COVERED | -- | GAP-25A |
+| Reassignment + merge mode (cross-physician) | NOT COVERED | -- | GAP-25B |
+
+### 16. Error Handling and Reporting
+
+| Behavior | Status | Test File(s) | Test Name(s) |
+|----------|--------|-------------|--------------|
+| Error grouping by field | COVERED | `errorReporter.test.ts` | 3 groupByField tests |
+| Error grouping by row | COVERED | `errorReporter.test.ts` | 3 groupByRow tests |
+| Duplicate report | COVERED | `errorReporter.test.ts` | 4 duplicate report tests |
+| Condensed report (top 10 limit) | COVERED | `errorReporter.test.ts` | 4 condensed report tests |
+| Text format output | COVERED | `errorReporter.test.ts` | 4 formatReportAsText tests |
+| canProceed flag | COVERED | `validator.test.ts` | Validation stats tests |
+| Double-submission prevention | NOT COVERED | -- | GAP-18B |
+| Network error with retry | NOT COVERED | -- | GAP-18C |
+| Preview failure recovery | NOT COVERED | -- | GAP-18D |
+
+---
+
+## Summary of Coverage Gaps (Verified)
 
 ### By Priority
 
@@ -981,37 +1305,68 @@ This test plan directly supports the product.md goals:
 
 ### By Framework
 
-| Framework | Proposed New Tests |
-|-----------|-------------------|
-| Jest (Backend) | 22 |
-| Vitest (Frontend) | 3 |
-| Playwright (E2E) | 4 |
-| Cypress (E2E) | 6 |
-| Documented-for-Future | 3 |
+| Framework | Current Verified | Proposed New | Total After |
+|-----------|-----------------|-------------|-------------|
+| Jest (Backend) | 926 | 22 | 948 |
+| Vitest (Frontend) | 315 | 3 | 318 |
+| Playwright (E2E) | 71 | 4 | 75 |
+| Cypress (E2E) | 83 | 6 | 89 |
+| Documented-for-Future | -- | 3 | -- |
+| **Total** | **1,395** | **38** | **1,433** |
 
-### By Area
+### By Area (Verified Counts)
 
 | Area | Current Tests | Proposed New | Total After |
 |------|-------------|-------------|-------------|
-| File Parsing | ~53 | 4 | ~57 |
-| Column Mapping | ~31 | 3 | ~34 |
-| Fuzzy Matching | ~56 | 3 | ~59 |
-| Conflict Detection | ~64 | 2 | ~66 |
-| Conflict Resolution UI | ~44 | 1 | ~45 |
-| Diff Calculator | ~93 | 3 | ~96 |
-| Validation | ~47 | 3 | ~50 |
-| Import Executor | ~31 | 3 | ~34 |
-| Preview Cache | ~17 | 2 | ~19 |
-| Import Routes | ~52 | 4 | ~56 |
-| Mapping Routes | ~42 | 2 | ~44 |
-| Mapping Management UI | ~37 | 1 | ~38 |
-| Sheet Selector | ~58 | 1 | ~59 |
-| Import Page UI | ~40 | 3 | ~43 |
-| Import Results Display | ~15 | 2 | ~17 |
-| Insurance Group | ~12 | 1 | ~13 |
-| Reassignment | ~23 | 2 | ~25 |
-| Sutter Integration | ~67 | 1 | ~68 |
-| Performance | ~5 | 2 | ~7 |
+| File Parsing (`fileParser.test.ts`) | 53 | 4 | 57 |
+| Column Mapping (`columnMapper` + `sutterColumnMapper`) | 31 | 3 | 34 |
+| Fuzzy Matching (`fuzzyMatcher.test.ts`) | 56 | 3 | 59 |
+| Conflict Detection (`conflictDetector.test.ts`) | 64 | 2 | 66 |
+| Conflict Resolution UI (`ConflictResolutionStep` + `ConflictBanner` + `ConflictModal`) | 58 | 1 | 59 |
+| Diff Calculator (`diffCalculator` + `mergeLogic`) | 93 | 3 | 96 |
+| Validation (`validator.test.ts`) | 47 | 3 | 50 |
+| Import Executor (`importExecutor.test.ts`) | 31 | 3 | 34 |
+| Error Reporter (`errorReporter.test.ts`) | 25 | 0 | 25 |
+| Preview Cache (`previewCache.test.ts`) | 17 | 2 | 19 |
+| Import Routes (`import.routes.test.ts`) | 52 | 4 | 56 |
+| Mapping Routes (`mapping.routes.test.ts`) | 42 | 2 | 44 |
+| Mapping Management UI (MappingPage + MappingTable + ActionPatternTable) | 55 | 1 | 56 |
+| Sheet Selector (`SheetSelector.test.tsx`) | 58 | 1 | 59 |
+| Import Page UI (`ImportPage.test.tsx` + `ImportPreviewPage.test.tsx`) | 73 | 3 | 76 |
+| Preview Display (`PreviewChangesTable` + `PreviewSummaryCards` + `UnmappedActionsBanner`) | 56 | 0 | 56 |
+| Import Results Display (`ImportResultsDisplay.test.tsx`) | 15 | 2 | 17 |
+| Insurance Group (`insurance-group-filter.cy.ts`) | 12 | 1 | 13 |
+| Reassignment (`reassignment.test.ts` + `import-reassignment.spec.ts`) | 22 | 2 | 24 |
+| Sutter Integration (`sutter-*.test.ts`, 5 files) | 130 | 1 | 131 |
+| Sutter Data Transformer (`sutterDataTransformer.test.ts`) | 51 | 0 | 51 |
+| Action Mapper (`actionMapper.test.ts`) | 56 | 0 | 56 |
+| Measure Details Parser (`measureDetailsParser.test.ts`) | 42 | 0 | 42 |
+| Config Loader (`configLoader.test.ts`) | 47 | 0 | 47 |
+| Performance (`sutter-performance.test.ts`) | 5 | 2 | 7 |
+| Playwright E2E (import-specific, 8 files) | 71 | 4 | 75 |
+| Cypress E2E (import-specific, 5 files) | 83 | 6 | 89 |
+
+### Coverage Percentage by Layer
+
+| Layer | Total Behaviors | Covered | Partial | Not Covered | Coverage % |
+|-------|----------------|---------|---------|-------------|-----------|
+| File Upload & Validation | 14 | 10 | 1 | 3 | 75% |
+| Sheet Discovery | 9 | 6 | 0 | 3 | 67% |
+| Column Mapping | 11 | 7 | 0 | 4 | 64% |
+| Fuzzy Matching | 15 | 12 | 0 | 3 | 80% |
+| Conflict Detection | 21 | 19 | 0 | 2 | 90% |
+| Conflict Resolution | 12 | 10 | 0 | 2 | 83% |
+| Patient Matching & Diff | 12 | 9 | 0 | 3 | 75% |
+| Preview Display | 12 | 8 | 0 | 2+2 future | 67% |
+| Import Execution | 17 | 13 | 0 | 4 | 76% |
+| Role-Based Access | 8 | 8 | 0 | 0 | 100% |
+| Mapping Management | 15 | 12 | 0 | 3 | 80% |
+| Sutter-Specific | 14 | 11 | 1 | 2 | 82% |
+| Validation | 11 | 9 | 0 | 2 | 82% |
+| Preview Cache | 10 | 8 | 0 | 2 | 80% |
+| Reassignment | 6 | 4 | 1 | 2 | 67% |
+| Error Handling | 8 | 4 | 0 | 4 | 50% |
+| **Overall** | **195** | **150** | **3** | **42** | **78%** |
 
 ---
 
