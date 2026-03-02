@@ -83,6 +83,13 @@ jest.unstable_mockModule('../../services/authService.js', () => ({
   verifyToken: jest.fn<any>(),
   findUserById: jest.fn<any>(),
   sendTempPassword: jest.fn<any>(),
+  isStaffAssignedToPhysician: jest.fn<any>(),
+}));
+
+jest.unstable_mockModule('../../services/socketManager.js', () => ({
+  broadcastToRoom: jest.fn<any>(),
+  getRoomName: jest.fn<any>(),
+  getIO: jest.fn<any>(),
 }));
 
 jest.unstable_mockModule('../../services/emailService.js', () => ({
@@ -572,6 +579,7 @@ describe('Admin Routes', () => {
         isActive: true,
         displayName: 'Dr. Smith',
       });
+      mockPrisma.patient.findMany.mockResolvedValue([]);
       mockPrisma.patient.updateMany.mockResolvedValue({ count: 3 });
       mockPrisma.auditLog.create.mockResolvedValue({});
 
@@ -584,6 +592,7 @@ describe('Admin Routes', () => {
     });
 
     it('unassigns patients when ownerId is null', async () => {
+      mockPrisma.patient.findMany.mockResolvedValue([]);
       mockPrisma.patient.updateMany.mockResolvedValue({ count: 2 });
       mockPrisma.auditLog.create.mockResolvedValue({});
 

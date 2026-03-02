@@ -6,6 +6,19 @@ This document tracks planned features and enhancements for future development.
 
 ## Recently Completed
 
+### Bulk Patient Management — Bulk Operations Tab (Complete, Mar 2 2026)
+- [x] BulkOperationsTab — ADMIN-only tab with summary cards, toolbar, filters, patient table
+- [x] AssignModal, UnassignModal, DeleteModal — themed modals with patient preview
+- [x] Toast component — reusable notifications with auto-dismiss
+- [x] bulkPatientStore — Zustand store for patient data, filters, selection
+- [x] GET /api/admin/patients — all patients with summary stats
+- [x] DELETE /api/admin/patients/bulk-delete — hard delete with audit + Socket.IO broadcast
+- [x] Socket.IO broadcasts for bulk assign/unassign/delete to affected owner rooms
+- [x] Disaster Recovery runbook (5 scenarios) + backup/verify scripts
+- [x] Installer backup automation (encryption key, scheduled task, off-site path)
+- [x] Installation guides updated (backup/restore sections)
+- Backend (Jest): 1,590 tests (+30), Frontend (Vitest): 1,380 tests (+74)
+
 ### AG Grid Cell Edit Input Height Fix + Due Date Calculator Tests (Complete)
 - [x] CSS fix: cell edit input height fills full row (`height: 100% !important`, `line-height: normal !important`, `box-sizing: border-box`)
 - [x] 9 new dueDateCalculator tests: boundary months, priority ordering, baseDueDays edge cases
@@ -63,16 +76,17 @@ This document tracks planned features and enhancements for future development.
 - [x] CFB-R8 testing complete (row color accuracy + chip count integrity)
 - [x] 3 bugs found and fixed: BUG-CFB-001, BUG-CFB-002, BUG-CFB-003
 
-### Patient Management Page (Complete)
+### Patient Management Page (Complete, updated Mar 2)
 **Spec:** `.claude/specs/patient-management/`
 - [x] Requirements phase — `requirements.md` created and approved
 - [x] Design phase — `design.md` created and approved
 - [x] Tasks phase — `tasks.md` created and approved (9 tasks)
 - [x] Implementation — consolidated Import + Patient Assignment into tabbed `/patient-management` page
-- [x] Vitest unit tests (18 tests in `PatientManagementPage.test.tsx`)
+- [x] Vitest unit tests (31 tests in `PatientManagementPage.test.tsx` — +13 bulk-ops tab tests)
 - [x] Playwright E2E tests (8 tests in `patient-management.spec.ts`)
 - [x] Cypress tests updated with new URL paths
 - [x] Existing test assertions updated for new routes
+- [x] Bulk Operations tab added for ADMIN role (`?tab=bulk-ops`)
 
 ### Phase 3: Adding & Duplicating Rows
 - [x] Add Row functionality with modal (basic patient info only)

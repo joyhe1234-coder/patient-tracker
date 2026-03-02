@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.15.0] - 2026-03-02
+
+### Added
+- **Bulk Operations tab** — New ADMIN-only tab in Patient Management page for bulk patient management (assign, unassign, delete). Components: `BulkOperationsTab.tsx` (504 lines), `AssignModal.tsx`, `UnassignModal.tsx`, `DeleteModal.tsx`, `Toast.tsx`, `bulkPatientStore.ts` (Zustand), `bulkPatient.ts` types
+- **GET /api/admin/patients** — New endpoint returns all patients with summary statistics (total, assigned, unassigned, insurance systems) for the Bulk Operations tab
+- **DELETE /api/admin/patients/bulk-delete** — New endpoint for permanent hard delete of patients with audit logging and Socket.IO broadcast
+- **Socket.IO broadcasts for bulk operations** — `bulkAssignPatients` now queries previous owners and broadcasts `data:refresh` to affected rooms (new owner, previous owners, unassigned); `bulkDeletePatients` broadcasts to all affected owner rooms
+- **Disaster Recovery runbook** — `docs/DISASTER_RECOVERY.md` with 5 recovery scenarios (hardware failure, DB corruption, ransomware, accidental delete, cloud failure), quarterly restore test checklist
+- **Automated backup scripts (Windows)** — `scripts/backup.ps1` (AES-256 encryption via 7-Zip, off-site NAS copy, GFS retention, logging, Event Log on failure), `scripts/verify-backup.ps1` (backup validation)
+- **Backup automation in installer** — `scripts/install-windows.ps1` now generates `BACKUP_ENCRYPTION_KEY`, prompts for off-site path, creates Windows Task Scheduler task for daily 2 AM backups
+- **74 new frontend Vitest tests** — `BulkOperationsTab.test.tsx`, `bulkPatientStore.test.ts`, `AssignModal.test.tsx`, `UnassignModal.test.tsx`, `DeleteModal.test.tsx`, `Toast.test.tsx`, `PatientManagementPage.test.tsx` (+13 bulk-ops tests)
+- **30 new backend Jest tests** — `admin.routes.bulkpatient.test.ts`, `patientHandlers.bulkAssign.test.ts`, `patientHandlers.bulkDelete.test.ts`, `patientHandlers.getAllPatients.test.ts`
+- **Bulk Operations Cypress E2E** — `bulk-operations.cy.ts` (437 lines)
+- **Bulk Operations Playwright E2E** — `bulk-operations.spec.ts` (467 lines)
+- **UI/UX review** — `reviews/bulk-operations-tab-2026-03-02.md` and `page-guides/bulk-operations.md`
+
+### Changed
+- **Installation guides updated** — `INSTALLATION_GUIDE.md` enhanced backup section (GFS retention, encryption, off-site, quarterly test), `WINDOWS_SERVER_INSTALL.md` rewritten backup/restore section with automated scripts
+- **Update script enhanced** — `scripts/update.ps1` now delegates to `backup.ps1` when available (encrypted, logged), falls back to inline pg_dump
+- **PatientManagementPage** — Added `bulk-ops` tab ID, lazy-loads BulkOperationsTab for ADMIN role, URL param `?tab=bulk-ops` support
+- **patientHandlers.ts** — `bulkAssignPatients` now tracks previous owners for Socket.IO broadcast to affected rooms on reassignment
+- **admin.routes.ts** — Added `getAllPatients` and `bulkDeletePatients` route registrations
+
+### Tests
+- Backend (Jest): 1,590 tests passing (56 suites) — +30 from v4.14.0
+- Frontend (Vitest): 1,380 tests passing (54 suites) — +74 from v4.14.0
+
+---
+
 ## [4.14.0] - 2026-03-01
 
 ### Fixed

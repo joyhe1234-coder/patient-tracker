@@ -266,75 +266,85 @@ docker compose up -d
 
 ## Backup & Restore
 
+Patient Tracker includes an automated backup system with encryption, off-site copy to a network share (NAS), and GFS (Grandfather-Father-Son) retention. See [`DISASTER_RECOVERY.md`](DISASTER_RECOVERY.md) for full disaster recovery procedures.
+
+### Automated Daily Backups
+
+The `install-windows.ps1` script automatically creates a Windows Task Scheduler task that runs `scripts\backup.ps1` daily at 2:00 AM. The backup script:
+
+1. Dumps the PostgreSQL database
+2. Compresses with gzip
+3. Encrypts with AES-256 via 7-Zip (requires [7-Zip](https://7-zip.org/) installed)
+4. Copies the encrypted backup to the off-site network share
+5. Applies GFS retention (7 daily, 4 weekly, 12 monthly)
+6. Logs the result to `backups\backup.log`
+7. Writes a Windows Event Log entry on failure
+
+### Configuration
+
+Backup settings are stored in `.env`:
+
+```env
+# Generated automatically during install
+BACKUP_ENCRYPTION_KEY=<32-char-hex-key>
+
+# Network share for off-site copies (UNC path)
+BACKUP_OFFSITE_PATH=\\nas\backups\patient-tracker
+
+# GFS retention policy
+BACKUP_RETENTION_DAILY=7
+BACKUP_RETENTION_WEEKLY=4
+BACKUP_RETENTION_MONTHLY=12
+```
+
+> **IMPORTANT:** Store a copy of `BACKUP_ENCRYPTION_KEY` in a secure location off-server (e.g., password manager, sealed envelope in a safe). Without this key, encrypted backups cannot be restored.
+
 ### Manual Backup
 
 ```powershell
-Set-Location C:\patient-tracker
-$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-
-# Backup database (use cmd /c to avoid PowerShell UTF-16 encoding)
-cmd /c "docker compose exec -T db pg_dump -U appuser -d patienttracker > backups\patient-tracker-$timestamp.sql"
-
-# Verify backup
-Get-Item "backups\patient-tracker-$timestamp.sql" | Select-Object Name, Length, LastWriteTime
+# Run the backup script manually
+cd C:\patient-tracker
+.\scripts\backup.ps1
 ```
 
-### Automated Daily Backups (Windows Task Scheduler)
+### Verify a Backup
 
-Create a scheduled task to run daily backups:
+Test that a backup file is valid and can be restored:
 
 ```powershell
-# Create backup script
-$backupScript = @'
-Set-Location C:\patient-tracker
-$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-cmd /c "docker compose exec -T db pg_dump -U appuser -d patienttracker > backups\patient-tracker-$timestamp.sql"
-# Keep last 30 days of backups
-Get-ChildItem backups\*.sql | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } | Remove-Item
-'@
-$backupScript | Out-File C:\patient-tracker\scripts\daily-backup.ps1
-
-# Register scheduled task
-$action = New-ScheduledTaskAction -Execute "powershell.exe" `
-  -Argument "-ExecutionPolicy Bypass -File C:\patient-tracker\scripts\daily-backup.ps1"
-$trigger = New-ScheduledTaskTrigger -Daily -At 2:00AM
-$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-Register-ScheduledTask -TaskName "PatientTrackerBackup" -Action $action -Trigger $trigger -Principal $principal
+.\scripts\verify-backup.ps1 -BackupFile backups\patient-tracker-20260301-020000.sql.gz.7z
+# Output: PASS — 8 tables verified, 1247 patients, 3 users, schema v20260205070000
 ```
+
+Run this weekly or after any backup configuration change.
 
 ### Restore from Backup
 
-```powershell
-Set-Location C:\patient-tracker
-
-# Stop app (keep db running)
-docker compose stop app web nginx
-
-# Drop and recreate database
-docker compose exec -T db psql -U appuser -d postgres -c "DROP DATABASE IF EXISTS patienttracker;"
-docker compose exec -T db psql -U appuser -d postgres -c "CREATE DATABASE patienttracker;"
-
-# Restore (use cmd /c for correct encoding)
-cmd /c "type backups\patient-tracker-20260209-120000.sql | docker compose exec -T db psql -U appuser -d patienttracker"
-
-# Restart everything
-docker compose up -d
-```
-
-### Backup Encryption
-
-For HIPAA compliance, encrypt backups at rest:
+Use the rollback script. For encrypted backups, decrypt first:
 
 ```powershell
-# Option 1: Windows EFS (encrypts in-place, tied to user account)
-cipher /e C:\patient-tracker\backups
+cd C:\patient-tracker
 
-# Option 2: 7-Zip with AES-256 (portable, password-protected)
-# After creating backup:
-& "C:\Program Files\7-Zip\7z.exe" a -tzip -p"YourSecurePassword" -mem=AES256 `
-  "backups\patient-tracker-$timestamp.zip" "backups\patient-tracker-$timestamp.sql"
-Remove-Item "backups\patient-tracker-$timestamp.sql"
+# 1. Decrypt the backup (if .7z encrypted)
+& "C:\Program Files\7-Zip\7z.exe" x -p"YOUR_ENCRYPTION_KEY" backups\patient-tracker-20260301-020000.sql.gz.7z -obackups\
+& "C:\Program Files\7-Zip\7z.exe" x backups\patient-tracker-20260301-020000.sql.gz -obackups\
+
+# 2. Restore
+.\scripts\rollback.ps1 -Version latest -BackupFile backups\patient-tracker-20260301-020000.sql
 ```
+
+### Off-Site Backup Setup
+
+To add or change the off-site network share after installation:
+
+1. Edit `C:\patient-tracker\.env`
+2. Set `BACKUP_OFFSITE_PATH` to your NAS UNC path (e.g., `\\nas\backups\patient-tracker`)
+3. Ensure the SYSTEM account has write access to the share
+4. Run `.\scripts\backup.ps1` to test
+
+### Quarterly Restore Test
+
+See [`DISASTER_RECOVERY.md`](DISASTER_RECOVERY.md) for a step-by-step quarterly restore test checklist to verify your backups are working.
 
 ---
 

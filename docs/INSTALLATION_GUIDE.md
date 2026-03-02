@@ -655,7 +655,9 @@ If your organization has an internal CA, work with your IT team to obtain a cert
 
 ## Backup and Restore
 
-### Automated Daily Backups
+For full disaster recovery procedures and scenario-based runbooks, see [`DISASTER_RECOVERY.md`](DISASTER_RECOVERY.md).
+
+### Automated Daily Backups (Linux)
 
 ```bash
 # Create backup script
@@ -664,19 +666,39 @@ sudo nano /opt/patient-tracker/scripts/backup.sh
 
 ```bash
 #!/bin/bash
+set -euo pipefail
+
 BACKUP_DIR=/opt/patient-tracker/backups
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE=$BACKUP_DIR/patienttracker_$DATE.sql.gz
+LOG_FILE=$BACKUP_DIR/backup.log
 
-# Create backup directory
 mkdir -p $BACKUP_DIR
 
-# Dump database
+# Dump and compress
 pg_dump -U appuser -h localhost patienttracker | gzip > $BACKUP_FILE
 
-# Keep only last 30 days
-find $BACKUP_DIR -name "*.sql.gz" -mtime +30 -delete
+# Optional: encrypt with gpg (set BACKUP_ENCRYPTION_KEY in .env)
+if [ -n "${BACKUP_ENCRYPTION_KEY:-}" ]; then
+    gpg --batch --yes --passphrase "$BACKUP_ENCRYPTION_KEY" \
+        --symmetric --cipher-algo AES256 \
+        -o "$BACKUP_FILE.gpg" "$BACKUP_FILE"
+    rm "$BACKUP_FILE"
+    BACKUP_FILE="$BACKUP_FILE.gpg"
+fi
 
+# Optional: copy to off-site (set BACKUP_OFFSITE_PATH in .env)
+if [ -n "${BACKUP_OFFSITE_PATH:-}" ] && [ -d "$BACKUP_OFFSITE_PATH" ]; then
+    cp "$BACKUP_FILE" "$BACKUP_OFFSITE_PATH/"
+fi
+
+# GFS retention: keep 7 daily, 4 weekly (Sunday), 12 monthly (1st)
+find $BACKUP_DIR -name "patienttracker_*.sql.gz*" -mtime +7 \
+    ! -name "*_$(date -d 'last sunday' +%Y%m%d)*" \
+    ! -name "*_??????01_*" \
+    -delete 2>/dev/null || true
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') [OK] Backup: $(basename $BACKUP_FILE) ($(du -h $BACKUP_FILE | cut -f1))" >> $LOG_FILE
 echo "Backup created: $BACKUP_FILE"
 ```
 
@@ -687,6 +709,8 @@ sudo chmod +x /opt/patient-tracker/scripts/backup.sh
 # Add to crontab (daily at 2 AM)
 echo "0 2 * * * /opt/patient-tracker/scripts/backup.sh" | sudo crontab -
 ```
+
+> **Windows Server?** Use `scripts\backup.ps1` instead — it includes AES-256 encryption via 7-Zip, off-site NAS copy, and GFS retention. See [`WINDOWS_SERVER_INSTALL.md`](WINDOWS_SERVER_INSTALL.md).
 
 ### Manual Backup
 
@@ -707,6 +731,10 @@ docker compose exec -T db psql -U appuser patienttracker < backup.sql
 # Manual installation
 psql -U appuser -h localhost patienttracker < backup.sql
 ```
+
+### Quarterly Restore Test
+
+Test your backups every 3 months. See [`DISASTER_RECOVERY.md`](DISASTER_RECOVERY.md) for a checklist.
 
 ---
 

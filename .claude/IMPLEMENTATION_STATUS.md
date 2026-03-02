@@ -29,14 +29,35 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.14.0):**
-- Layer 1 (Backend Jest): 1,560 tests passing (52 suites) — +132 from v4.13.3
-- Layer 2 (Frontend Vitest): 1,306 tests passing (48 suites) — +95 from v4.13.3
-- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases
-- Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles)
+**Test Coverage (as of v4.15.0):**
+- Layer 1 (Backend Jest): 1,590 tests passing (56 suites) — +30 from v4.14.0
+- Layer 2 (Frontend Vitest): 1,380 tests passing (54 suites) — +74 from v4.14.0
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases + bulk-operations
+- Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles, bulk-operations)
 - Visual test plan v2.1: 427 test cases documented
 - Regression test plan: 48 sections, Row Colors section upgraded to 16 TCs / 100% automated
 - Test Gap Remediation Plan: `.claude/TEST_PLAN.md` with 7 module test plans targeting ~154 new tests
+
+### Bulk Patient Management (Bulk Operations Tab)
+
+**Status: Complete** (Mar 2, 2026)
+**Spec:** `.claude/specs/bulk-patient-management/`
+
+- [x] **BulkOperationsTab** — ADMIN-only tab in Patient Management page with summary cards, toolbar, filters, patient table, selection
+- [x] **AssignModal** — Blue-themed modal with physician dropdown, patient preview (max 10 with overflow count)
+- [x] **UnassignModal** — Amber-themed modal with warning banner, patient preview
+- [x] **DeleteModal** — Red-themed modal with "type DELETE" confirmation, patient preview
+- [x] **Toast component** — Reusable success/error toast notifications with auto-dismiss
+- [x] **bulkPatientStore** — Zustand store for patient data, filters, selection, and loading state
+- [x] **GET /api/admin/patients** — All patients with summary stats (total, assigned, unassigned, insurance systems)
+- [x] **DELETE /api/admin/patients/bulk-delete** — Permanent hard delete with audit log and Socket.IO broadcast
+- [x] **Socket.IO broadcasts** — bulkAssign now broadcasts to previous + new owner rooms; bulkDelete broadcasts to affected rooms
+- [x] **Disaster Recovery runbook** — 5 scenarios (hardware, DB corruption, ransomware, accidental delete, cloud failure)
+- [x] **Automated backup scripts** — `backup.ps1` (encryption, off-site, GFS retention), `verify-backup.ps1`
+- [x] **Installer backup integration** — `install-windows.ps1` generates encryption key, creates scheduled task
+- [x] **Installation guides updated** — Enhanced backup/restore sections in both guides
+
+**Tests:** +30 Jest (1,590 total), +74 Vitest (1,380 total), Cypress + Playwright E2E
 
 ### Import Bug Fixes + Test Gap Remediation + Socket Reconnection
 

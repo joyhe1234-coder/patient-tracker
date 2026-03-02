@@ -205,9 +205,11 @@ function New-SecureSecret {
 
 $dbPassword = New-SecureSecret 24
 $jwtSecret = New-SecureSecret 32
+$backupKey = New-SecureSecret 16
 
 Write-Ok "Generated DB_PASSWORD (48 hex chars)"
 Write-Ok "Generated JWT_SECRET (64 hex chars)"
+Write-Ok "Generated BACKUP_ENCRYPTION_KEY (32 hex chars)"
 
 # --- 5. Prompt for Configuration ---
 
@@ -218,6 +220,13 @@ if ([string]::IsNullOrWhiteSpace($adminEmail)) { $adminEmail = "admin@clinic.com
 
 $appUrl = Read-Host "Application URL (default: http://localhost)"
 if ([string]::IsNullOrWhiteSpace($appUrl)) { $appUrl = "http://localhost" }
+
+Write-Host ""
+Write-Host "  Off-site backup configuration (optional)" -ForegroundColor Yellow
+Write-Host "  Enter a UNC path to a network share or NAS for off-site backup copies."
+Write-Host "  Example: \\\\nas\\backups\\patient-tracker"
+Write-Host ""
+$offsitePath = Read-Host "Backup off-site path (press Enter to skip)"
 
 # --- 6. Create .env File ---
 
@@ -253,6 +262,13 @@ ADMIN_PASSWORD=changeme123
 # SMTP_USER=noreply@yourcompany.com
 # SMTP_PASS=your_email_password
 # SMTP_FROM=Patient Tracker <noreply@yourcompany.com>
+
+# Backup configuration
+BACKUP_ENCRYPTION_KEY=$backupKey
+$(if (-not [string]::IsNullOrWhiteSpace($offsitePath)) { "BACKUP_OFFSITE_PATH=$offsitePath" } else { "# BACKUP_OFFSITE_PATH=\\\\nas\\backups\\patient-tracker" })
+BACKUP_RETENTION_DAILY=7
+BACKUP_RETENTION_WEEKLY=4
+BACKUP_RETENTION_MONTHLY=12
 "@
 
 $envPath = Join-Path $InstallDir ".env"
@@ -365,22 +381,81 @@ if ($healthy) {
     Write-Host "    Invoke-WebRequest $healthUrl"
 }
 
-# --- 10. Summary ---
+# --- 10. Setup Automated Backups ---
+
+Write-Step "Configuring automated daily backups"
+
+# Download backup scripts
+$backupScripts = @{
+    "scripts/backup.ps1"          = "$RawBase/scripts/backup.ps1"
+    "scripts/verify-backup.ps1"   = "$RawBase/scripts/verify-backup.ps1"
+    "scripts/rollback.ps1"        = "$RawBase/scripts/rollback.ps1"
+}
+
+$scriptsDir = Join-Path $InstallDir "scripts"
+if (-not (Test-Path $scriptsDir)) {
+    New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
+}
+
+foreach ($script in $backupScripts.GetEnumerator()) {
+    $dest = Join-Path $InstallDir $script.Key
+    try {
+        Invoke-WebRequest -Uri $script.Value -OutFile $dest -UseBasicParsing
+        Write-Ok "Downloaded $($script.Key)"
+    } catch {
+        Write-Warn "Failed to download $($script.Key): $_"
+    }
+}
+
+# Create Windows Task Scheduler task for daily backup at 2 AM
+$backupScriptPath = Join-Path $InstallDir "scripts\backup.ps1"
+if (Test-Path $backupScriptPath) {
+    try {
+        # Remove existing task if present
+        Unregister-ScheduledTask -TaskName "PatientTrackerBackup" -Confirm:$false -ErrorAction SilentlyContinue
+
+        $action = New-ScheduledTaskAction -Execute "powershell.exe" `
+            -Argument "-ExecutionPolicy Bypass -File `"$backupScriptPath`" -InstallDir `"$InstallDir`""
+        $trigger = New-ScheduledTaskTrigger -Daily -At 2:00AM
+        $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+        $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopOnIdleEnd
+
+        Register-ScheduledTask -TaskName "PatientTrackerBackup" `
+            -Action $action -Trigger $trigger -Principal $principal -Settings $settings `
+            -Description "Patient Tracker - Daily encrypted database backup" | Out-Null
+
+        Write-Ok "Scheduled task created: PatientTrackerBackup (daily at 2:00 AM)"
+    } catch {
+        Write-Warn "Could not create scheduled task: $_"
+        Write-Host "  Create it manually: Task Scheduler > Create Task > run backup.ps1 daily at 2 AM"
+    }
+} else {
+    Write-Warn "backup.ps1 not found — skipping scheduled task creation."
+}
+
+# --- 11. Summary ---
 
 Write-Step "Installation Complete"
 
 Write-Host ""
-Write-Host "  Application URL:  $appUrl" -ForegroundColor Green
-Write-Host "  Admin Email:      $adminEmail" -ForegroundColor Green
-Write-Host "  Admin Password:   changeme123" -ForegroundColor Yellow
+Write-Host "  Application URL:   $appUrl" -ForegroundColor Green
+Write-Host "  Admin Email:       $adminEmail" -ForegroundColor Green
+Write-Host "  Admin Password:    changeme123" -ForegroundColor Yellow
 Write-Host "  Install Directory: $InstallDir" -ForegroundColor Green
+Write-Host "  Daily Backups:     2:00 AM -> $(Join-Path $InstallDir 'backups')" -ForegroundColor Green
+if (-not [string]::IsNullOrWhiteSpace($offsitePath)) {
+    Write-Host "  Off-site Backups:  $offsitePath" -ForegroundColor Green
+}
 Write-Host ""
 Write-Host "  IMPORTANT: Change the admin password immediately after first login!" -ForegroundColor Yellow
+Write-Host "  IMPORTANT: Store a copy of BACKUP_ENCRYPTION_KEY off-server for disaster recovery!" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Useful commands:" -ForegroundColor Cyan
-Write-Host "    View logs:      docker compose -f $(Join-Path $InstallDir 'docker-compose.yml') logs -f"
-Write-Host "    Stop app:       docker compose -f $(Join-Path $InstallDir 'docker-compose.yml') down"
-Write-Host "    Start app:      docker compose -f $(Join-Path $InstallDir 'docker-compose.yml') up -d"
-Write-Host "    Update:         .\scripts\update.ps1 -InstallDir $InstallDir"
-Write-Host "    Validate:       .\scripts\validate-deployment.ps1 -InstallDir $InstallDir"
+Write-Host "    View logs:       docker compose -f $(Join-Path $InstallDir 'docker-compose.yml') logs -f"
+Write-Host "    Stop app:        docker compose -f $(Join-Path $InstallDir 'docker-compose.yml') down"
+Write-Host "    Start app:       docker compose -f $(Join-Path $InstallDir 'docker-compose.yml') up -d"
+Write-Host "    Manual backup:   .\scripts\backup.ps1 -InstallDir $InstallDir"
+Write-Host "    Verify backup:   .\scripts\verify-backup.ps1 -BackupFile <path>"
+Write-Host "    Update:          .\scripts\update.ps1 -InstallDir $InstallDir"
+Write-Host "    Validate:        .\scripts\validate-deployment.ps1 -InstallDir $InstallDir"
 Write-Host ""

@@ -5,7 +5,7 @@ import { UserRole } from '@prisma/client';
 import { listUsers, getUser, createUser, updateUser, deleteUser, resetPassword, sendTempPasswordHandler } from './handlers/userHandlers.js';
 import { createStaffAssignment, deleteStaffAssignment, listPhysicians } from './handlers/staffHandlers.js';
 import { getAuditLog } from './handlers/auditHandlers.js';
-import { bulkAssignPatients, getUnassignedPatients } from './handlers/patientHandlers.js';
+import { bulkAssignPatients, getUnassignedPatients, getAllPatients, bulkDeletePatients } from './handlers/patientHandlers.js';
 
 const router = Router();
 
@@ -76,7 +76,9 @@ router.delete('/staff-assignments', deleteStaffAssignment);
 router.get('/audit-log', getAuditLog);
 
 // Route definitions — Patient management
+router.get('/patients', getAllPatients);
 router.patch('/patients/bulk-assign', bulkAssignPatients);
 router.get('/patients/unassigned', getUnassignedPatients);
+router.delete('/patients/bulk-delete', bulkDeletePatients);
 
 export default router;

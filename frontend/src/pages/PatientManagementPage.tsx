@@ -4,6 +4,7 @@ import { ClipboardList } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { ImportTabContent } from './ImportPage';
 import { ReassignTabContent } from './PatientAssignmentPage';
+import { BulkOperationsTab } from './BulkOperationsTab';
 
 export default function PatientManagementPage() {
   const { user } = useAuthStore();
@@ -11,7 +12,7 @@ export default function PatientManagementPage() {
   const rawTab = searchParams.get('tab') || 'import';
 
   const isAdmin = user?.roles.includes('ADMIN');
-  const validTabs = ['import', ...(isAdmin ? ['reassign'] : [])];
+  const validTabs = ['import', ...(isAdmin ? ['reassign', 'bulk-ops'] : [])];
   const activeTab = validTabs.includes(rawTab) ? rawTab : 'import';
 
   const setTab = (tab: string) => {
@@ -23,14 +24,20 @@ export default function PatientManagementPage() {
   };
 
   useEffect(() => {
-    document.title = activeTab === 'reassign'
-      ? 'Patient Management - Reassign'
-      : 'Patient Management - Import';
+    const titles: Record<string, string> = {
+      import: 'Patient Management - Import',
+      reassign: 'Patient Management - Reassign',
+      'bulk-ops': 'Patient Management - Bulk Operations',
+    };
+    document.title = titles[activeTab] || 'Patient Management - Import';
   }, [activeTab]);
 
   const tabs = [
     { id: 'import', label: 'Import Patients' },
-    ...(isAdmin ? [{ id: 'reassign', label: 'Reassign Patients' }] : []),
+    ...(isAdmin ? [
+      { id: 'reassign', label: 'Reassign Patients' },
+      { id: 'bulk-ops', label: 'Bulk Operations' },
+    ] : []),
   ];
 
   return (
@@ -69,6 +76,11 @@ export default function PatientManagementPage() {
       {isAdmin && (
         <div className={activeTab === 'reassign' ? 'tab-visible' : 'tab-hidden'}>
           <ReassignTabContent isActive={activeTab === 'reassign'} />
+        </div>
+      )}
+      {isAdmin && (
+        <div className={activeTab === 'bulk-ops' ? 'tab-visible' : 'tab-hidden'}>
+          <BulkOperationsTab isActive={activeTab === 'bulk-ops'} />
         </div>
       )}
     </div>
