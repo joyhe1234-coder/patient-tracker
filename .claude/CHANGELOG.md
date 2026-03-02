@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.15.1] - 2026-03-02
+
+### Added
+- **76 new frontend Vitest tests** — Closes test gaps across multiple modules:
+  - `App.test.tsx` (11 tests): Full routing coverage (login, forgot-password, admin, patient-management, import redirects, catch-all)
+  - `toast.test.ts` (9 tests): DOM creation, accessibility (role="alert"), color themes (info/error/success/warning), auto-dismiss timer
+  - `MainPage.loading.test.tsx` (5 tests): Loading spinner, error state, Retry button, successful retry hides error
+  - `isTimeIntervalEditable.test.ts` (11 tests): Undefined data, null/empty statusDate, null timeIntervalDays, dropdown statuses, editable statuses, TIME_PERIOD_DROPDOWN_STATUSES constant
+  - `Header.test.tsx` (+25 tests): ChangePasswordModal validation (empty fields, length, mismatch), API call on save, success/error UI, toggle visibility, close/cancel behavior
+  - `axios.test.ts` (+10 tests): sanitizeForLogging (null, string, number, redaction, immutability), getApiBaseUrl (no env, https prefix, onrender suffix), interceptor edge cases, X-Socket-ID header
+  - `cascadingFields.test.ts` (+4 tests): Edge cases for cascading field clearing
+  - `ConflictResolutionStep.test.tsx` (+2 tests): Additional conflict resolution scenarios
+  - `MappingTable.test.tsx` (+1 test): Mapping table edge case
+- **9 new backend Jest tests** — Authorization boundary tests:
+  - `data.routes.test.ts` (+3 tests): 403 Forbidden when patient/measure/row belongs to another physician (POST, PUT, DELETE)
+  - `patientHandlers.bulkAssign.test.ts` (+4 tests): Socket.IO broadcast edge cases for bulk assignment
+  - `fileParser.test.ts` (+2 tests): File parser edge cases
+
+### Changed
+- **`axios.ts`** — Exported `sanitizeForLogging` and `getApiBaseUrl` for direct unit testing (were previously private)
+- **`PatientGrid.tsx`** — Exported `TIME_PERIOD_DROPDOWN_STATUSES` constant and `isTimeIntervalEditable` helper for direct unit testing (were previously private)
+
+### Tests
+- Backend (Jest): 1,599 tests passing (56 suites) — +9 from v4.15.0
+- Frontend (Vitest): 1,456 tests passing (58 suites) — +76 from v4.15.0
+
+---
+
 ## [4.15.0] - 2026-03-02
 
 ### Added

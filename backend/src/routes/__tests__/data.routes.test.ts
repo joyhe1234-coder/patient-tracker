@@ -312,6 +312,18 @@ describe('Data Routes', () => {
       expect(res.status).toBe(201);
       expect(mockPrisma.patient.create).not.toHaveBeenCalled();
     });
+
+    it('returns 403 when patient belongs to another physician', async () => {
+      // Patient exists but belongs to a different physician (ownerId: 99, not testUser.id: 1)
+      mockPrisma.patient.findUnique.mockResolvedValue({ ...samplePatient, ownerId: 99 });
+
+      const res = await request(app)
+        .post('/api/data')
+        .send({ memberName: 'Smith, John', memberDob: '1990-01-15', requestType: 'AWV' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    });
   });
 
   // ── PUT /api/data/:id ───────────────────────────────────────────
@@ -340,6 +352,21 @@ describe('Data Routes', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('returns 403 when measure belongs to another physician', async () => {
+      // Measure's patient has ownerId: 99, not testUser.id: 1
+      mockPrisma.patientMeasure.findUnique.mockResolvedValue({
+        ...sampleMeasure,
+        patient: { ...samplePatient, ownerId: 99 },
+      });
+
+      const res = await request(app)
+        .put('/api/data/10')
+        .send({ notes: 'hacked' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
     });
 
     it('updates patient fields (name, address)', async () => {
@@ -536,6 +563,18 @@ describe('Data Routes', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('returns 403 when measure belongs to another physician', async () => {
+      mockPrisma.patientMeasure.findUnique.mockResolvedValue({
+        ...sampleMeasure,
+        patient: { ...samplePatient, ownerId: 99 },
+      });
+
+      const res = await request(app).delete('/api/data/10');
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
     });
   });
 

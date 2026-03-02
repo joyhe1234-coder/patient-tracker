@@ -37,7 +37,7 @@ import {
 
 // Statuses where interval is controlled by TIME PERIOD dropdown (NOT manually editable)
 // These have dropdowns like "In X Months", "X months", "Call every X wks"
-const TIME_PERIOD_DROPDOWN_STATUSES = [
+export const TIME_PERIOD_DROPDOWN_STATUSES = [
   'Screening discussed',           // Tracking #1: In 1-11 Months
   'HgbA1c ordered',                // Tracking #2: 1-12 months
   'HgbA1c at goal',                // Tracking #2: 1-12 months
@@ -48,7 +48,7 @@ const TIME_PERIOD_DROPDOWN_STATUSES = [
 
 // Helper function to determine if time interval is editable
 // Editable when: has status date + has time interval + NOT a time-period dropdown status
-const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
+export const isTimeIntervalEditable = (data: GridRow | undefined): boolean => {
   if (!data) return false;
 
   // No status date = no due date calculation possible

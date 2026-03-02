@@ -722,6 +722,41 @@ describe('fileParser', () => {
     });
   });
 
+  describe('XSS in headers', () => {
+    it('should parse CSV headers containing HTML/script tags as plain strings', () => {
+      const csv = '<script>alert("xss")</script>,Normal,<img onerror=alert(1) src=x>\nval1,val2,val3';
+      const buffer = Buffer.from(csv);
+
+      const result = parseCSV(buffer, 'xss-test.csv');
+
+      expect(result.headers).toEqual([
+        '<script>alert("xss")</script>',
+        'Normal',
+        '<img onerror=alert(1) src=x>',
+      ]);
+      expect(result.rows[0]['<script>alert("xss")</script>']).toBe('val1');
+    });
+
+    it('should parse XLSX headers containing HTML tags as plain strings', () => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([
+        ['<b>Name</b>', '<script>alert(1)</script>', 'Normal'],
+        ['John', 'val2', 'val3'],
+      ]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+      const result = parseExcel(buffer, 'xss-test.xlsx');
+
+      expect(result.headers).toEqual([
+        '<b>Name</b>',
+        '<script>alert(1)</script>',
+        'Normal',
+      ]);
+      expect(result.rows[0]['<b>Name</b>']).toBe('John');
+    });
+  });
+
   describe('password-protected and corrupted XLSX files', () => {
     it('should throw an error when parsing a password-protected XLSX file', () => {
       // Password-protected XLSX files have encrypted content that XLSX library cannot read

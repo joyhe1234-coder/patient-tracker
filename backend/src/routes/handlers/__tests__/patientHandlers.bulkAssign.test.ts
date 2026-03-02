@@ -252,6 +252,60 @@ describe('bulkAssignPatients -- Socket.IO broadcasts', () => {
     });
   });
 
+  describe('input validation', () => {
+    it('rejects non-array patientIds', async () => {
+      const req = mockReq({ patientIds: 'not-array', ownerId: 1 });
+      const res = mockRes();
+      const next = jest.fn<any>();
+
+      await bulkAssignPatients(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      const error = next.mock.calls[0][0] as any;
+      expect(error.statusCode).toBe(400);
+      expect(error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects empty patientIds array', async () => {
+      const req = mockReq({ patientIds: [], ownerId: 1 });
+      const res = mockRes();
+      const next = jest.fn<any>();
+
+      await bulkAssignPatients(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      const error = next.mock.calls[0][0] as any;
+      expect(error.statusCode).toBe(400);
+      expect(error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects non-integer ownerId', async () => {
+      const req = mockReq({ patientIds: [1, 2], ownerId: 'abc' });
+      const res = mockRes();
+      const next = jest.fn<any>();
+
+      await bulkAssignPatients(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      const error = next.mock.calls[0][0] as any;
+      expect(error.statusCode).toBe(400);
+      expect(error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects non-integer values in patientIds array', async () => {
+      const req = mockReq({ patientIds: [1, 'abc', 3], ownerId: 1 });
+      const res = mockRes();
+      const next = jest.fn<any>();
+
+      await bulkAssignPatients(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      const error = next.mock.calls[0][0] as any;
+      expect(error.statusCode).toBe(400);
+      expect(error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
   describe('no socket server available', () => {
     it('does not throw when getIO() returns null', async () => {
       mockGetIO.mockReturnValue(null);

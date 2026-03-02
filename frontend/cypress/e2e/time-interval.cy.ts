@@ -421,6 +421,89 @@ describe('Time Interval Editability', () => {
             });
         });
     });
+
+    it('should reject negative number and show alert', () => {
+      const alertStub = cy.stub();
+      cy.on('window:alert', alertStub);
+
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((originalText) => {
+          const originalDays = parseInt(originalText.trim(), 10);
+
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
+          cy.get('.ag-cell-edit-wrapper input').clear().type('-5');
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+
+          cy.then(() => {
+            expect(alertStub).to.have.been.calledOnce;
+            expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
+          });
+
+          // Value should revert to original
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(originalDays);
+            });
+        });
+    });
+
+    it('should reject large negative number and show alert', () => {
+      const alertStub = cy.stub();
+      cy.on('window:alert', alertStub);
+
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then((originalText) => {
+          const originalDays = parseInt(originalText.trim(), 10);
+
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
+          cy.get('.ag-cell-edit-wrapper input').clear().type('-100');
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+
+          cy.then(() => {
+            expect(alertStub).to.have.been.calledOnce;
+            expect(alertStub.firstCall.args[0]).to.include('valid number between 1 and 1000');
+          });
+
+          // Value should revert to original
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(originalDays);
+            });
+        });
+    });
+
+    it('should truncate decimal to integer (parseInt behavior)', () => {
+      cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+        .invoke('text')
+        .then(() => {
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays').dblclick();
+          cy.get(`[row-index="${testRowIndex}"] [col-id="timeIntervalDays"]`).first()
+            .find('.ag-cell-edit-wrapper')
+            .should('exist');
+          cy.get('.ag-cell-edit-wrapper input').clear().type('45.5');
+          cy.get('.ag-cell-edit-wrapper input').type('{enter}');
+
+          // parseInt('45.5') = 45, which is valid (1-1000), so it should be accepted as 45
+          cy.getAgGridCellWithScroll(testRowIndex, 'timeIntervalDays')
+            .invoke('text')
+            .then((text) => {
+              const days = parseInt(text.trim(), 10);
+              expect(days).to.equal(45);
+            });
+        });
+    });
   });
 
   describe('Due Date and Interval via Dropdown', () => {

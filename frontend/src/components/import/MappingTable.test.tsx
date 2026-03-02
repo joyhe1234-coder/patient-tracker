@@ -383,6 +383,25 @@ describe('MappingTable', () => {
     });
   });
 
+  // ------- XSS Protection -------
+  describe('XSS protection', () => {
+    it('renders <script> tag in sourceColumn as visible text, not executable', () => {
+      renderTable({
+        mappings: [makeMeasureMapping({ sourceColumn: '<script>alert("xss")</script>' })],
+      });
+
+      expect(screen.getByText('<script>alert("xss")</script>')).toBeInTheDocument();
+    });
+
+    it('renders img onerror payload in sourceColumn as escaped text', () => {
+      renderTable({
+        mappings: [makeMeasureMapping({ sourceColumn: '<img onerror=alert(1) src=x>' })],
+      });
+
+      expect(screen.getByText('<img onerror=alert(1) src=x>')).toBeInTheDocument();
+    });
+  });
+
   // ------- Delete Button -------
   describe('delete button', () => {
     it('calls onDelete with correct sourceColumn when clicked', async () => {

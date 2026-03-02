@@ -4809,8 +4809,55 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 55. Test Gap Remediation — v4.15.1
+
+### TC-55.1: App Routing
+- **Precondition:** Application loaded
+- **Steps:** Navigate to all public and protected routes
+- **Expected:** Each route renders correct page component; redirects work (e.g., /import -> /patient-management); unknown routes hit catch-all
+- **Automation:** Automated — `App.test.tsx` (11 tests)
+
+### TC-55.2: Toast Notification Utility
+- **Precondition:** Application loaded
+- **Steps:** Trigger toast notifications of each type (info, error, success, warning)
+- **Expected:** Toast appears with correct color, role="alert" attribute, auto-dismisses after ~4.3s, container cleaned up
+- **Automation:** Automated — `toast.test.ts` (9 tests)
+
+### TC-55.3: MainPage Loading/Error/Retry States
+- **Precondition:** Navigate to MainPage
+- **Steps:** Observe loading → error → retry flow
+- **Expected:** Shows spinner during load; displays error with Retry button on failure; successful retry hides error and shows grid
+- **Automation:** Automated — `MainPage.loading.test.tsx` (5 tests)
+
+### TC-55.4: Time Interval Editability Logic
+- **Precondition:** Grid has rows with various statuses
+- **Steps:** Check which time interval cells are editable
+- **Expected:** Editable only when row has statusDate + timeIntervalDays and status is NOT a dropdown-controlled status
+- **Automation:** Automated — `isTimeIntervalEditable.test.ts` (11 tests)
+
+### TC-55.5: Header ChangePasswordModal
+- **Precondition:** User logged in, opens Change Password modal
+- **Steps:** Test validation (empty fields, short password, mismatch), API call, success/error states, toggle visibility, close behavior
+- **Expected:** Validation errors shown before API call; success clears and closes modal; error message displayed; toggle shows/hides passwords
+- **Automation:** Automated — `Header.test.tsx` (+25 tests in ChangePasswordModal suite)
+
+### TC-55.6: Axios Utilities & Interceptors
+- **Precondition:** API module loaded
+- **Steps:** Test sanitizeForLogging, getApiBaseUrl, request/response interceptors
+- **Expected:** Sensitive keys redacted, base URL constructed correctly per environment, X-Socket-ID attached, error interceptors reject properly
+- **Automation:** Automated — `axios.test.ts` (+10 tests)
+
+### TC-55.7: Data Routes Authorization Boundaries
+- **Precondition:** Authenticated physician user
+- **Steps:** Attempt to POST/PUT/DELETE data for patients belonging to another physician
+- **Expected:** 403 FORBIDDEN response for all three operations
+- **Automation:** Automated — `data.routes.test.ts` (+3 tests)
+
+---
+
 ## Last Updated
 
+March 2, 2026 - Added Section 55: Test Gap Remediation v4.15.1 (TC-55.1 to TC-55.7). 7 test case groups covering 85 new tests, 100% automated. App routing, toast utility, loading states, time interval editability, ChangePasswordModal, axios utilities, authorization boundaries. Test counts: 1,599 Jest + 1,456 Vitest.
 March 2, 2026 - Added Section 54: Bulk Patient Management (TC-54.1 to TC-54.8). 8 test cases, 100% automated. Covers tab visibility, bulk assign/unassign/delete, GET /api/admin/patients, filtering, validation errors. Test counts: 1,590 Jest + 1,380 Vitest.
 March 1, 2026 - Added Section 53: Import Bug Fixes — Insurance Scoping & Reassignment (TC-53.1 to TC-53.5). 5 test cases, 100% automated. Covers Replace All insurance group scoping, reassignment duplicate prevention, merge mode reassignment, admin role cleanup, socket reconnection. Test counts: 1,560 Jest + 1,306 Vitest.
 February 26, 2026 - Added Section 52: Production Deployment — Seed on Deploy (TC-52.1 to TC-52.3). 3 manual test cases for production seed guard, Render auto-seed, and baseDueDays verification. Root cause fix for row colors not turning red on production (NULL baseDueDays from missing seed). Test counts unchanged: 1,419 Jest + 1,211 Vitest.
