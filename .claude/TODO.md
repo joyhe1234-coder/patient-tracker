@@ -741,6 +741,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+March 2, 2026 - v4.15.0: Bulk patient management tab complete (6 components, 2 endpoints, Socket.IO broadcasts), disaster recovery + backup automation, installation guides updated. 1,590 Jest + 1,380 Vitest = 2,970 unit/component tests (+104 from v4.14.0).
 March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion. 1,560 Jest + 1,306 Vitest = 2,866 unit/component tests (+227 from v4.13.3). Security audit 16 findings documented.
 February 27, 2026 - M1 Auth complete: +10 Jest (auth.routes 49→59), +8 Playwright E2E (auth-edge-cases.spec.ts), +1 E2E fix (password-flows heading). Security audit: 16 findings, 10 test gaps added to TODO. 1,438 Jest + 1,211 Vitest + 24 auth Playwright + 42 auth Cypress.
 February 26, 2026 - v4.13.1 release: Test gap remediation plan complete, 7 new E2E test files, spec reconciliation done. 1,419 Jest + 1,211 Vitest = 2,630 unit/component tests. Execute remaining Tier 1-2 test plans is next priority.
