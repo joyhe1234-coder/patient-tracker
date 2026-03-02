@@ -4757,8 +4757,61 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 54. Bulk Patient Management (Bulk Operations Tab)
+
+### TC-54.1: ADMIN Sees Bulk Operations Tab
+- **Precondition:** Logged in as ADMIN user
+- **Steps:** Navigate to `/patient-management`
+- **Expected:** "Bulk Operations" tab is visible alongside "Import Patients" and "Reassign Patients"
+- **Automation:** Automated — `PatientManagementPage.test.tsx` (ADMIN sees "Bulk Operations" tab)
+
+### TC-54.2: Non-ADMIN Cannot See Bulk Operations Tab
+- **Precondition:** Logged in as STAFF or PHYSICIAN
+- **Steps:** Navigate to `/patient-management` or `/patient-management?tab=bulk-ops`
+- **Expected:** "Bulk Operations" tab is NOT visible; `?tab=bulk-ops` falls back to Import tab
+- **Automation:** Automated — `PatientManagementPage.test.tsx` (STAFF/PHYSICIAN cannot see tab, URL param fallback)
+
+### TC-54.3: Bulk Assign Patients
+- **Precondition:** ADMIN on Bulk Operations tab with patients selected
+- **Steps:** Click "Assign", select physician from dropdown, confirm
+- **Expected:** Patients assigned to physician; toast success; table refreshed; Socket.IO broadcasts to affected rooms
+- **Automation:** Automated — `AssignModal.test.tsx`, `patientHandlers.bulkAssign.test.ts`, `admin.routes.bulkpatient.test.ts`
+
+### TC-54.4: Bulk Unassign Patients
+- **Precondition:** ADMIN on Bulk Operations tab with assigned patients selected
+- **Steps:** Click "Unassign", confirm in modal
+- **Expected:** Patients unassigned (ownerId set to null); toast success; Socket.IO broadcasts to previous owners and unassigned room
+- **Automation:** Automated — `UnassignModal.test.tsx`, `patientHandlers.bulkAssign.test.ts` (unassign path)
+
+### TC-54.5: Bulk Delete Patients
+- **Precondition:** ADMIN on Bulk Operations tab with patients selected
+- **Steps:** Click "Delete", type "DELETE" in confirmation input, confirm
+- **Expected:** Patients permanently deleted (cascade deletes measures); audit log created; Socket.IO broadcasts; toast success
+- **Automation:** Automated — `DeleteModal.test.tsx`, `patientHandlers.bulkDelete.test.ts`, `admin.routes.bulkpatient.test.ts`
+
+### TC-54.6: GET /api/admin/patients Returns All Patients with Summary
+- **Precondition:** Database has patients assigned to various physicians
+- **Steps:** Call GET /api/admin/patients
+- **Expected:** Returns patient list with ownerName, measureCount, latestMeasure, latestStatus, and summary stats (total, assigned, unassigned, insuranceSystemCount)
+- **Automation:** Automated — `patientHandlers.getAllPatients.test.ts`
+
+### TC-54.7: Filter and Search in Bulk Operations
+- **Precondition:** ADMIN on Bulk Operations tab with patients loaded
+- **Steps:** Use search box and dropdowns to filter by physician, insurance, measure
+- **Expected:** Patient table filters correctly; Select All selects only filtered patients
+- **Automation:** Automated — `BulkOperationsTab.test.tsx`, `bulkPatientStore.test.ts`
+
+### TC-54.8: Validation Errors for Bulk Operations
+- **Precondition:** Various invalid inputs
+- **Steps:** Submit empty patientIds, non-integer IDs, >5000 patients
+- **Expected:** 400 errors with appropriate messages (VALIDATION_ERROR, PAYLOAD_TOO_LARGE)
+- **Automation:** Automated — `patientHandlers.bulkAssign.test.ts`, `patientHandlers.bulkDelete.test.ts`
+
+---
+
 ## Last Updated
 
+March 2, 2026 - Added Section 54: Bulk Patient Management (TC-54.1 to TC-54.8). 8 test cases, 100% automated. Covers tab visibility, bulk assign/unassign/delete, GET /api/admin/patients, filtering, validation errors. Test counts: 1,590 Jest + 1,380 Vitest.
 March 1, 2026 - Added Section 53: Import Bug Fixes — Insurance Scoping & Reassignment (TC-53.1 to TC-53.5). 5 test cases, 100% automated. Covers Replace All insurance group scoping, reassignment duplicate prevention, merge mode reassignment, admin role cleanup, socket reconnection. Test counts: 1,560 Jest + 1,306 Vitest.
 February 26, 2026 - Added Section 52: Production Deployment — Seed on Deploy (TC-52.1 to TC-52.3). 3 manual test cases for production seed guard, Render auto-seed, and baseDueDays verification. Root cause fix for row colors not turning red on production (NULL baseDueDays from missing seed). Test counts unchanged: 1,419 Jest + 1,211 Vitest.
 February 26, 2026 - Added TC-7.4 (boundary month patterns & priority ordering, 6 tests) and TC-7.5 (baseDueDays edge cases, 4 tests). Updated TC-7.1 test count from 20 to 29. Test counts: 1,428 Jest + 1,211 Vitest.

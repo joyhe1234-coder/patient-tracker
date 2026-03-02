@@ -67,6 +67,13 @@ jest.unstable_mockModule('../../../services/authService.js', () => ({
   findUserById: jest.fn<any>(),
   sendTempPassword: jest.fn<any>(),
   verifyPassword: jest.fn<any>(),
+  isStaffAssignedToPhysician: jest.fn<any>(),
+}));
+
+jest.unstable_mockModule('../../../services/socketManager.js', () => ({
+  broadcastToRoom: jest.fn<any>(),
+  getRoomName: jest.fn<any>(),
+  getIO: jest.fn<any>(),
 }));
 
 jest.unstable_mockModule('../../../services/emailService.js', () => ({

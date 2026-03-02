@@ -16,6 +16,14 @@ vi.mock('./PatientAssignmentPage', () => ({
   ),
 }));
 
+vi.mock('./BulkOperationsTab', () => ({
+  BulkOperationsTab: ({ isActive }: { isActive: boolean }) => (
+    <div data-testid="bulk-ops-tab-content" data-active={isActive}>
+      Bulk Operations Tab Content
+    </div>
+  ),
+}));
+
 // Mock authStore — default ADMIN user, overridden per test as needed
 const mockUseAuthStore = vi.fn();
 vi.mock('../stores/authStore', () => ({
@@ -226,6 +234,109 @@ describe('PatientManagementPage', () => {
       mockUseAuthStore.mockReturnValue({ user: makeUser(['ADMIN', 'PHYSICIAN']) });
       renderPage();
       expect(screen.getByTestId('reassign-tab-content')).toBeInTheDocument();
+    });
+  });
+
+  describe('Bulk Operations tab', () => {
+    // Tab visibility
+    it('ADMIN sees "Bulk Operations" tab', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['ADMIN']) });
+      renderPage();
+
+      expect(screen.getByText('Bulk Operations')).toBeInTheDocument();
+    });
+
+    it('STAFF does NOT see "Bulk Operations" tab', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['STAFF']) });
+      renderPage();
+
+      expect(screen.queryByText('Bulk Operations')).not.toBeInTheDocument();
+    });
+
+    it('PHYSICIAN does NOT see "Bulk Operations" tab', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['PHYSICIAN']) });
+      renderPage();
+
+      expect(screen.queryByText('Bulk Operations')).not.toBeInTheDocument();
+    });
+
+    // URL params
+    it('?tab=bulk-ops activates Bulk Operations tab for ADMIN', () => {
+      renderPage(['/patient-management?tab=bulk-ops']);
+
+      const bulkOpsTab = screen.getByText('Bulk Operations');
+      expect(bulkOpsTab).toHaveClass('border-b-2', 'border-blue-600');
+
+      const bulkOpsContent = screen.getByTestId('bulk-ops-tab-content');
+      expect(bulkOpsContent.closest('.tab-visible')).toBeTruthy();
+    });
+
+    it('?tab=bulk-ops falls back to Import for STAFF', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['STAFF']) });
+      renderPage(['/patient-management?tab=bulk-ops']);
+
+      expect(screen.queryByText('Bulk Operations')).not.toBeInTheDocument();
+
+      const importTab = screen.getByText('Import Patients');
+      expect(importTab).toHaveClass('border-b-2', 'border-blue-600');
+    });
+
+    it('?tab=bulk-ops falls back to Import for PHYSICIAN', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['PHYSICIAN']) });
+      renderPage(['/patient-management?tab=bulk-ops']);
+
+      expect(screen.queryByText('Bulk Operations')).not.toBeInTheDocument();
+
+      const importTab = screen.getByText('Import Patients');
+      expect(importTab).toHaveClass('border-b-2', 'border-blue-600');
+    });
+
+    // Tab switching
+    it('clicking "Bulk Operations" tab shows bulk-ops content', async () => {
+      renderPage();
+
+      await user.click(screen.getByText('Bulk Operations'));
+
+      const bulkOpsContent = screen.getByTestId('bulk-ops-tab-content');
+      expect(bulkOpsContent.closest('.tab-visible')).toBeTruthy();
+
+      const importContent = screen.getByTestId('import-tab-content');
+      expect(importContent.closest('.tab-hidden')).toBeTruthy();
+    });
+
+    it('passes isActive=true to BulkOperationsTab when tab is active', async () => {
+      renderPage();
+
+      await user.click(screen.getByText('Bulk Operations'));
+
+      const bulkOpsContent = screen.getByTestId('bulk-ops-tab-content');
+      expect(bulkOpsContent).toHaveAttribute('data-active', 'true');
+    });
+
+    it('passes isActive=false to BulkOperationsTab when Import tab is active', () => {
+      renderPage();
+
+      const bulkOpsContent = screen.getByTestId('bulk-ops-tab-content');
+      expect(bulkOpsContent).toHaveAttribute('data-active', 'false');
+    });
+
+    // Tab content mounting
+    it('Bulk Operations tab content is rendered for ADMIN', () => {
+      renderPage();
+      expect(screen.getByTestId('bulk-ops-tab-content')).toBeInTheDocument();
+    });
+
+    it('Bulk Operations tab content is NOT rendered for non-ADMIN', () => {
+      mockUseAuthStore.mockReturnValue({ user: makeUser(['STAFF']) });
+      renderPage();
+      expect(screen.queryByTestId('bulk-ops-tab-content')).not.toBeInTheDocument();
+    });
+
+    // Document title
+    it('sets document.title to "Patient Management - Bulk Operations" when tab is bulk-ops', () => {
+      renderPage(['/patient-management?tab=bulk-ops']);
+
+      expect(document.title).toBe('Patient Management - Bulk Operations');
     });
   });
 });

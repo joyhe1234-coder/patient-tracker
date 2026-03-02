@@ -6,6 +6,19 @@ This document tracks planned features and enhancements for future development.
 
 ## Recently Completed
 
+### Bulk Patient Management — Bulk Operations Tab (Complete, Mar 2 2026)
+- [x] BulkOperationsTab — ADMIN-only tab with summary cards, toolbar, filters, patient table
+- [x] AssignModal, UnassignModal, DeleteModal — themed modals with patient preview
+- [x] Toast component — reusable notifications with auto-dismiss
+- [x] bulkPatientStore — Zustand store for patient data, filters, selection
+- [x] GET /api/admin/patients — all patients with summary stats
+- [x] DELETE /api/admin/patients/bulk-delete — hard delete with audit + Socket.IO broadcast
+- [x] Socket.IO broadcasts for bulk assign/unassign/delete to affected owner rooms
+- [x] Disaster Recovery runbook (5 scenarios) + backup/verify scripts
+- [x] Installer backup automation (encryption key, scheduled task, off-site path)
+- [x] Installation guides updated (backup/restore sections)
+- Backend (Jest): 1,590 tests (+30), Frontend (Vitest): 1,380 tests (+74)
+
 ### AG Grid Cell Edit Input Height Fix + Due Date Calculator Tests (Complete)
 - [x] CSS fix: cell edit input height fills full row (`height: 100% !important`, `line-height: normal !important`, `box-sizing: border-box`)
 - [x] 9 new dueDateCalculator tests: boundary months, priority ordering, baseDueDays edge cases
@@ -35,6 +48,7 @@ This document tracks planned features and enhancements for future development.
 - [x] M1 Auth: +10 Jest tests (audit logging for 6 successful operations + 4 edge cases), +8 Playwright E2E (force-change modal, account lockout, post-logout)
 - [x] M1 Auth: Fixed pre-existing E2E failure (password-flows.spec.ts "Invalid Link" heading mismatch)
 - [x] M1 Auth: Security audit completed — 16 findings, 10 security-specific test gaps identified (added to TODO)
+- [x] Workflow audits — Authentication (8 workflows) and Real-Time Collaboration (13 workflows + critical gaps)
 - [ ] Execute remaining Tier 1 test plans (M7 Filter, M4 Import, M6 Realtime, M5 Admin)
 - [ ] Execute Tier 2 test plans
 
@@ -62,16 +76,17 @@ This document tracks planned features and enhancements for future development.
 - [x] CFB-R8 testing complete (row color accuracy + chip count integrity)
 - [x] 3 bugs found and fixed: BUG-CFB-001, BUG-CFB-002, BUG-CFB-003
 
-### Patient Management Page (Complete)
+### Patient Management Page (Complete, updated Mar 2)
 **Spec:** `.claude/specs/patient-management/`
 - [x] Requirements phase — `requirements.md` created and approved
 - [x] Design phase — `design.md` created and approved
 - [x] Tasks phase — `tasks.md` created and approved (9 tasks)
 - [x] Implementation — consolidated Import + Patient Assignment into tabbed `/patient-management` page
-- [x] Vitest unit tests (18 tests in `PatientManagementPage.test.tsx`)
+- [x] Vitest unit tests (31 tests in `PatientManagementPage.test.tsx` — +13 bulk-ops tab tests)
 - [x] Playwright E2E tests (8 tests in `patient-management.spec.ts`)
 - [x] Cypress tests updated with new URL paths
 - [x] Existing test assertions updated for new routes
+- [x] Bulk Operations tab added for ADMIN role (`?tab=bulk-ops`)
 
 ### Phase 3: Adding & Duplicating Rows
 - [x] Add Row functionality with modal (basic patient info only)
@@ -726,6 +741,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+March 2, 2026 - v4.15.0: Bulk patient management tab complete (6 components, 2 endpoints, Socket.IO broadcasts), disaster recovery + backup automation, installation guides updated. 1,590 Jest + 1,380 Vitest = 2,970 unit/component tests (+104 from v4.14.0).
 March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion. 1,560 Jest + 1,306 Vitest = 2,866 unit/component tests (+227 from v4.13.3). Security audit 16 findings documented.
 February 27, 2026 - M1 Auth complete: +10 Jest (auth.routes 49→59), +8 Playwright E2E (auth-edge-cases.spec.ts), +1 E2E fix (password-flows heading). Security audit: 16 findings, 10 test gaps added to TODO. 1,438 Jest + 1,211 Vitest + 24 auth Playwright + 42 auth Cypress.
 February 26, 2026 - v4.13.1 release: Test gap remediation plan complete, 7 new E2E test files, spec reconciliation done. 1,419 Jest + 1,211 Vitest = 2,630 unit/component tests. Execute remaining Tier 1-2 test plans is next priority.

@@ -100,39 +100,63 @@ $backupFile = $null
 if (-not $SkipBackup) {
     Write-Step "Backing up database"
 
-    $backupDir = Join-Path $InstallDir "backups"
-    if (-not (Test-Path $backupDir)) {
-        New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-    }
+    $backupScript = Join-Path $InstallDir "scripts\backup.ps1"
 
-    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-    $backupFile = Join-Path $backupDir "patient-tracker-$timestamp.sql"
-
-    # Get the db container name
-    Push-Location $InstallDir
-    try {
-        $dbContainer = docker compose ps -q db 2>&1
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($dbContainer)) {
-            Write-Warn "Database container not running. Skipping backup."
+    if (Test-Path $backupScript) {
+        # Use the enhanced backup script (encrypted, off-site, logged)
+        Write-Host "  Running backup.ps1..."
+        & $backupScript -InstallDir $InstallDir
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warn "Backup script reported an error."
+            $continueAnyway = Read-Host "Continue without backup? (y/N)"
+            if ($continueAnyway -ne 'y') {
+                Write-Host "Update cancelled."
+                exit 1
+            }
         } else {
-            # Use cmd /c to avoid PowerShell UTF-16 encoding in redirection
-            $pgDumpCmd = "docker compose exec -T db pg_dump -U appuser -d patienttracker"
-            cmd /c "$pgDumpCmd > `"$backupFile`" 2>&1"
-
-            if ($LASTEXITCODE -eq 0 -and (Test-Path $backupFile) -and (Get-Item $backupFile).Length -gt 0) {
-                $sizeMB = [math]::Round((Get-Item $backupFile).Length / 1MB, 2)
-                Write-Ok "Backup saved: $backupFile ($sizeMB MB)"
-            } else {
-                Write-Warn "Backup may have failed. Check $backupFile"
-                $continueAnyway = Read-Host "Continue without backup? (y/N)"
-                if ($continueAnyway -ne 'y') {
-                    Write-Host "Update cancelled."
-                    exit 1
-                }
+            # Find the most recent backup file
+            $backupDir = Join-Path $InstallDir "backups"
+            $latestBackup = Get-ChildItem $backupDir -Filter "patient-tracker-*" -File |
+                Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($latestBackup) {
+                $backupFile = $latestBackup.FullName
+                Write-Ok "Backup saved: $backupFile"
             }
         }
-    } finally {
-        Pop-Location
+    } else {
+        # Fallback: inline pg_dump if backup.ps1 is not available
+        Write-Warn "backup.ps1 not found — falling back to inline pg_dump."
+
+        $backupDir = Join-Path $InstallDir "backups"
+        if (-not (Test-Path $backupDir)) {
+            New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+        }
+
+        $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $backupFile = Join-Path $backupDir "patient-tracker-$timestamp.sql"
+
+        Push-Location $InstallDir
+        try {
+            $dbContainer = docker compose ps -q db 2>&1
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($dbContainer)) {
+                Write-Warn "Database container not running. Skipping backup."
+            } else {
+                cmd /c "docker compose exec -T db pg_dump -U appuser -d patienttracker > `"$backupFile`" 2>&1"
+                if ($LASTEXITCODE -eq 0 -and (Test-Path $backupFile) -and (Get-Item $backupFile).Length -gt 0) {
+                    $sizeMB = [math]::Round((Get-Item $backupFile).Length / 1MB, 2)
+                    Write-Ok "Backup saved: $backupFile ($sizeMB MB)"
+                } else {
+                    Write-Warn "Backup may have failed. Check $backupFile"
+                    $continueAnyway = Read-Host "Continue without backup? (y/N)"
+                    if ($continueAnyway -ne 'y') {
+                        Write-Host "Update cancelled."
+                        exit 1
+                    }
+                }
+            }
+        } finally {
+            Pop-Location
+        }
     }
 } else {
     Write-Warn "Backup skipped (--SkipBackup)"

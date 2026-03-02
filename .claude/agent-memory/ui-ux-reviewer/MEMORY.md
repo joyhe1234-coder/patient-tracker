@@ -65,6 +65,7 @@
 | 2026-02-15 | Universal SheetSelector | `reviews/universal-sheet-selector-2026-02-15.md` | 11 screenshots, 13 scenarios ALL PASS. Nested card + duplicate error bugs FIXED. Amber-600 hint fails AA contrast. Orphaned label for single-tab. PHYSICIAN auto-assign works correctly. |
 | 2026-02-20 | Smart Column Mapping UI | (inline report) | Backend 404 blocks data display. Navigation gap (no link to /admin/import-mapping). Duplicate H1. Error banner missing role=alert. Code review of 6 components. |
 | 2026-02-24 | Depression Screening | `reviews/depression-screening-2026-02-24.md` | 35/35 PASS. All 7 statuses, colors, date prompts, filter integration correct. Seed data NOT created (guard condition skips when patients exist). |
+| 2026-03-02 | Bulk Operations Tab | `reviews/bulk-operations-tab-2026-03-02.md` | Visual 8/10, UX 7/10, A11y 4/10. 3 CRITICAL (modal dialog roles, checkbox labels, close btn labels), 6 IMPORTANT (ARIA tabs, dup H1, table label, mobile truncation, touch targets, search clear label), 7 NICE-TO-HAVE. |
 
 ## Depression Screening Status-Color Map
 | Status | Color | baseDueDays | datePrompt |
@@ -166,6 +167,22 @@ frontend/src/types/import-mapping.ts                  # TypeScript types for map
 - MappingTable badge colors: purple=MEASURE, blue=PATIENT, green=DATA, gray=IGNORED, amber=Override
 - ConflictResolutionStep has good a11y: role=alert on errors, aria-live on progress, progressbar with ARIA
 - Backend `/api/import/mappings/:systemId` NOT YET IMPLEMENTED (404) -- blocks all data display
+
+## Bulk Operations Component Structure (added Mar 2)
+```
+frontend/src/pages/BulkOperationsTab.tsx          # Main tab: summary cards, toolbar, filters, table (~504 lines)
+frontend/src/components/modals/
+  AssignModal.tsx                                   # Blue-themed, physician dropdown (137 lines)
+  UnassignModal.tsx                                 # Amber-themed, warning banner (120 lines)
+  DeleteModal.tsx                                   # Red-themed, "type DELETE" confirmation (145 lines)
+frontend/src/stores/bulkPatientStore.ts            # Zustand store for patient data + filters
+frontend/src/types/bulkPatient.ts                  # BulkPatient, Physician interfaces
+```
+- ADMIN only (tab hidden for PHYSICIAN/STAFF)
+- Lazy-loads data on first tab activation
+- Select All selects only FILTERED patients
+- Modals preview max 10 patients with overflow count
+- All modals missing role="dialog" and aria-modal (a11y gap)
 
 ## Import Page Component Structure (updated Feb 15 w/ Universal SheetSelector)
 ```

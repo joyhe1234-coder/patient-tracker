@@ -29,14 +29,35 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.14.0):**
-- Layer 1 (Backend Jest): 1,560 tests passing (52 suites) — +132 from v4.13.3
-- Layer 2 (Frontend Vitest): 1,306 tests passing (48 suites) — +95 from v4.13.3
-- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases
-- Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles)
+**Test Coverage (as of v4.15.0):**
+- Layer 1 (Backend Jest): 1,590 tests passing (56 suites) — +30 from v4.14.0
+- Layer 2 (Frontend Vitest): 1,380 tests passing (54 suites) — +74 from v4.14.0
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases + bulk-operations
+- Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles, bulk-operations)
 - Visual test plan v2.1: 427 test cases documented
 - Regression test plan: 48 sections, Row Colors section upgraded to 16 TCs / 100% automated
 - Test Gap Remediation Plan: `.claude/TEST_PLAN.md` with 7 module test plans targeting ~154 new tests
+
+### Bulk Patient Management (Bulk Operations Tab)
+
+**Status: Complete** (Mar 2, 2026)
+**Spec:** `.claude/specs/bulk-patient-management/`
+
+- [x] **BulkOperationsTab** — ADMIN-only tab in Patient Management page with summary cards, toolbar, filters, patient table, selection
+- [x] **AssignModal** — Blue-themed modal with physician dropdown, patient preview (max 10 with overflow count)
+- [x] **UnassignModal** — Amber-themed modal with warning banner, patient preview
+- [x] **DeleteModal** — Red-themed modal with "type DELETE" confirmation, patient preview
+- [x] **Toast component** — Reusable success/error toast notifications with auto-dismiss
+- [x] **bulkPatientStore** — Zustand store for patient data, filters, selection, and loading state
+- [x] **GET /api/admin/patients** — All patients with summary stats (total, assigned, unassigned, insurance systems)
+- [x] **DELETE /api/admin/patients/bulk-delete** — Permanent hard delete with audit log and Socket.IO broadcast
+- [x] **Socket.IO broadcasts** — bulkAssign now broadcasts to previous + new owner rooms; bulkDelete broadcasts to affected rooms
+- [x] **Disaster Recovery runbook** — 5 scenarios (hardware, DB corruption, ransomware, accidental delete, cloud failure)
+- [x] **Automated backup scripts** — `backup.ps1` (encryption, off-site, GFS retention), `verify-backup.ps1`
+- [x] **Installer backup integration** — `install-windows.ps1` generates encryption key, creates scheduled task
+- [x] **Installation guides updated** — Enhanced backup/restore sections in both guides
+
+**Tests:** +30 Jest (1,590 total), +74 Vitest (1,380 total), Cypress + Playwright E2E
 
 ### Import Bug Fixes + Test Gap Remediation + Socket Reconnection
 
@@ -51,6 +72,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Seed fix** — Depression "Screening complete" baseDueDays set to 365 (was null)
 - [x] **Massive test expansion** — +132 Jest, +95 Vitest across 30+ test files
 - [x] **Security audit** — 16 findings documented with remediation plan
+- [x] **Workflow audits** — Authentication (8 workflows) and Real-Time Collaboration (13 workflows + critical gaps) documented in `.claude/audit/`
 - [x] **Bug reports** — Structured report/analysis/verification docs for both import bugs
 
 **Tests:** +132 Jest (1,560 total), +95 Vitest (1,306 total), expanded Cypress + Playwright E2E
@@ -1068,6 +1090,8 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+March 2, 2026 - v4.15.0: Bulk patient management tab (BulkOperationsTab, AssignModal, UnassignModal, DeleteModal, Toast, bulkPatientStore), GET/DELETE admin patient endpoints, Socket.IO broadcasts for bulk ops, disaster recovery runbook, automated backup scripts, installer backup automation, installation guides updated. All tests passing: 1,590 Jest + 1,380 Vitest + Playwright + Cypress = ~2,970+ unit/component tests.
+March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion (+227 tests). Security audit 16 findings documented. Workflow audit reports for authentication and real-time collaboration.
 February 26, 2026 - v4.13.1: Test gap remediation plan (5-layer pyramid, 7 module test plans), new E2E tests (cell-editing-conflict, grid-editing-roles, row-operations), duplicate detector + toolbar edge-case tests, spec reconciliation (tracking3→depressionScreeningStatus, depression color ACs, security deferred items). All tests passing: 1,419 Jest + 1,211 Vitest + Playwright + ~486 Cypress = ~3,116+ automated tests.
 February 26, 2026 - v4.13.0: Comprehensive row color E2E (179 Cypress tests), multi-role row color tests, Add Row Modal split (Last/First/MI), edit conflict cascading 409 fix, role-access-control rewrite with real multi-role login, seed dueDate calculation, grid redrawRows fix. All tests passing: 1,415 Jest + 1,208 Vitest + Playwright + ~486 Cypress = ~3,100+ automated tests.
 February 25, 2026 - Release 4.12.1: Test hardening (fireEvent→userEvent migration across 25 Vitest files, accessibility labels, Playwright waitForTimeout elimination), Depression Screening quality measure (7 statuses, color coding, import support), conflict detection false positives fix. All tests passing: 1,415 Jest + 1,202 Vitest + Playwright + Cypress = ~2,617+ automated tests.
