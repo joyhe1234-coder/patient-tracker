@@ -273,17 +273,8 @@ describe('Bulk Operations', () => {
       });
     });
 
-    // Skip actual assign to avoid mutating seed data in non-isolated tests
-    it.skip('confirming assign closes modal and shows success toast', () => {
-      cy.get('table tbody tr').first().click();
-      cy.contains('button', /Assign\s*\(/).click();
-      cy.get('.fixed select').select(1);
-      cy.get('.fixed').contains('button', /Assign/i).last().click();
-
-      // Toast should appear
-      cy.get('.fixed.bottom-4.right-4').should('be.visible');
-      cy.contains('Assign Patients').should('not.exist');
-    });
+    // Covered by round-trip test below (assign then unassign for net-zero change)
+    it.skip('confirming assign closes modal and shows success toast (covered by round-trip)', () => {});
   });
 
   // ─── Task 32: Unassign modal flow ──────────────────────────────
@@ -331,14 +322,8 @@ describe('Bulk Operations', () => {
       });
     });
 
-    // Skip actual unassign to avoid mutating seed data
-    it.skip('confirming unassign closes modal and shows success toast', () => {
-      cy.get('table tbody tr').first().click();
-      cy.contains('button', /Unassign\s*\(/).click();
-      cy.get('.fixed').contains('button', /Unassign Patients/i).click();
-
-      cy.get('.fixed.bottom-4.right-4').should('be.visible');
-    });
+    // Covered by round-trip test below (assign then unassign for net-zero change)
+    it.skip('confirming unassign closes modal and shows success toast (covered by round-trip)', () => {});
   });
 
   // ─── Task 33: Delete modal flow ────────────────────────────────
@@ -421,17 +406,66 @@ describe('Bulk Operations', () => {
       cy.get('.fixed').contains('button', /Delete Patients/i).should('be.disabled');
     });
 
-    // Skip actual delete to avoid destroying seed data
-    it.skip('confirming delete closes modal and shows success toast', () => {
-      cy.get('table tbody tr').first().click();
-      cy.contains('button', /Delete\s*\(/).click();
-      cy.get('.fixed input[placeholder*="DELETE"]').type('DELETE');
-      cy.get('.fixed').contains('button', /Delete Patients/i).click();
+    // Skipped — delete is destructive and not safe for round-trip testing
+    it.skip('confirming delete closes modal and shows success toast', () => {});
+  });
 
-      // Toast should appear
-      cy.get('.fixed.bottom-4.right-4').should('be.visible');
-      // Modal should close
-      cy.contains(/cannot be undone/i).should('not.exist');
+  // ─── Round-trip: Assign then Unassign (net-zero mutation) ──────
+
+  describe('Assign/Unassign Round-Trip', () => {
+    it('should assign and then unassign a patient (round-trip)', () => {
+      cy.login(ADMIN_EMAIL, ADMIN_PASSWORD);
+
+      // Filter to unassigned patients first so we have a clean target
+      visitBulkOps();
+
+      // Step 1: Record the first patient's name
+      cy.get('table tbody tr').first().find('td').eq(1).invoke('text').then((patientName) => {
+        const name = patientName.trim();
+
+        // Step 2: Select the first row
+        cy.get('table tbody tr').first().click();
+        cy.get('table tbody tr').first().should('have.class', 'bg-blue-50');
+
+        // Step 3: Click Assign button
+        cy.contains('button', /Assign\s*\(/).should('not.be.disabled').click();
+
+        // Step 4: Modal should appear
+        cy.contains('Assign Patients').should('be.visible');
+
+        // Step 5: Select a physician from the dropdown
+        cy.get('#physician-select').should('exist');
+        cy.get('#physician-select option').eq(1).then(($opt) => {
+          const val = $opt.val() as string;
+          cy.get('#physician-select').select(val);
+        });
+
+        // Step 6: Confirm assignment
+        cy.get('.fixed button.bg-blue-600').should('not.be.disabled').click();
+
+        // Step 7: Verify success toast
+        cy.contains(/assigned/i, { timeout: 15000 }).should('be.visible');
+
+        // Step 8: Wait for modal to close and table to refresh
+        cy.contains('Assign Patients').should('not.exist');
+        cy.get('table tbody tr', { timeout: 15000 }).should('have.length.greaterThan', 0);
+
+        // Step 9: Find the same patient and select them
+        cy.contains('table tbody tr', name).click();
+
+        // Step 10: Click Unassign button
+        cy.contains('button', /Unassign\s*\(/).should('not.be.disabled').click();
+
+        // Step 11: Confirm unassign
+        cy.get('.fixed').contains('button', /Unassign Patients/i).should('not.be.disabled').click();
+
+        // Step 12: Verify unassign success toast
+        cy.contains(/unassign/i, { timeout: 15000 }).should('be.visible');
+
+        // Step 13: Modal should close and table should refresh
+        cy.get('.fixed').should('not.exist');
+        cy.get('table tbody tr', { timeout: 15000 }).should('have.length.greaterThan', 0);
+      });
     });
   });
 });

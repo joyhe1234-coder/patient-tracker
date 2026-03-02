@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
  * Sanitize data before logging to prevent sensitive values from appearing in logs.
  * Creates a shallow copy — the original data is never modified.
  */
-function sanitizeForLogging(data: unknown): unknown {
+export function sanitizeForLogging(data: unknown): unknown {
   if (!data || typeof data !== 'object') return data;
   const sanitized = { ...data } as Record<string, unknown>;
   const sensitiveKeys = ['password', 'token', 'secret', 'authorization', 'Authorization'];
@@ -17,7 +17,7 @@ function sanitizeForLogging(data: unknown): unknown {
 }
 
 // Use environment variable for API URL in production, fallback to /api for local dev
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (!envUrl) return '/api';
 

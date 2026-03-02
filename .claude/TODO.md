@@ -6,6 +6,21 @@ This document tracks planned features and enhancements for future development.
 
 ## Recently Completed
 
+### Test Gap Remediation — v4.15.1 (Complete, Mar 2 2026)
+- [x] App.test.tsx — 11 routing tests (login, forgot-password, admin, patient-management, redirects, catch-all)
+- [x] toast.test.ts — 9 toast utility tests (DOM, accessibility, colors, auto-dismiss)
+- [x] MainPage.loading.test.tsx — 5 loading/error/retry state tests
+- [x] isTimeIntervalEditable.test.ts — 11 time interval editability tests
+- [x] Header.test.tsx — +25 ChangePasswordModal tests (validation, API, errors, toggle, close)
+- [x] axios.test.ts — +10 sanitizeForLogging + getApiBaseUrl + interceptor tests
+- [x] data.routes.test.ts — +3 authorization boundary tests (403 Forbidden)
+- [x] patientHandlers.bulkAssign.test.ts — +4 Socket.IO broadcast edge cases
+- [x] fileParser.test.ts — +2 file parser edge cases
+- [x] cascadingFields.test.ts, ConflictResolutionStep.test.tsx, MappingTable.test.tsx — minor additions
+- [x] Exported `sanitizeForLogging`, `getApiBaseUrl` from axios.ts for testability
+- [x] Exported `TIME_PERIOD_DROPDOWN_STATUSES`, `isTimeIntervalEditable` from PatientGrid.tsx for testability
+- Backend (Jest): 1,599 tests (+9), Frontend (Vitest): 1,456 tests (+76)
+
 ### Bulk Patient Management — Bulk Operations Tab (Complete, Mar 2 2026)
 - [x] BulkOperationsTab — ADMIN-only tab with summary cards, toolbar, filters, patient table
 - [x] AssignModal, UnassignModal, DeleteModal — themed modals with patient preview
@@ -741,6 +756,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+March 2, 2026 - v4.15.1: Test gap remediation — +9 Jest, +76 Vitest across 12 files (App routing, toast utility, MainPage loading states, isTimeIntervalEditable, Header ChangePasswordModal, axios utilities, data routes authorization, bulk assign broadcasts, file parser). Exported private functions for testability. 1,599 Jest + 1,456 Vitest = 3,055 unit/component tests (+85 from v4.15.0).
 March 2, 2026 - v4.15.0: Bulk patient management tab complete (6 components, 2 endpoints, Socket.IO broadcasts), disaster recovery + backup automation, installation guides updated. 1,590 Jest + 1,380 Vitest = 2,970 unit/component tests (+104 from v4.14.0).
 March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion. 1,560 Jest + 1,306 Vitest = 2,866 unit/component tests (+227 from v4.13.3). Security audit 16 findings documented.
 February 27, 2026 - M1 Auth complete: +10 Jest (auth.routes 49→59), +8 Playwright E2E (auth-edge-cases.spec.ts), +1 E2E fix (password-flows heading). Security audit: 16 findings, 10 test gaps added to TODO. 1,438 Jest + 1,211 Vitest + 24 auth Playwright + 42 auth Cypress.

@@ -29,9 +29,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.15.0):**
-- Layer 1 (Backend Jest): 1,590 tests passing (56 suites) — +30 from v4.14.0
-- Layer 2 (Frontend Vitest): 1,380 tests passing (54 suites) — +74 from v4.14.0
+**Test Coverage (as of v4.15.1):**
+- Layer 1 (Backend Jest): 1,599 tests passing (56 suites) — +9 from v4.15.0
+- Layer 2 (Frontend Vitest): 1,456 tests passing (58 suites) — +76 from v4.15.0
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases + bulk-operations
 - Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles, bulk-operations)
 - Visual test plan v2.1: 427 test cases documented
@@ -113,7 +113,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 
 ### Test Gap Remediation — Planning & New E2E Tests
 
-**Status: In Progress** (Mar 1, 2026)
+**Status: In Progress** (Mar 2, 2026)
 **Spec:** `.claude/TEST_PLAN.md`, `.claude/specs/test-*/`, `.claude/test-plans/M1-M7`
 
 - [x] **Test Gap Remediation Plan** — Comprehensive plan with 5-layer pyramid, role-based strategy, per-module coverage targets
@@ -125,8 +125,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - [x] **Duplicate Detector edge cases** — +5 Jest tests (deletion flag clearing, three-way duplicate, whitespace handling, QM edit recalculation)
 - [x] **Toolbar edge cases** — +3 Vitest tests (button enable state, disabled click no-op, toggle CSS class)
 - [x] **Spec docs reconciled** — tracking3 -> depressionScreeningStatus across 3 design specs; depression screening color ACs added; security requirements deferred items marked
+- [x] **v4.15.1 test gap closure** — +9 Jest, +76 Vitest across 12 files: App routing, toast utility, MainPage loading/error/retry, isTimeIntervalEditable, Header ChangePasswordModal, axios sanitize/baseUrl/interceptors, data routes authorization boundaries, bulk assign broadcasts, file parser edge cases
 
-**Tests:** +4 Jest, +3 Vitest, +3 new Cypress E2E test files
+**Tests:** +13 Jest, +79 Vitest, +3 new Cypress E2E test files
 
 ### Depression Screening Quality Measure
 
@@ -1090,6 +1091,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+March 2, 2026 - v4.15.1: Test gap remediation — +9 Jest, +76 Vitest across 12 files. New test files: App.test.tsx (routing), toast.test.ts, MainPage.loading.test.tsx, isTimeIntervalEditable.test.ts. Expanded: Header.test.tsx (ChangePasswordModal), axios.test.ts, data.routes.test.ts (authorization boundaries), cascadingFields.test.ts, ConflictResolutionStep.test.tsx, MappingTable.test.tsx, bulk-operations.cy.ts, time-interval.cy.ts. Exported private functions in axios.ts and PatientGrid.tsx for testability. All tests passing: 1,599 Jest + 1,456 Vitest + Playwright + Cypress = ~3,055+ unit/component tests.
 March 2, 2026 - v4.15.0: Bulk patient management tab (BulkOperationsTab, AssignModal, UnassignModal, DeleteModal, Toast, bulkPatientStore), GET/DELETE admin patient endpoints, Socket.IO broadcasts for bulk ops, disaster recovery runbook, automated backup scripts, installer backup automation, installation guides updated. All tests passing: 1,590 Jest + 1,380 Vitest + Playwright + Cypress = ~2,970+ unit/component tests.
 March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion (+227 tests). Security audit 16 findings documented. Workflow audit reports for authentication and real-time collaboration.
 February 26, 2026 - v4.13.1: Test gap remediation plan (5-layer pyramid, 7 module test plans), new E2E tests (cell-editing-conflict, grid-editing-roles, row-operations), duplicate detector + toolbar edge-case tests, spec reconciliation (tracking3→depressionScreeningStatus, depression color ACs, security deferred items). All tests passing: 1,419 Jest + 1,211 Vitest + Playwright + ~486 Cypress = ~3,116+ automated tests.

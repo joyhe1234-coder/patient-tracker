@@ -161,6 +161,74 @@ describe('cascadingFields', () => {
       });
     });
 
+    describe('(clear) value cascading', () => {
+      it('empty string requestType clears qualityMeasure and all downstream', () => {
+        const result = applyCascadingUpdates('requestType', '', mockNode);
+
+        expect(result.updatePayload.qualityMeasure).toBeNull();
+        expect(result.updatePayload.measureStatus).toBeNull();
+        expect(result.updatePayload.statusDate).toBeNull();
+        expect(result.updatePayload.tracking1).toBeNull();
+        expect(result.updatePayload.tracking2).toBeNull();
+        expect(result.updatePayload.dueDate).toBeNull();
+        expect(result.updatePayload.timeIntervalDays).toBeNull();
+      });
+
+      it('null requestType clears qualityMeasure and all downstream', () => {
+        const result = applyCascadingUpdates('requestType', null as any, mockNode);
+
+        expect(result.updatePayload.qualityMeasure).toBeNull();
+        expect(result.updatePayload.measureStatus).toBeNull();
+        expect(result.updatePayload.statusDate).toBeNull();
+        expect(result.updatePayload.tracking1).toBeNull();
+        expect(result.updatePayload.tracking2).toBeNull();
+        expect(result.updatePayload.dueDate).toBeNull();
+        expect(result.updatePayload.timeIntervalDays).toBeNull();
+      });
+
+      it('empty string qualityMeasure clears measureStatus and all downstream', () => {
+        const result = applyCascadingUpdates('qualityMeasure', '', mockNode);
+
+        expect(result.updatePayload.measureStatus).toBeNull();
+        expect(result.updatePayload.statusDate).toBeNull();
+        expect(result.updatePayload.tracking1).toBeNull();
+        expect(result.updatePayload.tracking2).toBeNull();
+        expect(result.updatePayload.dueDate).toBeNull();
+        expect(result.updatePayload.timeIntervalDays).toBeNull();
+      });
+
+      it('null qualityMeasure clears measureStatus and all downstream', () => {
+        const result = applyCascadingUpdates('qualityMeasure', null as any, mockNode);
+
+        expect(result.updatePayload.measureStatus).toBeNull();
+        expect(result.updatePayload.statusDate).toBeNull();
+        expect(result.updatePayload.tracking1).toBeNull();
+        expect(result.updatePayload.tracking2).toBeNull();
+        expect(result.updatePayload.dueDate).toBeNull();
+        expect(result.updatePayload.timeIntervalDays).toBeNull();
+      });
+
+      it('empty string measureStatus clears statusDate, tracking, and calculated fields', () => {
+        const result = applyCascadingUpdates('measureStatus', '', mockNode);
+
+        expect(result.updatePayload.statusDate).toBeNull();
+        expect(result.updatePayload.tracking1).toBeNull();
+        expect(result.updatePayload.tracking2).toBeNull();
+        expect(result.updatePayload.dueDate).toBeNull();
+        expect(result.updatePayload.timeIntervalDays).toBeNull();
+      });
+
+      it('null measureStatus clears statusDate, tracking, and calculated fields', () => {
+        const result = applyCascadingUpdates('measureStatus', null as any, mockNode);
+
+        expect(result.updatePayload.statusDate).toBeNull();
+        expect(result.updatePayload.tracking1).toBeNull();
+        expect(result.updatePayload.tracking2).toBeNull();
+        expect(result.updatePayload.dueDate).toBeNull();
+        expect(result.updatePayload.timeIntervalDays).toBeNull();
+      });
+    });
+
     describe('non-cascading fields', () => {
       it('returns empty payload for notes change', () => {
         const result = applyCascadingUpdates('notes', 'Some note', mockNode);

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -17,6 +17,17 @@ vi.mock('../../stores/authStore', () => ({
     selectedPhysicianId: null,
     setSelectedPhysicianId: mockSetSelectedPhysicianId,
   })),
+}));
+
+// Mock the axios API module (covers both static and dynamic imports)
+const mockApi = {
+  put: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+};
+
+vi.mock('../../api/axios', () => ({
+  api: mockApi,
 }));
 
 // Import the mocked module to control return values
@@ -369,6 +380,318 @@ describe('Header', () => {
 
       // After click, aria-label should change to "Hide"
       expect(screen.getByLabelText('Hide current password')).toBeInTheDocument();
+    });
+  });
+
+  describe('ChangePasswordModal - validation, API, errors', () => {
+    const adminUser = {
+      id: 1,
+      email: 'admin@test.com',
+      displayName: 'Test Admin',
+      roles: ['ADMIN'] as const,
+      isActive: true,
+      lastLoginAt: null,
+    };
+
+    async function openPasswordModal() {
+      mockUseAuthStore.mockReturnValue({
+        user: adminUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      await user.click(screen.getByText('Test Admin'));
+      await user.click(screen.getByText('Change Password'));
+    }
+
+    /** Helper to get the 3 password inputs in order: current, new, confirm */
+    function getPasswordInputs(): HTMLInputElement[] {
+      const form = document.querySelector('form');
+      if (!form) throw new Error('Password form not found');
+      return Array.from(form.querySelectorAll<HTMLInputElement>('input[type="password"], input[type="text"]'));
+    }
+
+    // --- Validation ---
+
+    it('rejects empty fields with error message', async () => {
+      await openPasswordModal();
+
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(screen.getByText('All fields are required')).toBeInTheDocument();
+      expect(mockApi.put).not.toHaveBeenCalled();
+    });
+
+    it('rejects password shorter than 8 characters', async () => {
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'short');
+      await user.type(inputs[2], 'short');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(screen.getByText('New password must be at least 8 characters')).toBeInTheDocument();
+      expect(mockApi.put).not.toHaveBeenCalled();
+    });
+
+    it('rejects mismatched passwords', async () => {
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'different1');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
+      expect(mockApi.put).not.toHaveBeenCalled();
+    });
+
+    // --- API calls ---
+
+    it('sends correct payload on valid submission', async () => {
+      mockApi.put.mockResolvedValue({ data: { message: 'ok' } });
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(mockApi.put).toHaveBeenCalledWith('/auth/password', {
+          currentPassword: 'oldpass123',
+          newPassword: 'newpass123',
+        });
+      });
+    });
+
+    it('shows success message after successful password change', async () => {
+      mockApi.put.mockResolvedValue({ data: { message: 'ok' } });
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Password changed successfully!')).toBeInTheDocument();
+      });
+    });
+
+    it('auto-closes modal 2 seconds after success', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const timerUser = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      mockApi.put.mockResolvedValue({ data: { message: 'ok' } });
+
+      mockUseAuthStore.mockReturnValue({
+        user: adminUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      await timerUser.click(screen.getByText('Test Admin'));
+      await timerUser.click(screen.getByText('Change Password'));
+
+      const inputs = screen.getAllByDisplayValue('').filter(
+        (el) => el.tagName === 'INPUT' && (el.getAttribute('type') === 'password' || el.getAttribute('type') === 'text')
+      );
+
+      await timerUser.type(inputs[0], 'oldpass123');
+      await timerUser.type(inputs[1], 'newpass123');
+      await timerUser.type(inputs[2], 'newpass123');
+      await timerUser.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Password changed successfully!')).toBeInTheDocument();
+      });
+
+      // Advance 2 seconds for auto-close
+      vi.advanceTimersByTime(2000);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Password changed successfully!')).not.toBeInTheDocument();
+      });
+
+      vi.useRealTimers();
+    });
+
+    // --- Error handling ---
+
+    it('shows API error message from response', async () => {
+      mockApi.put.mockRejectedValue({
+        response: { data: { error: { message: 'Current password is incorrect' } } },
+      });
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'wrongpass1');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Current password is incorrect')).toBeInTheDocument();
+      });
+    });
+
+    it('shows fallback error on network failure', async () => {
+      mockApi.put.mockRejectedValue(new Error('Network Error'));
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to change password')).toBeInTheDocument();
+      });
+    });
+
+    it('displays error in red-styled container', async () => {
+      mockApi.put.mockRejectedValue(new Error('Network Error'));
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        const errorDiv = screen.getByText('Failed to change password').closest('div');
+        expect(errorDiv).toHaveClass('bg-red-50');
+        expect(errorDiv).toHaveClass('text-red-700');
+      });
+    });
+
+    // --- Loading state ---
+
+    it('shows "Saving..." text during API call', async () => {
+      let resolveApi!: (value: unknown) => void;
+      mockApi.put.mockReturnValue(new Promise((resolve) => { resolveApi = resolve; }));
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(screen.getByText('Saving...')).toBeInTheDocument();
+
+      resolveApi({ data: { message: 'ok' } });
+    });
+
+    it('disables inputs and button during save', async () => {
+      let resolveApi!: (value: unknown) => void;
+      mockApi.put.mockReturnValue(new Promise((resolve) => { resolveApi = resolve; }));
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      await user.type(inputs[0], 'oldpass123');
+      await user.type(inputs[1], 'newpass123');
+      await user.type(inputs[2], 'newpass123');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      // All 3 inputs should be disabled
+      const disabledInputs = getPasswordInputs();
+      for (const input of disabledInputs) {
+        expect(input).toBeDisabled();
+      }
+
+      // Save button should show Saving... and be disabled
+      expect(screen.getByText('Saving...')).toBeInTheDocument();
+      expect(screen.getByText('Saving...').closest('button')).toBeDisabled();
+
+      resolveApi({ data: { message: 'ok' } });
+    });
+
+    // --- Visibility toggles ---
+
+    it('toggles input type between password and text', async () => {
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      // All start as password
+      expect(inputs[0]).toHaveAttribute('type', 'password');
+
+      // Toggle current password visibility
+      await user.click(screen.getByLabelText('Show current password'));
+
+      expect(inputs[0]).toHaveAttribute('type', 'text');
+
+      // Toggle back
+      await user.click(screen.getByLabelText('Hide current password'));
+      expect(inputs[0]).toHaveAttribute('type', 'password');
+    });
+
+    it('each visibility toggle works independently', async () => {
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      // Toggle only the new password field
+      await user.click(screen.getByLabelText('Show new password'));
+
+      expect(inputs[0]).toHaveAttribute('type', 'password');
+      expect(inputs[1]).toHaveAttribute('type', 'text');
+      expect(inputs[2]).toHaveAttribute('type', 'password');
+    });
+
+    // --- Cancel behavior ---
+
+    it('cancel closes modal without API call', async () => {
+      await openPasswordModal();
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByText('Current Password')).not.toBeInTheDocument();
+      expect(mockApi.put).not.toHaveBeenCalled();
+    });
+
+    it('reopening modal after close shows empty fields', async () => {
+      await openPasswordModal();
+      const inputs = getPasswordInputs();
+
+      // Type into fields
+      await user.type(inputs[0], 'oldpass123');
+
+      // Close
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      // Reopen
+      await user.click(screen.getByText('Test Admin'));
+      await user.click(screen.getByText('Change Password'));
+
+      // Fields should be empty (component remounts)
+      const newInputs = getPasswordInputs();
+      for (const input of newInputs) {
+        expect(input).toHaveValue('');
+      }
     });
   });
 

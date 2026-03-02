@@ -681,4 +681,42 @@ describe('ConflictResolutionStep', () => {
       expect(screen.queryByTestId('conflict-banner')).not.toBeInTheDocument();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // 19. XSS protection regression tests (R14)
+  // -------------------------------------------------------------------------
+  describe('XSS protection', () => {
+    it('renders <script> tag in sourceHeader as visible text, not executable', () => {
+      const xssConflict = makeConflict({
+        id: 'xss1',
+        type: 'NEW',
+        sourceHeader: '<script>alert("xss")</script>',
+      });
+      renderStep({ conflicts: [xssConflict] });
+
+      expect(screen.getByText('<script>alert("xss")</script>')).toBeInTheDocument();
+    });
+
+    it('renders img onerror payload in sourceHeader as escaped text', () => {
+      const xssConflict = makeConflict({
+        id: 'xss2',
+        type: 'NEW',
+        sourceHeader: '<img onerror=alert(1) src=x>',
+      });
+      renderStep({ conflicts: [xssConflict] });
+
+      expect(screen.getByText('<img onerror=alert(1) src=x>')).toBeInTheDocument();
+    });
+
+    it('renders attribute injection payload in sourceHeader as escaped text', () => {
+      const xssConflict = makeConflict({
+        id: 'xss3',
+        type: 'NEW',
+        sourceHeader: '" onmouseover="alert(1)"',
+      });
+      renderStep({ conflicts: [xssConflict] });
+
+      expect(screen.getByText('" onmouseover="alert(1)"')).toBeInTheDocument();
+    });
+  });
 });
