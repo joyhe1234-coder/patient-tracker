@@ -532,4 +532,172 @@ describe('MappingManagementPage', () => {
       expect(screen.getByRole('button', { name: 'Edit Mappings' })).toBeInTheDocument();
     });
   });
+
+  // ---- 18. Add Mapping form show/cancel ----
+
+  describe('Add Mapping form', () => {
+    it('clicking "Add Mapping" shows the add mapping form', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Patient Column Mappings')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /add mapping/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Add New Column Mapping')).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText('Source Column Name')).toBeInTheDocument();
+    });
+
+    it('clicking "Cancel" in the add form hides it', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Patient Column Mappings')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /add mapping/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Add New Column Mapping')).toBeInTheDocument();
+      });
+
+      // Click Cancel
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByText('Add New Column Mapping')).not.toBeInTheDocument();
+    });
+
+    it('"Add Mapping" button is disabled when form is already open', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Patient Column Mappings')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /add mapping/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Add New Column Mapping')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /add mapping/i })).toBeDisabled();
+    });
+  });
+
+  // ---- 19. Saving spinner ----
+
+  it('shows "Saving..." spinner while a mapping save is in progress', async () => {
+    // Use config with overrides so save operations are possible
+    const hillWithOverrides: MergedSystemConfig = {
+      ...mockHillConfig,
+      patientColumns: mockHillConfig.patientColumns.map((col) => ({
+        ...col,
+        isOverride: true,
+        overrideId: 99,
+      })),
+    };
+    setupDefaultMocks({ 'hill-1': hillWithOverrides, 'sutter-1': mockSutterConfig });
+
+    // Make PUT hang forever to keep saving state active
+    mockPut.mockReturnValue(new Promise(() => {}));
+    mockDelete.mockReturnValue(new Promise(() => {}));
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Reset to Defaults')).toBeInTheDocument();
+    });
+
+    // Click Reset to Defaults → confirm → triggers saving state
+    await user.click(screen.getByText('Reset to Defaults'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Reset to Default Mappings')).toBeInTheDocument();
+    });
+
+    const confirmButton = screen.getAllByText('Reset to Defaults').find(
+      (el) => el.tagName === 'BUTTON' && el.closest('.fixed'),
+    );
+    await user.click(confirmButton!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Saving...')).toBeInTheDocument();
+    });
+  });
+
+  // ---- 20. Error with Retry button ----
+
+  it('shows Retry button in error state that reloads mappings', async () => {
+    // First load succeeds, then fail on manual retry
+    let callCount = 0;
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/import/systems') {
+        return Promise.resolve({ data: { data: mockSystems } });
+      }
+      const mappingMatch = url.match(/^\/import\/mappings\/(.+)$/);
+      if (mappingMatch) {
+        callCount++;
+        if (callCount <= 1) {
+          return Promise.resolve({ data: { data: mockHillConfig } });
+        }
+        // Second call fails
+        return Promise.reject(new Error('Network error'));
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Patient Column Mappings')).toBeInTheDocument();
+    });
+
+    // Now trigger a reload that fails by switching system selector
+    const selector = screen.getByLabelText('Import System:') as HTMLSelectElement;
+    await user.selectOptions(selector, 'sutter-1');
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load mapping configuration')).toBeInTheDocument();
+    });
+
+    // Retry button should be visible
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  // ---- 21. Skip actions displayed for Sutter ----
+
+  it('displays skip actions for Sutter (long format) systems', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Patient Column Mappings')).toBeInTheDocument();
+    });
+
+    const selector = screen.getByLabelText('Import System:') as HTMLSelectElement;
+    await user.selectOptions(selector, 'sutter-1');
+
+    // Wait for Sutter config to load with skip actions
+    await waitFor(() => {
+      expect(screen.getByText('Action Pattern Configuration')).toBeInTheDocument();
+    });
+
+    // The skip action "N/A" should be visible somewhere
+    expect(screen.getByText('N/A')).toBeInTheDocument();
+  });
+
+  // ---- 22. Error alert has role="alert" ----
+
+  it('renders error messages with role="alert" for accessibility', async () => {
+    mockGet.mockRejectedValue(new Error('Network error'));
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
 });

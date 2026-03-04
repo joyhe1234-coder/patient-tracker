@@ -2,6 +2,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+
+// Mock useNavigate
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 import Header from './Header';
 
 // Mock the auth store
@@ -914,5 +925,217 @@ describe('Header', () => {
         unmount();
       }
     });
+  });
+
+  // ── Unauthenticated state ────────────────────────────────────
+
+  describe('Unauthenticated state', () => {
+    it('shows Login link when not authenticated', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: null,
+        isAuthenticated: false,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Login')).toBeInTheDocument();
+      // No nav links or user menu when unauthenticated
+      expect(screen.queryByText('Patient Grid')).not.toBeInTheDocument();
+      expect(screen.queryByText('Patient Mgmt')).not.toBeInTheDocument();
+    });
+  });
+
+  // ── User menu behavior ───────────────────────────────────────
+
+  describe('User menu behavior', () => {
+    const adminUser = {
+      id: 1,
+      email: 'admin@test.com',
+      displayName: 'Test Admin',
+      roles: ['ADMIN'] as const,
+      isActive: true,
+      lastLoginAt: null,
+    };
+
+    it('clicking user button opens dropdown menu', async () => {
+      mockUseAuthStore.mockReturnValue({
+        user: adminUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      await user.click(screen.getByText('Test Admin'));
+
+      expect(screen.getByText('Change Password')).toBeInTheDocument();
+      expect(screen.getByText('Logout')).toBeInTheDocument();
+    });
+
+    it('clicking Logout calls logout() and navigates to /login', async () => {
+      mockLogout.mockResolvedValue(undefined);
+      mockUseAuthStore.mockReturnValue({
+        user: adminUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      await user.click(screen.getByText('Test Admin'));
+      await user.click(screen.getByText('Logout'));
+
+      await waitFor(() => {
+        expect(mockLogout).toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith('/login');
+      });
+    });
+  });
+
+  // ── Navigation active styling ────────────────────────────────
+
+  describe('Navigation active styling', () => {
+    const adminUser = {
+      id: 1,
+      email: 'admin@test.com',
+      displayName: 'Test Admin',
+      roles: ['ADMIN'] as const,
+      isActive: true,
+      lastLoginAt: null,
+    };
+
+    function renderOnPath(path: string) {
+      mockUseAuthStore.mockReturnValue({
+        user: adminUser,
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [{ physicianId: 10, physicianName: 'Dr. Smith' }],
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      return render(
+        <MemoryRouter initialEntries={[path]}>
+          <Header />
+        </MemoryRouter>
+      );
+    }
+
+    it('Patient Grid link active on /', () => {
+      renderOnPath('/');
+      const link = screen.getByText('Patient Grid');
+      expect(link).toHaveClass('text-blue-600');
+    });
+
+    it('Patient Mgmt link active on /patient-management', () => {
+      renderOnPath('/patient-management');
+      const link = screen.getByText('Patient Mgmt');
+      expect(link).toHaveClass('text-blue-600');
+    });
+
+    it('Admin link active on /admin', () => {
+      renderOnPath('/admin');
+      const link = screen.getByText('Admin');
+      expect(link).toHaveClass('text-blue-600');
+    });
+  });
+
+  // ── Provider dropdown edge cases ─────────────────────────────
+
+  describe('Provider dropdown edge cases', () => {
+    it('dropdown hidden when assignments array is empty for STAFF', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: {
+          id: 2,
+          email: 'staff@test.com',
+          displayName: 'Test Staff',
+          roles: ['STAFF'] as const,
+          isActive: true,
+          lastLoginAt: null,
+        },
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [],
+        selectedPhysicianId: null,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    it('STAFF dropdown aria-label is "Select physician"', () => {
+      mockUseAuthStore.mockReturnValue({
+        user: {
+          id: 2,
+          email: 'staff@test.com',
+          displayName: 'Test Staff',
+          roles: ['STAFF'] as const,
+          isActive: true,
+          lastLoginAt: null,
+        },
+        isAuthenticated: true,
+        logout: mockLogout,
+        assignments: [{ physicianId: 10, physicianName: 'Dr. Smith' }],
+        selectedPhysicianId: 10,
+        setSelectedPhysicianId: mockSetSelectedPhysicianId,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Header />
+        </MemoryRouter>
+      );
+
+      expect(screen.getByLabelText('Select physician')).toBeInTheDocument();
+    });
+  });
+
+  // ── App title visibility ─────────────────────────────────────
+
+  it('app title always shown regardless of auth state', () => {
+    mockUseAuthStore.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      logout: mockLogout,
+      assignments: [],
+      selectedPhysicianId: null,
+      setSelectedPhysicianId: mockSetSelectedPhysicianId,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Header />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Patient Quality Measure Tracker')).toBeInTheDocument();
   });
 });

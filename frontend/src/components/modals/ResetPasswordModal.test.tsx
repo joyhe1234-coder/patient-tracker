@@ -151,4 +151,66 @@ describe('ResetPasswordModal', () => {
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('Auto-close timer', () => {
+    it('calls onClose after 2 seconds on successful password reset', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const timerUser = userEvent.setup({
+        advanceTimers: vi.advanceTimersByTime,
+      });
+      (api.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: {} });
+
+      render(<ResetPasswordModal {...defaultProps} />);
+
+      await timerUser.type(screen.getByLabelText('New Password'), 'newpassword123');
+      await timerUser.type(screen.getByLabelText('Confirm Password'), 'newpassword123');
+      await timerUser.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+      // Wait for success message
+      await waitFor(() => {
+        expect(screen.getByText('Password reset successfully!')).toBeInTheDocument();
+      });
+
+      // onClose should not have been called yet
+      expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+      // Advance timers by 2 seconds
+      vi.advanceTimersByTime(2000);
+
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('Disabled state during save', () => {
+    it('disables Cancel button while saving', async () => {
+      (api.post as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(() => {}));
+
+      render(<ResetPasswordModal {...defaultProps} />);
+
+      await user.type(screen.getByLabelText('New Password'), 'newpassword123');
+      await user.type(screen.getByLabelText('Confirm Password'), 'newpassword123');
+      await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+      });
+    });
+
+    it('disables submit button while saving', async () => {
+      (api.post as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise(() => {}));
+
+      render(<ResetPasswordModal {...defaultProps} />);
+
+      await user.type(screen.getByLabelText('New Password'), 'newpassword123');
+      await user.type(screen.getByLabelText('Confirm Password'), 'newpassword123');
+      await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Resetting...')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Resetting...' })).toBeDisabled();
+      });
+    });
+  });
 });

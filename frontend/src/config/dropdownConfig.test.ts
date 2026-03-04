@@ -11,6 +11,8 @@ import {
   QUALITY_MEASURE_TO_STATUS,
   STATUS_TO_TRACKING1,
   REQUEST_TYPES,
+  HGBA1C_STATUSES,
+  BP_STATUSES,
   getQualityMeasuresForRequestType,
   getMeasureStatusesForQualityMeasure,
   getTracking1OptionsForStatus,
@@ -324,6 +326,37 @@ describe('dropdownConfig', () => {
 
     it('returns null for empty string', () => {
       expect(getAutoFillQualityMeasure('')).toBeNull();
+    });
+  });
+
+  // ── Tracking field validation constants ────────────────────────────
+
+  describe('Tracking field validation constants', () => {
+    it('HGBA1C_STATUSES contains all 3 HgbA1c entries', () => {
+      expect(HGBA1C_STATUSES).toHaveLength(3);
+      expect(HGBA1C_STATUSES).toContain('HgbA1c ordered');
+      expect(HGBA1C_STATUSES).toContain('HgbA1c at goal');
+      expect(HGBA1C_STATUSES).toContain('HgbA1c NOT at goal');
+    });
+
+    it('BP_STATUSES contains both BP callback entries', () => {
+      expect(BP_STATUSES).toHaveLength(2);
+      expect(BP_STATUSES).toContain('Scheduled call back - BP not at goal');
+      expect(BP_STATUSES).toContain('Scheduled call back - BP at goal');
+    });
+
+    it('HgbA1c statuses are all in Diabetes Control measure', () => {
+      const diabetesStatuses = QUALITY_MEASURE_TO_STATUS['Diabetes Control'];
+      for (const status of HGBA1C_STATUSES) {
+        expect(diabetesStatuses).toContain(status);
+      }
+    });
+
+    it('BP statuses each have 8 call-interval tracking options', () => {
+      for (const status of BP_STATUSES) {
+        const options = getTracking1OptionsForStatus(status);
+        expect(options).toHaveLength(8);
+      }
     });
   });
 

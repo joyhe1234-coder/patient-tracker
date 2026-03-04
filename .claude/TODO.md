@@ -6,6 +6,20 @@ This document tracks planned features and enhancements for future development.
 
 ## Recently Completed
 
+### Test Gap Remediation — v4.15.2 (Complete, Mar 3 2026)
+- [x] health.routes.test.ts — 3 health endpoint tests (200 connected, 503 disconnected, response fields)
+- [x] auditHandlers.test.ts — 7 audit log handler tests (pagination, filtering, display name fallback, errors)
+- [x] dataDuplicateHandler.test.ts — 10 duplicate handler tests (checkDuplicate skip conditions, patient lookup, measure matching, duplicateRow ownership)
+- [x] dueDateCalculator.test.ts — +5 addMonths edge cases (Jan 31/30 overflow, leap year, Dec-to-Jan rollover)
+- [x] useGridCellUpdate.test.ts — 5 FIELD_DISPLAY_NAMES tests (13 editable column keys with labels)
+- [x] useRemoteEditClass.test.ts — 7 remote edit class tests (null/undefined data, matching/non-matching edits)
+- [x] HillMeasureMapping.test.tsx — 8 Hill measure mapping page tests (title, CSV export, table, dropdowns)
+- [x] ImportTestPage.test.tsx — 12 import diagnostic page tests (upload, buttons, loading, errors, API calls, tabs)
+- [x] ForcePasswordChange.test.tsx, Header.test.tsx, ResetPasswordModal.test.tsx — expanded edge cases
+- [x] dropdownConfig.test.ts, statusColors.test.ts — expanded configuration coverage
+- [x] AdminPage.test.tsx, BulkOperationsTab.test.tsx, MappingManagementPage.test.tsx — expanded page coverage
+- Backend (Jest): 1,624 tests (+25), Frontend (Vitest): 1,549 tests (+93)
+
 ### Test Gap Remediation — v4.15.1 (Complete, Mar 2 2026)
 - [x] App.test.tsx — 11 routing tests (login, forgot-password, admin, patient-management, redirects, catch-all)
 - [x] toast.test.ts — 9 toast utility tests (DOM, accessibility, colors, auto-dismiss)
@@ -756,6 +770,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+March 3, 2026 - v4.15.2: Test gap remediation — +25 Jest, +93 Vitest across 16 files. New: health.routes (3), auditHandlers (7), dataDuplicateHandler (10), useGridCellUpdate (5), useRemoteEditClass (7), HillMeasureMapping (8), ImportTestPage (12). Expanded: dueDateCalculator, ForcePasswordChange, Header, ResetPasswordModal, dropdownConfig, statusColors, AdminPage, BulkOperationsTab, MappingManagementPage. 1,624 Jest + 1,549 Vitest = 3,173 unit/component tests (+118 from v4.15.1).
 March 2, 2026 - v4.15.1: Test gap remediation — +9 Jest, +76 Vitest across 12 files (App routing, toast utility, MainPage loading states, isTimeIntervalEditable, Header ChangePasswordModal, axios utilities, data routes authorization, bulk assign broadcasts, file parser). Exported private functions for testability. 1,599 Jest + 1,456 Vitest = 3,055 unit/component tests (+85 from v4.15.0).
 March 2, 2026 - v4.15.0: Bulk patient management tab complete (6 components, 2 endpoints, Socket.IO broadcasts), disaster recovery + backup automation, installation guides updated. 1,590 Jest + 1,380 Vitest = 2,970 unit/component tests (+104 from v4.14.0).
 March 1, 2026 - v4.14.0: Import bug fixes (Replace All insurance scoping, reassignment duplicates, merge reassignment), admin role cleanup, socket reconnection, massive test expansion. 1,560 Jest + 1,306 Vitest = 2,866 unit/component tests (+227 from v4.13.3). Security audit 16 findings documented.

@@ -52,6 +52,22 @@ vi.mock('../stores/authStore', () => ({
   UserRole: {},
 }));
 
+// Mock UserModal
+vi.mock('../components/modals/UserModal', () => ({
+  default: ({ user: editUser }: { user: unknown }) => (
+    <div data-testid="user-modal">
+      {editUser ? `Editing: ${(editUser as { displayName: string }).displayName}` : 'Adding new user'}
+    </div>
+  ),
+}));
+
+// Mock ResetPasswordModal
+vi.mock('../components/modals/ResetPasswordModal', () => ({
+  default: ({ userId }: { userId: number }) => (
+    <div data-testid="reset-password-modal">Reset password for user {userId}</div>
+  ),
+}));
+
 import AdminPage from './AdminPage';
 
 const mockUsers = [
@@ -574,5 +590,300 @@ describe('AdminPage', () => {
       expect(tbody).toBeInTheDocument();
       expect(tbody!.children.length).toBe(0);
     });
+  });
+
+  // ── User row expansion ───────────────────────────────────────
+
+  describe('User row expansion', () => {
+    /** Find the chevron toggle button in a user's row (first button without a title) */
+    function getChevronButton(displayName: string): HTMLButtonElement | null {
+      const nameEl = screen.getByText(displayName);
+      const row = nameEl.closest('tr')!;
+      const firstTd = row.querySelector('td')!;
+      return firstTd.querySelector<HTMLButtonElement>('button');
+    }
+
+    it('clicking chevron expands PHYSICIAN row showing assigned staff', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+      });
+
+      const chevronBtn = getChevronButton('Dr. Smith');
+      expect(chevronBtn).not.toBeNull();
+      await user.click(chevronBtn!);
+
+      await waitFor(() => {
+        expect(screen.getByText('Staff assigned:')).toBeInTheDocument();
+      });
+    });
+
+    it('clicking expanded chevron collapses the row', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+      });
+
+      // Expand
+      await user.click(getChevronButton('Dr. Smith')!);
+      await waitFor(() => {
+        expect(screen.getByText('Staff assigned:')).toBeInTheDocument();
+      });
+
+      // Collapse
+      await user.click(getChevronButton('Dr. Smith')!);
+      await waitFor(() => {
+        expect(screen.queryByText('Staff assigned:')).not.toBeInTheDocument();
+      });
+    });
+
+    it('no chevron shown for ADMIN-only user', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Admin User')).toBeInTheDocument();
+      });
+
+      // Admin User has no assignments, so no chevron button in their first td
+      const chevronBtn = getChevronButton('Admin User');
+      expect(chevronBtn).toBeNull();
+    });
+  });
+
+  // ── Edit and Add User ────────────────────────────────────────
+
+  describe('Edit and Add User', () => {
+    it('clicking edit button opens UserModal with user data', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+      });
+
+      const editButtons = screen.getAllByTitle('Edit user');
+      await user.click(editButtons[1]); // Dr. Smith (second row)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-modal')).toBeInTheDocument();
+        expect(screen.getByText('Editing: Dr. Smith')).toBeInTheDocument();
+      });
+    });
+
+    it('clicking Add User opens UserModal with null user', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Add User')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Add User'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-modal')).toBeInTheDocument();
+        expect(screen.getByText('Adding new user')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── Delete User flow ─────────────────────────────────────────
+
+  describe('Delete User flow', () => {
+    it('delete button hidden for current logged-in user', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Admin User')).toBeInTheDocument();
+      });
+
+      // Logged-in user is id=1 (Admin User). Their row should not have deactivate button.
+      // Other users (id 2, 3, 4) should have deactivate buttons = 3 total.
+      const deactivateButtons = screen.getAllByTitle('Deactivate user');
+      expect(deactivateButtons.length).toBe(3);
+    });
+
+    it('confirm delete calls DELETE API and reloads users', async () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      mockDelete.mockResolvedValue({ data: {} });
+
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+      });
+
+      const deactivateButtons = screen.getAllByTitle('Deactivate user');
+      await user.click(deactivateButtons[0]); // First deactivate button = Dr. Smith (id=2)
+
+      await waitFor(() => {
+        expect(mockDelete).toHaveBeenCalledWith('/admin/users/2');
+      });
+
+      // Verify users are reloaded
+      await waitFor(() => {
+        expect(mockGet).toHaveBeenCalledWith('/admin/users');
+      });
+
+      vi.restoreAllMocks();
+    });
+
+    it('cancel confirm does not call DELETE API', async () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+      });
+
+      const deactivateButtons = screen.getAllByTitle('Deactivate user');
+      await user.click(deactivateButtons[0]);
+
+      expect(mockDelete).not.toHaveBeenCalled();
+
+      vi.restoreAllMocks();
+    });
+  });
+
+  // ── Reset Password modal ─────────────────────────────────────
+
+  describe('Reset Password modal', () => {
+    it('clicking key icon opens ResetPasswordModal', async () => {
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Dr. Smith')).toBeInTheDocument();
+      });
+
+      const resetButtons = screen.getAllByTitle('Reset password');
+      await user.click(resetButtons[1]); // Dr. Smith (id=2)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('reset-password-modal')).toBeInTheDocument();
+        expect(screen.getByText('Reset password for user 2')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── Audit log action colors ──────────────────────────────────
+
+  describe('Audit log action colors', () => {
+    const mockAuditEntries = [
+      {
+        id: 301,
+        userId: 1,
+        userEmail: 'admin@example.com',
+        userDisplayName: 'Admin User',
+        action: 'CREATE',
+        entity: 'User',
+        entityId: 5,
+        changes: null,
+        details: null,
+        ipAddress: null,
+        createdAt: '2025-07-01T10:00:00Z',
+      },
+      {
+        id: 302,
+        userId: 1,
+        userEmail: 'admin@example.com',
+        userDisplayName: 'Admin User',
+        action: 'UPDATE',
+        entity: 'User',
+        entityId: 5,
+        changes: { displayName: ['Old', 'New'] },
+        details: null,
+        ipAddress: null,
+        createdAt: '2025-07-01T11:00:00Z',
+      },
+      {
+        id: 303,
+        userId: 1,
+        userEmail: 'admin@example.com',
+        userDisplayName: 'Admin User',
+        action: 'DELETE',
+        entity: 'User',
+        entityId: 5,
+        changes: null,
+        details: null,
+        ipAddress: null,
+        createdAt: '2025-07-01T12:00:00Z',
+      },
+    ];
+
+    function setupAuditMock() {
+      mockGet.mockImplementation((url: string) => {
+        if (url === '/admin/users') {
+          return Promise.resolve({ data: { data: mockUsers } });
+        }
+        if (url === '/admin/physicians') {
+          return Promise.resolve({ data: { data: mockPhysicians } });
+        }
+        if (url.startsWith('/admin/audit-log')) {
+          return Promise.resolve({ data: { data: { entries: mockAuditEntries } } });
+        }
+        return Promise.resolve({ data: { data: [] } });
+      });
+    }
+
+    it('CREATE action badge is green', async () => {
+      setupAuditMock();
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Users')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Audit Log'));
+      await waitFor(() => {
+        const badge = screen.getByText('CREATE');
+        expect(badge).toHaveClass('bg-green-100', 'text-green-800');
+      });
+    });
+
+    it('UPDATE action badge is blue', async () => {
+      setupAuditMock();
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Users')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Audit Log'));
+      await waitFor(() => {
+        const badge = screen.getByText('UPDATE');
+        expect(badge).toHaveClass('bg-blue-100', 'text-blue-800');
+      });
+    });
+
+    it('DELETE action badge is red', async () => {
+      setupAuditMock();
+      renderAdminPage();
+      await waitFor(() => {
+        expect(screen.getByText('Users')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText('Audit Log'));
+      await waitFor(() => {
+        const badge = screen.getByText('DELETE');
+        expect(badge).toHaveClass('bg-red-100', 'text-red-800');
+      });
+    });
+  });
+
+  // ── Import Mapping navigation ────────────────────────────────
+
+  it('Import Mapping button navigates to correct route', async () => {
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Import Mapping')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Import Mapping'));
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/import-mapping');
+  });
+
+  // ── Non-physician patient count ──────────────────────────────
+
+  it('non-physician user shows dash for patient count', async () => {
+    renderAdminPage();
+    await waitFor(() => {
+      expect(screen.getByText('Admin User')).toBeInTheDocument();
+    });
+
+    // Admin User (ADMIN role, not PHYSICIAN) should show '-' for patient count
+    // The '-' appears in the Patients column for non-physicians
+    const dashes = screen.getAllByText('-');
+    // At least Admin User and Nurse Jane (STAFF) should show '-'
+    expect(dashes.length).toBeGreaterThanOrEqual(2);
   });
 });
