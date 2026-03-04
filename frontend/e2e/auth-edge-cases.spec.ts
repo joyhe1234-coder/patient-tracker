@@ -329,6 +329,148 @@ test.describe('Account Lockout', () => {
   });
 });
 
+test.describe('Token Expiry Redirect', () => {
+  test('expired token on navigation to grid redirects to login', async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.loginAndWaitForRedirect('phy2@gmail.com', 'welcome100');
+
+    // Verify we're on the main page with the grid
+    await expect(page.locator('.ag-theme-alpine')).toBeVisible({ timeout: 10000 });
+
+    // Intercept /auth/me to return 401 (simulating expired token on next auth check)
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'TOKEN_EXPIRED', message: 'Token expired' },
+        }),
+      });
+    });
+
+    // Trigger a page reload — ProtectedRoute calls checkAuth → /auth/me → 401
+    await page.reload();
+
+    // Should redirect to login
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+  });
+
+  test('expired token on navigation to admin redirects to login', async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.loginAndWaitForRedirect('admin@gmail.com', 'welcome100');
+
+    // Navigate to admin page
+    await page.goto('/admin');
+    await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible({ timeout: 10000 });
+
+    // Intercept /auth/me to return 401
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'TOKEN_EXPIRED', message: 'Token expired' },
+        }),
+      });
+    });
+
+    // Reload admin page — checkAuth will fail with 401
+    await page.reload();
+
+    // Should redirect to login
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+  });
+
+  test('401 clears stored auth token', async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.loginAndWaitForRedirect('phy2@gmail.com', 'welcome100');
+
+    // Verify token is set in localStorage
+    const tokenBefore = await page.evaluate(() => localStorage.getItem('auth_token'));
+    expect(tokenBefore).toBeTruthy();
+
+    // Intercept /auth/me to return 401 (token expired)
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'TOKEN_EXPIRED', message: 'Token expired' },
+        }),
+      });
+    });
+
+    // Navigate to trigger checkAuth
+    await page.goto('/');
+
+    // Wait for redirect to login
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+
+    // Token should be cleared from localStorage
+    const tokenAfter = await page.evaluate(() => localStorage.getItem('auth_token'));
+    expect(tokenAfter).toBeNull();
+  });
+
+  test('login after token expiry restores session', async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.loginAndWaitForRedirect('phy2@gmail.com', 'welcome100');
+
+    // Verify grid loaded
+    await expect(page.locator('.ag-theme-alpine')).toBeVisible({ timeout: 10000 });
+
+    // Simulate expiry: intercept /auth/me to return 401
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          error: { code: 'TOKEN_EXPIRED', message: 'Token expired' },
+        }),
+      });
+    });
+
+    // Navigate to trigger checkAuth
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+
+    // Remove the interception so login works normally
+    await page.unroute('**/api/auth/me');
+
+    // Re-login
+    await loginPage.loginAndWaitForRedirect('phy2@gmail.com', 'welcome100');
+
+    // Grid should load again
+    await expect(page.locator('.ag-theme-alpine')).toBeVisible({ timeout: 15000 });
+  });
+
+  test('expired token preserves redirect location', async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.loginAndWaitForRedirect('admin@gmail.com', 'welcome100');
+
+    // Navigate to admin page
+    await page.goto('/admin');
+    await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible({ timeout: 10000 });
+
+    // Clear auth to simulate expiry
+    await page.evaluate(() => localStorage.removeItem('auth_token'));
+
+    // Try to access admin page directly
+    await page.goto('/admin');
+
+    // Should redirect to login since no token
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+  });
+});
+
 test.describe('Post-Logout Protection', () => {
   test('cannot access protected route after logout', async ({ page }) => {
     // First login with real credentials

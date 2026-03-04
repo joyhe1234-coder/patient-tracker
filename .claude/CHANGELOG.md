@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.15.4] - 2026-03-04
+
+### Added
+- **18 new Playwright E2E tests** closing 3 coverage gaps from the Feature-by-Feature Coverage Audit:
+  - `admin-management.spec.ts` (+8 tests): Admin User CRUD — form submission (add user success, duplicate email error, validation on empty fields), edit user (change name, change role), delete user (confirm deactivation, cancel keeps user), reset password (modal + submission)
+  - `auth-edge-cases.spec.ts` (+5 tests): Token Expiry Redirect — expired token on grid navigation, expired token on admin navigation, 401 clears localStorage token, login after expiry restores session, expired token preserves redirect location
+  - `assignment-broadcast.spec.ts` (NEW, +5 tests): Socket Assignment Broadcast — simultaneous socket connections, presence indicator, bulk assign triggers refresh, auto-refresh after assignment, independent socket connections across contexts
+
+### Tests
+- Backend (Jest): 1,624 tests passing (59 suites) — no regressions
+- Frontend (Vitest): 1,549 tests passing (62 suites) — no regressions
+- Playwright E2E: 33 passing + 1 conditionally skipped in targeted files (admin-management, auth-edge-cases, assignment-broadcast)
+
+---
+
 ## [4.15.3] - 2026-03-03
 
 ### Fixed

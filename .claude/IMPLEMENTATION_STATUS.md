@@ -32,7 +32,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 **Test Coverage (as of v4.15.3):**
 - Layer 1 (Backend Jest): 1,624 tests passing (59 suites) — +25 from v4.15.1
 - Layer 2 (Frontend Vitest): 1,549 tests passing (62 suites) — +93 from v4.15.1
-- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases + bulk-operations
+- Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 16 admin-management + 4 password-flows + 3 import-reassignment + 13 auth-edge-cases + 5 assignment-broadcast + bulk-operations
 - Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles, bulk-operations)
 - Visual test plan v2.1: 427 test cases documented
 - Regression test plan: 48 sections, Row Colors section upgraded to 16 TCs / 100% automated
@@ -1091,6 +1091,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+March 4, 2026 - v4.15.4: Feature-by-Feature Coverage Audit — +18 Playwright E2E tests closing 3 gaps. Admin CRUD E2E (8 tests: add/edit/delete users, reset password), Token Expiry Redirect E2E (5 tests: 401 redirect, token clearing, session restore), Socket Assignment Broadcast E2E (5 tests: multi-context connections, presence, bulk ops broadcast, independent sockets). All tests passing: 1,624 Jest + 1,549 Vitest + Playwright E2E + Cypress = ~3,191+ automated tests.
 March 3, 2026 - v4.15.3: Fix flaky sutter-performance test (PERF_MULTIPLIER 2→4 for local runs). All tests passing: 1,624 Jest + 1,549 Vitest + Playwright + Cypress = ~3,173+ unit/component tests.
 March 3, 2026 - v4.15.2: Test gap remediation — +25 Jest, +93 Vitest across 16 files. New test files: health.routes.test.ts (3), auditHandlers.test.ts (7), dataDuplicateHandler.test.ts (10), useGridCellUpdate.test.ts (5), useRemoteEditClass.test.ts (7), HillMeasureMapping.test.tsx (8), ImportTestPage.test.tsx (12). Expanded: dueDateCalculator.test.ts (addMonths edge cases), ForcePasswordChange.test.tsx, Header.test.tsx, ResetPasswordModal.test.tsx, dropdownConfig.test.ts, statusColors.test.ts, AdminPage.test.tsx, BulkOperationsTab.test.tsx, MappingManagementPage.test.tsx. All tests passing: 1,624 Jest + 1,549 Vitest + Playwright + Cypress = ~3,173+ unit/component tests.
 March 2, 2026 - v4.15.1: Test gap remediation — +9 Jest, +76 Vitest across 12 files. New test files: App.test.tsx (routing), toast.test.ts, MainPage.loading.test.tsx, isTimeIntervalEditable.test.ts. Expanded: Header.test.tsx (ChangePasswordModal), axios.test.ts, data.routes.test.ts (authorization boundaries), cascadingFields.test.ts, ConflictResolutionStep.test.tsx, MappingTable.test.tsx, bulk-operations.cy.ts, time-interval.cy.ts. Exported private functions in axios.ts and PatientGrid.tsx for testability. All tests passing: 1,599 Jest + 1,456 Vitest + Playwright + Cypress = ~3,055+ unit/component tests.

@@ -4913,8 +4913,121 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 57. Feature-by-Feature Coverage Audit — Playwright E2E (v4.15.4)
+
+### TC-57.1: Admin User CRUD — Add User Success
+- **Precondition:** Logged in as ADMIN, navigated to /admin
+- **Steps:** Click "Add User", fill email/password/displayName, submit
+- **Expected:** POST /api/admin/users called, modal closes on success
+- **Automation:** Automated — `admin-management.spec.ts: "Add User — successful form submission"`
+
+### TC-57.2: Admin User CRUD — Duplicate Email Error
+- **Precondition:** Logged in as ADMIN, navigated to /admin
+- **Steps:** Click "Add User", fill existing email, submit
+- **Expected:** 409 returned, red error banner shows "already exists" message, modal stays open
+- **Automation:** Automated — `admin-management.spec.ts: "Add User — duplicate email shows error"`
+
+### TC-57.3: Admin User CRUD — Validation on Empty Fields
+- **Precondition:** Logged in as ADMIN, navigated to /admin
+- **Steps:** Click "Add User", leave fields empty, click Save
+- **Expected:** HTML5 validation blocks submission, modal stays open, email input reports invalid
+- **Automation:** Automated — `admin-management.spec.ts: "Add User — validation error on empty required fields"`
+
+### TC-57.4: Admin User CRUD — Edit Display Name
+- **Precondition:** Logged in as ADMIN, user list visible
+- **Steps:** Click edit button for a user, change display name, save
+- **Expected:** PUT /api/admin/users/:id called, modal closes
+- **Automation:** Automated — `admin-management.spec.ts: "Edit User — change display name"`
+
+### TC-57.5: Admin User CRUD — Edit Role
+- **Precondition:** Logged in as ADMIN, user list visible
+- **Steps:** Click edit button for a user, change role to Admin, save
+- **Expected:** PUT /api/admin/users/:id called with new role, modal closes
+- **Automation:** Automated — `admin-management.spec.ts: "Edit User — change role to Admin"`
+
+### TC-57.6: Admin User CRUD — Confirm Deactivation
+- **Precondition:** Logged in as ADMIN, user list visible
+- **Steps:** Click deactivate button for a user, confirm dialog
+- **Expected:** DELETE /api/admin/users/:id called, page refreshes
+- **Automation:** Automated — `admin-management.spec.ts: "Delete User — confirm deactivation"`
+
+### TC-57.7: Admin User CRUD — Cancel Keeps User
+- **Precondition:** Logged in as ADMIN, user list visible
+- **Steps:** Click deactivate button for a user, dismiss dialog
+- **Expected:** No API call made, user still visible in list
+- **Automation:** Automated — `admin-management.spec.ts: "Delete User — cancel keeps user"`
+
+### TC-57.8: Admin User CRUD — Reset Password
+- **Precondition:** Logged in as ADMIN, user list visible
+- **Steps:** Click reset password button, fill new password in modal, submit
+- **Expected:** POST /api/admin/users/:id/reset-password called, success message shown
+- **Automation:** Automated — `admin-management.spec.ts: "Reset Password — opens modal and submits"`
+
+### TC-57.9: Token Expiry — Expired Token on Grid Navigation
+- **Precondition:** Logged in user with valid session
+- **Steps:** Intercept /auth/me to return 401, reload page
+- **Expected:** Redirected to /login
+- **Automation:** Automated — `auth-edge-cases.spec.ts: "expired token on navigation to grid redirects to login"`
+
+### TC-57.10: Token Expiry — Expired Token on Admin Navigation
+- **Precondition:** Logged in as ADMIN on /admin page
+- **Steps:** Intercept /auth/me to return 401, reload page
+- **Expected:** Redirected to /login
+- **Automation:** Automated — `auth-edge-cases.spec.ts: "expired token on navigation to admin redirects to login"`
+
+### TC-57.11: Token Expiry — 401 Clears Stored Auth Token
+- **Precondition:** Logged in user with auth_token in localStorage
+- **Steps:** Intercept /auth/me to return 401, navigate to /
+- **Expected:** Redirected to /login, auth_token removed from localStorage
+- **Automation:** Automated — `auth-edge-cases.spec.ts: "401 clears stored auth token"`
+
+### TC-57.12: Token Expiry — Login After Expiry Restores Session
+- **Precondition:** User session expired (401 on /auth/me)
+- **Steps:** Get redirected to login, re-login with valid credentials
+- **Expected:** Grid loads again, session fully restored
+- **Automation:** Automated — `auth-edge-cases.spec.ts: "login after token expiry restores session"`
+
+### TC-57.13: Token Expiry — Expired Token Preserves Redirect Location
+- **Precondition:** Logged in as ADMIN on /admin page
+- **Steps:** Clear auth_token from localStorage, navigate to /admin
+- **Expected:** Redirected to /login (no token means unauthenticated)
+- **Automation:** Automated — `auth-edge-cases.spec.ts: "expired token preserves redirect location"`
+
+### TC-57.14: Socket Broadcast — Simultaneous Socket Connections
+- **Precondition:** Two browser contexts authenticated
+- **Steps:** Connect both contexts to socket.io, verify both connect
+- **Expected:** Both connections established independently
+- **Automation:** Automated — `assignment-broadcast.spec.ts: "simultaneous socket connections"`
+
+### TC-57.15: Socket Broadcast — Presence Indicator
+- **Precondition:** Socket connection established
+- **Steps:** Check for presence/online indicator in UI
+- **Expected:** Presence indicator visible for connected users
+- **Automation:** Automated — `assignment-broadcast.spec.ts: "presence indicator"`
+
+### TC-57.16: Socket Broadcast — Bulk Assign Triggers Refresh
+- **Precondition:** Two contexts connected, patients available
+- **Steps:** Perform bulk assign in one context
+- **Expected:** Second context receives refresh event
+- **Automation:** Automated — `assignment-broadcast.spec.ts: "bulk assign triggers refresh"`
+
+### TC-57.17: Socket Broadcast — Auto-Refresh After Assignment
+- **Precondition:** Socket connection active, assignment performed
+- **Steps:** Verify grid auto-refreshes after assignment broadcast
+- **Expected:** Grid data refreshes without manual reload
+- **Automation:** Automated — `assignment-broadcast.spec.ts: "auto-refresh after assignment"`
+
+### TC-57.18: Socket Broadcast — Independent Socket Connections
+- **Precondition:** Two browser contexts
+- **Steps:** Verify socket connections are independent across contexts
+- **Expected:** Each context maintains its own socket lifecycle
+- **Automation:** Automated — `assignment-broadcast.spec.ts: "independent socket connections across contexts"`
+
+---
+
 ## Last Updated
 
+March 4, 2026 - Added Section 57: Feature-by-Feature Coverage Audit v4.15.4 (TC-57.1 to TC-57.18). 18 test cases, 100% automated. Admin User CRUD E2E (8 tests), Token Expiry Redirect E2E (5 tests), Socket Assignment Broadcast E2E (5 tests). All Playwright. Test counts: 1,624 Jest + 1,549 Vitest + 18 new Playwright E2E.
 March 3, 2026 - Added Section 56: Test Gap Remediation v4.15.2 (TC-56.1 to TC-56.9). 9 test case groups covering 118 new tests, 100% automated. Health endpoint, audit handlers, duplicate handlers, addMonths edge cases, field display names, remote edit class, Hill mapping page, import test page, expanded component coverage. Test counts: 1,624 Jest + 1,549 Vitest.
 March 2, 2026 - Added Section 55: Test Gap Remediation v4.15.1 (TC-55.1 to TC-55.7). 7 test case groups covering 85 new tests, 100% automated. App routing, toast utility, loading states, time interval editability, ChangePasswordModal, axios utilities, authorization boundaries. Test counts: 1,599 Jest + 1,456 Vitest.
 March 2, 2026 - Added Section 54: Bulk Patient Management (TC-54.1 to TC-54.8). 8 test cases, 100% automated. Covers tab visibility, bulk assign/unassign/delete, GET /api/admin/patients, filtering, validation errors. Test counts: 1,590 Jest + 1,380 Vitest.

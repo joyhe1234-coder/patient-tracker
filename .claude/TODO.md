@@ -514,7 +514,7 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] Visual browser review per role
 
 #### Feature 4: Admin Dashboard
-- [ ] User management (list, create, edit, delete users)
+- [x] User management CRUD E2E (add, edit, delete, reset password — 8 Playwright tests, Mar 4 2026)
 - [ ] Role assignment (ADMIN, PHYSICIAN, STAFF, ADMIN+PHYSICIAN)
 - [ ] Staff-physician assignment management
 - [ ] Audit log viewer (login events, data changes, filtering)
@@ -528,7 +528,7 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] Forgot password (email flow, token generation, reset page)
 - [ ] Account lockout (5 failed attempts, temp password, forced change)
 - [ ] Password change (current password verification, new password validation)
-- [ ] JWT token handling (refresh, expiry, protected routes)
+- [x] JWT token expiry redirect E2E (401 clears token, redirect to login, session restore — 5 Playwright tests, Mar 4 2026)
 - [ ] Visual browser review of auth flow
 
 #### Feature 6: Patient Assignment
@@ -536,11 +536,12 @@ See **Phase 5: CSV Import** in "In Progress" section above.
 - [ ] Select all / bulk assign
 - [ ] Patient count updates after assignment
 - [ ] Data freshness (no stale cache)
+- [x] Socket assignment broadcast E2E (multi-context socket connections, presence, bulk ops broadcast — 5 Playwright tests, Mar 4 2026)
 - [ ] Role-based access (ADMIN can assign, STAFF limited, PHYSICIAN blocked)
 - [ ] Visual browser review
 
 #### Feature 7: Real-Time Collaboration
-- [ ] Socket connection (join/leave rooms, presence updates)
+- [x] Socket connection E2E (multi-context connections, presence, independent sockets — partially addressed by assignment broadcast tests, Mar 4 2026)
 - [ ] Remote edit indicators (cell highlighting, tooltip with editor name)
 - [ ] Remote row updates (row:updated, row:created, row:deleted events)
 - [ ] Edit conflict detection (409 VERSION_CONFLICT, conflict modal)
