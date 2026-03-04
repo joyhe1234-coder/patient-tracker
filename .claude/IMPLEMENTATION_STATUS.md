@@ -29,7 +29,7 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.15.2):**
+**Test Coverage (as of v4.15.3):**
 - Layer 1 (Backend Jest): 1,624 tests passing (59 suites) — +25 from v4.15.1
 - Layer 2 (Frontend Vitest): 1,549 tests passing (62 suites) — +93 from v4.15.1
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 4 admin-management + 4 password-flows + 3 import-reassignment + 8 auth-edge-cases + bulk-operations
@@ -1091,6 +1091,7 @@ The application includes a `render.yaml` Blueprint for easy deployment to Render
 
 ## Last Updated
 
+March 3, 2026 - v4.15.3: Fix flaky sutter-performance test (PERF_MULTIPLIER 2→4 for local runs). All tests passing: 1,624 Jest + 1,549 Vitest + Playwright + Cypress = ~3,173+ unit/component tests.
 March 3, 2026 - v4.15.2: Test gap remediation — +25 Jest, +93 Vitest across 16 files. New test files: health.routes.test.ts (3), auditHandlers.test.ts (7), dataDuplicateHandler.test.ts (10), useGridCellUpdate.test.ts (5), useRemoteEditClass.test.ts (7), HillMeasureMapping.test.tsx (8), ImportTestPage.test.tsx (12). Expanded: dueDateCalculator.test.ts (addMonths edge cases), ForcePasswordChange.test.tsx, Header.test.tsx, ResetPasswordModal.test.tsx, dropdownConfig.test.ts, statusColors.test.ts, AdminPage.test.tsx, BulkOperationsTab.test.tsx, MappingManagementPage.test.tsx. All tests passing: 1,624 Jest + 1,549 Vitest + Playwright + Cypress = ~3,173+ unit/component tests.
 March 2, 2026 - v4.15.1: Test gap remediation — +9 Jest, +76 Vitest across 12 files. New test files: App.test.tsx (routing), toast.test.ts, MainPage.loading.test.tsx, isTimeIntervalEditable.test.ts. Expanded: Header.test.tsx (ChangePasswordModal), axios.test.ts, data.routes.test.ts (authorization boundaries), cascadingFields.test.ts, ConflictResolutionStep.test.tsx, MappingTable.test.tsx, bulk-operations.cy.ts, time-interval.cy.ts. Exported private functions in axios.ts and PatientGrid.tsx for testability. All tests passing: 1,599 Jest + 1,456 Vitest + Playwright + Cypress = ~3,055+ unit/component tests.
 March 2, 2026 - v4.15.0: Bulk patient management tab (BulkOperationsTab, AssignModal, UnassignModal, DeleteModal, Toast, bulkPatientStore), GET/DELETE admin patient endpoints, Socket.IO broadcasts for bulk ops, disaster recovery runbook, automated backup scripts, installer backup automation, installation guides updated. All tests passing: 1,590 Jest + 1,380 Vitest + Playwright + Cypress = ~2,970+ unit/component tests.

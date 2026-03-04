@@ -770,6 +770,7 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for completed feature
 
 ## Last Updated
 
+March 3, 2026 - v4.15.3: Fix flaky sutter-performance test (PERF_MULTIPLIER 2→4 for local runs). 1,624 Jest + 1,549 Vitest = 3,173 unit/component tests.
 March 3, 2026 - v4.15.2: Test gap remediation — +25 Jest, +93 Vitest across 16 files. New: health.routes (3), auditHandlers (7), dataDuplicateHandler (10), useGridCellUpdate (5), useRemoteEditClass (7), HillMeasureMapping (8), ImportTestPage (12). Expanded: dueDateCalculator, ForcePasswordChange, Header, ResetPasswordModal, dropdownConfig, statusColors, AdminPage, BulkOperationsTab, MappingManagementPage. 1,624 Jest + 1,549 Vitest = 3,173 unit/component tests (+118 from v4.15.1).
 March 2, 2026 - v4.15.1: Test gap remediation — +9 Jest, +76 Vitest across 12 files (App routing, toast utility, MainPage loading states, isTimeIntervalEditable, Header ChangePasswordModal, axios utilities, data routes authorization, bulk assign broadcasts, file parser). Exported private functions for testability. 1,599 Jest + 1,456 Vitest = 3,055 unit/component tests (+85 from v4.15.0).
 March 2, 2026 - v4.15.0: Bulk patient management tab complete (6 components, 2 endpoints, Socket.IO broadcasts), disaster recovery + backup automation, installation guides updated. 1,590 Jest + 1,380 Vitest = 2,970 unit/component tests (+104 from v4.14.0).

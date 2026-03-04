@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.15.3] - 2026-03-03
+
+### Fixed
+- **Flaky sutter-performance test** — Increased local `PERF_MULTIPLIER` from 2 to 4 to prevent false failures on busy machines (regex cache benchmark was timing out at 2864ms against a 2000ms threshold)
+
+### Tests
+- Backend (Jest): 1,624 tests passing (59 suites)
+- Frontend (Vitest): 1,549 tests passing (62 suites)
+
+---
+
 ## [4.15.2] - 2026-03-03
 
 ### Added
