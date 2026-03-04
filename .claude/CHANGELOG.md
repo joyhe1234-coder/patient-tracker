@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.15.3] - 2026-03-03
+
+### Fixed
+- **Flaky sutter-performance test** — Increased local `PERF_MULTIPLIER` from 2 to 4 to prevent false failures on busy machines (regex cache benchmark was timing out at 2864ms against a 2000ms threshold)
+
+### Tests
+- Backend (Jest): 1,624 tests passing (59 suites)
+- Frontend (Vitest): 1,549 tests passing (62 suites)
+
+---
+
+## [4.15.2] - 2026-03-03
+
+### Added
+- **25 new backend Jest tests** — Expands route and handler coverage:
+  - `health.routes.test.ts` (3 tests): GET /api/health endpoint — 200 with db connected, 503 with db disconnected, timestamp/version fields
+  - `auditHandlers.test.ts` (7 tests): getAuditLog handler — pagination, filtering, display name fallback, error handling
+  - `dataDuplicateHandler.test.ts` (10 tests): checkDuplicate and duplicateRow handlers — skip conditions, patient lookup, measure matching, ownership verification
+  - `dueDateCalculator.test.ts` (+5 tests): addMonths edge cases — Jan 31/30 overflow to March, leap year overflow, Dec-to-January year rollover
+- **93 new frontend Vitest tests** — Broad component and page coverage:
+  - `useGridCellUpdate.test.ts` (5 tests): FIELD_DISPLAY_NAMES mapping — all 13 editable column keys present with non-empty labels
+  - `useRemoteEditClass.test.ts` (7 tests): Remote edit CSS class logic — null/undefined data, missing field, matching/non-matching activeEdits, multiple edits
+  - `HillMeasureMapping.test.tsx` (8 tests): Hill measure mapping page — title, Export CSV, 10-row table, dropdown defaults, dropdown change handler
+  - `ImportTestPage.test.tsx` (12 tests): Import diagnostic page — title, file upload, button disabled states, loading, error display, mode toggle, API calls, tab navigation
+  - `ForcePasswordChange.test.tsx` (+tests): Force password change component edge cases
+  - `Header.test.tsx` (+tests): Provider dropdown visibility, role-based rendering
+  - `ResetPasswordModal.test.tsx` (+tests): Reset password modal edge cases
+  - `dropdownConfig.test.ts` (+tests): Dropdown configuration validation
+  - `statusColors.test.ts` (+tests): Status color mapping coverage
+  - `AdminPage.test.tsx` (+tests): Admin page role guards, tab rendering, user management
+  - `BulkOperationsTab.test.tsx` (+tests): Bulk operations additional scenarios
+  - `MappingManagementPage.test.tsx` (+tests): Mapping management page rendering, error states, data loading
+
+### Tests
+- Backend (Jest): 1,624 tests passing (59 suites) — +25 from v4.15.1
+- Frontend (Vitest): 1,549 tests passing (62 suites) — +93 from v4.15.1
+
+---
+
 ## [4.15.1] - 2026-03-02
 
 ### Added

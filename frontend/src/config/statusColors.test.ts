@@ -517,6 +517,105 @@ describe('statusColors', () => {
       });
     });
 
+    // ── Chronic DX attestation boundary cases ─────────────────────────
+
+    describe('Chronic DX attestation boundary cases', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('CDX resolved + "Attestation not sent" + future dueDate = orange', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({
+            ...baseRow,
+            measureStatus: 'Chronic diagnosis resolved',
+            tracking1: 'Attestation not sent',
+            dueDate: '2025-12-31',
+          })
+        ).toBe('orange');
+      });
+
+      it('CDX resolved + null tracking1 + future dueDate = orange', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({
+            ...baseRow,
+            measureStatus: 'Chronic diagnosis resolved',
+            tracking1: null,
+            dueDate: '2025-12-31',
+          })
+        ).toBe('orange');
+      });
+
+      it('CDX resolved + null tracking1 + past dueDate = red', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({
+            ...baseRow,
+            measureStatus: 'Chronic diagnosis resolved',
+            tracking1: null,
+            dueDate: '2025-01-01',
+          })
+        ).toBe('red');
+      });
+
+      it('CDX resolved + "Attestation not sent" + dueDate=today = orange (boundary)', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({
+            ...baseRow,
+            measureStatus: 'Chronic diagnosis resolved',
+            tracking1: 'Attestation not sent',
+            dueDate: '2025-06-15',
+          })
+        ).toBe('orange');
+      });
+
+      it('CDX invalid + "Attestation not sent" + past dueDate = red', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+        expect(
+          getRowStatusColor({
+            ...baseRow,
+            measureStatus: 'Chronic diagnosis invalid',
+            tracking1: 'Attestation not sent',
+            dueDate: '2025-01-01',
+          })
+        ).toBe('red');
+      });
+    });
+
+    // ── Depression Screening + overdue boundary edge cases ──────────────
+
+    it('"Screening complete" with past dueDate turns red (green is not terminal)', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        getRowStatusColor({
+          ...baseRow,
+          measureStatus: 'Screening complete',
+          dueDate: '2025-01-01',
+        })
+      ).toBe('red');
+    });
+
+    it('blue status stays blue when dueDate = today (boundary)', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+      expect(
+        getRowStatusColor({
+          ...baseRow,
+          measureStatus: 'Called to schedule',
+          dueDate: '2025-06-15',
+        })
+      ).toBe('blue');
+    });
+
     // ── T2-1: Parameterized overdue tests for all color categories ────
 
     describe('overdue returns red for every GREEN status', () => {

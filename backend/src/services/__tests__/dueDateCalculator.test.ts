@@ -605,4 +605,82 @@ describe('calculateDueDate', () => {
       expect(result.timeIntervalDays).toBeNull();
     });
   });
+
+  // ── addMonths edge cases (setUTCMonth overflow) ──────────────────
+
+  describe('addMonths edge cases', () => {
+    it('Jan 31 + 1 month overflows to March (Feb has 28 days)', async () => {
+      // "Screening discussed" + "In 1 Month" triggers addMonths via Priority 1
+      const result = await calculateDueDate(
+        new Date('2026-01-31'),
+        'Screening discussed',
+        'In 1 Month',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      // Jan 31 + 1 month via setUTCMonth: Feb 31 → overflows to Mar 3
+      expect(result.dueDate!.getUTCMonth()).toBe(2); // March (0-indexed)
+      expect(result.dueDate!.getUTCDate()).toBe(3);
+    });
+
+    it('Jan 30 + 1 month overflows to March (Feb has 28 days)', async () => {
+      const result = await calculateDueDate(
+        new Date('2026-01-30'),
+        'Screening discussed',
+        'In 1 Month',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      // Jan 30 + 1 month via setUTCMonth: Feb 30 → overflows to Mar 2
+      expect(result.dueDate!.getUTCMonth()).toBe(2); // March
+      expect(result.dueDate!.getUTCDate()).toBe(2);
+    });
+
+    it('Jan 31 + 1 month in leap year still overflows (31 > 29)', async () => {
+      const result = await calculateDueDate(
+        new Date('2024-01-31'),
+        'Screening discussed',
+        'In 1 Month',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      // 2024 is leap year: Feb has 29 days, but 31 > 29 → overflows to Mar 2
+      expect(result.dueDate!.getUTCMonth()).toBe(2); // March
+      expect(result.dueDate!.getUTCDate()).toBe(2);
+    });
+
+    it('Jan 28 + 1 month does not overflow (28 ≤ Feb days)', async () => {
+      const result = await calculateDueDate(
+        new Date('2026-01-28'),
+        'Screening discussed',
+        'In 1 Month',
+        null
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      // Jan 28 + 1 month = Feb 28 (safe, no overflow)
+      expect(result.dueDate!.getUTCMonth()).toBe(1); // February
+      expect(result.dueDate!.getUTCDate()).toBe(28);
+    });
+
+    it('Oct 31 + 6 months overflows at year boundary (HgbA1c path)', async () => {
+      // HgbA1c path uses tracking2 + addMonths via Priority 2
+      const result = await calculateDueDate(
+        new Date('2025-10-31'),
+        'HgbA1c ordered',
+        null,
+        '6 months'
+      );
+
+      expect(result.dueDate).not.toBeNull();
+      // Oct 31 + 6 months via setUTCMonth(9+6=15→ month 3 next year)
+      // April has 30 days, so Apr 31 overflows to May 1
+      expect(result.dueDate!.getUTCFullYear()).toBe(2026);
+      expect(result.dueDate!.getUTCMonth()).toBe(4); // May (0-indexed)
+      expect(result.dueDate!.getUTCDate()).toBe(1);
+    });
+  });
 });

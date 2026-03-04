@@ -4855,8 +4855,67 @@ npm run cypress:headed  # Run with browser visible
 
 ---
 
+## 56. Test Gap Remediation — v4.15.2
+
+### TC-56.1: Health Endpoint
+- **Precondition:** Backend running
+- **Steps:** GET /api/health with database connected and disconnected
+- **Expected:** 200 with db=connected when reachable; 503 with db=disconnected when unreachable; response includes timestamp (ISO) and version fields
+- **Automation:** Automated — `health.routes.test.ts` (3 tests)
+
+### TC-56.2: Audit Log Handler
+- **Precondition:** Authenticated ADMIN user, audit log entries exist
+- **Steps:** Fetch audit log with pagination, filtering by action type, verify display name fallback
+- **Expected:** Paginated results returned; filters work; displayName falls back to email when user not found; errors return 500
+- **Automation:** Automated — `auditHandlers.test.ts` (7 tests)
+
+### TC-56.3: Duplicate Detection & Row Duplication Handlers
+- **Precondition:** Authenticated physician, patients with measures exist
+- **Steps:** Check duplicate for various skip conditions, patient lookup, measure matching; duplicate a row with ownership verification
+- **Expected:** Skips duplicate check for rows without patientId; finds matching measures by patient name + quality measure; duplicateRow verifies ownership before creating copy
+- **Automation:** Automated — `dataDuplicateHandler.test.ts` (10 tests)
+
+### TC-56.4: Due Date Calculator — addMonths Edge Cases
+- **Precondition:** Measures with date-based due date calculation
+- **Steps:** Calculate due dates for Jan 31/30 + 1 month, leap year scenarios, December-to-January year rollover
+- **Expected:** Jan 31 + 1 month overflows to Mar 3; Jan 30 + 1 month overflows to Mar 2; Leap year Jan 31 overflows to Mar 2; Dec + 1 month correctly rolls to January next year
+- **Automation:** Automated — `dueDateCalculator.test.ts` (+5 tests)
+
+### TC-56.5: Grid Cell Update Field Display Names
+- **Precondition:** Grid cell update hook loaded
+- **Steps:** Verify FIELD_DISPLAY_NAMES mapping contains all 13 editable column keys with non-empty human-readable labels
+- **Expected:** All keys present: requestType, memberName, memberDob, memberTelephone, memberAddress, qualityMeasure, measureStatus, statusDate, tracking1, tracking2, dueDate, timeIntervalDays, notes
+- **Automation:** Automated — `useGridCellUpdate.test.ts` (5 tests)
+
+### TC-56.6: Remote Edit CSS Class Hook
+- **Precondition:** Collaborative editing active with multiple users
+- **Steps:** Test useRemoteEditClass with null/undefined data, missing field, matching and non-matching activeEdits, multiple active edits
+- **Expected:** Returns empty string for null/undefined/missing; returns "cell-remote-editing" when activeEdits match rowId+field; handles multiple edits correctly
+- **Automation:** Automated — `useRemoteEditClass.test.ts` (7 tests)
+
+### TC-56.7: Hill Measure Mapping Page
+- **Precondition:** Navigate to Hill measure mapping page
+- **Steps:** Verify title, Export CSV button, 10-row mapping table, dropdown defaults, dropdown change handler
+- **Expected:** Title "Hill Spreadsheet Quality Measure Mapping" displayed; Export CSV button present; table has 10 mapped measures; dropdowns default to correct values; changing dropdown updates mapping
+- **Automation:** Automated — `HillMeasureMapping.test.tsx` (8 tests)
+
+### TC-56.8: Import Diagnostic Page
+- **Precondition:** Navigate to import test page (dev/admin only)
+- **Steps:** Test title, file upload, button disabled states, loading indicators, error display, mode toggle, API calls, tab navigation
+- **Expected:** Page title displayed; buttons disabled until file uploaded; loading spinner during API calls; errors displayed in red; mode toggle switches parse/transform/validate; tabs navigate between sections
+- **Automation:** Automated — `ImportTestPage.test.tsx` (12 tests)
+
+### TC-56.9: Expanded Component Coverage
+- **Precondition:** Various components loaded
+- **Steps:** ForcePasswordChange edge cases, Header provider dropdown visibility, ResetPasswordModal edge cases, dropdown config validation, status color mapping, AdminPage role guards/tabs, BulkOperationsTab additional scenarios, MappingManagementPage rendering/errors
+- **Expected:** All edge cases handled correctly; role-based visibility works; configurations valid; error states render properly
+- **Automation:** Automated — across 9 expanded test files (+66 tests total)
+
+---
+
 ## Last Updated
 
+March 3, 2026 - Added Section 56: Test Gap Remediation v4.15.2 (TC-56.1 to TC-56.9). 9 test case groups covering 118 new tests, 100% automated. Health endpoint, audit handlers, duplicate handlers, addMonths edge cases, field display names, remote edit class, Hill mapping page, import test page, expanded component coverage. Test counts: 1,624 Jest + 1,549 Vitest.
 March 2, 2026 - Added Section 55: Test Gap Remediation v4.15.1 (TC-55.1 to TC-55.7). 7 test case groups covering 85 new tests, 100% automated. App routing, toast utility, loading states, time interval editability, ChangePasswordModal, axios utilities, authorization boundaries. Test counts: 1,599 Jest + 1,456 Vitest.
 March 2, 2026 - Added Section 54: Bulk Patient Management (TC-54.1 to TC-54.8). 8 test cases, 100% automated. Covers tab visibility, bulk assign/unassign/delete, GET /api/admin/patients, filtering, validation errors. Test counts: 1,590 Jest + 1,380 Vitest.
 March 1, 2026 - Added Section 53: Import Bug Fixes — Insurance Scoping & Reassignment (TC-53.1 to TC-53.5). 5 test cases, 100% automated. Covers Replace All insurance group scoping, reassignment duplicate prevention, merge mode reassignment, admin role cleanup, socket reconnection. Test counts: 1,560 Jest + 1,306 Vitest.

@@ -128,4 +128,83 @@ describe('ForcePasswordChange', () => {
       expect(screen.getByText('Changing Password...')).toBeInTheDocument();
     });
   });
+
+  // ---- Password visibility toggle ----
+
+  it('toggles password visibility when eye icon is clicked', async () => {
+    render(<ForcePasswordChange onPasswordChanged={mockOnPasswordChanged} />);
+
+    const newPasswordInput = screen.getByLabelText('New Password');
+    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+
+    // Initially both inputs should be type="password"
+    expect(newPasswordInput).toHaveAttribute('type', 'password');
+    expect(confirmPasswordInput).toHaveAttribute('type', 'password');
+
+    // Click the visibility toggle button
+    const toggleButton = screen.getByRole('button', { name: 'Show password' });
+    await user.click(toggleButton);
+
+    // Now both inputs should be type="text"
+    expect(newPasswordInput).toHaveAttribute('type', 'text');
+    expect(confirmPasswordInput).toHaveAttribute('type', 'text');
+
+    // Click again to hide
+    const hideButton = screen.getByRole('button', { name: 'Hide password' });
+    await user.click(hideButton);
+
+    // Back to type="password"
+    expect(newPasswordInput).toHaveAttribute('type', 'password');
+    expect(confirmPasswordInput).toHaveAttribute('type', 'password');
+  });
+
+  // ---- Inputs disabled during submit ----
+
+  it('disables password inputs while submitting', async () => {
+    mockPost.mockReturnValue(new Promise(() => {})); // Never resolves
+    render(<ForcePasswordChange onPasswordChanged={mockOnPasswordChanged} />);
+
+    const newPasswordInput = screen.getByLabelText('New Password');
+    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+
+    await user.type(newPasswordInput, 'newpassword123');
+    await user.type(confirmPasswordInput, 'newpassword123');
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    await waitFor(() => {
+      expect(newPasswordInput).toBeDisabled();
+      expect(confirmPasswordInput).toBeDisabled();
+    });
+  });
+
+  // ---- Fallback error message ----
+
+  it('shows fallback error when API error has no message', async () => {
+    mockPost.mockRejectedValue({ response: {} });
+    render(<ForcePasswordChange onPasswordChanged={mockOnPasswordChanged} />);
+
+    await user.type(screen.getByLabelText('New Password'), 'newpassword123');
+    await user.type(screen.getByLabelText('Confirm Password'), 'newpassword123');
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to change password')).toBeInTheDocument();
+    });
+  });
+
+  // ---- Submit button disabled state ----
+
+  it('submit button is disabled while API call is in progress', async () => {
+    mockPost.mockReturnValue(new Promise(() => {})); // Never resolves
+    render(<ForcePasswordChange onPasswordChanged={mockOnPasswordChanged} />);
+
+    await user.type(screen.getByLabelText('New Password'), 'newpassword123');
+    await user.type(screen.getByLabelText('Confirm Password'), 'newpassword123');
+    await user.click(screen.getByRole('button', { name: /change password/i }));
+
+    await waitFor(() => {
+      const submitButton = screen.getByRole('button', { name: /changing password/i });
+      expect(submitButton).toBeDisabled();
+    });
+  });
 });
