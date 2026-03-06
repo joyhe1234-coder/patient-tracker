@@ -198,13 +198,23 @@ export function useGridCellUpdate(options: UseGridCellUpdateOptions): UseGridCel
             const serverRow = conflictResponseData.serverRow;
             const changedBy = conflictResponseData.changedBy || 'another user';
             const conflictFields: ConflictField[] = (conflictResponseData.conflictFields || []).map(
-              (cf: { field: string; serverValue: unknown; clientValue: unknown }) => ({
-                fieldName: FIELD_DISPLAY_NAMES[cf.field] || cf.field,
-                fieldKey: cf.field,
-                baseValue: oldValue != null ? String(oldValue) : null,
-                theirValue: cf.serverValue != null ? String(cf.serverValue) : null,
-                yourValue: cf.clientValue != null ? String(cf.clientValue) : null,
-              })
+              (cf: string | { field: string; serverValue: unknown; clientValue: unknown }) => {
+                // Backend returns string[] (field names only). Derive values from serverRow and local data.
+                const fieldKey = typeof cf === 'string' ? cf : cf.field;
+                const serverValue = typeof cf === 'string'
+                  ? (serverRow?.[fieldKey as keyof typeof serverRow] ?? null)
+                  : cf.serverValue;
+                const clientValue = typeof cf === 'string'
+                  ? (data[fieldKey as keyof GridRow] ?? null)
+                  : cf.clientValue;
+                return {
+                  fieldName: FIELD_DISPLAY_NAMES[fieldKey] || fieldKey,
+                  fieldKey,
+                  baseValue: oldValue != null ? String(oldValue) : null,
+                  theirValue: serverValue != null ? String(serverValue) : null,
+                  yourValue: clientValue != null ? String(clientValue) : null,
+                };
+              }
             );
 
             // Store conflict data and open modal

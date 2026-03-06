@@ -52,12 +52,17 @@ export function useSocket(options: UseSocketOptions): void {
         }
       }
       if (status === 'connected') {
+        // Always (re-)join the physician room on connection.
+        // On initial load, the room-join useEffect fires before the socket
+        // is actually connected, so joinRoom() silently skips. We must
+        // join here once the socket is ready.
+        const physicianId = selectedPhysicianIdRef.current;
+        if (physicianId !== null) {
+          socketService.joinRoom(physicianId);
+        }
+
         if (wasDisconnectedRef.current) {
-          // This is a reconnection — re-join the physician room and refresh data
-          const physicianId = selectedPhysicianIdRef.current;
-          if (physicianId !== null) {
-            socketService.joinRoom(physicianId);
-          }
+          // This is a reconnection — also refresh data to catch missed updates
           optionsRef.current.onDataRefresh();
         }
         hasBeenConnectedRef.current = true;

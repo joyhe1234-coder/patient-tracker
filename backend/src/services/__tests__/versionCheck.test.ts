@@ -213,6 +213,124 @@ describe('versionCheck', () => {
       expect(result.conflictFields).toEqual(['notes', 'measureStatus']);
     });
 
+    it('should return no conflict when overlapping field values are identical (same-value suppression)', async () => {
+      const clientVersion = new Date('2026-02-10T11:00:00.000Z');
+      const serverVersion = new Date('2026-02-10T12:00:00.000Z');
+      // Server has notes: null (the default)
+      const measure = createMockMeasure({ updatedAt: serverVersion, notes: null });
+      mockFindUnique.mockResolvedValue(measure);
+
+      mockAuditLogFindFirst.mockResolvedValue({
+        userId: 2,
+        userEmail: 'other@clinic.com',
+        user: { displayName: 'Other User', email: 'other@clinic.com' },
+      });
+      mockAuditLogFindMany.mockResolvedValue([
+        { changes: { fields: [{ field: 'notes' }] } },
+      ]);
+
+      // Client sends the same value (null) with a stale expectedVersion
+      const result = await checkVersion(
+        1,
+        clientVersion.toISOString(),
+        ['notes'],
+        { notes: null },
+      );
+
+      // Same value → no real conflict
+      expect(result.hasConflict).toBe(false);
+      expect(result.conflictFields).toEqual([]);
+    });
+
+    it('should only report fields with different values when some overlap same and some differ', async () => {
+      const clientVersion = new Date('2026-02-10T11:00:00.000Z');
+      const serverVersion = new Date('2026-02-10T12:00:00.000Z');
+      const measure = createMockMeasure({
+        updatedAt: serverVersion,
+        notes: 'Same note',
+        measureStatus: 'Completed',
+      });
+      mockFindUnique.mockResolvedValue(measure);
+
+      mockAuditLogFindFirst.mockResolvedValue({
+        userId: 2,
+        userEmail: 'other@clinic.com',
+        user: { displayName: 'Other User', email: 'other@clinic.com' },
+      });
+      mockAuditLogFindMany.mockResolvedValue([
+        { changes: { fields: [{ field: 'notes' }, { field: 'measureStatus' }] } },
+      ]);
+
+      // Client sends notes (same value) and measureStatus (different value)
+      const result = await checkVersion(
+        1,
+        clientVersion.toISOString(),
+        ['notes', 'measureStatus'],
+        { notes: 'Same note', measureStatus: 'Pending' },
+      );
+
+      // Only measureStatus should be a real conflict
+      expect(result.hasConflict).toBe(true);
+      expect(result.conflictFields).toEqual(['measureStatus']);
+    });
+
+    it('should treat null and empty string as equivalent (null/empty normalization)', async () => {
+      const clientVersion = new Date('2026-02-10T11:00:00.000Z');
+      const serverVersion = new Date('2026-02-10T12:00:00.000Z');
+      // Server has notes: null
+      const measure = createMockMeasure({ updatedAt: serverVersion, notes: null });
+      mockFindUnique.mockResolvedValue(measure);
+
+      mockAuditLogFindFirst.mockResolvedValue({
+        userId: 2,
+        userEmail: 'other@clinic.com',
+        user: { displayName: 'Other User', email: 'other@clinic.com' },
+      });
+      mockAuditLogFindMany.mockResolvedValue([
+        { changes: { fields: [{ field: 'notes' }] } },
+      ]);
+
+      // Client sends notes: '' (empty string) — should be treated as same as null
+      const result = await checkVersion(
+        1,
+        clientVersion.toISOString(),
+        ['notes'],
+        { notes: '' },
+      );
+
+      expect(result.hasConflict).toBe(false);
+      expect(result.conflictFields).toEqual([]);
+    });
+
+    it('should fall back to field-name-only conflict when incomingValues is omitted (backward compat)', async () => {
+      const clientVersion = new Date('2026-02-10T11:00:00.000Z');
+      const serverVersion = new Date('2026-02-10T12:00:00.000Z');
+      const measure = createMockMeasure({ updatedAt: serverVersion });
+      mockFindUnique.mockResolvedValue(measure);
+
+      mockAuditLogFindFirst.mockResolvedValue({
+        userId: 2,
+        userEmail: 'other@clinic.com',
+        user: { displayName: 'Other User', email: 'other@clinic.com' },
+      });
+      mockAuditLogFindMany.mockResolvedValue([
+        { changes: { fields: [{ field: 'notes' }] } },
+      ]);
+
+      // No incomingValues parameter — backward compatibility mode
+      const result = await checkVersion(
+        1,
+        clientVersion.toISOString(),
+        ['notes'],
+        // incomingValues omitted
+      );
+
+      // Should still report conflict (can't compare values without incomingValues)
+      expect(result.hasConflict).toBe(true);
+      expect(result.conflictFields).toEqual(['notes']);
+      expect(result.serverRow).not.toBeNull();
+    });
+
     it('should handle audit log query failures gracefully', async () => {
       const clientVersion = new Date('2026-02-10T11:00:00.000Z');
       const serverVersion = new Date('2026-02-10T12:00:00.000Z');

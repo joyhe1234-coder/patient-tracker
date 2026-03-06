@@ -88,6 +88,7 @@ export async function checkVersion(
   measureId: number,
   expectedVersion: string,
   incomingChangedFields: string[],
+  incomingValues?: Record<string, unknown>,
 ): Promise<ConflictResult> {
   // Fetch the current row from the database
   const currentRow = await prisma.patientMeasure.findUnique({
@@ -175,7 +176,36 @@ export async function checkVersion(
     return { hasConflict: false, conflictFields: [], serverRow: null, changedBy: null };
   }
 
-  // Overlap found — conflict
+  // Overlap found — but if the values are identical, no real conflict.
+  // Compare the incoming values against the server's current values.
+  if (incomingValues) {
+    const serverPayload = toGridRowPayload(currentRow);
+    const realConflicts = overlappingFields.filter((field) => {
+      const incoming = incomingValues[field];
+      const server = serverPayload[field as keyof GridRowPayload];
+      // Normalize: treat null, undefined, and '' as equivalent
+      const normalizeValue = (v: unknown): string => {
+        if (v === null || v === undefined || v === '') return '';
+        return String(v);
+      };
+      return normalizeValue(incoming) !== normalizeValue(server);
+    });
+
+    if (realConflicts.length === 0) {
+      // All overlapping fields have the same value — no real conflict, auto-merge
+      return { hasConflict: false, conflictFields: [], serverRow: null, changedBy: null };
+    }
+
+    // Only report fields with actual value differences
+    return {
+      hasConflict: true,
+      conflictFields: realConflicts,
+      serverRow: serverPayload,
+      changedBy,
+    };
+  }
+
+  // No incoming values provided — fall back to field-name-only conflict
   return {
     hasConflict: true,
     conflictFields: overlappingFields,
