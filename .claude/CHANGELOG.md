@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [4.15.5] - 2026-03-06
+
+### Fixed
+- **Version check false conflicts** — Same-value conflict suppression: when two users edit the same field to the same value, no conflict is reported. Includes null/empty-string normalization (`null`, `undefined`, `""` treated as equivalent). Backward-compatible when `incomingValues` is omitted.
+- **Socket room-join race condition** — `useSocket` now always joins the physician room on connect (not just on reconnect), fixing a race where the room-join `useEffect` fires before the socket is actually connected.
+- **JWT algorithm pinning** — `authService` now explicitly uses `HS256` for both `sign()` and `verify()`, preventing algorithm confusion attacks.
+- **Conflict field mapping** — `useGridCellUpdate` updated to handle backend returning `string[]` (field names) instead of objects; derives server/client values from `serverRow` and local grid data.
+- **Playwright test fixes** — Updated `main-page` POM for separate Last/First name fields; fixed parallel-editing specs to use valid test user account.
+
+### Tests
+- Backend (Jest): 1,628 tests passing (59 suites) — +4 from v4.15.4
+- Frontend (Vitest): 1,551 tests passing (62 suites) — +2 from v4.15.4
+
+---
+
 ## [4.15.4] - 2026-03-04
 
 ### Added

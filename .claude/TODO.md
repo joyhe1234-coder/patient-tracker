@@ -6,6 +6,14 @@ This document tracks planned features and enhancements for future development.
 
 ## Recently Completed
 
+### Bug Fixes & Security — v4.15.5 (Complete, Mar 6 2026)
+- [x] Version check same-value conflict suppression (null/empty normalization)
+- [x] Socket room-join race condition fix (join on connect, not just reconnect)
+- [x] JWT algorithm pinning to HS256 (sign + verify)
+- [x] useGridCellUpdate conflict field mapping (string[] handling)
+- [x] Playwright POM + parallel-editing test user fixes
+- Backend (Jest): 1,628 tests (+4), Frontend (Vitest): 1,551 tests (+2)
+
 ### Test Gap Remediation — v4.15.2 (Complete, Mar 3 2026)
 - [x] health.routes.test.ts — 3 health endpoint tests (200 connected, 503 disconnected, response fields)
 - [x] auditHandlers.test.ts — 7 audit log handler tests (pagination, filtering, display name fallback, errors)
@@ -676,6 +684,7 @@ Replace fixed/exact-match column mapping with fuzzy matching + admin-managed UI:
   - [x] Fallback message when SMTP not configured
   - [x] GET /api/auth/smtp-status endpoint for frontend check
 - [ ] Session timeout handling (advanced feature)
+- [ ] Same-account concurrent login handling — how is it handled when a user logs into the same account from two different computers? (e.g., session invalidation, multi-session support, data conflict resolution)
 - [ ] Unassigned patients page (advanced feature)
 - [ ] Import page physician selector for STAFF (advanced feature)
 

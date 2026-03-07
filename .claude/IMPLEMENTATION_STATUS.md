@@ -29,9 +29,9 @@ This document tracks the implementation progress of the Patient Quality Measure 
 - Compound indexes migration PascalCase → snake_case table names
 - Empty config tables in Docker (seedDev.ts vs seed.ts gap identified)
 
-**Test Coverage (as of v4.15.3):**
-- Layer 1 (Backend Jest): 1,624 tests passing (59 suites) — +25 from v4.15.1
-- Layer 2 (Frontend Vitest): 1,549 tests passing (62 suites) — +93 from v4.15.1
+**Test Coverage (as of v4.15.5):**
+- Layer 1 (Backend Jest): 1,628 tests passing (59 suites) — +4 from v4.15.4
+- Layer 2 (Frontend Vitest): 1,551 tests passing (62 suites) — +2 from v4.15.4
 - Layer 3 (Playwright E2E): 13+ import-all-roles tests + 5 visual regression + 5 accessibility + 16 admin-management + 4 password-flows + 3 import-reassignment + 13 auth-edge-cases + 5 assignment-broadcast + bulk-operations
 - Layer 4 (Cypress E2E): ~600+ tests (expanded: cascading-dropdowns, row-color-comprehensive, sorting-filtering, time-interval, compact-filter-bar, filter-roles-combined, row-color-roles, role-access-control, patient-name-search, multi-select-filter, insurance-group-filter, grid-editing-roles, bulk-operations)
 - Visual test plan v2.1: 427 test cases documented
