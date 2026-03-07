@@ -54,6 +54,7 @@ export function generateToken(user: Pick<User, 'id' | 'email' | 'roles'>): strin
   };
 
   return jwt.sign(payload, config.jwtSecret, {
+    algorithm: 'HS256',
     expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
   });
 }
@@ -63,7 +64,7 @@ export function generateToken(user: Pick<User, 'id' | 'email' | 'roles'>): strin
  */
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
+    const decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as JwtPayload;
     return decoded;
   } catch {
     return null;

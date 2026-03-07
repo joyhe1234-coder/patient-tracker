@@ -231,11 +231,12 @@ export class MainPage {
   }
 
   async addTestRow(name: string = `Test ${Date.now()}`): Promise<void> {
-    // Add a new row using the Add Row modal
+    // Add a new row using the Add Row modal (separate Last Name / First Name fields)
     await this.addRowButton.click();
-    await this.page.waitForSelector('input[placeholder="Enter patient name"]');
+    await this.page.waitForSelector('input[placeholder="Last name"]', { timeout: 10000 });
 
-    await this.page.fill('input[placeholder="Enter patient name"]', name);
+    await this.page.fill('input[placeholder="Last name"]', name);
+    await this.page.fill('input[placeholder="First name"]', 'Test');
     await this.page.fill('input[type="date"]', '1990-01-01');
 
     // Submit using modal's Add Row button

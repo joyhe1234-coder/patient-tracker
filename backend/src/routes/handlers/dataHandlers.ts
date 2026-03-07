@@ -317,6 +317,7 @@ export async function updatePatientMeasure(req: Request, res: Response, next: Ne
         parseInt(id, 10),
         expectedVersion,
         incomingChangedFields,
+        updateData,
       );
 
       if (conflict.hasConflict) {

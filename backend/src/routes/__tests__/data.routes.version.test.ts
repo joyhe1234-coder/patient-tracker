@@ -226,6 +226,7 @@ describe('data routes - version check', () => {
       1,
       '2026-02-10T12:00:00.000Z',
       ['notes'],
+      { notes: 'Updated notes', expectedVersion: '2026-02-10T12:00:00.000Z' },
     );
   });
 

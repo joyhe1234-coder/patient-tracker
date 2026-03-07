@@ -9,7 +9,7 @@ import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { MainPage } from './pages/main-page';
 
 const USER_A = { email: 'ko037291@gmail.com', password: 'welcome100' };
-const USER_B = { email: 'staff1@clinic.com', password: 'welcome100' };
+const USER_B = { email: 'joyhe1234@gmail.com', password: 'welcome100' };
 
 async function loginAndNavigate(page: Page, email: string, password: string): Promise<MainPage> {
   await page.goto('/login');

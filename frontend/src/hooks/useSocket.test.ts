@@ -299,13 +299,15 @@ describe('useSocket', () => {
     expect(mockOptions.onDataRefresh).toHaveBeenCalled();
   });
 
-  it('should NOT re-join room on initial connection (only on reconnection)', () => {
+  it('should join room on initial connection (fixes race condition where useEffect fires before socket connects)', () => {
     renderHook(() => useSocket(mockOptions));
 
     const handlers = mockConnect.mock.calls[0][1];
 
-    // Initial join happens via the selectedPhysicianId useEffect, not onConnectionChange
-    expect(mockJoinRoom).toHaveBeenCalledTimes(1);
+    // Initial join attempt happens via the selectedPhysicianId useEffect,
+    // but the socket may not be connected yet so joinRoom() silently skips.
+    // The onConnectionChange('connected') callback must also join the room
+    // to handle this race condition.
     mockJoinRoom.mockClear();
     mockOptions.onDataRefresh.mockClear();
 
@@ -314,8 +316,9 @@ describe('useSocket', () => {
       handlers.onConnectionChange('connected');
     });
 
-    // Should NOT double-join on first connect — only the useEffect join counts
-    expect(mockJoinRoom).not.toHaveBeenCalled();
+    // Should join on first connect to handle the race condition
+    expect(mockJoinRoom).toHaveBeenCalledWith(5);
+    // Should NOT trigger data refresh on initial connect (only on reconnection)
     expect(mockOptions.onDataRefresh).not.toHaveBeenCalled();
   });
 
